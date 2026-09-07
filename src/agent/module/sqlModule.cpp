@@ -62,7 +62,7 @@ QList<SqlModule::Conversation> SqlModule::conversationsGet() const {
     return conversations;
 }
 
-QPair<SqlModule::Conversation, QList<SqlModule::Message>> SqlModule::conversationGet(const QString &id) const {
+QPair<SqlModule::Conversation, QList<SqlModule::Message> > SqlModule::conversationGet(const QString &id) const {
     auto database = QSqlDatabase::database(m_connectionName, false);
     if (!database.isOpen()) return {};
 
@@ -394,8 +394,21 @@ void SqlModule::conversationAppend(const QString &conversationId, const QList<Me
 }
 
 void SqlModule::conversationRollback(const QString &conversationId, const QString &turnId) const {
-    const auto database = QSqlDatabase::database(m_connectionName, false);
-    if (!database.isOpen()) return;
+    const auto [conversation, messages] = conversationGet(conversationId);
+    const auto resetCompaction = conversation.compactedTurnId == turnId;
+    qint64 contextTokens{};
+    for (auto i = messages.size() - 1; i >= 0; --i) {
+        const auto &message = messages.at(i);
+        if (message.turnId == turnId) continue;
+        if (message.turnId == conversation.compactedTurnId) break;
+        const auto usage = message.usage.promptTokens + message.usage.completionTokens;
+        if (usage == 0) continue;
+        contextTokens = usage;
+        break;
+    }
+
+    auto database = QSqlDatabase::database(m_connectionName, false);
+    if (!database.isOpen() || !database.transaction()) return;
 
     QSqlQuery query(database);
     query.prepare(R"(
@@ -404,8 +417,28 @@ void SqlModule::conversationRollback(const QString &conversationId, const QStrin
     )");
     query.bindValue(":conversationId", conversationId);
     query.bindValue(":turnId", turnId);
-    if (query.exec()) return;
-    qDebug() << "agent database turn delete failed:" << query.lastError().text();
+    if (!query.exec()) {
+        qDebug() << "agent database turn delete failed:" << query.lastError().text();
+        database.rollback();
+        return;
+    }
+
+    query.prepare(R"(
+        UPDATE conversations
+        SET summary = :summary, compacted_turn_id = :compactedTurnId, context_tokens = :contextTokens
+        WHERE id = :conversationId
+    )");
+    query.bindValue(":conversationId", conversationId);
+    query.bindValue(":summary", resetCompaction ? QString{} : conversation.summary);
+    query.bindValue(":compactedTurnId", resetCompaction ? QString{} : conversation.compactedTurnId);
+    query.bindValue(":contextTokens", contextTokens);
+    if (!query.exec()) {
+        qDebug() << "agent database conversation rollback failed:" << query.lastError().text();
+        database.rollback();
+        return;
+    }
+
+    if (!database.commit()) database.rollback();
 }
 
 // private
