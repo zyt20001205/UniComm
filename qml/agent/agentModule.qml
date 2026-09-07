@@ -2168,7 +2168,7 @@ Item {
     function turnCreate(turnId: string, startedAt: double): void {
         planCard.explanation = ""
         planCard.steps = []
-        planCard.minimized = true
+        planCard.minimized = false
         changeCard.changes = ({})
         changeCard.minimized = true
         const obj = turnComponent.createObject(chatColumn, {
@@ -2186,6 +2186,8 @@ Item {
         }
         turn.finishedAt = finishedAt
         turn.collapsed = true
+        planCard.minimized = true
+        changeCard.minimized = false
     }
 
     function thinkingStart(turnId: string): void {
