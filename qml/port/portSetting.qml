@@ -39,7 +39,7 @@ Item {
                     id: tumbler
                     currentIndex: rootItem.portType
                     delegate: delegateComponent
-                    model: [qsTr("Serial Port"), qsTr("Visa"), qsTr("Tcp Client"), qsTr("Tcp Server"), qsTr("Ssl Client"), qsTr("Ssl Server"), qsTr("WebSocket Client"), qsTr("WebSocket Server"), qsTr("Udp Socket"), qsTr("Video Stream"), qsTr("Bluetooth LE")]
+                    model: [qsTr("Serial Port"), qsTr("Vision"), qsTr("Tcp Client"), qsTr("Tcp Server"), qsTr("Ssl Client"), qsTr("Ssl Server"), qsTr("WebSocket Client"), qsTr("WebSocket Server"), qsTr("Udp Socket"), qsTr("Bluetooth LE")]
                     wrap: false
                     Layout.fillWidth: true; Layout.fillHeight: true
 
@@ -77,7 +77,7 @@ Item {
                                 case 0:
                                     return "qrc:/icon/serialPort.svg"
                                 case 1:
-                                    return ""
+                                    return "qrc:/icon/video.svg"
                                 case 2:
                                     return "qrc:/icon/tcpClient.svg"
                                 case 3:
@@ -93,8 +93,6 @@ Item {
                                 case 8:
                                     return "qrc:/icon/udpSocket.svg"
                                 case 9:
-                                    return "qrc:/icon/video.svg"
-                                case 10:
                                     return ""
                                 default:
                                     return ""
@@ -114,7 +112,7 @@ Item {
                                 case 0:
                                     return qsTr("A serial communication interface through which information transfers in or out sequentially one bit at a time.")
                                 case 1:
-                                    return qsTr("A widely used application programming interface (API) in the test and measurement (T&M) industry for communicating with instruments from a computer.")
+                                    return qsTr("A vision input that captures frames from a screen or camera for image processing and recognition.")
                                 case 2:
                                     return qsTr("A device that initiates a connection with a TCP server to send and receive reliable, ordered data over a network.")
                                 case 3:
@@ -130,8 +128,6 @@ Item {
                                 case 8:
                                     return qsTr("A device that uses the User Datagram Protocol to send independent, connectionless messages (datagrams) over an IP network.")
                                 case 9:
-                                    return qsTr("Video stream for image processing and OCR text recognition.")
-                                case 10:
                                     return qsTr("A Bluetooth Low Energy central that exchanges data through GATT characteristics.")
                                 default:
                                     return ""
@@ -269,7 +265,7 @@ Item {
                         }
                     }
 
-                    // visa
+                    // vision
                     GridLayout {
                         columns: 2
                         columnSpacing: 20; rowSpacing: 20
@@ -281,9 +277,9 @@ Item {
                         }
 
                         ComboBox {
-                            id: visaNameComboBox
+                            id: visionNameComboBox
                             font.pointSize: 12
-                            model: visaStandardItemModel
+                            model: visionStandardItemModel
                             textRole: "display"
                             valueRole: "whatsThis"
                             Layout.fillWidth: true
@@ -748,27 +744,6 @@ Item {
                         }
                     }
 
-                    // video stream
-                    GridLayout {
-                        columns: 2
-                        columnSpacing: 20; rowSpacing: 20
-
-                        Label {
-                            text: qsTr("Port Name")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: videoStreamNameComboBox
-                            font.pointSize: 12
-                            model: videoStreamStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
-                            Layout.fillWidth: true
-                        }
-                    }
-
                     // bluetooth le
                     GridLayout {
                         columns: 2
@@ -961,13 +936,7 @@ Item {
 
             // port format
             StackLayout {
-                currentIndex: {
-                    if ([0, 1, 2, 3, 4, 5, 6, 7, 8, 10].includes(rootItem.portType)) {
-                        return 0
-                    } else {
-                        return 1
-                    }
-                }
+                currentIndex: rootItem.portType === 1 ? 1 : 0
                 Layout.fillWidth: true; Layout.fillHeight: true
 
                 // format
@@ -2217,11 +2186,12 @@ Item {
                             }
                                 break
                             case 1: {
-                                if (!visaNameComboBox.currentText) {
+                                if (!visionNameComboBox.currentText) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
                                     return
                                 }
+                                portSetting.visionCapture()
                             }
                                 break
                             case 2: {
@@ -2339,10 +2309,6 @@ Item {
                             }
                                 break
                             case 9: {
-                                portSetting.videoCapture()
-                            }
-                                break
-                            case 10: {
                                 if (!bluetoothNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2836,8 +2802,8 @@ Item {
             "serialPortDataBitsComboBox": serialPortDataBitsComboBox,
             "serialPortParityComboBox": serialPortParityComboBox,
             "serialPortStopBitsComboBox": serialPortStopBitsComboBox,
-            // visa
-            "visaNameComboBox": visaNameComboBox,
+            // vision
+            "visionNameComboBox": visionNameComboBox,
             // tcp client
             "tcpClientNameTextField": tcpClientNameTextField,
             "tcpClientRemoteHostTextField": tcpClientRemoteHostTextField,
@@ -2874,8 +2840,6 @@ Item {
             "udpSocketLocalPortSpinBox": udpSocketLocalPortSpinBox,
             "udpSocketRemoteHostTextField": udpSocketRemoteHostTextField,
             "udpSocketRemotePortSpinBox": udpSocketRemotePortSpinBox,
-            // video stream
-            "videoStreamNameComboBox": videoStreamNameComboBox,
             // bluetooth le
             "bluetoothNameTextField": bluetoothNameTextField,
             "bluetoothAdapterComboBox": bluetoothAdapterComboBox,

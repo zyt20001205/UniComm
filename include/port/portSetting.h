@@ -46,7 +46,7 @@ public:
 
     Q_INVOKABLE void bluetoothServiceSelect(const QString &serviceUuid);
 
-    Q_INVOKABLE void videoCapture();
+    Q_INVOKABLE void visionCapture();
 
     Q_INVOKABLE void previewLoad(int index) const;
 
@@ -70,11 +70,9 @@ signals:
 private:
     void serialPortRefresh() const;
 
-    void visaRefresh() const;
-
     void localHostRefresh() const;
 
-    void videoStreamRefresh() const;
+    void visionRefresh() const;
 
     void bluetoothAdapterRefresh() const;
 
@@ -92,9 +90,8 @@ private:
 
     QQuickView *m_window{};
     QStandardItemModel *m_serialPortStandardItemModel{};
-    QStandardItemModel *m_visaStandardItemModel{};
     QStandardItemModel *m_localHostStandardItemModel{};
-    QStandardItemModel *m_videoStreamStandardItemModel{};
+    QStandardItemModel *m_visionStandardItemModel{};
     QStandardItemModel *m_bluetoothAdapterStandardItemModel{};
     QStandardItemModel *m_bluetoothPeripheralStandardItemModel{};
     QStandardItemModel *m_bluetoothServiceStandardItemModel{};
@@ -120,8 +117,8 @@ private:
     QObject *m_serialPortDataBitsComboBox{};
     QObject *m_serialPortParityComboBox{};
     QObject *m_serialPortStopBitsComboBox{};
-    // visa
-    QObject *m_visaNameComboBox{};
+    // vision
+    QObject *m_visionNameComboBox{};
     // tcp client
     QObject *m_tcpClientNameTextField{};
     QObject *m_tcpClientRemoteHostTextField{};
@@ -158,8 +155,6 @@ private:
     QObject *m_udpSocketLocalPortSpinBox{};
     QObject *m_udpSocketRemoteHostTextField{};
     QObject *m_udpSocketRemotePortSpinBox{};
-    // video stream
-    QObject *m_videoStreamNameComboBox{};
     // bluetooth le
     QObject *m_bluetoothNameTextField{};
     QObject *m_bluetoothAdapterComboBox{};

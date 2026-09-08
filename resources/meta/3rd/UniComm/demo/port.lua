@@ -1,6 +1,6 @@
--- A port can be configured in the UI or created by Lua. The three configurations
--- currently supported by Port.create are shown below. Copy one block, replace its
--- connection fields, then operate on the returned port instance.
+-- A port can be configured in the UI or created by Lua. The supported
+-- configurations are shown below. Copy one block, replace its connection fields,
+-- then operate on the returned port instance.
 
 -- Serial port:
 -- local serial = Port.create({
@@ -10,6 +10,16 @@
 --     logFormat = "utf-8",
 -- })
 -- serial:open()
+
+-- Vision input from an available screen or camera. Programmatic creation does
+-- not add ROI, pipeline, or recognition processing, so it can export raw frames.
+-- local vision = Port.create({
+--     portType = Port.Type.Vision,
+--     portName = "CG345UK",
+-- })
+-- vision:open()
+-- vision:write([[raw "capture/raw.png"]])
+-- vision:close()
 
 -- TCP client:
 -- local tcp = Port.create({
@@ -53,17 +63,16 @@
 -- })
 -- sslServer:open()
 
--- Video stream export commands use 1-based ROI indexes. Relative output paths
--- are resolved from the current workspace.
--- local video = Port.get("CG345UK")
--- video:open()
--- video:write([[raw "capture/raw.png"]])
--- video:write([[roi 1 "capture/roi-1.png"]])
--- video:write([[processed 1 "capture/processed-1.png"]])
--- video:write([[bundle "capture/bundle"]])
--- local results = video:read(0, 20000)
+-- Vision ports configured in the UI can also export and read processed ROIs.
+-- ROI indexes are 1-based and relative paths resolve from the current workspace.
+-- local vision = Port.get("CG345UK")
+-- vision:open()
+-- vision:write([[roi 1 "capture/roi-1.png"]])
+-- vision:write([[processed 1 "capture/processed-1.png"]])
+-- vision:write([[bundle "capture/bundle"]])
+-- local results = vision:read(0, 20000)
 -- print(results)
--- video:close()
+-- vision:close()
 
 -- Configure an echo-capable stream port named "Echo" before running this demo.
 local name = "Echo"

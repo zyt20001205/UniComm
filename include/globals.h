@@ -89,7 +89,7 @@ namespace ToastLevel {
 namespace PortType {
     enum {
         SerialPort,
-        Visa,
+        Vision,
         TcpClient,
         TcpServer,
         SslClient,
@@ -97,8 +97,8 @@ namespace PortType {
         WebSocketClient,
         WebSocketServer,
         UdpSocket,
-        VideoStream,
-        BluetoothLe
+        BluetoothLe,
+        Visa
     };
 }
 

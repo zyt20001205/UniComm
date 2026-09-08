@@ -22,11 +22,10 @@
 #include "port/tcpServer.h"
 #include "port/sslClient.h"
 #include "port/sslServer.h"
+#include "port/udpSocket.h"
+#include "port/vision.h"
 #include "port/webSocketClient.h"
 #include "port/webSocketServer.h"
-#include "port/udpSocket.h"
-#include "port/videoStream.h"
-#include "port/visa.h"
 
 // public
 PortModule::PortModule()
@@ -117,6 +116,27 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
+        case PortType::Vision: {
+            auto devices = DeviceDiscovery::screens();
+            devices.append(DeviceDiscovery::cameras());
+            devices.removeDuplicates();
+            portConfig = {
+                {"type", "object"},
+                {"required", QJsonArray{"portName"}},
+                {
+                    "properties", QJsonObject{
+                        {
+                            "portName", QJsonObject{
+                                {"type", "string"},
+                                {"enum", QJsonArray::fromStringList(devices)},
+                                {"description", "The exact name of an available screen or camera."}
+                            }
+                        }
                     }
                 }
             };
@@ -214,6 +234,12 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (!QJsonArray{5, 6, 7, 8}.contains(portConfig.value("dataBits"))) return "Port check failed: invalid dataBits.";
         if (!QJsonArray{0, 2, 3, 4, 5}.contains(portConfig.value("parity"))) return "Port check failed: invalid parity.";
         if (!QJsonArray{1, 2, 3}.contains(portConfig.value("stopBits"))) return "Port check failed: invalid stopBits.";
+    }
+
+    if (portType == PortType::Vision) {
+        auto devices = DeviceDiscovery::screens();
+        devices.append(DeviceDiscovery::cameras());
+        if (!devices.contains(portName)) return "Port check failed: vision source is unavailable.";
     }
 
     if (portType == PortType::TcpClient || portType == PortType::SslClient) {
@@ -437,8 +463,8 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
             port = new SerialPort(portConfig);
             break;
         }
-        case PortType::Visa: {
-            port = new Visa(portConfig);
+        case PortType::Vision: {
+            port = new Vision(portConfig);
             break;
         }
         case PortType::TcpClient: {
@@ -467,10 +493,6 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
         }
         case PortType::UdpSocket: {
             port = new UdpSocket(portConfig);
-            break;
-        }
-        case PortType::VideoStream: {
-            port = new VideoStream(portConfig);
             break;
         }
         case PortType::BluetoothLe: {

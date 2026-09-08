@@ -13,11 +13,8 @@
 #include <QQuickView>
 #include <QQuickWidget>
 #include <QScreenCapture>
-#include <QStringList>
 #include <QThread>
-#include <QVBoxLayout>
 #include <QVideoSink>
-#include <visa.h>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -29,9 +26,8 @@ PortSetting::PortSetting(QWidget *parent)
     : QObject(parent),
       m_window(new QQuickView()),
       m_serialPortStandardItemModel(new QStandardItemModel(this)),
-      m_visaStandardItemModel(new QStandardItemModel(this)),
       m_localHostStandardItemModel(new QStandardItemModel(this)),
-      m_videoStreamStandardItemModel(new QStandardItemModel(this)),
+      m_visionStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothAdapterStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothPeripheralStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothServiceStandardItemModel(new QStandardItemModel(this)),
@@ -68,9 +64,8 @@ void PortSetting::propertySet(const QVariantHash &objects) {
     m_window->rootContext()->setContextProperty("global", g_globalManager);
     m_window->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
     m_window->rootContext()->setContextProperty("serialPortStandardItemModel", m_serialPortStandardItemModel);
-    m_window->rootContext()->setContextProperty("visaStandardItemModel", m_visaStandardItemModel);
     m_window->rootContext()->setContextProperty("localHostStandardItemModel", m_localHostStandardItemModel);
-    m_window->rootContext()->setContextProperty("videoStreamStandardItemModel", m_videoStreamStandardItemModel);
+    m_window->rootContext()->setContextProperty("visionStandardItemModel", m_visionStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothAdapterStandardItemModel", m_bluetoothAdapterStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothPeripheralStandardItemModel", m_bluetoothPeripheralStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothServiceStandardItemModel", m_bluetoothServiceStandardItemModel);
@@ -92,8 +87,8 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_serialPortDataBitsComboBox = qvariant_cast<QObject *>(objects["serialPortDataBitsComboBox"]);
     m_serialPortParityComboBox = qvariant_cast<QObject *>(objects["serialPortParityComboBox"]);
     m_serialPortStopBitsComboBox = qvariant_cast<QObject *>(objects["serialPortStopBitsComboBox"]);
-    // visa
-    m_visaNameComboBox = qvariant_cast<QObject *>(objects["visaNameComboBox"]);
+    // vision
+    m_visionNameComboBox = qvariant_cast<QObject *>(objects["visionNameComboBox"]);
     // tcp client
     m_tcpClientNameTextField = qvariant_cast<QObject *>(objects["tcpClientNameTextField"]);
     m_tcpClientRemoteHostTextField = qvariant_cast<QObject *>(objects["tcpClientRemoteHostTextField"]);
@@ -130,8 +125,6 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_udpSocketLocalPortSpinBox = qvariant_cast<QObject *>(objects["udpSocketLocalPortSpinBox"]);
     m_udpSocketRemoteHostTextField = qvariant_cast<QObject *>(objects["udpSocketRemoteHostTextField"]);
     m_udpSocketRemotePortSpinBox = qvariant_cast<QObject *>(objects["udpSocketRemotePortSpinBox"]);
-    // video stream
-    m_videoStreamNameComboBox = qvariant_cast<QObject *>(objects["videoStreamNameComboBox"]);
     // bluetooth le
     m_bluetoothNameTextField = qvariant_cast<QObject *>(objects["bluetoothNameTextField"]);
     m_bluetoothAdapterComboBox = qvariant_cast<QObject *>(objects["bluetoothAdapterComboBox"]);
@@ -156,9 +149,8 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
 
 void PortSetting::portSettingImport(const QJsonObject &portConfig) {
     serialPortRefresh();
-    visaRefresh();
     localHostRefresh();
-    videoStreamRefresh();
+    visionRefresh();
     m_bluetoothConfig = portConfig["portType"].toInt(-1) == PortType::BluetoothLe ? portConfig : QJsonObject{};
     m_bluetoothServices.clear();
     m_bluetoothAdapterStandardItemModel->clear();
@@ -180,9 +172,9 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_serialPortDataBitsComboBox->setProperty("currentValue", 8);
         m_serialPortParityComboBox->setProperty("currentValue", 0);
         m_serialPortStopBitsComboBox->setProperty("currentValue", 1);
-        // visa
-        if (m_visaNameComboBox->property("count").toInt()) {
-            m_visaNameComboBox->setProperty("currentIndex", 0);
+        // vision
+        if (m_visionNameComboBox->property("count").toInt()) {
+            m_visionNameComboBox->setProperty("currentIndex", 0);
         }
         // tcp client
         m_tcpClientNameTextField->setProperty("text", "");
@@ -228,10 +220,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_udpSocketLocalPortSpinBox->setProperty("value", 0);
         m_udpSocketRemoteHostTextField->setProperty("text", "");
         m_udpSocketRemotePortSpinBox->setProperty("value", 0);
-        // video stream
-        if (m_videoStreamNameComboBox->property("count").toInt()) {
-            m_videoStreamNameComboBox->setProperty("currentIndex", 0);
-        }
         // bluetooth le
         m_bluetoothNameTextField->setProperty("text", "");
         m_bluetoothAdapterComboBox->setProperty("currentIndex", -1);
@@ -263,11 +251,27 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
             }
             break;
-            case PortType::Visa: {
-                m_visaNameComboBox->setProperty("currentValue", portConfig["portName"].toString());
-                m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
-                m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
-                m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
+            case PortType::Vision: {
+                m_visionNameComboBox->setProperty("currentValue", portConfig["portName"].toString());
+                const auto &recognition = portConfig["recognition"].toObject();
+                const auto mode = recognition["mode"].toInt();
+                m_recognitionComboBox->setProperty("currentIndex", mode);
+                switch (mode) {
+                    case Recognition::OCR: {
+                    }
+                        break;
+                    case Recognition::CornerShiTomasi: {
+                    }
+                        break;
+                    case Recognition::CornerHarris: {
+                    }
+                        break;
+                    case Recognition::TemplateMatch: {
+                        m_templateTextField->setProperty("text", recognition["template"].toString());
+                    }
+                        break;
+                    default: return;
+                }
             }
             break;
             case PortType::TcpClient: {
@@ -341,29 +345,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
             }
             break;
-            case PortType::VideoStream: {
-                m_videoStreamNameComboBox->setProperty("currentValue", portConfig["portName"].toString());
-                const auto &recognition = portConfig["recognition"].toObject();
-                const auto mode = recognition["mode"].toInt();
-                m_recognitionComboBox->setProperty("currentIndex", mode);
-                switch (mode) {
-                    case Recognition::OCR: {
-                    }
-                        break;
-                    case Recognition::CornerShiTomasi: {
-                    }
-                        break;
-                    case Recognition::CornerHarris: {
-                    }
-                        break;
-                    case Recognition::TemplateMatch: {
-                        m_templateTextField->setProperty("text", recognition["template"].toString());
-                    }
-                        break;
-                    default: return;
-                }
-            }
-            break;
             case PortType::BluetoothLe: {
                 const auto adapterName = portConfig["adapterName"].toString();
                 const auto adapterAddress = portConfig["adapterAddress"].toString();
@@ -432,14 +413,57 @@ void PortSetting::portSettingExport() {
             };
         }
         break;
-        case PortType::Visa: {
+        case PortType::Vision: {
+            if (m_screenCapture) {
+                m_mediaCaptureSession->setScreenCapture(nullptr);
+                m_screenCapture->stop();
+                m_screenCapture->deleteLater();
+                m_screenCapture = nullptr;
+            } else if (m_cameraCapture) {
+                m_mediaCaptureSession->setCamera(nullptr);
+                m_cameraCapture->stop();
+                m_cameraCapture->deleteLater();
+                m_cameraCapture = nullptr;
+            }
+            QJsonArray roiArray{};
+            for (int i = 0; i < m_roiModel->rowCount(); ++i) {
+                const QJsonArray roi = QJsonArray::fromVariantList(m_roiModel->item(i, 0)->data(Qt::WhatsThisRole).toList());
+                roiArray.append(roi);
+            }
+            QJsonArray pipelineArray{};
+            for (int i = 0; i < m_pipelineModel->rowCount(); ++i) {
+                const QJsonObject session = QJsonObject::fromVariantHash(m_pipelineModel->item(i, 0)->data(Qt::WhatsThisRole).toHash());
+                pipelineArray.append(session);
+            }
             portConfig = {
                 {"portType", portType},
-                {"portName", m_visaNameComboBox->property("currentValue").toString()},
-                {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
-                {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
-                {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
+                {"portName", m_visionNameComboBox->property("currentValue").toString()},
+                {"roi", roiArray},
+                {"pipeline", pipelineArray}
             };
+            // recognition
+            QJsonObject recognition{};
+            const auto mode = m_recognitionComboBox->property("currentIndex").toInt();
+            recognition["mode"] = mode;
+            switch (mode) {
+                case Recognition::OCR: {
+                }
+                    break;
+                case Recognition::CornerShiTomasi: {
+                }
+                    break;
+                case Recognition::CornerHarris: {
+                }
+                    break;
+                case Recognition::TemplateMatch: {
+                    const auto templateUrl = m_templateTextField->property("text").toString();
+                    if (templateUrl.isEmpty()) return;
+                    recognition["template"] = m_templateTextField->property("text").toString();
+                }
+                    break;
+                default: return;
+            }
+            portConfig["recognition"] = recognition;
         }
         break;
         case PortType::TcpClient: {
@@ -532,59 +556,6 @@ void PortSetting::portSettingExport() {
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
                 {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
             };
-        }
-        break;
-        case PortType::VideoStream: {
-            if (m_screenCapture) {
-                m_mediaCaptureSession->setScreenCapture(nullptr);
-                m_screenCapture->stop();
-                m_screenCapture->deleteLater();
-                m_screenCapture = nullptr;
-            } else if (m_cameraCapture) {
-                m_mediaCaptureSession->setCamera(nullptr);
-                m_cameraCapture->stop();
-                m_cameraCapture->deleteLater();
-                m_cameraCapture = nullptr;
-            }
-            QJsonArray roiArray{};
-            for (int i = 0; i < m_roiModel->rowCount(); ++i) {
-                const QJsonArray roi = QJsonArray::fromVariantList(m_roiModel->item(i, 0)->data(Qt::WhatsThisRole).toList());
-                roiArray.append(roi);
-            }
-            QJsonArray pipelineArray{};
-            for (int i = 0; i < m_pipelineModel->rowCount(); ++i) {
-                const QJsonObject session = QJsonObject::fromVariantHash(m_pipelineModel->item(i, 0)->data(Qt::WhatsThisRole).toHash());
-                pipelineArray.append(session);
-            }
-            portConfig = {
-                {"portType", portType},
-                {"portName", m_videoStreamNameComboBox->property("currentValue").toString()},
-                {"roi", roiArray},
-                {"pipeline", pipelineArray}
-            };
-            // recognition
-            QJsonObject recognition{};
-            const auto mode = m_recognitionComboBox->property("currentIndex").toInt();
-            recognition["mode"] = mode;
-            switch (mode) {
-                case Recognition::OCR: {
-                }
-                    break;
-                case Recognition::CornerShiTomasi: {
-                }
-                    break;
-                case Recognition::CornerHarris: {
-                }
-                    break;
-                case Recognition::TemplateMatch: {
-                    const auto templateUrl = m_templateTextField->property("text").toString();
-                    if (templateUrl.isEmpty()) return;
-                    recognition["template"] = m_templateTextField->property("text").toString();
-                }
-                    break;
-                default: return;
-            }
-            portConfig["recognition"] = recognition;
         }
         break;
         case PortType::BluetoothLe: {
@@ -688,7 +659,7 @@ void PortSetting::bluetoothServiceSelect(const QString &serviceUuid) {
     if (m_bluetoothRxCharacteristicComboBox->property("currentIndex").toInt() < 0 && m_bluetoothRxCharacteristicComboBox->property("count").toInt()) m_bluetoothRxCharacteristicComboBox->setProperty("currentIndex", 0);
 }
 
-void PortSetting::videoCapture() {
+void PortSetting::visionCapture() {
     m_window->resize(1600, 900);
     if (m_screenCapture) {
         m_mediaCaptureSession->setScreenCapture(nullptr);
@@ -701,7 +672,7 @@ void PortSetting::videoCapture() {
         m_cameraCapture->deleteLater();
         m_cameraCapture = nullptr;
     }
-    const auto &portName = m_videoStreamNameComboBox->property("currentValue").toString();
+    const auto &portName = m_visionNameComboBox->property("currentValue").toString();
     for (QScreen *screen: QGuiApplication::screens()) {
         if (portName == screen->name()) {
             m_screenCapture = new QScreenCapture(this);
@@ -828,43 +799,6 @@ void PortSetting::serialPortRefresh() const {
     }
 }
 
-void PortSetting::visaRefresh() const {
-    ViFindList findList;
-    ViUInt32 numInst;
-    ViChar portName[VI_FIND_BUFLEN];
-    // resource manager check
-    ViStatus status = viOpenDefaultRM(&g_rm);
-    if (status != VI_SUCCESS) {
-        qDebug() << "failed to start visa resource manager";
-        return;
-    }
-    // device check
-    status = viFindRsrc(g_rm, "?*INSTR", &findList, &numInst, portName);
-    if (status != VI_SUCCESS) {
-        qDebug() << "failed to find visa instruments";
-        viClose(g_rm);
-        return;
-    }
-    // standard item model construct
-    m_visaStandardItemModel->clear();
-    // first device
-    auto *firstItem = new QStandardItem(QString(portName)); // NOLINT
-    firstItem->setData(QString(portName), Qt::WhatsThisRole);
-    m_visaStandardItemModel->appendRow(firstItem);
-    // following device
-    for (ViUInt32 i = 1; i < numInst; i++) {
-        status = viFindNext(findList, portName);
-        if (status == VI_SUCCESS) {
-            auto *followingItem = new QStandardItem(QString(portName)); // NOLINT
-            followingItem->setData(QString(portName), Qt::WhatsThisRole);
-            m_visaStandardItemModel->appendRow(followingItem);
-        }
-    }
-    // free resource
-    viClose(findList);
-    viClose(g_rm);
-}
-
 void PortSetting::localHostRefresh() const {
     m_localHostStandardItemModel->clear();
     for (const QHostAddress &address: QHostInfo::fromName(QHostInfo::localHostName()).addresses()) {
@@ -884,17 +818,17 @@ void PortSetting::localHostRefresh() const {
     }
 }
 
-void PortSetting::videoStreamRefresh() const {
-    m_videoStreamStandardItemModel->clear();
+void PortSetting::visionRefresh() const {
+    m_visionStandardItemModel->clear();
     for (const auto &portName: DeviceDiscovery::screens()) {
         auto *item = new QStandardItem(portName); // NOLINT
         item->setData(portName, Qt::WhatsThisRole);
-        m_videoStreamStandardItemModel->appendRow(item);
+        m_visionStandardItemModel->appendRow(item);
     }
     for (const auto &portName: DeviceDiscovery::cameras()) {
         auto *item = new QStandardItem(portName); // NOLINT
         item->setData(portName, Qt::WhatsThisRole);
-        m_videoStreamStandardItemModel->appendRow(item);
+        m_visionStandardItemModel->appendRow(item);
     }
 }
 

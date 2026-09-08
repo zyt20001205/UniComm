@@ -1,5 +1,5 @@
-#ifndef UNICOMM_VIDEOSTREAM_H
-#define UNICOMM_VIDEOSTREAM_H
+#ifndef UNICOMM_VISION_H
+#define UNICOMM_VISION_H
 
 #include "port/basePort.h"
 #include "port/module/imageProcess.h"
@@ -11,13 +11,13 @@ class QMediaCaptureSession;
 class QScreenCapture;
 class QVideoSink;
 
-class VideoStream final : public BasePort {
+class Vision final : public BasePort {
     Q_OBJECT
 
 public:
-    explicit VideoStream(const QJsonObject &portConfig, QObject *parent = nullptr);
+    explicit Vision(const QJsonObject &portConfig, QObject *parent = nullptr);
 
-    ~VideoStream() override;
+    ~Vision() override;
 
     [[nodiscard]] int type() override;
 
@@ -47,4 +47,4 @@ private:
     ImageProcess m_imageProcess{};
 };
 
-#endif //UNICOMM_VIDEOSTREAM_H
+#endif //UNICOMM_VISION_H

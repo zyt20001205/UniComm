@@ -1,4 +1,4 @@
-#include "port/videoStream.h"
+#include "port/vision.h"
 
 #include <QCamera>
 #include <QDir>
@@ -17,25 +17,25 @@
 #include "globals.h"
 
 // public
-VideoStream::VideoStream(const QJsonObject &portConfig, QObject *parent)
+Vision::Vision(const QJsonObject &portConfig, QObject *parent)
     : BasePort(parent),
       m_portConfig(portConfig) {
     m_imageProcess.configSet(m_portConfig);
 }
 
-VideoStream::~VideoStream() {
+Vision::~Vision() {
     close();
 }
 
-int VideoStream::type() {
-    return PortType::VideoStream;
+int Vision::type() {
+    return PortType::Vision;
 }
 
-QJsonObject VideoStream::config() {
+QJsonObject Vision::config() {
     return m_portConfig;
 }
 
-bool VideoStream::open() {
+bool Vision::open() {
     // port init
     if (m_mediaCaptureSession == nullptr) {
         m_mediaCaptureSession = new QMediaCaptureSession(this);
@@ -95,7 +95,7 @@ bool VideoStream::open() {
     return true;
 }
 
-void VideoStream::close() {
+void Vision::close() {
     // port close
     if (m_screenCapture) m_screenCapture->stop();
     else if (m_cameraCapture) m_cameraCapture->stop();
@@ -105,14 +105,14 @@ void VideoStream::close() {
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
-void VideoStream::clear() {
+void Vision::clear() {
 }
 
-QVariantHash VideoStream::info() {
+QVariantHash Vision::info() {
     return {};
 }
 
-bool VideoStream::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
+bool Vision::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
     bool status = false;
     if (m_screenCapture) status = m_screenCapture->isActive();
     else if (m_cameraCapture) status = m_cameraCapture->isActive();
@@ -180,7 +180,7 @@ bool VideoStream::write(const QByteArray &txData, const QString &logFormat, cons
     return imageSave(image, arguments.value(2, defaultPath));
 }
 
-QVariantList VideoStream::result(const int timeout) {
+QVariantList Vision::result(const int timeout) {
     bool status = false;
     if (m_screenCapture) status = m_screenCapture->isActive();
     else if (m_cameraCapture) status = m_cameraCapture->isActive();
@@ -198,7 +198,7 @@ QVariantList VideoStream::result(const int timeout) {
 }
 
 // private
-QImage VideoStream::snapshot(const int timeout) const {
+QImage Vision::snapshot(const int timeout) const {
     QEventLoop eventLoop;
     QImage image{};
     connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &image](const QVideoFrame &frame) {

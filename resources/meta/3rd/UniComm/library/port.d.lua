@@ -12,11 +12,11 @@ Port = {}
 ---@enum PortType
 Port.Type = {
     SerialPort = 0,
+    Vision = 1,
     TcpClient = 2,
     TcpServer = 3,
     SslClient = 4,
     SslServer = 5,
-    VideoStream = 9,
 }
 
 ---@alias PortLogFormat
@@ -35,7 +35,7 @@ Port.Type = {
 ---@field portType PortType Port type selected from `Port.Type`.
 ---@field portName string Unique name used to retrieve the configured port with `Port.get`.
 
----@class VideoStreamRecognitionItem
+---@class VisionRecognitionItem
 ---@field x integer Horizontal coordinate in the processed frame.
 ---@field y integer Vertical coordinate in the processed frame.
 ---@field width integer Recognition width. Zero with `height` zero represents a point.
@@ -43,11 +43,11 @@ Port.Type = {
 ---@field text? string OCR text inside this area.
 ---@field confidence? number OCR confidence from 0 to 100.
 
----@class VideoStreamResult
+---@class VisionResult
 ---@field width integer Processed frame width.
 ---@field height integer Processed frame height.
 ---@field text string Complete recognition text, or an empty string when nothing was recognized.
----@field items VideoStreamRecognitionItem[] Structured recognition areas or points.
+---@field items VisionRecognitionItem[] Structured recognition areas or points.
 
 ---@class SerialPortConfig : PortConfig
 ---@field baudRate? integer (default: 115200) Baud rate from 1 to 5000000.
@@ -57,6 +57,9 @@ Port.Type = {
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+
+---@class VisionPortConfig : PortConfig
+---@field portName string Exact name of an available screen or camera. Programmatic creation does not configure ROI, pipeline, or recognition processing.
 
 ---@class TcpClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
@@ -90,6 +93,7 @@ Port.Type = {
 
 ---@alias PortCreateConfig
 ---| SerialPortConfig
+---| VisionPortConfig
 ---| TcpClientPortConfig
 ---| TcpServerPortConfig
 ---| SslClientPortConfig
@@ -142,7 +146,7 @@ function port:info() end
 
 ---
 ---Opens or starts this port.
----A VideoStream port waits up to 30 seconds for its first valid frame.
+---A Vision port waits up to 30 seconds for its first valid frame.
 ---
 ---@return nil
 function port:open() end
@@ -167,7 +171,7 @@ function port:clear() end
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` broadcasts to all
 ---connected peers. Other port types ignore `peerIp`.
 ---
----A VideoStream port accepts the following commands. ROI indexes are 1-based,
+---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
 ---must be enclosed in double quotes. Each command waits up to 30 seconds for the
 ---next captured frame:
@@ -178,7 +182,7 @@ function port:clear() end
 ---* `bundle [directory]` saves the raw frame, every ROI, every processed frame,
 ---  and `result.json`. The default directory is `bundle`.
 ---
----@param data string Data to write, or a VideoStream export command.
+---@param data string Data to write, or a Vision export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
 ---@return nil
 function port:write(data, peerIp) end
@@ -191,7 +195,7 @@ function port:write(data, peerIp) end
 ---`length` immediately drains all currently buffered data and never waits.
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
----unspecified connected peer. A VideoStream port waits for the next captured
+---unspecified connected peer. A Vision port waits for the next captured
 ---frame according to `timeout`, then returns one structured result per configured
 ---ROI and always preserves the outer array. With `timeout` zero it uses the
 ---current frame immediately.
@@ -199,7 +203,7 @@ function port:write(data, peerIp) end
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@return string|VideoStreamResult[] data
+---@return string|VisionResult[] data
 function port:read(length, timeout, peerIp) end
 
 ---
@@ -209,7 +213,7 @@ function port:read(length, timeout, peerIp) end
 ---the timeout expires, an empty string is returned.
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
----unspecified connected peer. VideoStream ports do not support delimiter reads.
+---unspecified connected peer. Vision ports do not support delimiter reads.
 ---
 ---@param text? string (default: "\r\n") Delimiter to read through.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.

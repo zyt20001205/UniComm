@@ -159,7 +159,7 @@ gantt
         </td>
         <td></td>
         <td align = "center">
-            <img src="https://img.shields.io/badge/Video_Stream-Supported-brightgreen" alt="Video Stream Support">
+            <img src="https://img.shields.io/badge/Vision-Supported-brightgreen" alt="Vision Support">
         </td>
     </tr>
     <tr>
@@ -202,7 +202,7 @@ gantt
 
 ## Base APIS
 
-|    APIS    |                             Serial Port                             |                             Tcp Client                              |                             Ssl Client                              |                             Tcp Server                              |                             Udp Socket                              |                            Video Stream                             |
+|    APIS    |                             Serial Port                             |                             Tcp Client                              |                             Ssl Client                              |                             Tcp Server                              |                             Udp Socket                              |                               Vision                                |
 |:----------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------:|:-------------------------------------------------------------------:|
 | port.open  | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) |
 | port.close | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) |

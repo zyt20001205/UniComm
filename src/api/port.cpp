@@ -8,7 +8,7 @@
 #include "globals.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
-#include "port/videoStream.h"
+#include "port/vision.h"
 #include "util/uniCast.h"
 
 Port::Port(QString portName, QObject *parent)
@@ -27,7 +27,7 @@ sol::table Port::list(const sol::this_state ts) {
 }
 
 Port *Port::create(const sol::table &config, QObject *parent) {
-    const auto portConfig = uni_cast<QJsonObject>(config);
+    auto portConfig = uni_cast<QJsonObject>(config);
     QString error{};
     QMetaObject::invokeMethod(g_port, [&error, &portConfig] {
         error = g_port->portInsert(-1, portConfig);
@@ -121,11 +121,11 @@ sol::object Port::read(const sol::this_state ts, const int length, const int tim
         }, Qt::BlockingQueuedConnection);
         return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
     }
-    if (port->type() == PortType::VideoStream) {
+    if (port->type() == PortType::Vision) {
         QVariantList results{};
-        auto *videoStream = static_cast<VideoStream *>(port);
-        QMetaObject::invokeMethod(videoStream, [&results, &videoStream, &timeout] {
-            results = videoStream->result(timeout);
+        auto *vision = static_cast<Vision *>(port);
+        QMetaObject::invokeMethod(vision, [&results, &vision, &timeout] {
+            results = vision->result(timeout);
         }, Qt::BlockingQueuedConnection);
         return uni_cast<sol::object>(ts, results);
     }
