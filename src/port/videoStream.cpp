@@ -1,12 +1,11 @@
 #include "port/videoStream.h"
 
 #include <QCamera>
-#include <QEventLoop>
-#include <QImageCapture>
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
 #include <QScreenCapture>
 #include <QTimer>
+#include <QVideoFrame>
 #include <QVideoSink>
 
 #include "globals.h"
@@ -53,10 +52,32 @@ bool VideoStream::open() {
             }
         }
     }
+    if (!m_screenCapture && !m_cameraCapture) {
+        const QVariantHash session{{"active", false}};
+        emit refreshPort(m_portConfig["portName"].toString(), session);
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        return false;
+    }
     // port open
-    if (m_screenCapture) m_screenCapture->start();
-    else if (m_cameraCapture) m_cameraCapture->start();
-    else {
+    QEventLoop eventLoop;
+    bool frameReady = false;
+    connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &frameReady](const QVideoFrame &frame) {
+        if (!frame.isValid()) return;
+        frameReady = true;
+        eventLoop.quit();
+    });
+    if (m_screenCapture) {
+        connect(m_screenCapture, &QScreenCapture::errorOccurred, &eventLoop, &QEventLoop::quit);
+        m_screenCapture->start();
+    } else {
+        connect(m_cameraCapture, &QCamera::errorOccurred, &eventLoop, &QEventLoop::quit);
+        m_cameraCapture->start();
+    }
+    QTimer::singleShot(30000, &eventLoop, &QEventLoop::quit);
+    if (!frameReady) eventLoop.exec();
+    if (!frameReady) {
+        if (m_screenCapture) m_screenCapture->stop();
+        else m_cameraCapture->stop();
         const QVariantHash session{{"active", false}};
         emit refreshPort(m_portConfig["portName"].toString(), session);
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");

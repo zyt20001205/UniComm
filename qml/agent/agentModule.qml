@@ -303,7 +303,7 @@ Item {
                 onCountChanged: {
                     if (count === 0) return
                     currentIndex = count - 1
-                    positionViewAtIndex(currentIndex, ListView.Center)
+                    positionViewAtIndex(currentIndex, ListView.Visible)
                 }
 
                 onMovementEnded: {
@@ -362,7 +362,7 @@ Item {
                     TapHandler {
                         onTapped: {
                             turnListView.currentIndex = turnDelegate.index
-                            turnListView.positionViewAtIndex(turnDelegate.index, ListView.Center)
+                            turnListView.positionViewAtIndex(turnDelegate.index, ListView.Visible)
                             rootItem.navigateTo(turnDelegate.turn.y)
                         }
                     }
@@ -403,7 +403,7 @@ Item {
                         }
                         if (index === turnListView.currentIndex) return
                         turnListView.currentIndex = index
-                        turnListView.positionViewAtIndex(index, ListView.Center)
+                        turnListView.positionViewAtIndex(index, ListView.Visible)
                     }
 
                     onPressedChanged: {

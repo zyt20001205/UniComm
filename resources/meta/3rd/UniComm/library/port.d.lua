@@ -142,6 +142,7 @@ function port:info() end
 
 ---
 ---Opens or starts this port.
+---A VideoStream port waits up to 30 seconds for its first valid frame.
 ---
 ---@return nil
 function port:open() end
