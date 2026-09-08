@@ -1,3 +1,53 @@
+# v0.3.1
+
+## Highlights
+
+- Expanded the Agent into an observable end-to-end workflow from workspace inspection and Lua generation to permission-gated execution, tracing, and evaluation.
+- Added MCP integration and configurable OpenAI-compatible providers.
+- Added transactional Agent changes backed by the global undo/redo stack across documents, databases, data tables, and ports.
+- Added runtime steering, lifecycle hooks, retry handling, and configurable execution guardrails.
+- Reworked the Agent interface for clearer planning, change review, streaming responses, and execution activity.
+
+## Agent Runtime
+
+- Added custom provider creation and editing with configurable base, chat, and model endpoints.
+- Added MCP server discovery, tool registration, execution, and compatibility fallback between stateless and stateful protocol variants.
+- Added structured tool-result status propagation across built-in, MCP, Lua, and subagent tools.
+- Added configurable limits for context compaction, consecutive tool failures, planning cadence, and total tool calls.
+- Added in-turn steering that queues additional user guidance for the next model request.
+- Added Lua lifecycle hooks for turn start, turn finish, permission requests, and user input requests.
+- Added transient network retries with visible reconnect progress for primary and subagent runs.
+- Added text and image attachments to Agent requests.
+- Added a dedicated data-agent role and improved subagent result aggregation.
+- Added persisted execution evaluation for turn status, timing, time to first token, token usage, model calls, and tool calls.
+
+## Workspace Changes
+
+- Added Agent change transactions with grouped undo, redo, rollback, and document commit handling.
+- Extended undo-backed operations to documents, databases, data tables, and ports.
+- Added LSP rename support for single-file and workspace-wide edits.
+- Added plan and change cards for reviewing an active task and its resulting workspace modifications.
+- Improved conversation rollback to restore compaction state and context usage correctly.
+
+## Runtime and UI
+
+- Routed embedded Lua standard input, output, and error streams through terminal sessions, with optional captured output for Agent execution.
+- Added throttled streaming Markdown rendering with parsed code blocks, horizontal scrolling, and copy actions.
+- Added thinking, context compaction, and reconnect activity indicators.
+- Improved turn summaries, collapsed execution traces, steering messages, tool groups, and tooltips.
+- Added interactive toast actions and persistent error notifications.
+- Added a standalone crash-report viewer.
+- Added the product introduction video project and a new real-device Agent workflow demo.
+- Unified runtime and MCP client version reporting through `QApplication::applicationVersion()`.
+
+## Fixes
+
+- Fixed a crash when closing document pages.
+- Fixed text attachment compatibility and double-wrapped tool arguments from some providers.
+- Fixed Agent abort, error, and completion state handling.
+- Fixed conversation rollback after context compaction and refreshed the displayed usage value.
+- Fixed several Agent layout, turn tooltip, and execution-card behavior issues.
+
 # v0.3.0-alpha1
 
 ## Highlights

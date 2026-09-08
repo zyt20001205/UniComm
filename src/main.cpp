@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     // application style init
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("UniComm"));
-    QApplication::setApplicationVersion(QStringLiteral("0.3.0"));
+    QApplication::setApplicationVersion(QStringLiteral("0.3.1"));
     QApplication::setWindowIcon(QIcon(":/icon/icon.ico"));
     QApplication::setStyle(QStyleFactory::create("Fusion"));
     QQuickStyle::setStyle("FluentWinUI3");
