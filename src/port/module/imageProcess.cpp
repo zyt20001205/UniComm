@@ -24,22 +24,7 @@ ImageProcess::~ImageProcess() {
     }
 }
 
-QStringList ImageProcess::process(const QImage &frame) {
-    QStringList results{};
-    for (const QJsonValue &value: m_config["roi"].toArray()) {
-        // roi
-        const auto roiFrame = roi(frame, value.toArray());
-        // pipeline
-        const auto pipelineFrame = pipeline(roiFrame, m_config["pipeline"].toArray());
-        // recognition
-        const auto result = recognition(pipelineFrame.convertToFormat(QImage::Format_Grayscale8), m_config["recognition"].toObject());
-        // append
-        results.append(result["text"].toString());
-    }
-    return results;
-}
-
-QList<ImageProcess::ProcessResult> ImageProcess::detail(const QImage &frame) {
+QList<ImageProcess::ProcessResult> ImageProcess::process(const QImage &frame) {
     QList<ProcessResult> results{};
     for (const QJsonValue &value: m_config["roi"].toArray()) {
         ProcessResult processResult{};
@@ -49,6 +34,8 @@ QList<ImageProcess::ProcessResult> ImageProcess::detail(const QImage &frame) {
         processResult.pipelineFrame = pipeline(processResult.roiFrame, m_config["pipeline"].toArray());
         // recognition
         processResult.result = recognition(processResult.pipelineFrame.convertToFormat(QImage::Format_Grayscale8), m_config["recognition"].toObject());
+        processResult.result["width"] = processResult.pipelineFrame.width();
+        processResult.result["height"] = processResult.pipelineFrame.height();
         // append
         results.append(processResult);
     }

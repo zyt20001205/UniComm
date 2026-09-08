@@ -1012,7 +1012,7 @@ void ImageProvider::preview(const QVideoSink *videoSink, const QJsonObject &conf
         return;
     }
     m_imageProcess.configSet(config);
-    const auto results = m_imageProcess.detail(image);
+    const auto results = m_imageProcess.process(image);
     if (results.isEmpty()) {
         return;
     }

@@ -16,6 +16,7 @@ Port.Type = {
     TcpServer = 3,
     SslClient = 4,
     SslServer = 5,
+    VideoStream = 9,
 }
 
 ---@alias PortLogFormat
@@ -33,6 +34,20 @@ Port.Type = {
 ---@class PortConfig
 ---@field portType PortType Port type selected from `Port.Type`.
 ---@field portName string Unique name used to retrieve the configured port with `Port.get`.
+
+---@class VideoStreamRecognitionItem
+---@field x integer Horizontal coordinate in the processed frame.
+---@field y integer Vertical coordinate in the processed frame.
+---@field width integer Recognition width. Zero with `height` zero represents a point.
+---@field height integer Recognition height. Zero with `width` zero represents a point.
+---@field text? string OCR text inside this area.
+---@field confidence? number OCR confidence from 0 to 100.
+
+---@class VideoStreamResult
+---@field width integer Processed frame width.
+---@field height integer Processed frame height.
+---@field text string Complete recognition text, or an empty string when nothing was recognized.
+---@field items VideoStreamRecognitionItem[] Structured recognition areas or points.
 
 ---@class SerialPortConfig : PortConfig
 ---@field baudRate? integer (default: 115200) Baud rate from 1 to 5000000.
@@ -164,13 +179,15 @@ function port:write(data, peerIp) end
 ---`length` immediately drains all currently buffered data and never waits.
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
----unspecified connected peer. A VideoStream port instead returns the latest
----processed frame result and may return an array when it contains multiple values.
+---unspecified connected peer. A VideoStream port waits for the next captured
+---frame according to `timeout`, then returns one structured result per configured
+---ROI and always preserves the outer array. With `timeout` zero it uses the
+---current frame immediately.
 ---
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@return string|string[] data
+---@return string|VideoStreamResult[] data
 function port:read(length, timeout, peerIp) end
 
 ---

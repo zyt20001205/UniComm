@@ -1,8 +1,6 @@
 #ifndef UNICOMM_VIDEOSTREAM_H
 #define UNICOMM_VIDEOSTREAM_H
 
-#include <QJsonObject>
-
 #include "port/basePort.h"
 #include "port/module/imageProcess.h"
 
@@ -35,7 +33,7 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat) override;
+    [[nodiscard]] QVariantList result(int timeout);
 
 private:
     QMediaCaptureSession *m_mediaCaptureSession{};

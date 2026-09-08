@@ -1,10 +1,12 @@
 #include "port/videoStream.h"
 
 #include <QCamera>
+#include <QEventLoop>
 #include <QImageCapture>
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
 #include <QScreenCapture>
+#include <QTimer>
 #include <QVideoSink>
 
 #include "globals.h"
@@ -108,7 +110,7 @@ bool VideoStream::write(const QByteArray &txData, const QString &logFormat, cons
     return {};
 }
 
-QByteArray VideoStream::read(const int length, const int timeout, const QString &logFormat) {
+QVariantList VideoStream::result(const int timeout) {
     bool status = false;
     if (m_screenCapture) status = m_screenCapture->isActive();
     else if (m_cameraCapture) status = m_cameraCapture->isActive();
@@ -117,9 +119,22 @@ QByteArray VideoStream::read(const int length, const int timeout, const QString 
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
+    if (timeout != 0) {
+        QEventLoop eventLoop;
+        bool frameChanged = false;
+        connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &frameChanged] {
+            frameChanged = true;
+            eventLoop.quit();
+        });
+        if (timeout > 0) QTimer::singleShot(timeout, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+        if (!frameChanged) return {};
+    }
     const auto rawFrame = m_videoSink->videoFrame();
     const auto rawImage = rawFrame.toImage();
     if (rawImage.isNull()) return {};
 
-    return m_imageProcess.process(rawImage).join("\x1E").toUtf8();
+    QVariantList results{};
+    for (const auto &result: m_imageProcess.process(rawImage)) results.append(result.result);
+    return results;
 }

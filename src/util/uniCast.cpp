@@ -229,7 +229,6 @@ sol::object uni_cast<sol::object, QVariantMap>(const sol::this_state ts, const Q
 
 template<>
 sol::object uni_cast<sol::object, QVariantList>(const sol::this_state ts, const QVariantList &s, const int depth) {
-    if (s.size() == 1) return uni_cast<sol::object, QVariant>(ts, s[0], depth);
     return uni_cast<sol::object, QVariant>(ts, QVariant::fromValue(s), depth);
 }
 

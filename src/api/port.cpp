@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
+#include "port/videoStream.h"
 #include "util/uniCast.h"
 
 Port::Port(QString portName, QObject *parent)
@@ -121,18 +122,12 @@ sol::object Port::read(const sol::this_state ts, const int length, const int tim
         return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
     }
     if (port->type() == PortType::VideoStream) {
-        QMetaObject::invokeMethod(port, [&rxData, &port, &length, &timeout] {
-            rxData = port->read(length, timeout, "");
+        QVariantList results{};
+        auto *videoStream = static_cast<VideoStream *>(port);
+        QMetaObject::invokeMethod(videoStream, [&results, &videoStream, &timeout] {
+            results = videoStream->result(timeout);
         }, Qt::BlockingQueuedConnection);
-        if (rxData.contains('\x1E')) {
-            sol::table table = lua.create_table();
-            QList<QByteArray> parts = rxData.split('\x1E');
-            for (int i = 0; i < parts.size(); ++i) {
-                table[i + 1] = std::string(parts[i].constData(), parts[i].size());
-            }
-            return table;
-        }
-        return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
+        return uni_cast<sol::object>(ts, results);
     }
     QMetaObject::invokeMethod(port, [&rxData, &port, &length, &timeout] {
         rxData = port->read(length, timeout, "");
@@ -152,20 +147,6 @@ sol::object Port::readUntil(const sol::this_state ts, const std::string &text, c
             if (peerIp.empty()) rxData = port->readUntil(textData, timeout, "");
             else rxData = port->readUntil(textData, timeout, QString::fromStdString(peerIp), "");
         }, Qt::BlockingQueuedConnection);
-        return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
-    }
-    if (port->type() == PortType::VideoStream) {
-        QMetaObject::invokeMethod(port, [&rxData, &port, &textData, &timeout] {
-            rxData = port->readUntil(textData, timeout, "");
-        }, Qt::BlockingQueuedConnection);
-        if (rxData.contains('\x1E')) {
-            sol::table table = lua.create_table();
-            QList<QByteArray> parts = rxData.split('\x1E');
-            for (int i = 0; i < parts.size(); ++i) {
-                table[i + 1] = std::string(parts[i].constData(), parts[i].size());
-            }
-            return table;
-        }
         return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
     }
     QMetaObject::invokeMethod(port, [&rxData, &port, &textData, &timeout] {

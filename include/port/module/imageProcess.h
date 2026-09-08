@@ -30,9 +30,7 @@ public:
         m_config = config;
     }
 
-    [[nodiscard]] QStringList process(const QImage &frame);
-
-    [[nodiscard]] QList<ProcessResult> detail(const QImage &frame);
+    [[nodiscard]] QList<ProcessResult> process(const QImage &frame);
 
 private:
     [[nodiscard]] static QImage roi(const QImage &frame, const QJsonArray &roi);
