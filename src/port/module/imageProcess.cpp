@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "opencv2/imgproc.hpp"
 #include "tesseract/baseapi.h"
+#include "tesseract/resultiterator.h"
 
 // public
 ImageProcess::ImageProcess() {
@@ -33,7 +34,7 @@ QStringList ImageProcess::process(const QImage &frame) {
         // recognition
         const auto result = recognition(pipelineFrame.convertToFormat(QImage::Format_Grayscale8), m_config["recognition"].toObject());
         // append
-        results.append(result);
+        results.append(result["text"].toString());
     }
     return results;
 }
@@ -119,26 +120,63 @@ QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline
     return QImage(frame.data, frame.cols, frame.rows, frame.step, format).copy();
 }
 
-QString ImageProcess::recognition(const QImage &pipelineFrame, const QJsonObject &recognition) {
-    QString result{};
+QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonObject &recognition) {
+    QVariantHash result{
+        {"text", ""},
+        {"items", QVariantList{}}
+    };
     const auto mode = recognition["mode"].toInt();
     switch (mode) {
         case Recognition::OCR: {
             m_ocrEngine->SetImage(pipelineFrame.bits(), pipelineFrame.width(), pipelineFrame.height(), 1, pipelineFrame.bytesPerLine());
-            char *_result = m_ocrEngine->GetUTF8Text();
-            result = QString::fromUtf8(_result).trimmed();
-            if (result.isEmpty()) result = "null";
-            delete[] _result;
+            m_ocrEngine->Recognize(nullptr);
+
+            char *text = m_ocrEngine->GetUTF8Text();
+            result["text"] = QString::fromUtf8(text).trimmed();
+            delete[] text;
+
+            QVariantList items{};
+            auto *iterator = m_ocrEngine->GetIterator();
+            if (iterator) {
+                constexpr auto level = tesseract::RIL_WORD;
+                do {
+                    char *itemText = iterator->GetUTF8Text(level);
+                    int left{}, top{}, right{}, bottom{};
+                    if (itemText && iterator->BoundingBox(level, &left, &top, &right, &bottom)) {
+                        items.append(QVariantHash{
+                            {"x", left},
+                            {"y", top},
+                            {"width", right - left},
+                            {"height", bottom - top},
+                            {"text", QString::fromUtf8(itemText).trimmed()},
+                            {"confidence", iterator->Confidence(level)}
+                        });
+                    }
+                    delete[] itemText;
+                } while (iterator->Next(level));
+                delete iterator;
+            }
+            result["items"] = items;
         }
         break;
         case Recognition::CornerShiTomasi: {
             const auto point = goodFeaturesToTrack(pipelineFrame);
-            result = point == QPoint(-1, -1) ? "null" : QString("%1,%2").arg(point.x()).arg(point.y());
+            if (point != QPoint(-1, -1)) {
+                result["text"] = QString("%1,%2").arg(point.x()).arg(point.y());
+                result["items"] = QVariantList{QVariantHash{
+                    {"x", point.x()}, {"y", point.y()}, {"width", 0}, {"height", 0}
+                }};
+            }
         }
         break;
         case Recognition::CornerHarris: {
             const auto point = cornerHarris(pipelineFrame);
-            result = point == QPoint(-1, -1) ? "null" : QString("%1,%2").arg(point.x()).arg(point.y());
+            if (point != QPoint(-1, -1)) {
+                result["text"] = QString("%1,%2").arg(point.x()).arg(point.y());
+                result["items"] = QVariantList{QVariantHash{
+                    {"x", point.x()}, {"y", point.y()}, {"width", 0}, {"height", 0}
+                }};
+            }
         }
         break;
         case Recognition::TemplateMatch: {
@@ -148,7 +186,12 @@ QString ImageProcess::recognition(const QImage &pipelineFrame, const QJsonObject
                 m_template = QImage(QUrl(templateUrl).toLocalFile()).convertToFormat(QImage::Format_Grayscale8);
             }
             const QPoint point = templateMatch(pipelineFrame, m_template);
-            result = point == QPoint(-1, -1) ? "null" : QString("%1,%2").arg(point.x()).arg(point.y());
+            if (point != QPoint(-1, -1)) {
+                result["text"] = QString("%1,%2").arg(point.x()).arg(point.y());
+                result["items"] = QVariantList{QVariantHash{
+                    {"x", point.x()}, {"y", point.y()}, {"width", 0}, {"height", 0}
+                }};
+            }
         }
         break;
         default: break;

@@ -2043,39 +2043,58 @@ Item {
                                 Image {
                                     id: previewImage
                                     source: "qrc:/icon/null.svg"
-                                    property string recognitionText: ""
-                                    property point recognitionPoint: recognitionPointGet()
+                                    property var recognition: ({})
 
-                                    function recognitionPointGet() {
-                                        const values = recognitionText.split(",")
-                                        if (values.length !== 2) return Qt.point(-1, -1)
-                                        const x = Number(values[0])
-                                        const y = Number(values[1])
-                                        if (!Number.isFinite(x) || !Number.isFinite(y)) return Qt.point(-1, -1)
-                                        return Qt.point(x, y)
-                                    }
+                                    Repeater {
+                                        model: previewImage.recognition.items || []
 
-                                    Item {
-                                        x: previewImage.recognitionPoint.x
-                                        y: previewImage.recognitionPoint.y
-                                        width: 1
-                                        height: 1
-                                        visible: previewImage.recognitionPoint.x >= 0 && previewImage.recognitionPoint.y >= 0
+                                        delegate: Item {
+                                            id: recognitionDelegate
+                                            required property var modelData
+                                            readonly property bool point: modelData.width === 0 && modelData.height === 0
+                                            x: modelData.x
+                                            y: modelData.y
+                                            width: point ? 1 : modelData.width
+                                            height: point ? 1 : modelData.height
 
-                                        Rectangle {
-                                            x: -8
-                                            y: -1
-                                            width: 16
-                                            height: 2
-                                            color: global.dangerFore3
-                                        }
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                visible: !recognitionDelegate.point
+                                                color: "transparent"
+                                                border.width: 2
+                                                border.color: global.dangerFore3
 
-                                        Rectangle {
-                                            x: -1
-                                            y: -8
-                                            width: 2
-                                            height: 16
-                                            color: global.dangerFore3
+                                                Label {
+                                                    width: parent.width
+                                                    leftPadding: 2; rightPadding: 2
+                                                    color: global.fore
+                                                    font.pixelSize: 11
+                                                    text: recognitionDelegate.modelData.text + "\n" + Number(recognitionDelegate.modelData.confidence).toFixed(1) + "%"
+                                                    elide: Text.ElideRight
+                                                    background: Rectangle {
+                                                        color: global.back
+                                                        opacity: 0.8
+                                                    }
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                x: -8
+                                                y: -1
+                                                width: 16
+                                                height: 2
+                                                visible: recognitionDelegate.point
+                                                color: global.dangerFore3
+                                            }
+
+                                            Rectangle {
+                                                x: -1
+                                                y: -8
+                                                width: 2
+                                                height: 16
+                                                visible: recognitionDelegate.point
+                                                color: global.dangerFore3
+                                            }
                                         }
                                     }
                                 }
@@ -2097,6 +2116,7 @@ Item {
 
                                     function stop() {
                                         previewImage.source = "qrc:/icon/null.svg"
+                                        previewImage.recognition = ({})
                                         running = false
                                         framerate = 0
                                     }
@@ -2128,7 +2148,7 @@ Item {
                                     leftPadding: 6
                                     horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                                     font.pixelSize: 20
-                                    text: previewImage.recognitionText
+                                    text: previewImage.recognition.text || ""
                                     elide: Text.ElideRight
                                 }
 

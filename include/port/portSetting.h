@@ -193,11 +193,11 @@ public:
 
     void preview(const QVideoSink *videoSink, const QJsonObject &config);
 
-    [[nodiscard]] QString recognition() const;
+    [[nodiscard]] QVariantHash recognition() const;
 
 private:
     QPixmap m_preview{};
-    QString m_recognition{};
+    QVariantHash m_recognition{};
     ImageProcess m_imageProcess{};
 };
 

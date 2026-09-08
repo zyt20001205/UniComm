@@ -6,6 +6,7 @@
 #include <QList>
 #include <QPoint>
 #include <QUrl>
+#include <QVariantHash>
 
 #include "opencv2/core/mat.hpp"
 
@@ -18,7 +19,7 @@ public:
     struct ProcessResult {
         QImage roiFrame;
         QImage pipelineFrame;
-        QString result;
+        QVariantHash result;
     };
 
     ImageProcess();
@@ -38,7 +39,7 @@ private:
 
     [[nodiscard]] static QImage pipeline(const QImage &roiFrame, const QJsonArray &pipeline);
 
-    [[nodiscard]] QString recognition(const QImage &pipelineFrame, const QJsonObject &recognition);
+    [[nodiscard]] QVariantHash recognition(const QImage &pipelineFrame, const QJsonObject &recognition);
 
     [[nodiscard]] static cv::Mat scale(const cv::Mat &input, float ratio, int interpolation);
 
