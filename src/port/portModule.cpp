@@ -116,7 +116,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"stopBits", QJsonObject{{"enum", QJsonArray{1, 2, 3}}, {"description", "1=one, 2=two, 3=one and a half"}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
-                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 1048576}}}
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
                     }
                 }
             };
@@ -147,7 +147,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"remotePort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
-                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 1048576}}}
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
                     }
                 }
             };
@@ -178,7 +178,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
-                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 1048576}}}
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
                     }
                 }
             };
@@ -247,7 +247,7 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (!suffixes.contains(portConfig.value("txSuffix"))) return "Port check failed: invalid txSuffix.";
 
         const auto bufferSize = portConfig.value("bufferSize").toInt();
-        if (bufferSize < 1 || bufferSize > 1048576) return "Port check failed: bufferSize must be between 1 and 1048576.";
+        if (bufferSize < 1 || bufferSize > 67108864) return "Port check failed: bufferSize must be between 1 and 67108864.";
     }
     return {};
 }

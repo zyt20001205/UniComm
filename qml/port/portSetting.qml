@@ -1041,7 +1041,7 @@ Item {
                         font.pointSize: 12
                         editable: true
                         from: 1
-                        to: 1048576 // 1MB
+                        to: 67108864 // 64MB
                         Layout.fillWidth: true
                     }
                 }
