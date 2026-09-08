@@ -1,8 +1,14 @@
 #include "port/videoStream.h"
 
 #include <QCamera>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QMediaCaptureSession>
 #include <QMediaDevices>
+#include <QProcess>
 #include <QScreenCapture>
 #include <QTimer>
 #include <QVideoFrame>
@@ -106,7 +112,6 @@ QVariantHash VideoStream::info() {
     return {};
 }
 
-// TODO: register commands to video stream
 bool VideoStream::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
     bool status = false;
     if (m_screenCapture) status = m_screenCapture->isActive();
@@ -116,19 +121,63 @@ bool VideoStream::write(const QByteArray &txData, const QString &logFormat, cons
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
-    const auto rawFrame = m_videoSink->videoFrame();
-    const auto rawImage = rawFrame.toImage();
+    const auto arguments = QProcess::splitCommand(QString::fromUtf8(txData));
+    if (arguments.isEmpty()) return false;
+    const auto command = arguments.constFirst().toLower();
+    if (command != "bundle" && command != "processed" && command != "raw" && command != "roi") return false;
+    const auto rawImage = snapshot(30000);
     if (rawImage.isNull()) return {};
 
-    const auto command = QString::fromUtf8(txData);
+    const auto absolutePath = [](const QString &path) {
+        return QDir::isAbsolutePath(path) ? QDir::cleanPath(path) : QDir(g_workspaceUrl.toLocalFile()).absoluteFilePath(path);
+    };
+    const auto imageSave = [&absolutePath](const QImage &image, const QString &path) {
+        const auto filePath = absolutePath(path);
+        if (!QDir().mkpath(QFileInfo(filePath).absolutePath())) return false;
+        return image.save(filePath);
+    };
+
     if (command == "raw") {
-        const QString fileName = g_workspaceUrl.toLocalFile() + "/raw.png";
-        return rawImage.save(fileName);
+        if (arguments.size() > 2) return false;
+        return imageSave(rawImage, arguments.value(1, "raw.png"));
     }
-    if (command == "processed") {
-        return {};
+
+    if (command == "bundle") {
+        if (arguments.size() > 2) return false;
+        const auto results = m_imageProcess.process(rawImage);
+        const auto directoryPath = absolutePath(arguments.value(1, "bundle"));
+        if (!QDir().mkpath(directoryPath)) return false;
+        const QDir directory(directoryPath);
+        if (!rawImage.save(directory.filePath("raw.png"))) return false;
+
+        QVariantList recognitionResults{};
+        for (int i = 0; i < results.size(); ++i) {
+            const auto &result = results.at(i);
+            if (!result.roiFrame.save(directory.filePath(QString("roi-%1.png").arg(i + 1)))) return false;
+            if (!result.pipelineFrame.save(directory.filePath(QString("processed-%1.png").arg(i + 1)))) return false;
+            recognitionResults.append(result.result);
+        }
+
+        const QJsonObject metadata{
+            {"width", rawImage.width()},
+            {"height", rawImage.height()},
+            {"results", QJsonArray::fromVariantList(recognitionResults)}
+        };
+        QFile resultFile(directory.filePath("result.json"));
+        if (!resultFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
+        const auto data = QJsonDocument(metadata).toJson(QJsonDocument::Indented);
+        return resultFile.write(data) == data.size();
     }
-    return {};
+
+    if (arguments.size() < 2 || arguments.size() > 3) return false;
+    bool indexValid = false;
+    const int index = arguments.at(1).toInt(&indexValid) - 1;
+    if (!indexValid || index < 0) return false;
+    const auto results = m_imageProcess.process(rawImage);
+    if (index >= results.size()) return false;
+    const auto defaultPath = QString("%1-%2.png").arg(command).arg(index + 1);
+    const auto &image = command == "roi" ? results.at(index).roiFrame : results.at(index).pipelineFrame;
+    return imageSave(image, arguments.value(2, defaultPath));
 }
 
 QVariantList VideoStream::result(const int timeout) {
@@ -140,22 +189,23 @@ QVariantList VideoStream::result(const int timeout) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
-    if (timeout != 0) {
-        QEventLoop eventLoop;
-        bool frameChanged = false;
-        connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &frameChanged] {
-            frameChanged = true;
-            eventLoop.quit();
-        });
-        if (timeout > 0) QTimer::singleShot(timeout, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
-        if (!frameChanged) return {};
-    }
-    const auto rawFrame = m_videoSink->videoFrame();
-    const auto rawImage = rawFrame.toImage();
+    const auto rawImage = timeout == 0 ? m_videoSink->videoFrame().toImage() : snapshot(timeout);
     if (rawImage.isNull()) return {};
 
     QVariantList results{};
     for (const auto &result: m_imageProcess.process(rawImage)) results.append(result.result);
     return results;
+}
+
+// private
+QImage VideoStream::snapshot(const int timeout) const {
+    QEventLoop eventLoop;
+    QImage image{};
+    connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &image](const QVideoFrame &frame) {
+        image = frame.toImage();
+        eventLoop.quit();
+    });
+    if (timeout > 0) QTimer::singleShot(timeout, &eventLoop, &QEventLoop::quit);
+    eventLoop.exec();
+    return image;
 }

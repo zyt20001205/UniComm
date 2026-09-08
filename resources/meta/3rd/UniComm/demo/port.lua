@@ -53,6 +53,18 @@
 -- })
 -- sslServer:open()
 
+-- Video stream export commands use 1-based ROI indexes. Relative output paths
+-- are resolved from the current workspace.
+-- local video = Port.get("CG345UK")
+-- video:open()
+-- video:write([[raw "capture/raw.png"]])
+-- video:write([[roi 1 "capture/roi-1.png"]])
+-- video:write([[processed 1 "capture/processed-1.png"]])
+-- video:write([[bundle "capture/bundle"]])
+-- local results = video:read(0, 20000)
+-- print(results)
+-- video:close()
+
 -- Configure an echo-capable stream port named "Echo" before running this demo.
 local name = "Echo"
 local timeout = 1000

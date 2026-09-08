@@ -167,7 +167,18 @@ function port:clear() end
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` broadcasts to all
 ---connected peers. Other port types ignore `peerIp`.
 ---
----@param data string Data to write.
+---A VideoStream port accepts the following commands. ROI indexes are 1-based,
+---relative paths are resolved from the workspace, and paths containing spaces
+---must be enclosed in double quotes. Each command waits up to 30 seconds for the
+---next captured frame:
+---* `raw [path]` saves the complete source frame. The default is `raw.png`.
+---* `roi <index> [path]` saves the selected ROI. The default is `roi-<index>.png`.
+---* `processed <index> [path]` saves the selected ROI after its pipeline. The
+---  default is `processed-<index>.png`.
+---* `bundle [directory]` saves the raw frame, every ROI, every processed frame,
+---  and `result.json`. The default directory is `bundle`.
+---
+---@param data string Data to write, or a VideoStream export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
 ---@return nil
 function port:write(data, peerIp) end

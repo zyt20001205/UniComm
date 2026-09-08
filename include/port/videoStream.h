@@ -36,6 +36,8 @@ public:
     [[nodiscard]] QVariantList result(int timeout);
 
 private:
+    [[nodiscard]] QImage snapshot(int timeout) const;
+
     QMediaCaptureSession *m_mediaCaptureSession{};
     QVideoSink *m_videoSink{};
     QScreenCapture *m_screenCapture{};
