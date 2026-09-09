@@ -147,10 +147,12 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             emit newMessageDialog(eventloop, m_luaSession["threadId"].toString(), text);
         });
     }
-    // Key lib (static)
+    // Key lib
     {
         auto key = m_lua.create_table();
-        key.set_function("tap", [this](const std::string &key) { m_key->tap(key); });
+        key.set_function("down", [this](const std::string &name) { m_key->down(name); });
+        key.set_function("up", [this](const std::string &name) { m_key->up(name); });
+        key.set_function("tap", [this](const std::string &name) { m_key->tap(name); });
         key.set_function("type", [](const std::string &text) { Key::type(text); });
         m_lua["key"] = key;
     }
