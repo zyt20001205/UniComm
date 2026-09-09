@@ -1,7 +1,6 @@
 #ifndef UNICOMM_PROVIDERMODULE_H
 #define UNICOMM_PROVIDERMODULE_H
 
-#include <QHash>
 #include <QJsonObject>
 #include <QObject>
 #include <QStandardItemModel>
@@ -13,7 +12,7 @@ class ProviderModule final : public QObject {
     Q_OBJECT
 
 public:
-    explicit ProviderModule(const QJsonObject &providers, QObject *parent = nullptr);
+    explicit ProviderModule(const QJsonObject &providers, const QJsonObject &defaults, QObject *parent = nullptr);
 
     ~ProviderModule() override = default;
 
@@ -31,6 +30,8 @@ public:
 
     void providerRemove(const QString &id);
 
+    void defaultSet(const QJsonObject &defaults);
+
     [[nodiscard]] BaseProvider *providerGet(const QString &id) const;
 
     [[nodiscard]] bool providerExists(const QString &id) const {
@@ -45,9 +46,12 @@ signals:
     void modelsChanged();
 
 private:
+    void _defaultSet() const;
+
     QObject *m_modelMenu{};
     QJsonObject m_catalog{};
     QJsonObject m_providerConfigs{};
+    QJsonObject m_default{};
     ProviderModel *m_providerModel{};
     QHash<QString, BaseProvider *> m_providers{};
 };
@@ -82,7 +86,10 @@ public:
         IdRole = Qt::UserRole + 1,
         ModelIdRole,
         ContextWindowRole,
-        MaxOutputTokensRole
+        MaxOutputTokensRole,
+        PrimaryRole,
+        SubagentRole,
+        VisionRole
     };
 
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;

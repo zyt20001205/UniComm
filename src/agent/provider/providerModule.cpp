@@ -7,9 +7,10 @@
 #include "agent/provider/baseProvider.h"
 #include "agent/provider/openAIProvider.h"
 
-ProviderModule::ProviderModule(const QJsonObject &providers, QObject *parent)
+ProviderModule::ProviderModule(const QJsonObject &providers, const QJsonObject &defaults, QObject *parent)
     : QObject(parent),
       m_providerConfigs(providers),
+      m_default(defaults),
       m_providerModel(new ProviderModel(this)) {
 }
 
@@ -58,7 +59,10 @@ void ProviderModule::providerInsert(const QString &id, const QJsonObject &overri
     connect(provider, &BaseProvider::apikeyChanged, this, [item](const QString &apikey) {
         item->setData(apikey, ProviderModel::ApikeyRole);
     });
-    connect(provider, &BaseProvider::modelsChanged, this, &ProviderModule::modelsChanged);
+    connect(provider, &BaseProvider::modelsChanged, this, [this] {
+        _defaultSet();
+        emit modelsChanged();
+    });
     provider->apikeyGet();
 }
 
@@ -93,10 +97,33 @@ void ProviderModule::providerRemove(const QString &id) {
     m_providerModel->removeRow(row);
 }
 
+void ProviderModule::defaultSet(const QJsonObject &defaults) {
+    m_default = defaults;
+    _defaultSet();
+}
+
 BaseProvider *ProviderModule::providerGet(const QString &id) const {
     return m_providers.value(id);
 }
 
+// private
+void ProviderModule::_defaultSet() const {
+    const auto primary = m_default.value("primary").toObject();
+    const auto subagent = m_default.value("subagent").toObject();
+    const auto vision = m_default.value("vision").toObject();
+    for (auto iterator = m_providers.constBegin(); iterator != m_providers.constEnd(); ++iterator) {
+        auto *models = static_cast<OpenAIProvider *>(iterator.value())->modelListGet();
+        for (auto row = 0; row < models->rowCount(); ++row) {
+            auto *item = models->item(row);
+            const auto model = item->data(ProviderModelModel::ModelIdRole).toString();
+            item->setData(primary.value("provider").toString() == iterator.key() && primary.value("model").toString() == model, ProviderModelModel::PrimaryRole);
+            item->setData(subagent.value("provider").toString() == iterator.key() && subagent.value("model").toString() == model, ProviderModelModel::SubagentRole);
+            item->setData(vision.value("provider").toString() == iterator.key() && vision.value("model").toString() == model, ProviderModelModel::VisionRole);
+        }
+    }
+}
+
+// public
 QHash<int, QByteArray> ProviderModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[IdRole] = "id";
@@ -116,5 +143,8 @@ QHash<int, QByteArray> ProviderModelModel::roleNames() const {
     roles[ModelIdRole] = "modelId";
     roles[ContextWindowRole] = "contextWindow";
     roles[MaxOutputTokensRole] = "maxOutputTokens";
+    roles[PrimaryRole] = "primary";
+    roles[SubagentRole] = "subagent";
+    roles[VisionRole] = "vision";
     return roles;
 }
