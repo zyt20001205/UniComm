@@ -117,7 +117,6 @@ private:
         QString model{};
         QString compactedTurnId{};
         int mode{AgentMode::Chat};
-        QList<QUrl> attachments{};
         QList<SqlModule::Message> messages{};
         QString steering{};
         qint64 currentUsage{};

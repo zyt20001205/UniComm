@@ -6,6 +6,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QUrl>
 
 class QSqlQuery;
 
@@ -58,6 +59,7 @@ public:
         qint64 sequence{};
         QString role{};
         QString content{};
+        QList<QUrl> attachments{};
         QString reasoningContent{};
         QString toolCallId{};
         QJsonArray toolCalls{};

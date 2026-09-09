@@ -16,16 +16,23 @@ public:
     [[nodiscard]] bool compactRequired(qint64 contextTokens, qint64 contextWindow) const;
 
     [[nodiscard]] QJsonArray contextBuild(const QString &system, const SqlModule::Conversation &conversation, const QList<SqlModule::Message> &history,
-                                          const QList<SqlModule::Message> &turn, const QList<QUrl> &attachments, const QString &steering) const;
+                                          const QList<SqlModule::Message> &turn, const QString &steering) const;
 
     [[nodiscard]] QJsonArray contextBuild(const QString &system, int mode, const QList<SqlModule::Message> &turn, const QString &steering) const;
 
     [[nodiscard]] QPair<QString, QJsonArray> compactBuild(const SqlModule::Conversation &conversation, const QList<SqlModule::Message> &history) const;
 
 private:
+    struct AttachmentMode {
+        enum {
+            Reference,
+            Embed
+        };
+    };
+
     [[nodiscard]] static QString systemBuild(const QString &system, int mode, const QString &summary = {});
 
-    [[nodiscard]] static QJsonObject messageBuild(const SqlModule::Message &message);
+    [[nodiscard]] static QJsonObject messageBuild(const SqlModule::Message &message, int attachmentMode = AttachmentMode::Reference);
 
     QJsonObject m_config{};
 };

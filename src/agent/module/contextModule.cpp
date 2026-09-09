@@ -28,7 +28,7 @@ bool ContextModule::compactRequired(const qint64 contextTokens, const qint64 con
 }
 
 QJsonArray ContextModule::contextBuild(const QString &system, const SqlModule::Conversation &conversation, const QList<SqlModule::Message> &history,
-                                       const QList<SqlModule::Message> &turn, const QList<QUrl> &attachments, const QString &steering) const {
+                                       const QList<SqlModule::Message> &turn, const QString &steering) const {
     QJsonArray context{
         QJsonObject{
             {"role", "system"},
@@ -42,49 +42,7 @@ QJsonArray ContextModule::contextBuild(const QString &system, const SqlModule::C
         while (start < history.size() && history.at(start).turnId == conversation.compactedTurnId) ++start;
     }
     for (auto i = start; i < history.size(); ++i) context.append(messageBuild(history.at(i)));
-    for (qsizetype i = 0; i < turn.size(); ++i) {
-        auto message = messageBuild(turn.at(i));
-        if (i == 0 && !attachments.isEmpty()) {
-            QJsonArray content{
-                QJsonObject{
-                    {"type", "text"},
-                    {"text", message.value("content").toString()}
-                }
-            };
-            for (const auto &url: attachments) {
-                const QFileInfo fileInfo(url.toLocalFile());
-                const auto mimeType = QMimeDatabase().mimeTypeForFile(fileInfo).name();
-                if (mimeType.startsWith("image/")) {
-                    QFile file(fileInfo.filePath());
-                    file.open(QIODevice::ReadOnly);
-                    content.append(QJsonObject{
-                        {"type", "image_url"},
-                        {
-                            "image_url", QJsonObject{
-                                {"url", "data:" + mimeType + ";base64," + QString::fromLatin1(file.readAll().toBase64())}
-                            }
-                        }
-                    });
-                    continue;
-                }
-                content.append(QJsonObject{
-                    {"type", "text"},
-                    {"text", "Attached file: " + url.toString() + "\n\n" + g_document->textGet(url)}
-                });
-                // content.append(QJsonObject{
-                //     {"type", "file"},
-                //     {
-                //         "file", QJsonObject{
-                //             {"filename", fileInfo.fileName()},
-                //             {"file_data", "data:" + mimeType + ";base64," + QString::fromLatin1(g_document->textGet(url).toUtf8().toBase64())}
-                //         }
-                //     }
-                // });
-            }
-            message["content"] = content;
-        }
-        context.append(message);
-    }
+    for (const auto &message: turn) context.append(messageBuild(message));
     if (!steering.isEmpty()) context.append(QJsonObject{{"role", "user"}, {"content", steering}});
     return context;
 }
@@ -96,7 +54,7 @@ QJsonArray ContextModule::contextBuild(const QString &system, const int mode, co
             {"content", systemBuild(system, mode)}
         }
     };
-    for (const auto &message: turn) context.append(messageBuild(message));
+    for (const auto &message: turn) context.append(messageBuild(message, AttachmentMode::Embed));
     if (!steering.isEmpty()) context.append(QJsonObject{{"role", "user"}, {"content", steering}});
     return context;
 }
@@ -175,7 +133,7 @@ QString ContextModule::systemBuild(const QString &system, const int mode, const 
     return context;
 }
 
-QJsonObject ContextModule::messageBuild(const SqlModule::Message &message) {
+QJsonObject ContextModule::messageBuild(const SqlModule::Message &message, const int attachmentMode) {
     QJsonObject object{
         {"role", message.role},
         {"content", message.content}
@@ -183,5 +141,51 @@ QJsonObject ContextModule::messageBuild(const SqlModule::Message &message) {
     if (!message.reasoningContent.isEmpty()) object["reasoning_content"] = message.reasoningContent;
     if (!message.toolCallId.isEmpty()) object["tool_call_id"] = message.toolCallId;
     if (!message.toolCalls.isEmpty()) object["tool_calls"] = message.toolCalls;
+    if (message.attachments.isEmpty()) return object;
+
+    if (attachmentMode == AttachmentMode::Reference) {
+        auto content = message.content;
+        for (const auto &url: message.attachments) {
+            const auto mimeType = QMimeDatabase().mimeTypeForFile(url.toLocalFile()).name();
+            content.append(mimeType.startsWith("image/")
+                               ? "\n\nAttached image: " + url.toString()
+                               : "\n\nAttached file: " + url.toString() + "\n\n" + g_document->textGet(url));
+        }
+        object["content"] = content;
+        return object;
+    }
+
+    QJsonArray content{
+        QJsonObject{
+            {"type", "text"},
+            {"text", message.content}
+        }
+    };
+    for (const auto &url: message.attachments) {
+        const QFileInfo fileInfo(url.toLocalFile());
+        const auto mimeType = QMimeDatabase().mimeTypeForFile(fileInfo).name();
+        if (mimeType.startsWith("image/")) {
+            content.append(QJsonObject{
+                {"type", "text"},
+                {"text", "Attached image: " + url.toString()}
+            });
+            QFile file(fileInfo.filePath());
+            static_cast<void>(file.open(QIODevice::ReadOnly));
+            content.append(QJsonObject{
+                {"type", "image_url"},
+                {
+                    "image_url", QJsonObject{
+                        {"url", "data:" + mimeType + ";base64," + QString::fromLatin1(file.readAll().toBase64())}
+                    }
+                }
+            });
+            continue;
+        }
+        content.append(QJsonObject{
+            {"type", "text"},
+            {"text", "Attached file: " + url.toString() + "\n\n" + g_document->textGet(url)}
+        });
+    }
+    object["content"] = content;
     return object;
 }

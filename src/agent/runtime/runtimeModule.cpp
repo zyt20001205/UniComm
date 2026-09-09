@@ -50,9 +50,11 @@ void RuntimeModule::abort() {
 }
 
 void RuntimeModule::pre(const QString &conversationId, const QString &text, const QList<QUrl> &attachments) {
-    m_turn.conversationId = conversationId;
-    m_turn.attachments = attachments;
-    stateSet(AgentState::Pre, text);
+    m_turn = {
+        .conversationId = conversationId,
+        .messages = {SqlModule::Message{.content = text, .attachments = attachments}}
+    };
+    stateSet(AgentState::Pre);
 }
 
 void RuntimeModule::steer(const QString &text) {
@@ -70,12 +72,12 @@ void RuntimeModule::request(const QString &provider, const QString &model, const
         .id = QUuid::createUuid().toString(QUuid::WithoutBraces),
         .provider = provider,
         .model = model,
-        .mode = mode,
-        .attachments = attachments
+        .mode = mode
     };
     const auto messageIndex = conversationAppend("user");
     auto &message = m_turn.messages[messageIndex];
     message.content = prompt;
+    message.attachments = attachments;
     message.provider = provider;
     message.model = model;
     message.status = SqlModule::TurnStatus::Running;
@@ -160,7 +162,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
         break;
         case AgentState::Pre: {
             const auto conversationId = m_turn.conversationId;
-            const auto attachments = m_turn.attachments;
+            const auto input = m_turn.messages.first();
             const auto conversation = m_sqlModule->conversationGet(conversationId).first;
             if (conversation.provider.isEmpty() || conversation.model.isEmpty()) {
                 stateSet(AgentState::Error, tr("Please select a model first."));
@@ -172,12 +174,12 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                 .conversationId = conversationId,
                 .provider = conversation.provider,
                 .model = conversation.model,
-                .mode = conversation.mode,
-                .attachments = attachments
+                .mode = conversation.mode
             };
             const auto messageIndex = conversationAppend("user");
             auto &message = m_turn.messages[messageIndex];
-            message.content = payload.toString();
+            message.content = input.content;
+            message.attachments = input.attachments;
             message.strategy = conversation.strategy;
             message.provider = conversation.provider;
             message.model = conversation.model;
@@ -222,12 +224,12 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             if (m_turn.conversationId.isEmpty()) {
                 providerId = m_turn.provider;
                 modelId = m_turn.model;
-                context = m_contextModule->contextBuild(m_agent->systemGet(), m_turn.mode, m_turn.messages, m_turn.attachments, steering);
+                context = m_contextModule->contextBuild(m_agent->systemGet(), m_turn.mode, m_turn.messages, steering);
             } else {
                 const auto [conversation, messages] = m_sqlModule->conversationGet(m_turn.conversationId);
                 providerId = conversation.provider;
                 modelId = conversation.model;
-                context = m_contextModule->contextBuild(m_agent->systemGet(), conversation, messages, m_turn.messages, m_turn.attachments, steering);
+                context = m_contextModule->contextBuild(m_agent->systemGet(), conversation, messages, m_turn.messages, steering);
             }
             const auto tools = m_turn.mode == AgentMode::Chat ? QJsonArray{} : m_agent->toolsGet(*m_toolsModule);
             auto *provider = m_providerModule->providerGet(providerId);
