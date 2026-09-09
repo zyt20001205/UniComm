@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QPromise>
 #include <QSharedPointer>
+#include <QUrl>
 
 #include "globals.h"
 #include "agent/agentModule.h"
@@ -271,19 +272,26 @@ void ToolsModule::initialize() {
                                                             {
                                                                 "role", QJsonObject{
                                                                     {"type", "string"},
-                                                                    {"enum", QJsonArray{"data", "hardware", "software"}},
+                                                                    {"enum", QJsonArray{"data", "hardware", "software", "vision"}},
                                                                     {"description", "The specialized agent role."}
                                                                 }
                                                             },
                                                             {
-                                                                "task", QJsonObject{
+                                                                "prompt", QJsonObject{
                                                                     {"type", "string"},
-                                                                    {"description", "A complete, self-contained task for the specialized agent."}
+                                                                    {"description", "A complete, self-contained prompt for the specialized agent."}
+                                                                }
+                                                            },
+                                                            {
+                                                                "attachments", QJsonObject{
+                                                                    {"type", "array"},
+                                                                    {"description", "Exact local file URLs to provide to the specialized agent. Required for vision tasks."},
+                                                                    {"items", QJsonObject{{"type", "string"}}}
                                                                 }
                                                             }
                                                         }
                                                     },
-                                                    {"required", QJsonArray{"role", "task"}}
+                                                    {"required", QJsonArray{"role", "prompt"}}
                                                 }
                                             }
                                         }
@@ -291,6 +299,39 @@ void ToolsModule::initialize() {
                                 }
                             },
                             {"required", QJsonArray{"tasks"}}
+                        }
+                    }
+                }
+            }
+        },
+        // visionAnalyze
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "vision_analyze"},
+                    {"description", "Analyze one or more attached images with the vision agent and return its observations."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {
+                                        "prompt", QJsonObject{
+                                            {"type", "string"},
+                                            {"description", "A precise, self-contained image analysis or visual verification prompt."}
+                                        }
+                                    },
+                                    {
+                                        "attachments", QJsonObject{
+                                            {"type", "array"},
+                                            {"description", "Exact local file URLs of the images to analyze."},
+                                            {"items", QJsonObject{{"type", "string"}}}
+                                        }
+                                    }
+                                }
+                            },
+                            {"required", QJsonArray{"prompt", "attachments"}}
                         }
                     }
                 }
@@ -1037,6 +1078,9 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
         chatText = tasks.size() == 1
                        ? QString("Delegate task to %1 agent").arg(tasks.first().toObject().value("role").toString())
                        : QString("Delegate %1 tasks to subagents").arg(tasks.size());
+    } else if (name == "vision_analyze") {
+        const auto count = object.value("attachments").toArray().size();
+        chatText = count == 1 ? "Analyze image" : QString("Analyze %1 images").arg(count);
     } else if (name == "plan_update") {
         chatText = "Update plan";
     } else if (name == "user_input_request") {
@@ -1096,10 +1140,27 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
     return chatText.isEmpty() ? name : chatText;
 }
 
-QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QString &name, const QString &arguments) {
+QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QString &runtimeRole, const QString &name, const QString &arguments) {
     if (m_mcpModule->toolContains(name)) return m_mcpModule->toolExecute(name, arguments);
     const auto object = argumentsGet(arguments);
+    if (name == "vision_analyze") {
+        if (runtimeRole != "general") return QtFuture::makeReadyValueFuture(ToolResult{"This agent cannot use the vision agent directly.", false});
+        QList<QUrl> attachments{};
+        for (const auto &attachment: object.value("attachments").toArray()) attachments.append(QUrl(attachment.toString()));
+        if (attachments.isEmpty()) return QtFuture::makeReadyValueFuture(ToolResult{"Vision agent requires at least one attachment.", false});
+        auto *worker = g_agent->subagentDispatch("vision", object.value("prompt").toString(), attachments);
+        if (worker == nullptr) return QtFuture::makeReadyValueFuture(ToolResult{"Vision agent is unavailable or not configured.", false});
+        auto promise = QSharedPointer<QPromise<ToolResult> >::create();
+        promise->start();
+        const auto future = promise->future();
+        connect(worker, &RuntimeModule::finishRun, this, [promise](const QString &result, const bool success) {
+            promise->addResult(ToolResult{result, success});
+            promise->finish();
+        });
+        return future;
+    }
     if (name == "subagent_dispatch") {
+        if (runtimeRole != "supervisor") return QtFuture::makeReadyValueFuture(ToolResult{"This agent cannot dispatch subagents.", false});
         const auto tasks = object.value("tasks").toArray();
         if (tasks.isEmpty()) return QtFuture::makeReadyValueFuture(ToolResult{"No subagent tasks were provided.", false});
         auto promise = QSharedPointer<QPromise<ToolResult> >::create();
@@ -1119,9 +1180,15 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QSt
         for (qsizetype index = 0; index < tasks.size(); ++index) {
             const auto task = tasks.at(index).toObject();
             const auto role = task.value("role").toString();
-            auto *worker = g_agent->subagentDispatch(role, task.value("task").toString());
+            QList<QUrl> attachments{};
+            for (const auto &attachment: task.value("attachments").toArray()) attachments.append(QUrl(attachment.toString()));
+            if (role == "vision" && attachments.isEmpty()) {
+                finish(index, role, "Vision agent requires at least one attachment.", false);
+                continue;
+            }
+            auto *worker = g_agent->subagentDispatch(role, task.value("prompt").toString(), attachments);
             if (worker == nullptr) {
-                finish(index, role, QString("Unknown agent role: %1").arg(role), false);
+                finish(index, role, QString("Subagent role is unavailable or not configured: %1").arg(role), false);
                 continue;
             }
             connect(worker, &RuntimeModule::finishRun, this, [finish, index, role](const QString &result, const bool success) {
