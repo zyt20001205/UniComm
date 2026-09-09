@@ -186,7 +186,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             message.status = SqlModule::TurnStatus::Running;
             message.timing.startedAt = message.timing.createdAt;
             emit createTurn(m_turn.id, message.timing.createdAt);
-            emit createChat(m_turn.id, message.id, message.role);
+            emit createChat(m_turn.id, message.id, message.role, message.attachments);
             emit appendChat(message.id, message.content);
 
             const auto model = m_providerModule->providerGet(conversation.provider)->modelGet(conversation.model);
@@ -208,7 +208,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                 auto &message = m_turn.messages[messageIndex];
                 message.content = m_turn.steering;
                 m_turn.steering.clear();
-                emit createChat(m_turn.id, message.id, message.role);
+                emit createChat(m_turn.id, message.id, message.role, message.attachments);
                 emit appendChat(message.id, message.content);
             }
 
@@ -256,7 +256,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                     toolResultSet({"Further questions are disabled for this turn. Continue using the available context and your best judgment."});
                 }
             } else {
-                emit createChat(m_turn.id, message.id, "tool");
+                emit createChat(m_turn.id, message.id, "tool", message.attachments);
                 emit appendChat(message.id, text);
                 // permission check
                 if (!toolCall.approved) {
@@ -352,7 +352,7 @@ void RuntimeModule::_request(const BaseProvider *provider, const QJsonObject &bo
             message.model = body.value("model").toString();
             message.timing.createdAt = startedAt;
             message.timing.startedAt = startedAt;
-            emit createChat(m_turn.id, message.id, "assistant");
+            emit createChat(m_turn.id, message.id, "assistant", message.attachments);
         } else {
             auto &message = m_turn.messages[messageIndex];
             message.content.clear();

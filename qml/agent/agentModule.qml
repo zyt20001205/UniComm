@@ -306,14 +306,6 @@ Item {
                     positionViewAtIndex(currentIndex, ListView.Visible)
                 }
 
-                onMovementEnded: {
-                    const index = indexAt(0, contentY + height / 2)
-                    if (index < 0) return
-                    currentIndex = index
-                    const turn = chatColumn.children[index]
-                    rootItem.navigateTo(turn.y)
-                }
-
                 delegate: Item {
                     id: turnDelegate
                     required property int index
@@ -1883,15 +1875,10 @@ Item {
     Component {
         id: chatComponent
 
-        Control {
+        ColumnLayout {
             id: chatItem
-            padding: 0
-            leftPadding: role === "user" || role === "steering" ? 12 : 0
-            rightPadding: leftPadding
-            topPadding: role === "user" || role === "steering" ? 8 : 0
-            bottomPadding: topPadding + (role === "user" || role === "assistant" ? 28 : 0)
-            bottomInset: role === "user" || role === "assistant" ? 28 : 0
-            visible: contentBuffer.length > 0 && (!turn.collapsed || role === "user" || role === "assistant")
+            spacing: 4
+            visible: (contentBuffer.length > 0 || attachments.length > 0) && (!turn.collapsed || role === "user" || role === "assistant")
             Layout.preferredWidth: role === "assistant" || role === "comment" || role === "tool"
                                    ? chatView.availableWidth
                                    : Math.min(chatView.availableWidth * 0.8, implicitWidth)
@@ -1900,6 +1887,7 @@ Item {
             property string messageId
             property string role
             property string contentBuffer
+            property var attachments: []
 
             function flush(): void {
                 markdownModel.flush()
@@ -1910,139 +1898,153 @@ Item {
                 source: chatItem.contentBuffer
             }
 
-            background: Rectangle {
-                color: chatItem.role === "user" || chatItem.role === "steering" ? global.backSelected :
-                        chatItem.role === "comment" || chatItem.role === "assistant" ? "transparent" :
-                            chatItem.role === "tool" ? "transparent" : global.dangerBack2
-                radius: 16
-            }
+            Control {
+                id: messageBody
+                visible: chatItem.contentBuffer.length > 0
+                leftPadding: chatItem.role === "user" || chatItem.role === "steering" ? 12 : 0
+                rightPadding: leftPadding
+                topPadding: chatItem.role === "user" || chatItem.role === "steering" ? 8 : 0
+                bottomPadding: topPadding
+                Layout.fillWidth: chatItem.role === "assistant" || chatItem.role === "comment" || chatItem.role === "tool"
+                Layout.maximumWidth: chatItem.role === "user" || chatItem.role === "steering"
+                                     ? chatView.availableWidth * 0.8
+                                     : chatView.availableWidth
+                Layout.alignment: chatItem.role === "user" || chatItem.role === "steering" ? Qt.AlignRight : Qt.AlignLeft
 
-            contentItem: ColumnLayout {
-                spacing: 8
+                background: Rectangle {
+                    color: chatItem.role === "user" || chatItem.role === "steering" ? global.backSelected :
+                            chatItem.role === "comment" || chatItem.role === "assistant" ? "transparent" :
+                                chatItem.role === "tool" ? "transparent" : global.dangerBack2
+                    radius: 16
+                }
 
-                Repeater {
-                    model: markdownModel
-                    delegate: DelegateChooser {
-                        role: "type"
+                contentItem: ColumnLayout {
+                    spacing: 8
 
-                        DelegateChoice {
-                            roleValue: MarkdownModel.Markdown
-                            delegate: TextArea {
-                                id: markdownText
-                                required property string content
-                                text: content
-                                readOnly: true
-                                textFormat: TextEdit.MarkdownText
-                                wrapMode: Text.Wrap
-                                ContextMenu.menu: null
-                                color: chatItem.role === "tool" ? global.stroke : global.fore
-                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                background: null
-                                Layout.fillWidth: true
+                    Repeater {
+                        model: markdownModel
+                        delegate: DelegateChooser {
+                            role: "type"
 
-                                HoverHandler {
-                                    cursorShape: markdownText.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
-                                }
+                            DelegateChoice {
+                                roleValue: MarkdownModel.Markdown
+                                delegate: TextArea {
+                                    id: markdownText
+                                    required property string content
+                                    text: content
+                                    readOnly: true
+                                    textFormat: TextEdit.MarkdownText
+                                    wrapMode: Text.Wrap
+                                    ContextMenu.menu: null
+                                    color: chatItem.role === "tool" ? global.stroke : global.fore
+                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                    background: null
+                                    Layout.fillWidth: true
 
-                                TapHandler {
-                                    acceptedButtons: Qt.LeftButton
-
-                                    onTapped: {
-                                        if (markdownText.hoveredLink) documentModule.documentOpen(markdownText.hoveredLink)
+                                    HoverHandler {
+                                        cursorShape: markdownText.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
                                     }
-                                }
 
-                                TapHandler {
-                                    acceptedButtons: Qt.RightButton
+                                    TapHandler {
+                                        acceptedButtons: Qt.LeftButton
 
-                                    onTapped: {
-                                        if (!markdownText.hoveredLink) return
-                                        mainLinkMenu.url = markdownText.hoveredLink
-                                        mainLinkMenu.popup()
+                                        onTapped: {
+                                            if (markdownText.hoveredLink) documentModule.documentOpen(markdownText.hoveredLink)
+                                        }
+                                    }
+
+                                    TapHandler {
+                                        acceptedButtons: Qt.RightButton
+
+                                        onTapped: {
+                                            if (!markdownText.hoveredLink) return
+                                            mainLinkMenu.url = markdownText.hoveredLink
+                                            mainLinkMenu.popup()
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        DelegateChoice {
-                            roleValue: MarkdownModel.Code
-                            delegate: Control {
-                                id: codeBlock
-                                required property string content
-                                required property string language
-                                padding: 0
-                                topPadding: 8
-                                Layout.fillWidth: true
+                            DelegateChoice {
+                                roleValue: MarkdownModel.Code
+                                delegate: Control {
+                                    id: codeBlock
+                                    required property string content
+                                    required property string language
+                                    padding: 0
+                                    topPadding: 8
+                                    Layout.fillWidth: true
 
-                                background: Rectangle {
-                                    color: global.backSelected
-                                    radius: 16
-                                }
-
-                                contentItem: ColumnLayout {
-                                    spacing: 0
-
-                                    RowLayout {
-                                        Layout.fillWidth: true; Layout.preferredHeight: 24
-                                        Layout.leftMargin: 12; Layout.rightMargin: 8
-                                        spacing: 4
-
-                                        IconImage {
-                                            color: global.fore
-                                            source: "qrc:/icon/code.svg"
-                                            sourceSize.width: 16; sourceSize.height: 16
-                                            Layout.preferredWidth: 16; Layout.preferredHeight: 16
-                                            Layout.alignment: Qt.AlignVCenter
-                                        }
-
-                                        Label {
-                                            text: codeBlock.language || qsTr("Code")
-                                            verticalAlignment: Text.AlignVCenter
-                                            Layout.fillWidth: true; Layout.fillHeight: true
-                                        }
-
-                                        Button {
-                                            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                            flat: true
-                                            icon.source: "qrc:/icon/copy.svg"
-                                            icon.width: 16; icon.height: 16
-                                            Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                                            onClicked: fileModule.copyToClipboard(codeBlock.content)
-                                        }
+                                    background: Rectangle {
+                                        color: global.backSelected
+                                        radius: 16
                                     }
 
-                                    Flickable {
-                                        id: codeFlickable
-                                        clip: true
-                                        interactive: false
-                                        boundsBehavior: Flickable.StopAtBounds
-                                        contentWidth: Math.max(width, codeText.contentWidth + codeText.leftPadding + codeText.rightPadding)
-                                        contentHeight: codeText.implicitHeight
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: codeText.implicitHeight + (codeScrollBar.visible ? codeScrollBar.implicitHeight : 0)
+                                    contentItem: ColumnLayout {
+                                        spacing: 0
 
-                                        ScrollBar.horizontal: ScrollBar {
-                                            id: codeScrollBar
-                                            policy: ScrollBar.AsNeeded
-                                            palette {
-                                                mid: global.stroke
-                                                dark: global.strokePressed
+                                        RowLayout {
+                                            Layout.fillWidth: true; Layout.preferredHeight: 24
+                                            Layout.leftMargin: 12; Layout.rightMargin: 8
+                                            spacing: 4
+
+                                            IconImage {
+                                                color: global.fore
+                                                source: "qrc:/icon/code.svg"
+                                                sourceSize.width: 16; sourceSize.height: 16
+                                                Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+
+                                            Label {
+                                                text: codeBlock.language || qsTr("Code")
+                                                verticalAlignment: Text.AlignVCenter
+                                                Layout.fillWidth: true; Layout.fillHeight: true
+                                            }
+
+                                            Button {
+                                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                flat: true
+                                                icon.source: "qrc:/icon/copy.svg"
+                                                icon.width: 16; icon.height: 16
+                                                Layout.preferredWidth: 24; Layout.preferredHeight: 24
+
+                                                onClicked: fileModule.copyToClipboard(codeBlock.content)
                                             }
                                         }
 
-                                        TextArea {
-                                            id: codeText
-                                            width: codeFlickable.contentWidth
-                                            text: codeBlock.content
-                                            font.family: "Consolas"
-                                            readOnly: true
-                                            textFormat: TextEdit.PlainText
-                                            wrapMode: TextEdit.NoWrap
-                                            ContextMenu.menu: null
-                                            color: global.fore
-                                            leftPadding: 12; rightPadding: 12; topPadding: 8; bottomPadding: 8
-                                            background: null
+                                        Flickable {
+                                            id: codeFlickable
+                                            clip: true
+                                            interactive: false
+                                            boundsBehavior: Flickable.StopAtBounds
+                                            contentWidth: Math.max(width, codeText.contentWidth + codeText.leftPadding + codeText.rightPadding)
+                                            contentHeight: codeText.implicitHeight
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: codeText.implicitHeight + (codeScrollBar.visible ? codeScrollBar.implicitHeight : 0)
+
+                                            ScrollBar.horizontal: ScrollBar {
+                                                id: codeScrollBar
+                                                policy: ScrollBar.AsNeeded
+                                                palette {
+                                                    mid: global.stroke
+                                                    dark: global.strokePressed
+                                                }
+                                            }
+
+                                            TextArea {
+                                                id: codeText
+                                                width: codeFlickable.contentWidth
+                                                text: codeBlock.content
+                                                font.family: "Consolas"
+                                                readOnly: true
+                                                textFormat: TextEdit.PlainText
+                                                wrapMode: TextEdit.NoWrap
+                                                ContextMenu.menu: null
+                                                color: global.fore
+                                                leftPadding: 12; rightPadding: 12; topPadding: 8; bottomPadding: 8
+                                                background: null
+                                            }
                                         }
                                     }
                                 }
@@ -2052,14 +2054,64 @@ Item {
                 }
             }
 
+            Flow {
+                id: messageAttachmentFlow
+                layoutDirection: Qt.RightToLeft
+                spacing: 4
+                visible: chatItem.attachments.length > 0
+                Layout.preferredWidth: Math.min(implicitWidth, chatView.availableWidth * 0.8)
+                Layout.preferredHeight: visible ? implicitHeight : 0
+                Layout.alignment: Qt.AlignRight
+
+                Repeater {
+                    model: chatItem.attachments
+
+                    delegate: Rectangle {
+                        id: messageAttachmentChip
+                        required property var modelData
+                        implicitWidth: Math.min(messageAttachmentButton.implicitWidth, 220)
+                        implicitHeight: 24
+                        color: global.backSelected
+                        border.color: global.stroke
+                        border.width: 1
+                        radius: 4
+
+                        Button {
+                            id: messageAttachmentButton
+                            anchors.fill: parent
+                            leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
+                            flat: true
+
+                            contentItem: RowLayout {
+                                spacing: 4
+
+                                Image {
+                                    source: messageAttachmentChip.modelData.iconSource
+                                    sourceSize.width: 16; sourceSize.height: 16
+                                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                }
+
+                                Label {
+                                    text: messageAttachmentChip.modelData.fileName
+                                    elide: Text.ElideRight
+                                    Layout.maximumWidth: 160
+                                }
+                            }
+
+                            onClicked: documentModule.documentOpen(messageAttachmentChip.modelData.attachmentUrl)
+                        }
+                    }
+                }
+            }
+
             RowLayout {
-                anchors.bottom: parent.bottom
-                x: chatItem.role === "user" ? parent.width - width : 0
-                height: 24
+                id: messageInfoRow
                 visible: chatItem.role === "user" || chatItem.role === "assistant"
                 opacity: chatHover.hovered ? 1 : 0
                 enabled: opacity > 0
                 spacing: 2
+                Layout.preferredHeight: visible ? 24 : 0
+                Layout.alignment: chatItem.role === "user" ? Qt.AlignRight : Qt.AlignLeft
 
                 Label {
                     text: Qt.formatDateTime(new Date(chatItem.role === "user" ? turn.startedAt : turn.finishedAt), "HH:mm")
@@ -2239,7 +2291,7 @@ Item {
         rootItem.subagentMap = ({})
     }
 
-    function chatCreate(turnId: string, messageId: string, role: string): void {
+    function chatCreate(turnId: string, messageId: string, role: string, attachments: var): void {
         const turn = rootItem.turnMap[turnId]
         if (role === "user" && turn.prompt) role = "steering"
         else if (role === "assistant") role = "comment"
@@ -2260,6 +2312,7 @@ Item {
             turn: turn,
             messageId: messageId,
             role: role,
+            attachments: attachments,
         })
         rootItem.chatMap[messageId] = obj
     }

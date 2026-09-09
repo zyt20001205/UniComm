@@ -166,7 +166,7 @@ private:
 
     void turnFinish(const QString &turnId, qint64 finishedAt) const;
 
-    void chatCreate(const QString &turnId, const QString &messageId, const QString &role) const;
+    void chatCreate(const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) const;
 
     void chatAppend(const QString &messageId, const QString &text) const;
 

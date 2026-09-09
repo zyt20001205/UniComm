@@ -89,7 +89,7 @@ signals:
 
     void finishTurn(const QString &turnId, qint64 finishedAt);
 
-    void createChat(const QString &turnId, const QString &messageId, const QString &role);
+    void createChat(const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments);
 
     void appendChat(const QString &messageId, const QString &text);
 

@@ -376,14 +376,14 @@ void AgentModule::conversationGet(const QString &id) {
         }
         if (role == "tool") {
             const auto toolCall = toolCalls.value(message.toolCallId);
-            chatCreate(turnId, message.id, role);
+            chatCreate(turnId, message.id, role, message.attachments);
             chatAppend(message.id, m_toolsModule->toolTextGet(toolCall.first, toolCall.second));
             chatAppend(message.id, message.approved ? " ✓" : " ✗");
             continue;
         }
         const auto &content = message.content;
-        if (!content.isEmpty()) {
-            chatCreate(turnId, message.id, role);
+        if (!content.isEmpty() || !message.attachments.isEmpty()) {
+            chatCreate(turnId, message.id, role, message.attachments);
             chatAppend(message.id, content);
         }
     }
@@ -629,8 +629,8 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         m_evalModule->update(m_conversationId);
         m_hookModule->hookRun(HookModule::Event::TurnFinish);
     });
-    connect(runtime, &RuntimeModule::createChat, this, [this, runtime](const QString &turnId, const QString &messageId, const QString &role) {
-        if (runtime == m_runtimes.value(m_primary)) chatCreate(turnId, messageId, role);
+    connect(runtime, &RuntimeModule::createChat, this, [this, runtime](const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) {
+        if (runtime == m_runtimes.value(m_primary)) chatCreate(turnId, messageId, role, attachments);
     });
     connect(runtime, &RuntimeModule::appendChat, this, [this, runtime](const QString &messageId, const QString &text) {
         if (runtime == m_runtimes.value(m_primary)) chatAppend(messageId, text);
@@ -685,8 +685,23 @@ void AgentModule::turnFinish(const QString &turnId, const qint64 finishedAt) con
     QMetaObject::invokeMethod(m_root, "turnFinish", Q_ARG(QString, turnId), Q_ARG(double, finishedAt));
 }
 
-void AgentModule::chatCreate(const QString &turnId, const QString &messageId, const QString &role) const {
-    QMetaObject::invokeMethod(m_root, "chatCreate", Q_ARG(QString, turnId), Q_ARG(QString, messageId), Q_ARG(QString, role));
+void AgentModule::chatCreate(const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) const {
+    QVariantList items{};
+    for (const auto &attachment: attachments) {
+        items.append(QVariantMap{
+            {"attachmentUrl", attachment},
+            {"fileName", QFileInfo(attachment.toLocalFile()).fileName()},
+            {"iconSource", uni_cast<QFileIcon>(attachment).value}
+        });
+    }
+    QMetaObject::invokeMethod(
+        m_root,
+        "chatCreate",
+        Q_ARG(QString, turnId),
+        Q_ARG(QString, messageId),
+        Q_ARG(QString, role),
+        Q_ARG(QVariant, items)
+    );
 }
 
 void AgentModule::chatAppend(const QString &messageId, const QString &text) const {
