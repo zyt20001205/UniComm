@@ -2054,6 +2054,7 @@ Item {
                                 roleValue: MarkdownModel.Table
                                 delegate: Control {
                                     id: tableBlock
+                                    required property string content
                                     required property var tableModel
                                     padding: 0
                                     topPadding: 8
@@ -2085,6 +2086,16 @@ Item {
                                                 text: qsTr("Table")
                                                 verticalAlignment: Text.AlignVCenter
                                                 Layout.fillWidth: true; Layout.fillHeight: true
+                                            }
+
+                                            Button {
+                                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                flat: true
+                                                icon.source: "qrc:/icon/copy.svg"
+                                                icon.width: 16; icon.height: 16
+                                                Layout.preferredWidth: 24; Layout.preferredHeight: 24
+
+                                                onClicked: fileModule.copyToClipboard(tableBlock.content)
                                             }
                                         }
 
