@@ -74,7 +74,7 @@ public:
 
     void compact(const QString &conversationId);
 
-    void request(const QString &provider, const QString &model, int mode, const QString &task);
+    void request(const QString &provider, const QString &model, int mode, const QString &prompt, const QList<QUrl> &attachments = {});
 
     void permission(bool status);
 

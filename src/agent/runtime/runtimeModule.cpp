@@ -65,16 +65,17 @@ void RuntimeModule::compact(const QString &conversationId) {
     stateSet(AgentState::Compact);
 }
 
-void RuntimeModule::request(const QString &provider, const QString &model, const int mode, const QString &task) {
+void RuntimeModule::request(const QString &provider, const QString &model, const int mode, const QString &prompt, const QList<QUrl> &attachments) {
     m_turn = {
         .id = QUuid::createUuid().toString(QUuid::WithoutBraces),
         .provider = provider,
         .model = model,
-        .mode = mode
+        .mode = mode,
+        .attachments = attachments
     };
     const auto messageIndex = conversationAppend("user");
     auto &message = m_turn.messages[messageIndex];
-    message.content = task;
+    message.content = prompt;
     message.provider = provider;
     message.model = model;
     message.status = SqlModule::TurnStatus::Running;
@@ -221,7 +222,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             if (m_turn.conversationId.isEmpty()) {
                 providerId = m_turn.provider;
                 modelId = m_turn.model;
-                context = m_contextModule->contextBuild(m_agent->systemGet(), m_turn.mode, m_turn.messages, steering);
+                context = m_contextModule->contextBuild(m_agent->systemGet(), m_turn.mode, m_turn.messages, m_turn.attachments, steering);
             } else {
                 const auto [conversation, messages] = m_sqlModule->conversationGet(m_turn.conversationId);
                 providerId = conversation.provider;
@@ -286,7 +287,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             if (m_turn.conversationId.isEmpty()) g_agent->subagentUpdate(m_id, m_toolsModule->toolTextGet(toolCall.name, toolCall.arguments));
             const auto turnId = m_turn.id;
             m_turn.messages[toolCall.messageIndex].timing.startedAt = QDateTime::currentMSecsSinceEpoch();
-            auto future = m_toolsModule->toolExecute(m_id, toolCall.name, toolCall.arguments);
+            auto future = m_toolsModule->toolExecute(m_id, m_agent->roleGet(), toolCall.name, toolCall.arguments);
             future.then(this, [this, turnId, toolCall](const ToolResult &result) {
                 if (m_state != AgentState::ToolExec || m_turn.id != turnId) return;
                 if (m_turn.toolCalls.at(m_turn.toolIndex).id != toolCall.id) return;
