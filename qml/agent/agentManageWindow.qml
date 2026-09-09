@@ -341,40 +341,70 @@ Item {
 
                                 RowLayout {
                                     Layout.fillWidth: true
+                                    Layout.leftMargin: 10
+                                    Layout.rightMargin: 10
+                                    spacing: 12
 
                                     Label {
                                         text: qsTr("Available Models")
                                         font.bold: true
-                                    }
-
-                                    Item {
                                         Layout.fillWidth: true
                                     }
 
-                                    Button {
-                                        visible: providerCard.providerModelEndpoint.length > 0
-                                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                        flat: true
-                                        icon.source: "qrc:/icon/arrowClockwise.svg"
-                                        icon.width: 16; icon.height: 16
-                                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
-
-                                        onClicked: agentModule.providerModelsGet(providerCard.providerId)
+                                    Item {
+                                        Layout.preferredWidth: 108
                                     }
 
-                                    Button {
-                                        visible: providerCard.providerCustom
-                                                 && providerCard.providerModelEndpoint.length === 0
-                                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                        flat: true
-                                        icon.source: "qrc:/icon/add.svg"
-                                        icon.width: 16; icon.height: 16
+                                    Item {
+                                        Layout.preferredWidth: 100
+                                    }
+
+                                    Label {
+                                        text: qsTr("Main")
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.preferredWidth: 52
+                                    }
+
+                                    Label {
+                                        text: qsTr("Sub")
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.preferredWidth: 52
+                                    }
+
+                                    Label {
+                                        text: qsTr("Vision")
+                                        horizontalAlignment: Text.AlignHCenter
+                                        Layout.preferredWidth: 52
+                                    }
+
+                                    Item {
                                         Layout.preferredWidth: 20; Layout.preferredHeight: 20
 
-                                        onClicked: providerModelInsertDialog.openInsert(
-                                            providerCard.providerId,
-                                            providerCard.configGet()
-                                        )
+                                        Button {
+                                            anchors.fill: parent
+                                            visible: providerCard.providerModelEndpoint.length > 0
+                                            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                            flat: true
+                                            icon.source: "qrc:/icon/arrowClockwise.svg"
+                                            icon.width: 16; icon.height: 16
+
+                                            onClicked: agentModule.providerModelsGet(providerCard.providerId)
+                                        }
+
+                                        Button {
+                                            anchors.fill: parent
+                                            visible: providerCard.providerCustom
+                                                     && providerCard.providerModelEndpoint.length === 0
+                                            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                            flat: true
+                                            icon.source: "qrc:/icon/add.svg"
+                                            icon.width: 16; icon.height: 16
+
+                                            onClicked: providerModelInsertDialog.openInsert(
+                                                providerCard.providerId,
+                                                providerCard.configGet()
+                                            )
+                                        }
                                     }
                                 }
 
@@ -387,6 +417,9 @@ Item {
                                         required property string modelId
                                         required property int contextWindow
                                         required property int maxOutputTokens
+                                        required property bool primary
+                                        required property bool subagent
+                                        required property bool vision
 
                                         radius: 4
                                         color: index % 2 === 0 ? global.back : "transparent"
@@ -421,31 +454,84 @@ Item {
                                             Label {
                                                 text: qsTr("Context %1").arg(contextWindow.toLocaleString(Qt.locale(), "f", 0))
                                                 color: global.stroke
+                                                horizontalAlignment: Text.AlignRight
+                                                Layout.preferredWidth: 108
                                             }
 
                                             Label {
                                                 text: qsTr("Output %1").arg(maxOutputTokens.toLocaleString(Qt.locale(), "f", 0))
                                                 color: global.stroke
+                                                horizontalAlignment: Text.AlignRight
+                                                Layout.preferredWidth: 100
                                             }
 
-                                            Button {
-                                                visible: providerCard.providerCustom
-                                                         && providerCard.providerModelEndpoint.length === 0
-                                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                                checkable: true
-                                                flat: true
-                                                icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
-                                                icon.width: 16; icon.height: 16
+                                            Item {
+                                                Layout.preferredWidth: 52; Layout.fillHeight: true
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    checked: primary
+                                                    hoverEnabled: true
+
+                                                    ToolTip.visible: hovered
+                                                    ToolTip.text: qsTr("Default model for new conversations")
+
+                                                    onClicked: agentModule.primaryModelSet(providerCard.providerId, modelId)
+                                                }
+                                            }
+
+                                            Item {
+                                                Layout.preferredWidth: 52; Layout.fillHeight: true
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    checked: subagent
+                                                    hoverEnabled: true
+
+                                                    ToolTip.visible: hovered
+                                                    ToolTip.text: qsTr("Default model for subagents")
+
+                                                    onClicked: agentModule.subagentModelSet(providerCard.providerId, modelId)
+                                                }
+                                            }
+
+                                            Item {
+                                                Layout.preferredWidth: 52; Layout.fillHeight: true
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    checked: vision
+                                                    hoverEnabled: true
+
+                                                    ToolTip.visible: hovered
+                                                    ToolTip.text: qsTr("Default model for image understanding")
+
+                                                    onClicked: agentModule.visionModelSet(providerCard.providerId, modelId)
+                                                }
+                                            }
+
+                                            Item {
                                                 Layout.preferredWidth: 20; Layout.preferredHeight: 20
 
-                                                onClicked: {
-                                                    if (!checked) providerCard.modelRemove(modelId)
-                                                }
+                                                Button {
+                                                    anchors.fill: parent
+                                                    visible: providerCard.providerCustom
+                                                             && providerCard.providerModelEndpoint.length === 0
+                                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                    checkable: true
+                                                    flat: true
+                                                    icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
+                                                    icon.width: 16; icon.height: 16
 
-                                                Timer {
-                                                    interval: 1000
-                                                    running: parent.checked
-                                                    onTriggered: parent.checked = false
+                                                    onClicked: {
+                                                        if (!checked) providerCard.modelRemove(modelId)
+                                                    }
+
+                                                    Timer {
+                                                        interval: 1000
+                                                        running: parent.checked
+                                                        onTriggered: parent.checked = false
+                                                    }
                                                 }
                                             }
                                         }

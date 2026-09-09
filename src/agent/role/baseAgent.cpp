@@ -39,6 +39,7 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "port_config_get",
                   "port_create",
                   "port_delete",
+                  "subagent_dispatch",
                   "script_exec"
               }
           },
@@ -114,7 +115,7 @@ QString BaseAgent::roleGet() const {
 }
 
 QJsonArray BaseAgent::toolsGet(const ToolsModule &toolsModule) const {
-    return toolsModule.toolsGet(m_tools.value(m_role), m_role == "general" || m_role == "supervisor");
+    return toolsModule.toolsGet(m_tools.value(m_role), m_role, m_role == "general" || m_role == "supervisor");
 }
 
 bool BaseAgent::toolContains(const QString &name) const {

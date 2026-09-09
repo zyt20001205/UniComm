@@ -95,6 +95,9 @@ void OpenAIProvider::modelsGet() {
             item->setData(model.id, ProviderModelModel::ModelIdRole);
             item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
             item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
+            item->setData(false, ProviderModelModel::PrimaryRole);
+            item->setData(false, ProviderModelModel::SubagentRole);
+            item->setData(false, ProviderModelModel::VisionRole);
             m_modelList->appendRow(item);
         }
         emit modelsChanged();
@@ -114,6 +117,9 @@ void OpenAIProvider::modelsGet() {
                 item->setData(model.id, ProviderModelModel::ModelIdRole);
                 item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
                 item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
+                item->setData(false, ProviderModelModel::PrimaryRole);
+                item->setData(false, ProviderModelModel::SubagentRole);
+                item->setData(false, ProviderModelModel::VisionRole);
                 m_modelList->appendRow(item);
             }
             reply->deleteLater();

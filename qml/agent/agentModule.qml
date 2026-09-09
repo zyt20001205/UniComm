@@ -1862,7 +1862,8 @@ Item {
             IconImage {
                 color: global.fore
                 source: role === "data" ? "qrc:/icon/database.svg" :
-                        role === "hardware" ? "qrc:/icon/hardware.svg" : "qrc:/icon/code.svg"
+                        role === "hardware" ? "qrc:/icon/hardware.svg" :
+                            role === "vision" ? "qrc:/icon/eye.svg" : "qrc:/icon/code.svg"
                 sourceSize.width: 24; sourceSize.height: 24
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
                 Layout.alignment: Qt.AlignTop

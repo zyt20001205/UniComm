@@ -3,6 +3,11 @@
     "context": {
       "compactThreshold": 75
     },
+    "default": {
+      "primary": {},
+      "subagent": {},
+      "vision": {}
+    },
     "hooks": [
       {
         "enabled": true,
