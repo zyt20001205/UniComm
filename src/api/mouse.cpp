@@ -1,5 +1,6 @@
 #include "api/mouse.h"
 
+#include <limits>
 #include <QCursor>
 #include <QThread>
 #include <sol/error.hpp>
@@ -59,7 +60,9 @@ void Mouse::doubleClick(const int x, const int y, const std::string &button) {
 void Mouse::scroll(const int x, const int y, const int steps) {
     move(x, y);
     if (steps == 0) return;
-    inputSend(MOUSEEVENTF_WHEEL, static_cast<unsigned long>(steps * WHEEL_DELTA));
+    const auto delta = static_cast<long long>(steps) * WHEEL_DELTA;
+    if (delta < std::numeric_limits<long>::min() || delta > std::numeric_limits<long>::max()) throw sol::error("mouse wheel delta is out of range");
+    inputSend(MOUSEEVENTF_WHEEL, static_cast<long>(delta));
 }
 
 // private
@@ -89,10 +92,10 @@ bool &Mouse::buttonState(const Button button) {
     }
 }
 
-void Mouse::inputSend(const unsigned long flags, const unsigned long data) {
+void Mouse::inputSend(const unsigned long flags, const long data) {
     INPUT input{};
     input.type = INPUT_MOUSE;
     input.mi.dwFlags = flags;
-    input.mi.mouseData = data;
+    input.mi.mouseData = static_cast<unsigned long>(data);
     if (SendInput(1, &input, sizeof(INPUT)) != 1) throw sol::error(QString("failed to send mouse input: %1").arg(GetLastError()).toStdString());
 }

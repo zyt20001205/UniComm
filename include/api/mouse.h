@@ -39,7 +39,7 @@ private:
 
     [[nodiscard]] bool &buttonState(Button button);
 
-    static void inputSend(unsigned long flags, unsigned long data = 0);
+    static void inputSend(unsigned long flags, long data = 0);
 
     bool m_leftPressed{};
     bool m_rightPressed{};
