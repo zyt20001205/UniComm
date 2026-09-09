@@ -297,41 +297,87 @@ template<>
 QList<MarkdownBlock> uni_cast<QList<MarkdownBlock>, QString>(const QString &s, const int depth) {
     Q_UNUSED(depth);
     const auto markdown = s.toUtf8();
-    auto *document = cmark_parse_document(markdown.constData(), markdown.size(), CMARK_OPT_FOOTNOTES);
+    cmark_gfm_core_extensions_ensure_registered();
+    auto *parser = cmark_parser_new(CMARK_OPT_FOOTNOTES);
+    cmark_parser_attach_syntax_extension(parser, cmark_find_syntax_extension("table"));
+    cmark_parser_feed(parser, markdown.constData(), markdown.size());
+    auto *document = cmark_parser_finish(parser);
 
-    struct CodeBlock {
+    struct ParsedBlock {
         int startLine{};
         int endLine{};
-        QString content{};
-        QString language{};
+        MarkdownBlock block{};
     };
 
-    QList<CodeBlock> codeBlocks{};
+    QList<ParsedBlock> parsedBlocks{};
     auto *iterator = cmark_iter_new(document);
     while (cmark_iter_next(iterator) != CMARK_EVENT_DONE) {
         auto *node = cmark_iter_get_node(iterator);
-        if (cmark_iter_get_event_type(iterator) != CMARK_EVENT_ENTER || cmark_node_get_type(node) != CMARK_NODE_CODE_BLOCK) continue;
-        auto content = QString::fromUtf8(cmark_node_get_literal(node));
-        if (content.endsWith('\n')) content.chop(1);
-        codeBlocks.append({
+        if (cmark_iter_get_event_type(iterator) != CMARK_EVENT_ENTER) continue;
+        if (cmark_node_get_type(node) == CMARK_NODE_CODE_BLOCK) {
+            auto content = QString::fromUtf8(cmark_node_get_literal(node));
+            if (content.endsWith('\n')) content.chop(1);
+            parsedBlocks.append({
+                .startLine = cmark_node_get_start_line(node),
+                .endLine = cmark_node_get_end_line(node),
+                .block = {
+                    .type = MarkdownBlock::Type::Code,
+                    .content = content,
+                    .language = QString::fromUtf8(cmark_node_get_fence_info(node)).section(' ', 0, 0)
+                }
+            });
+            continue;
+        }
+        if (QString::fromUtf8(cmark_node_get_type_string(node)) != "table") continue;
+
+        MarkdownTable table{};
+        for (auto *row = cmark_node_first_child(node); row; row = cmark_node_next(row)) {
+            QStringList cells{};
+            for (auto *cell = cmark_node_first_child(row); cell; cell = cmark_node_next(cell)) {
+                QString markdown{};
+                for (auto *child = cmark_node_first_child(cell); child; child = cmark_node_next(child)) {
+                    auto *content = cmark_render_commonmark(child, CMARK_OPT_NOBREAKS, 0);
+                    auto text = QString::fromUtf8(content);
+                    free(content);
+                    text.chop(1);
+                    markdown += text;
+                }
+                cells.append(markdown);
+            }
+            const auto type = QString::fromUtf8(cmark_node_get_type_string(row));
+            if (type == "table_header" || cmark_gfm_extensions_get_table_row_is_header(row)) table.header = cells;
+            else table.rows.append(cells);
+        }
+        const auto columns = cmark_gfm_extensions_get_table_columns(node);
+        const auto *alignments = cmark_gfm_extensions_get_table_alignments(node);
+        for (auto column = 0; column < columns; ++column) {
+            table.alignments.append(
+                alignments[column] == 'c' ? MarkdownTable::Alignment::Center : alignments[column] == 'r' ? MarkdownTable::Alignment::Right : MarkdownTable::Alignment::Left
+            );
+        }
+        parsedBlocks.append({
             .startLine = cmark_node_get_start_line(node),
             .endLine = cmark_node_get_end_line(node),
-            .content = content,
-            .language = QString::fromUtf8(cmark_node_get_fence_info(node)).section(' ', 0, 0)
+            .block = {
+                .type = MarkdownBlock::Type::Table,
+                .table = std::move(table)
+            }
         });
     }
     cmark_iter_free(iterator);
     cmark_node_free(document);
+    cmark_parser_free(parser);
 
     const auto lines = s.split('\n', Qt::KeepEmptyParts);
     QList<MarkdownBlock> blocks{};
     qsizetype currentLine{};
-    for (const auto &codeBlock: codeBlocks) {
-        const qsizetype startLine = codeBlock.startLine - 1;
-        const qsizetype endLine = codeBlock.endLine;
+    for (auto &parsedBlock: parsedBlocks) {
+        const qsizetype startLine = parsedBlock.startLine - 1;
+        const qsizetype endLine = parsedBlock.endLine;
         const auto content = lines.sliced(currentLine, startLine - currentLine).join('\n');
         if (!content.trimmed().isEmpty()) blocks.append({MarkdownBlock::Type::Markdown, content, {}});
-        blocks.append({MarkdownBlock::Type::Code, codeBlock.content, codeBlock.language});
+        if (parsedBlock.block.type == MarkdownBlock::Type::Table) parsedBlock.block.content = lines.sliced(startLine, endLine - startLine).join('\n');
+        blocks.append(std::move(parsedBlock.block));
         currentLine = endLine;
     }
     const auto content = lines.sliced(currentLine).join('\n');
@@ -531,8 +577,8 @@ QLifetime uni_cast<QLifetime, qint64>(const qint64 &s, const int depth) {
     const int millisecondsOfDay = static_cast<int>(totalSeconds % 86400 * 1000);
     const auto time = QTime::fromMSecsSinceStartOfDay(millisecondsOfDay);
     return QStringLiteral("%1d %2")
-        .arg(days)
-        .arg(time.toString(QStringLiteral("hh'h' mm'm' ss's'")));
+            .arg(days)
+            .arg(time.toString(QStringLiteral("hh'h' mm'm' ss's'")));
 }
 
 template<>

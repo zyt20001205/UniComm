@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QSet>
+#include <QStringList>
 #include <QUrl>
 #include <QVariant>
 #include <sol/object.hpp>
@@ -72,17 +73,35 @@ template<>
 [[nodiscard]] sol::table uni_cast<sol::table, QList<QVariant>>(sol::this_state ts, const QList<QVariant> &s, int depth);
 
 // qt -> qt
+struct MarkdownTable {
+    struct Alignment {
+        enum {
+            Left = Qt::AlignLeft,
+            Center = Qt::AlignHCenter,
+            Right = Qt::AlignRight
+        };
+    };
+
+    QStringList header{};
+    QList<QStringList> rows{};
+    QList<int> alignments{};
+
+    bool operator==(const MarkdownTable &) const = default;
+};
+
 struct MarkdownBlock {
     struct Type {
         enum {
             Markdown,
-            Code
+            Code,
+            Table
         };
     };
 
     int type{};
     QString content{};
     QString language{};
+    MarkdownTable table{};
 };
 
 struct QFileIcon {

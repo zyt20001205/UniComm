@@ -2049,6 +2049,198 @@ Item {
                                     }
                                 }
                             }
+
+                            DelegateChoice {
+                                roleValue: MarkdownModel.Table
+                                delegate: Control {
+                                    id: tableBlock
+                                    required property var tableModel
+                                    padding: 0
+                                    topPadding: 8
+                                    clip: true
+                                    Layout.fillWidth: true
+
+                                    background: Rectangle {
+                                        color: global.backSelected
+                                        radius: 16
+                                    }
+
+                                    contentItem: ColumnLayout {
+                                        spacing: 0
+
+                                        RowLayout {
+                                            Layout.fillWidth: true; Layout.preferredHeight: 24
+                                            Layout.leftMargin: 12; Layout.rightMargin: 8
+                                            spacing: 4
+
+                                            IconImage {
+                                                color: global.fore
+                                                source: "qrc:/icon/table.svg"
+                                                sourceSize.width: 16; sourceSize.height: 16
+                                                Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                                Layout.alignment: Qt.AlignVCenter
+                                            }
+
+                                            Label {
+                                                text: qsTr("Table")
+                                                verticalAlignment: Text.AlignVCenter
+                                                Layout.fillWidth: true; Layout.fillHeight: true
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            color: global.backSelected
+                                            Layout.fillWidth: true
+                                            Layout.leftMargin: 12; Layout.rightMargin: 12
+                                            Layout.topMargin: 8; Layout.bottomMargin: 8
+                                            Layout.preferredHeight: 32 + tableBlock.tableModel.rows * 32 + (tableScrollBar.visible ? tableScrollBar.implicitHeight : 0)
+
+                                            ColumnLayout {
+                                                anchors.fill: parent
+                                                spacing: 0
+
+                                                HorizontalHeaderView {
+                                                    id: tableHeader
+                                                    syncView: tableView
+                                                    interactive: false
+                                                    columnSpacing: 0
+                                                    clip: true
+                                                    Layout.fillWidth: true; Layout.preferredHeight: 32
+
+                                                    delegate: HorizontalHeaderViewDelegate {
+                                                        id: tableHeaderDelegate
+                                                        implicitWidth: 160; implicitHeight: 32
+                                                        padding: 0
+
+                                                        background: Rectangle {
+                                                            color: global.backHover
+
+                                                            Rectangle {
+                                                                anchors.right: parent.right
+                                                                width: 1; height: parent.height
+                                                                color: global.stroke
+                                                                visible: tableHeaderDelegate.column < tableBlock.tableModel.columns - 1
+                                                            }
+                                                        }
+
+                                                        contentItem: Label {
+                                                            id: tableHeaderText
+                                                            text: tableHeaderDelegate.model.display
+                                                            textFormat: Text.MarkdownText
+                                                            color: global.fore
+                                                            font.bold: true
+                                                            leftPadding: 8; rightPadding: 8
+                                                            horizontalAlignment: tableHeaderDelegate.model.alignment
+                                                            verticalAlignment: Text.AlignVCenter
+                                                            elide: Text.ElideRight
+
+                                                            HoverHandler {
+                                                                cursorShape: tableHeaderText.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                                                            }
+
+                                                            TapHandler {
+                                                                acceptedButtons: Qt.LeftButton
+
+                                                                onTapped: {
+                                                                    if (tableHeaderText.hoveredLink) documentModule.documentOpen(tableHeaderText.hoveredLink)
+                                                                }
+                                                            }
+
+                                                            TapHandler {
+                                                                acceptedButtons: Qt.RightButton
+
+                                                                onTapped: {
+                                                                    if (!tableHeaderText.hoveredLink) return
+                                                                    mainLinkMenu.url = tableHeaderText.hoveredLink
+                                                                    mainLinkMenu.popup()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                TableView {
+                                                    id: tableView
+                                                    model: tableBlock.tableModel
+                                                    alternatingRows: false
+                                                    interactive: false
+                                                    resizableColumns: true
+                                                    rowSpacing: 0; columnSpacing: 0
+                                                    boundsBehavior: Flickable.StopAtBounds
+                                                    clip: true
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: tableBlock.tableModel.rows * 32 + (tableScrollBar.visible ? tableScrollBar.implicitHeight : 0)
+
+                                                    columnWidthProvider: function(column: int): real {
+                                                        const explicitWidth = explicitColumnWidth(column)
+                                                        if (explicitWidth >= 0) return explicitWidth
+                                                        return Math.max(160, width / tableBlock.tableModel.columns)
+                                                    }
+
+                                                    ScrollBar.horizontal: ScrollBar {
+                                                        id: tableScrollBar
+                                                        policy: ScrollBar.AsNeeded
+                                                        palette {
+                                                            mid: global.stroke
+                                                            dark: global.strokePressed
+                                                        }
+                                                    }
+
+                                                    delegate: TableViewDelegate {
+                                                        id: tableCell
+                                                        implicitWidth: 160; implicitHeight: 32
+                                                        padding: 0
+
+                                                        background: Rectangle {
+                                                            color: tableCell.row % 2 === 0 ? global.backSelected : global.backHover
+
+                                                            Rectangle {
+                                                                anchors.right: parent.right
+                                                                width: 1; height: parent.height
+                                                                color: global.stroke
+                                                                visible: tableCell.column < tableBlock.tableModel.columns - 1
+                                                            }
+                                                        }
+
+                                                        contentItem: Label {
+                                                            id: tableCellText
+                                                            text: tableCell.model.display
+                                                            textFormat: Text.MarkdownText
+                                                            color: global.fore
+                                                            leftPadding: 8; rightPadding: 8
+                                                            horizontalAlignment: tableCell.model.alignment
+                                                            verticalAlignment: Text.AlignVCenter
+                                                            elide: Text.ElideRight
+
+                                                            HoverHandler {
+                                                                cursorShape: tableCellText.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                                                            }
+
+                                                            TapHandler {
+                                                                acceptedButtons: Qt.LeftButton
+
+                                                                onTapped: {
+                                                                    if (tableCellText.hoveredLink) documentModule.documentOpen(tableCellText.hoveredLink)
+                                                                }
+                                                            }
+
+                                                            TapHandler {
+                                                                acceptedButtons: Qt.RightButton
+
+                                                                onTapped: {
+                                                                    if (!tableCellText.hoveredLink) return
+                                                                    mainLinkMenu.url = tableCellText.hoveredLink
+                                                                    mainLinkMenu.popup()
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
