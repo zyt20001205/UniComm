@@ -68,6 +68,12 @@ public:
 
     Q_INVOKABLE [[nodiscard]] bool providerExists(const QString &id) const;
 
+    Q_INVOKABLE void primaryModelSet(const QString &provider, const QString &model);
+
+    Q_INVOKABLE void subagentModelSet(const QString &provider, const QString &model);
+
+    Q_INVOKABLE void visionModelSet(const QString &provider, const QString &model);
+
     Q_INVOKABLE QString mcpInsert(const QUrl &url);
 
     Q_INVOKABLE void mcpRemove(const QUrl &url);
@@ -142,7 +148,7 @@ public:
 
     void diffUpdate(const QString &undoGroupId, const QVariantMap &fileDiffs, int additions, int deletions);
 
-    [[nodiscard]] RuntimeModule *subagentDispatch(const QString &role, const QString &task);
+    [[nodiscard]] RuntimeModule *subagentDispatch(const QString &role, const QString &prompt, const QList<QUrl> &attachments = {});
 
     void subagentCreate(const QString &turnId, const QString &runtimeId, const QString &role, const QString &message) const;
 

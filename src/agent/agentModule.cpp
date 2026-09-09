@@ -21,6 +21,7 @@
 #include "agent/role/hardwareAgent.h"
 #include "agent/role/softwareAgent.h"
 #include "agent/role/supervisorAgent.h"
+#include "agent/role/visionAgent.h"
 #include "core/globalManager.h"
 #include "core/undoModule.h"
 #include "document/documentModule.h"
@@ -38,7 +39,7 @@ AgentModule::AgentModule()
       m_conversationModel(new ConversationModel(this)),
       m_contextModule(new ContextModule(m_config["context"].toObject(), this)),
       m_mcpModule(new McpModule(m_config["mcp"].toObject(), this)),
-      m_providerModule(new ProviderModule(m_config["providers"].toObject(), this)),
+      m_providerModule(new ProviderModule(m_config["providers"].toObject(), m_config["default"].toObject(), this)),
       m_sqlModule(new SqlModule(m_config["sql"].toObject(), this)),
       m_evalModule(new EvalModule(m_sqlModule, this)),
       m_hookModule(new HookModule(m_config["hooks"].toArray(), this)),
@@ -191,6 +192,30 @@ void AgentModule::providerRemove(const QString &id) {
 
 bool AgentModule::providerExists(const QString &id) const {
     return m_providerModule->providerExists(id);
+}
+
+void AgentModule::primaryModelSet(const QString &provider, const QString &model) {
+    auto defaults = m_config["default"].toObject();
+    defaults["primary"] = QJsonObject{{"provider", provider}, {"model", model}};
+    m_config["default"] = defaults;
+    m_providerModule->defaultSet(defaults);
+    agentConfigSave();
+}
+
+void AgentModule::subagentModelSet(const QString &provider, const QString &model) {
+    auto defaults = m_config["default"].toObject();
+    defaults["subagent"] = QJsonObject{{"provider", provider}, {"model", model}};
+    m_config["default"] = defaults;
+    m_providerModule->defaultSet(defaults);
+    agentConfigSave();
+}
+
+void AgentModule::visionModelSet(const QString &provider, const QString &model) {
+    auto defaults = m_config["default"].toObject();
+    defaults["vision"] = QJsonObject{{"provider", provider}, {"model", model}};
+    m_config["default"] = defaults;
+    m_providerModule->defaultSet(defaults);
+    agentConfigSave();
 }
 
 QString AgentModule::mcpInsert(const QUrl &url) {
@@ -374,10 +399,13 @@ void AgentModule::conversationGet(const QString &id) {
 void AgentModule::conversationInsert() {
     const auto id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const auto timestamp = QDateTime::currentMSecsSinceEpoch();
+    const auto primary = m_config["default"].toObject().value("primary").toObject();
     m_sqlModule->conversationInsert(SqlModule::Conversation{
         .id = id,
         .title = id,
         .strategy = AgentStrategy::Solo,
+        .provider = primary.value("provider").toString(),
+        .model = primary.value("model").toString(),
         .createdAt = timestamp,
         .updatedAt = timestamp
     });
@@ -504,17 +532,22 @@ void AgentModule::planUpdate(const QString &runtimeId, const QJsonObject &plan) 
     QMetaObject::invokeMethod(m_root, "planUpdate", Q_ARG(QVariant, plan.toVariantMap()));
 }
 
-RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString &task) {
+RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString &prompt, const QList<QUrl> &attachments) {
+    const auto conversation = m_sqlModule->conversationGet(m_conversationId).first;
+    const auto _default = m_config["default"].toObject().value(role == "vision" ? "vision" : "subagent").toObject();
+    const auto provider = _default.value("provider").toString(conversation.provider);
+    const auto model = _default.value("model").toString(conversation.model);
+
     BaseAgent *agent{};
     if (role == "data") agent = new DataAgent();
     if (role == "hardware") agent = new HardwareAgent();
     if (role == "software") agent = new SoftwareAgent();
+    if (role == "vision") agent = new VisionAgent();
     if (agent == nullptr) return nullptr;
 
-    const auto conversation = m_sqlModule->conversationGet(m_conversationId).first;
     auto *worker = new RuntimeModule(agent, runtimeServicesGet(), this); // NOLINT
     m_runtimes.insert(worker->idGet(), worker);
-    subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, task);
+    subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, prompt);
     connect(worker, &RuntimeModule::finishRun, worker, [this, worker](const QString &result, const bool) {
         subagentUpdate(worker->idGet(), result);
         m_runtimes.remove(worker->idGet());
@@ -523,7 +556,7 @@ RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString 
     connect(worker, &RuntimeModule::retryRequest, worker, [this, worker](const int attempt, const int limit) {
         subagentUpdate(worker->idGet(), tr("Connection lost. Retrying %1/%2...").arg(attempt).arg(limit));
     });
-    worker->request(conversation.provider, conversation.model, conversation.mode, task);
+    worker->request(provider, model, conversation.mode, prompt, attachments);
     return worker;
 }
 
