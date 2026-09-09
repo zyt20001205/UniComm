@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <sol/sol.hpp>
 
+#include <tuple>
+
 #include "globals.h"
 #include "api/data.h"
 #include "api/ftp.h"
@@ -224,12 +226,19 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         });
         m_lua["ModbusTcp"] = modbusTcp;
     }
-    // Mouse lib (static)
+    // Mouse lib
     {
         auto mouse = m_lua.create_table();
-        mouse.set_function("click", [](const int x, const int y) { Mouse::click(x, y); });
-        mouse.set_function("doubleClick", [](const int x, const int y) { Mouse::doubleClick(x, y); });
-        mouse.set_function("rightClick", [](const int x, const int y) { Mouse::rightClick(x, y); });
+        mouse.set_function("position", [] {
+            const auto position = Mouse::position();
+            return std::make_tuple(position.x(), position.y());
+        });
+        mouse.set_function("move", [](const int x, const int y) { Mouse::move(x, y); });
+        mouse.set_function("down", [this](const sol::optional<std::string> &button) { m_mouse->down(button.value_or("left")); });
+        mouse.set_function("up", [this](const sol::optional<std::string> &button) { m_mouse->up(button.value_or("left")); });
+        mouse.set_function("click", [this](const int x, const int y, const sol::optional<std::string> &button) { m_mouse->click(x, y, button.value_or("left")); });
+        mouse.set_function("doubleClick", [this](const int x, const int y, const sol::optional<std::string> &button) { m_mouse->doubleClick(x, y, button.value_or("left")); });
+        mouse.set_function("scroll", [](const int x, const int y, const int steps) { Mouse::scroll(x, y, steps); });
         m_lua["mouse"] = mouse;
     }
     // Mqtt lib (instance)

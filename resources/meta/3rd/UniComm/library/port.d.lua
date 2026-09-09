@@ -59,7 +59,7 @@ Port.Type = {
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
 ---@class VisionPortConfig : PortConfig
----@field portName string Exact name of an available screen or camera. Programmatic creation does not configure ROI, pipeline, or recognition processing.
+---@field portName string Exact name of an available screen or camera. Without configured ROIs, the complete source frame is processed as one ROI.
 
 ---@class TcpClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
@@ -195,10 +195,11 @@ function port:write(data, peerIp) end
 ---`length` immediately drains all currently buffered data and never waits.
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
----unspecified connected peer. A Vision port waits for the next captured
----frame according to `timeout`, then returns one structured result per configured
----ROI and always preserves the outer array. With `timeout` zero it uses the
----current frame immediately.
+---unspecified connected peer. A Vision port waits for the next captured frame
+---according to `timeout`, then returns one structured result per configured ROI
+---and always preserves the outer array. When no ROI is configured, the complete
+---source frame is processed as one ROI. With `timeout` zero it uses the current
+---frame immediately.
 ---
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.

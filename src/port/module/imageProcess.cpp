@@ -26,7 +26,9 @@ ImageProcess::~ImageProcess() {
 
 QList<ImageProcess::ProcessResult> ImageProcess::process(const QImage &frame) {
     QList<ProcessResult> results{};
-    for (const QJsonValue &value: m_config["roi"].toArray()) {
+    auto roiArray = m_config["roi"].toArray();
+    if (roiArray.isEmpty()) roiArray.append(QJsonArray{0, 0, frame.width(), frame.height()});
+    for (const QJsonValue &value: roiArray) {
         ProcessResult processResult{};
         // roi
         processResult.roiFrame = roi(frame, value.toArray());

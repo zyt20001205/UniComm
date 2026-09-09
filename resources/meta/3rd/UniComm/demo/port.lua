@@ -11,14 +11,16 @@
 -- })
 -- serial:open()
 
--- Vision input from an available screen or camera. Programmatic creation does
--- not add ROI, pipeline, or recognition processing, so it can export raw frames.
+-- Vision input from an available screen or camera. When no ROI is configured,
+-- the complete source frame is processed as ROI 1.
 -- local vision = Port.create({
 --     portType = Port.Type.Vision,
 --     portName = "CG345UK",
 -- })
 -- vision:open()
 -- vision:write([[raw "capture/raw.png"]])
+-- local results = vision:read(0, 20000)
+-- print(results[1])
 -- vision:close()
 
 -- TCP client:
