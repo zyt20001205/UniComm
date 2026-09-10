@@ -92,18 +92,7 @@ void OpenAIProvider::modelsGet() {
     m_modelList->clear();
     // read from config
     if (!m_modelFetch) {
-        for (const auto &model: m_models) {
-            auto *item = new QStandardItem(model.name); // NOLINT
-            item->setData(model.id, ProviderModelModel::IdRole);
-            item->setData(model.id, ProviderModelModel::ModelIdRole);
-            item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
-            item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
-            item->setData(model.input, ProviderModelModel::InputRole);
-            item->setData(false, ProviderModelModel::PrimaryRole);
-            item->setData(false, ProviderModelModel::SubagentRole);
-            item->setData(false, ProviderModelModel::VisionRole);
-            m_modelList->appendRow(item);
-        }
+        for (const auto &model: m_models) modelAppend(model);
         emit modelsChanged();
     }
     // request from /models
@@ -115,17 +104,7 @@ void OpenAIProvider::modelsGet() {
         connect(reply, &QNetworkReply::finished, this, [this, reply] {
             const auto models = QJsonDocument::fromJson(reply->readAll()).object().value("data").toArray();
             for (const auto &value: models) {
-                const auto model = modelGet(value.toObject().value("id").toString());
-                auto *item = new QStandardItem(model.name); // NOLINT
-                item->setData(model.id, ProviderModelModel::IdRole);
-                item->setData(model.id, ProviderModelModel::ModelIdRole);
-                item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
-                item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
-                item->setData(model.input, ProviderModelModel::InputRole);
-                item->setData(false, ProviderModelModel::PrimaryRole);
-                item->setData(false, ProviderModelModel::SubagentRole);
-                item->setData(false, ProviderModelModel::VisionRole);
-                m_modelList->appendRow(item);
+                modelAppend(modelGet(value.toObject().value("id").toString()));
             }
             reply->deleteLater();
             emit modelsChanged();
@@ -138,6 +117,37 @@ BaseProvider::Model OpenAIProvider::modelGet(const QString &id) const {
         if (model.id == id) return model;
     }
     return Model{.id = id, .name = id};
+}
+
+void OpenAIProvider::modelAppend(const Model &model) const {
+    auto *modelItem = new QStandardItem(model.name); // NOLINT
+    modelItem->setData(model.id, ProviderModelModel::IdRole);
+    modelItem->setData(model.id, ProviderModelModel::ModelIdRole);
+
+    auto *contextItem = new QStandardItem(); // NOLINT
+    contextItem->setData(model.contextWindow, Qt::DisplayRole);
+
+    auto *outputItem = new QStandardItem(); // NOLINT
+    outputItem->setData(model.maxOutputTokens, Qt::DisplayRole);
+
+    auto *inputItem = new QStandardItem(); // NOLINT
+    inputItem->setData(model.input, ProviderModelModel::InputRole);
+
+    auto *primaryItem = new QStandardItem(); // NOLINT
+    primaryItem->setData(model.id, ProviderModelModel::ModelIdRole);
+    primaryItem->setData(false, ProviderModelModel::PrimaryRole);
+
+    auto *subagentItem = new QStandardItem(); // NOLINT
+    subagentItem->setData(model.id, ProviderModelModel::ModelIdRole);
+    subagentItem->setData(false, ProviderModelModel::SubagentRole);
+
+    auto *visionItem = new QStandardItem(); // NOLINT
+    visionItem->setData(model.id, ProviderModelModel::ModelIdRole);
+    visionItem->setData(false, ProviderModelModel::VisionRole);
+
+    auto *actionItem = new QStandardItem(); // NOLINT
+    actionItem->setData(model.id, ProviderModelModel::ModelIdRole);
+    m_modelList->appendRow({modelItem, contextItem, outputItem, inputItem, primaryItem, subagentItem, visionItem, actionItem});
 }
 
 void OpenAIProvider::requestUpdate() {

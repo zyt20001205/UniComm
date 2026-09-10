@@ -116,9 +116,9 @@ void ProviderModule::_defaultSet() const {
         for (auto row = 0; row < models->rowCount(); ++row) {
             auto *item = models->item(row);
             const auto model = item->data(ProviderModelModel::ModelIdRole).toString();
-            item->setData(primary.value("provider").toString() == iterator.key() && primary.value("model").toString() == model, ProviderModelModel::PrimaryRole);
-            item->setData(subagent.value("provider").toString() == iterator.key() && subagent.value("model").toString() == model, ProviderModelModel::SubagentRole);
-            item->setData(vision.value("provider").toString() == iterator.key() && vision.value("model").toString() == model, ProviderModelModel::VisionRole);
+            models->item(row, 4)->setData(primary.value("provider").toString() == iterator.key() && primary.value("model").toString() == model, ProviderModelModel::PrimaryRole);
+            models->item(row, 5)->setData(subagent.value("provider").toString() == iterator.key() && subagent.value("model").toString() == model, ProviderModelModel::SubagentRole);
+            models->item(row, 6)->setData(vision.value("provider").toString() == iterator.key() && vision.value("model").toString() == model, ProviderModelModel::VisionRole);
         }
     }
 }
@@ -137,12 +137,27 @@ QHash<int, QByteArray> ProviderModel::roleNames() const {
     return roles;
 }
 
+ProviderModelModel::ProviderModelModel(QObject *parent)
+    : QStandardItemModel(parent) {
+    setHorizontalHeaderLabels({tr("Model"), tr("Context"), tr("Output"), tr("Input"), tr("Main"), tr("Sub"), tr("Vision"), {}});
+    connect(this, &QAbstractItemModel::modelReset, this, &ProviderModelModel::rowsChanged);
+    connect(this, &QAbstractItemModel::rowsInserted, this, &ProviderModelModel::rowsChanged);
+    connect(this, &QAbstractItemModel::rowsRemoved, this, &ProviderModelModel::rowsChanged);
+}
+
+void ProviderModelModel::clear() {
+    QStandardItemModel::clear();
+    setHorizontalHeaderLabels({tr("Model"), tr("Context"), tr("Output"), tr("Input"), tr("Main"), tr("Sub"), tr("Vision"), {}});
+}
+
+int ProviderModelModel::rowsGet() const {
+    return rowCount();
+}
+
 QHash<int, QByteArray> ProviderModelModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[IdRole] = "id";
     roles[ModelIdRole] = "modelId";
-    roles[ContextWindowRole] = "contextWindow";
-    roles[MaxOutputTokensRole] = "maxOutputTokens";
     roles[InputRole] = "input";
     roles[PrimaryRole] = "primary";
     roles[SubagentRole] = "subagent";

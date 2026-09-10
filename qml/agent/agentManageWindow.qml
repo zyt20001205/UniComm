@@ -339,182 +339,271 @@ Item {
                                     Layout.preferredHeight: 1
                                 }
 
-                                RowLayout {
+                                Item {
                                     Layout.fillWidth: true
-                                    Layout.leftMargin: 10
-                                    Layout.rightMargin: 10
-                                    spacing: 12
+                                    Layout.preferredHeight: 32 + providerCard.providerModels.rows * 38
 
-                                    Label {
-                                        text: qsTr("Available Models")
-                                        font.bold: true
-                                        Layout.fillWidth: true
-                                    }
+                                    HorizontalHeaderView {
+                                        id: providerModelHeader
+                                        anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                                        height: 32
+                                        syncView: providerModelTable
+                                        interactive: false
+                                        columnSpacing: 0
+                                        clip: true
 
-                                    Item {
-                                        Layout.preferredWidth: 108
-                                    }
+                                        delegate: HorizontalHeaderViewDelegate {
+                                            id: providerModelHeaderCell
+                                            required property int index
+                                            implicitHeight: 32
+                                            padding: 0
 
-                                    Item {
-                                        Layout.preferredWidth: 100
-                                    }
+                                            background: Rectangle {
+                                                color: "transparent"
+                                            }
 
-                                    Label {
-                                        text: qsTr("Main")
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.preferredWidth: 52
-                                    }
-
-                                    Label {
-                                        text: qsTr("Sub")
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.preferredWidth: 52
-                                    }
-
-                                    Label {
-                                        text: qsTr("Vision")
-                                        horizontalAlignment: Text.AlignHCenter
-                                        Layout.preferredWidth: 52
-                                    }
-
-                                    Item {
-                                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
-
-                                        Button {
-                                            anchors.fill: parent
-                                            visible: providerCard.providerModelEndpoint.length > 0
-                                            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                            flat: true
-                                            icon.source: "qrc:/icon/arrowClockwise.svg"
-                                            icon.width: 16; icon.height: 16
-
-                                            onClicked: agentModule.providerModelsGet(providerCard.providerId)
-                                        }
-
-                                        Button {
-                                            anchors.fill: parent
-                                            visible: providerCard.providerCustom
-                                                     && providerCard.providerModelEndpoint.length === 0
-                                            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                            flat: true
-                                            icon.source: "qrc:/icon/add.svg"
-                                            icon.width: 16; icon.height: 16
-
-                                            onClicked: providerModelInsertDialog.openInsert(
-                                                providerCard.providerId,
-                                                providerCard.configGet()
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Repeater {
-                                    model: providerCard.providerModels
-
-                                    delegate: Rectangle {
-                                        required property int index
-                                        required property string display
-                                        required property string modelId
-                                        required property int contextWindow
-                                        required property int maxOutputTokens
-                                        required property bool primary
-                                        required property bool subagent
-                                        required property bool vision
-
-                                        radius: 4
-                                        color: index % 2 === 0 ? global.back : "transparent"
-                                        implicitHeight: 38
-                                        Layout.fillWidth: true
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 10
-                                            anchors.rightMargin: 10
-                                            spacing: 12
-
-                                            ColumnLayout {
-                                                spacing: 0
-                                                Layout.fillWidth: true
-
+                                            contentItem: Item {
                                                 Label {
-                                                    text: display
+                                                    anchors.fill: parent
+                                                    visible: providerModelHeaderCell.index < 7
+                                                    text: [qsTr("Model"), qsTr("Context"), qsTr("Output"), qsTr("Input"), qsTr("Main"), qsTr("Sub"), qsTr("Vision"), ""][providerModelHeaderCell.index]
+                                                    font.bold: true
+                                                    leftPadding: 8; rightPadding: 8
+                                                    horizontalAlignment: providerModelHeaderCell.index === 0 ? Text.AlignLeft : Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
                                                     elide: Text.ElideRight
-                                                    Layout.fillWidth: true
                                                 }
-
-                                                Label {
-                                                    text: modelId
-                                                    color: global.stroke
-                                                    font.pixelSize: 11
-                                                    elide: Text.ElideRight
-                                                    Layout.fillWidth: true
-                                                }
-                                            }
-
-                                            Label {
-                                                text: qsTr("Context %1").arg(contextWindow.toLocaleString(Qt.locale(), "f", 0))
-                                                color: global.stroke
-                                                horizontalAlignment: Text.AlignRight
-                                                Layout.preferredWidth: 108
-                                            }
-
-                                            Label {
-                                                text: qsTr("Output %1").arg(maxOutputTokens.toLocaleString(Qt.locale(), "f", 0))
-                                                color: global.stroke
-                                                horizontalAlignment: Text.AlignRight
-                                                Layout.preferredWidth: 100
-                                            }
-
-                                            Item {
-                                                Layout.preferredWidth: 52; Layout.fillHeight: true
-
-                                                RadioButton {
-                                                    anchors.centerIn: parent
-                                                    checked: primary
-                                                    hoverEnabled: true
-
-                                                    ToolTip.visible: hovered
-                                                    ToolTip.text: qsTr("Default model for new conversations")
-
-                                                    onClicked: agentModule.primaryModelSet(providerCard.providerId, modelId)
-                                                }
-                                            }
-
-                                            Item {
-                                                Layout.preferredWidth: 52; Layout.fillHeight: true
-
-                                                RadioButton {
-                                                    anchors.centerIn: parent
-                                                    checked: subagent
-                                                    hoverEnabled: true
-
-                                                    ToolTip.visible: hovered
-                                                    ToolTip.text: qsTr("Default model for subagents")
-
-                                                    onClicked: agentModule.subagentModelSet(providerCard.providerId, modelId)
-                                                }
-                                            }
-
-                                            Item {
-                                                Layout.preferredWidth: 52; Layout.fillHeight: true
-
-                                                RadioButton {
-                                                    anchors.centerIn: parent
-                                                    checked: vision
-                                                    hoverEnabled: true
-
-                                                    ToolTip.visible: hovered
-                                                    ToolTip.text: qsTr("Default model for image understanding")
-
-                                                    onClicked: agentModule.visionModelSet(providerCard.providerId, modelId)
-                                                }
-                                            }
-
-                                            Item {
-                                                Layout.preferredWidth: 20; Layout.preferredHeight: 20
 
                                                 Button {
+                                                    anchors.centerIn: parent
+                                                    visible: providerModelHeaderCell.index === 7
+                                                             && providerCard.providerModelEndpoint.length > 0
+                                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                    flat: true
+                                                    icon.source: "qrc:/icon/arrowClockwise.svg"
+                                                    icon.width: 16; icon.height: 16
+                                                    width: 20; height: 20
+
+                                                    onClicked: agentModule.providerModelsGet(providerCard.providerId)
+                                                }
+
+                                                Button {
+                                                    anchors.centerIn: parent
+                                                    visible: providerModelHeaderCell.index === 7
+                                                             && providerCard.providerCustom
+                                                             && providerCard.providerModelEndpoint.length === 0
+                                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                    flat: true
+                                                    icon.source: "qrc:/icon/add.svg"
+                                                    icon.width: 16; icon.height: 16
+                                                    width: 20; height: 20
+
+                                                    onClicked: providerModelInsertDialog.openInsert(
+                                                        providerCard.providerId,
+                                                        providerCard.configGet()
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    TableView {
+                                        id: providerModelTable
+                                        anchors.left: parent.left; anchors.right: parent.right
+                                        anchors.top: providerModelHeader.bottom; anchors.bottom: parent.bottom
+                                        model: providerCard.providerModels
+                                        alternatingRows: false
+                                        interactive: false
+                                        reuseItems: false
+                                        rowSpacing: 0; columnSpacing: 0
+                                        boundsBehavior: Flickable.StopAtBounds
+                                        clip: true
+
+                                        columnWidthProvider: function(column: int): real {
+                                            switch (column) {
+                                            case 0: return Math.max(160, width - 508)
+                                            case 1: return 108
+                                            case 2: return 100
+                                            case 3: return 100
+                                            case 4: return 60
+                                            case 5: return 60
+                                            case 6: return 60
+                                            case 7: return 20
+                                            }
+                                        }
+
+                                        rowHeightProvider: function(row: int): real {
+                                            return 38
+                                        }
+
+                                        delegate: TableViewDelegate {
+                                            id: providerModelCell
+                                            implicitHeight: 38
+                                            padding: 0
+
+                                            background: Rectangle {
+                                                color: providerModelCell.row % 2 === 0 ? global.back : "transparent"
+                                            }
+
+                                            contentItem: Loader {
+                                                sourceComponent: {
+                                                    switch (providerModelCell.column) {
+                                                    case 0: return modelCellComponent
+                                                    case 1: return numberCellComponent
+                                                    case 2: return numberCellComponent
+                                                    case 3: return inputCellComponent
+                                                    case 4: return primaryCellComponent
+                                                    case 5: return subagentCellComponent
+                                                    case 6: return visionCellComponent
+                                                    case 7: return actionCellComponent
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: modelCellComponent
+
+                                                ColumnLayout {
                                                     anchors.fill: parent
+                                                    anchors.leftMargin: 8; anchors.rightMargin: 8
+                                                    spacing: 0
+
+                                                    Label {
+                                                        text: providerModelCell.model.display
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+
+                                                    Label {
+                                                        text: providerModelCell.model.modelId
+                                                        color: global.stroke
+                                                        font.pixelSize: 11
+                                                        elide: Text.ElideRight
+                                                        Layout.fillWidth: true
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: numberCellComponent
+
+                                                Label {
+                                                    text: Number(providerModelCell.model.display).toLocaleString(Qt.locale(), "f", 0)
+                                                    color: global.stroke
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                }
+                                            }
+
+                                            Component {
+                                                id: inputCellComponent
+
+                                                RowLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 4
+
+                                                    Repeater {
+                                                        model: providerModelCell.model.input
+
+                                                        delegate: Image {
+                                                            required property string modelData
+                                                            source: {
+                                                                switch (modelData) {
+                                                                case "audio": return "qrc:/icon/fileTypeAudio.svg"
+                                                                case "image": return "qrc:/icon/fileTypeImage.svg"
+                                                                case "pdf": return "qrc:/icon/fileTypePdf.svg"
+                                                                case "text": return "qrc:/icon/fileTypeTxt.svg"
+                                                                case "video": return "qrc:/icon/fileTypeVideo.svg"
+                                                                }
+                                                            }
+                                                            sourceSize.width: 16; sourceSize.height: 16
+                                                            Layout.preferredWidth: 16; Layout.preferredHeight: 16
+
+                                                            HoverHandler {
+                                                                onHoveredChanged: {
+                                                                    if (!hovered) mainToolTip.text = ""
+                                                                }
+                                                                onPointChanged: {
+                                                                    mainToolTip.position = parent.mapToGlobal(point.position)
+                                                                    mainToolTip.text = qsTr("%1 input").arg(modelData[0].toUpperCase() + modelData.slice(1))
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: primaryCellComponent
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    width: implicitWidth; height: implicitHeight
+                                                    checked: providerModelCell.model.primary
+
+                                                    onClicked: agentModule.primaryModelSet(providerCard.providerId, providerModelCell.model.modelId)
+
+                                                    HoverHandler {
+                                                        onHoveredChanged: {
+                                                            if (!hovered) mainToolTip.text = ""
+                                                        }
+                                                        onPointChanged: {
+                                                            mainToolTip.position = parent.mapToGlobal(point.position)
+                                                            mainToolTip.text = qsTr("Default model for new conversations")
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: subagentCellComponent
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    width: implicitWidth; height: implicitHeight
+                                                    checked: providerModelCell.model.subagent
+
+                                                    onClicked: agentModule.subagentModelSet(providerCard.providerId, providerModelCell.model.modelId)
+
+                                                    HoverHandler {
+                                                        onHoveredChanged: {
+                                                            if (!hovered) mainToolTip.text = ""
+                                                        }
+                                                        onPointChanged: {
+                                                            mainToolTip.position = parent.mapToGlobal(point.position)
+                                                            mainToolTip.text = qsTr("Default model for subagents")
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: visionCellComponent
+
+                                                RadioButton {
+                                                    anchors.centerIn: parent
+                                                    width: implicitWidth; height: implicitHeight
+                                                    checked: providerModelCell.model.vision
+
+                                                    onClicked: agentModule.visionModelSet(providerCard.providerId, providerModelCell.model.modelId)
+
+                                                    HoverHandler {
+                                                        onHoveredChanged: {
+                                                            if (!hovered) mainToolTip.text = ""
+                                                        }
+                                                        onPointChanged: {
+                                                            mainToolTip.position = parent.mapToGlobal(point.position)
+                                                            mainToolTip.text = qsTr("Default model for image understanding")
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Component {
+                                                id: actionCellComponent
+
+                                                Button {
+                                                    anchors.centerIn: parent
                                                     visible: providerCard.providerCustom
                                                              && providerCard.providerModelEndpoint.length === 0
                                                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
@@ -522,9 +611,10 @@ Item {
                                                     flat: true
                                                     icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
                                                     icon.width: 16; icon.height: 16
+                                                    width: 20; height: 20
 
                                                     onClicked: {
-                                                        if (!checked) providerCard.modelRemove(modelId)
+                                                        if (!checked) providerCard.modelRemove(providerModelCell.model.modelId)
                                                     }
 
                                                     Timer {

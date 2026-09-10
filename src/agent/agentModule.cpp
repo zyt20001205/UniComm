@@ -81,6 +81,7 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_manageWindow->setTransientParent(g_mainWindow->windowHandle());
     m_manageWindow->rootContext()->setContextProperty("agentModule", this);
     m_manageWindow->rootContext()->setContextProperty("global", g_globalManager);
+    m_manageWindow->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
     m_manageWindow->rootContext()->setContextProperty("hookModel", m_hookModule->hookModelGet());
     m_manageWindow->rootContext()->setContextProperty("mcpModel", m_mcpModule->mcpModelGet());
     m_manageWindow->rootContext()->setContextProperty("providerModel", m_providerModule->providerModelGet());

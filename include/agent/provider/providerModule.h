@@ -78,22 +78,28 @@ public:
 
 class ProviderModelModel final : public QStandardItemModel {
     Q_OBJECT
+    Q_PROPERTY(int rows READ rowsGet NOTIFY rowsChanged)
 
 public:
-    using QStandardItemModel::QStandardItemModel;
+    explicit ProviderModelModel(QObject *parent = nullptr);
 
     enum Role {
         IdRole = Qt::UserRole + 1,
         ModelIdRole,
-        ContextWindowRole,
-        MaxOutputTokensRole,
         InputRole,
         PrimaryRole,
         SubagentRole,
         VisionRole
     };
 
+    void clear();
+
+    [[nodiscard]] int rowsGet() const;
+
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+
+signals:
+    void rowsChanged();
 };
 
 #endif //UNICOMM_PROVIDERMODULE_H

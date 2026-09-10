@@ -60,6 +60,8 @@ public:
     [[nodiscard]] Model modelGet(const QString &id) const override;
 
 private:
+    void modelAppend(const Model &model) const;
+
     void requestUpdate();
 
     QString m_id{};
