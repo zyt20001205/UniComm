@@ -209,7 +209,7 @@ Item {
                 valueRole: "id"
                 Layout.fillWidth: true; Layout.preferredHeight: 30
 
-                onCurrentValueChanged: agentModule.conversationGet(conversationComboBox.currentValue)
+                onActivated: agentModule.conversationGet(conversationComboBox.currentValue)
             }
 
             Button {

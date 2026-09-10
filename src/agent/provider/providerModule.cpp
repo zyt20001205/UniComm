@@ -143,6 +143,7 @@ QHash<int, QByteArray> ProviderModelModel::roleNames() const {
     roles[ModelIdRole] = "modelId";
     roles[ContextWindowRole] = "contextWindow";
     roles[MaxOutputTokensRole] = "maxOutputTokens";
+    roles[InputRole] = "input";
     roles[PrimaryRole] = "primary";
     roles[SubagentRole] = "subagent";
     roles[VisionRole] = "vision";

@@ -87,6 +87,7 @@ public:
         ModelIdRole,
         ContextWindowRole,
         MaxOutputTokensRole,
+        InputRole,
         PrimaryRole,
         SubagentRole,
         VisionRole

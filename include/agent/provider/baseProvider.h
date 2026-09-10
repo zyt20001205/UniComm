@@ -5,6 +5,7 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 class BaseProvider : public QObject {
     Q_OBJECT
@@ -15,6 +16,7 @@ public:
         QString name{};
         qint64 contextWindow{};
         qint64 maxOutputTokens{};
+        QStringList input{};
     };
 
     explicit BaseProvider(QObject *parent = nullptr);

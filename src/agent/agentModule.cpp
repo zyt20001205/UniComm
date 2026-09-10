@@ -55,6 +55,7 @@ AgentModule::AgentModule()
     setWidget(m_widget);
 
     conversationsGet();
+    m_evalModule->update(m_conversationId);
 }
 
 AgentModule::~AgentModule() {
@@ -327,7 +328,6 @@ void AgentModule::conversationsGet() {
     }
 
     m_conversationId = currentConversation.id;
-    m_evalModule->update(m_conversationId);
     const auto strategy = currentConversation.id.isEmpty() ? AgentStrategy::Solo : currentConversation.strategy;
     m_primary = strategy == AgentStrategy::Solo ? m_general : m_supervisor;
 
@@ -411,6 +411,7 @@ void AgentModule::conversationInsert() {
     });
     m_conversationId = id;
     conversationsGet();
+    conversationGet(id);
 }
 
 void AgentModule::conversationRename(const QString &title) {
@@ -422,6 +423,7 @@ void AgentModule::conversationRename(const QString &title) {
 void AgentModule::conversationDelete() {
     m_sqlModule->conversationDelete(m_conversationId);
     conversationsGet();
+    conversationGet(m_conversationId);
 }
 
 void AgentModule::attachmentAdd(const QUrl &documentUrl) {
@@ -445,13 +447,15 @@ void AgentModule::attachmentRemove(const QUrl &documentUrl) {
 void AgentModule::conversationStrategySet(const int strategy) {
     if (m_conversationId.isEmpty()) conversationInsert();
     m_sqlModule->conversationStrategySet(m_conversationId, strategy);
-    conversationsGet();
+    m_primary = strategy == AgentStrategy::Solo ? m_general : m_supervisor;
+    m_strategyButton->setProperty("strategy", strategy);
 }
 
 void AgentModule::conversationModeSet(const int mode) {
     if (m_conversationId.isEmpty()) conversationInsert();
     m_sqlModule->conversationModeSet(m_conversationId, mode);
-    conversationsGet();
+    m_modeButton->setProperty("mode", mode);
+    m_modeMenu->setProperty("selectedIndex", mode);
 }
 
 void AgentModule::conversationModelSet(const QString &provider, const QString &model) {

@@ -28,11 +28,14 @@ void OpenAIProvider::configSet(const QJsonObject &config) {
     for (auto iterator = models.constBegin(); iterator != models.constEnd(); ++iterator) {
         const auto object = iterator.value().toObject();
         const auto limit = object.value("limit").toObject();
+        QStringList input{};
+        for (const auto &value: object.value("modalities").toObject().value("input").toArray()) input.append(value.toString());
         m_models.append(Model{
             .id = iterator.key(),
             .name = object.value("name").toString(iterator.key()),
             .contextWindow = limit.value("context").toInteger(),
-            .maxOutputTokens = limit.value("output").toInteger()
+            .maxOutputTokens = limit.value("output").toInteger(),
+            .input = input
         });
     }
     requestUpdate();
@@ -95,6 +98,7 @@ void OpenAIProvider::modelsGet() {
             item->setData(model.id, ProviderModelModel::ModelIdRole);
             item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
             item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
+            item->setData(model.input, ProviderModelModel::InputRole);
             item->setData(false, ProviderModelModel::PrimaryRole);
             item->setData(false, ProviderModelModel::SubagentRole);
             item->setData(false, ProviderModelModel::VisionRole);
@@ -117,6 +121,7 @@ void OpenAIProvider::modelsGet() {
                 item->setData(model.id, ProviderModelModel::ModelIdRole);
                 item->setData(model.contextWindow, ProviderModelModel::ContextWindowRole);
                 item->setData(model.maxOutputTokens, ProviderModelModel::MaxOutputTokensRole);
+                item->setData(model.input, ProviderModelModel::InputRole);
                 item->setData(false, ProviderModelModel::PrimaryRole);
                 item->setData(false, ProviderModelModel::SubagentRole);
                 item->setData(false, ProviderModelModel::VisionRole);
