@@ -209,6 +209,7 @@ Item {
     }
 
     ColumnLayout {
+        id: mainLayout
         anchors.fill: parent
         anchors.margins: 6
 
@@ -1389,6 +1390,7 @@ Item {
         }
 
         Item {
+            id: inputArea
             clip: true
             Layout.fillWidth: true
             Layout.minimumHeight: 84
@@ -1397,9 +1399,7 @@ Item {
                 textArea.contentHeight + textArea.topPadding + textArea.bottomPadding + 42
                 + attachmentFlow.height + (attachmentFlow.visible ? 12 : 0)))
 
-            Behavior on Layout
-            .
-            preferredHeight {
+            Behavior on Layout.preferredHeight {
                 NumberAnimation {
                     duration: 120
                     easing.type: Easing.OutCubic
@@ -1792,6 +1792,69 @@ Item {
                     onClicked: rootItem.requestSubmit()
                 }
             }
+        }
+    }
+
+    Button {
+        id: followTailButton
+        visible: !chatView.followTail
+        z: 1
+        x: mainLayout.x + chatView.parent.x + chatView.x + (chatView.width - width) / 2
+        y: mainLayout.y + inputArea.y - height - 8
+        width: 32; height: 32
+        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+        hoverEnabled: true
+
+        contentItem: Item {
+            IconImage {
+                anchors.centerIn: parent
+                width: 16; height: 16
+                visible: agentModule.state === 0
+                color: global.fore
+                source: "qrc:/icon/arrowDown.svg"
+                sourceSize.width: 16; sourceSize.height: 16
+            }
+
+            Item {
+                id: dotsIndicator
+                anchors.centerIn: parent
+                width: 16; height: 16
+                visible: agentModule.state !== 0
+
+                Repeater {
+                    model: 3
+
+                    Rectangle {
+                        required property int index
+                        x: index * 6
+                        y: 6
+                        width: 4; height: 4
+                        radius: 2
+                        color: global.fore
+
+                        SequentialAnimation on y {
+                            running: dotsIndicator.visible && followTailButton.visible
+                            loops: Animation.Infinite
+                            PauseAnimation { duration: index * 120 }
+                            NumberAnimation { from: 6; to: 1; duration: 200; easing.type: Easing.OutQuad }
+                            NumberAnimation { from: 1; to: 6; duration: 200; easing.type: Easing.InQuad }
+                            PauseAnimation { duration: (2 - index) * 120 + 360 }
+                        }
+                    }
+                }
+            }
+        }
+
+        background: Rectangle {
+            color: followTailButton.hovered ? global.backHover : global.backSelected
+            border.color: global.stroke
+            border.width: 1
+            radius: width / 2
+        }
+
+        onClicked: {
+            chatView.followTail = true
+            rootItem.followToTail()
         }
     }
 
