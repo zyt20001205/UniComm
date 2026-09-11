@@ -155,6 +155,16 @@ int AgentModule::stateGet() const {
     return m_runtimes.value(m_primary)->stateGet();
 }
 
+int AgentModule::goalStateGet() const {
+    return m_goal.state;
+}
+
+qint64 AgentModule::goalRemainingGet() const {
+    if (m_goal.state != GoalState::Running) return m_goal.remaining;
+    const auto elapsed = QDateTime::currentMSecsSinceEpoch() - m_goal.startedAt;
+    return m_goal.remaining > elapsed ? m_goal.remaining - elapsed : 0;
+}
+
 QString AgentModule::undoGroupIdGet() const {
     return m_undoGroupId;
 }
@@ -485,15 +495,61 @@ void AgentModule::changeRevert() const {
 }
 
 // public: state transition
-void AgentModule::abort() const {
+void AgentModule::abort() {
+    if (m_goal.state != GoalState::Idle) {
+        m_goal.state = GoalState::Idle;
+        m_goal.remaining = 0;
+        m_goal.startedAt = 0;
+        emit changeGoal();
+    }
     auto *primary = m_runtimes.value(m_primary);
-    primary->abort();
+    if (primary->stateGet() != AgentState::Ready) primary->abort();
     QMetaObject::invokeMethod(m_root, "requestsClear");
     const auto runtimes = m_runtimes.values();
     for (auto *runtime: runtimes) {
         if (runtime == primary || runtime->roleGet() == "general" || runtime->roleGet() == "supervisor") continue;
         runtime->abort();
     }
+}
+
+void AgentModule::goalStart(const QString &prompt, const int hours, const int minutes) {
+    const auto duration = (qint64(hours) * 60 + minutes) * 60 * 1000;
+    if (prompt.isEmpty() || duration == 0) return;
+    if (m_conversationComboBox->property("currentValue").toString().isEmpty()) conversationInsert();
+    m_goal = {
+        .conversationId = m_conversationId,
+        .prompt = prompt,
+        .remaining = duration,
+        .startedAt = QDateTime::currentMSecsSinceEpoch(),
+        .state = GoalState::Running
+    };
+    emit changeGoal();
+    auto *runtime = m_runtimes.value(m_primary);
+    runtime->pre(m_goal.conversationId, m_goal.prompt, m_attachments);
+    if (runtime->stateGet() == AgentState::Ready) {
+        m_goal = {};
+        emit changeGoal();
+    }
+}
+
+void AgentModule::goalPause() {
+    if (m_goal.state != GoalState::Running) return;
+    m_goal.remaining = goalRemainingGet();
+    m_goal.startedAt = 0;
+    m_goal.state = GoalState::Paused;
+    emit changeGoal();
+}
+
+void AgentModule::goalResume() {
+    if (m_goal.state != GoalState::Paused) return;
+    m_goal.startedAt = QDateTime::currentMSecsSinceEpoch();
+    m_goal.state = GoalState::Running;
+    emit changeGoal();
+    goalContinue();
+}
+
+void AgentModule::goalStop() {
+    abort();
 }
 
 void AgentModule::pre() {
@@ -574,6 +630,26 @@ void AgentModule::subagentUpdate(const QString &runtimeId, const QString &messag
 }
 
 // private
+void AgentModule::goalContinue() {
+    if (m_goal.state != GoalState::Running) return;
+    m_goal.remaining = goalRemainingGet();
+    m_goal.startedAt = QDateTime::currentMSecsSinceEpoch();
+    if (m_goal.remaining == 0) {
+        m_goal.state = GoalState::Idle;
+        emit changeGoal();
+        return;
+    }
+    emit changeGoal();
+    QMetaObject::invokeMethod(this, [this] {
+        auto *runtime = m_runtimes.value(m_primary);
+        if (m_goal.state != GoalState::Running || runtime->stateGet() != AgentState::Ready) return;
+        runtime->pre(
+            m_goal.conversationId,
+            tr("Continue working autonomously toward this timed goal until time expires:\n%1\n\nChoose another useful, non-repetitive step and continue making progress.").arg(m_goal.prompt),
+            {});
+    }, Qt::QueuedConnection);
+}
+
 void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
     connect(runtime, &RuntimeModule::changeState, this, [this, runtime] {
         if (runtime != m_runtimes.value(m_primary)) return;
@@ -633,6 +709,7 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         turnFinish(turnId, finishedAt);
         m_evalModule->update(m_conversationId);
         m_hookModule->hookRun(HookModule::Event::TurnFinish);
+        goalContinue();
     });
     connect(runtime, &RuntimeModule::createChat, this, [this, runtime](const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) {
         if (runtime == m_runtimes.value(m_primary)) chatCreate(turnId, messageId, role, attachments);

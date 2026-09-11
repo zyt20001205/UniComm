@@ -13,6 +13,20 @@ Item {
     property var chatMap: ({})
     property var subagentMap: ({})
 
+    function requestSubmit(): void {
+        const text = textArea.text.trim()
+        if (agentModule.state === 0 && text === "/goal") {
+            goalCard.opened = true
+            textArea.clear()
+            return
+        }
+        if (text.length > 0) {
+            agentModule.state === 0 ? agentModule.pre() : agentModule.steer()
+        } else {
+            agentModule.abort()
+        }
+    }
+
     ListModel {
         id: attachmentModel
     }
@@ -203,7 +217,7 @@ Item {
 
             ComboBox {
                 id: conversationComboBox
-                enabled: agentModule.state === 0
+                enabled: agentModule.state === 0 && agentModule.goalState === 0
                 model: conversationModel
                 textRole: "display"
                 valueRole: "id"
@@ -214,7 +228,7 @@ Item {
 
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                enabled: agentModule.state === 0
+                enabled: agentModule.state === 0 && agentModule.goalState === 0
                 flat: true
                 icon.source: "qrc:/icon/rename.svg"
                 icon.width: 16; icon.height: 16
@@ -228,7 +242,7 @@ Item {
 
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                enabled: agentModule.state === 0
+                enabled: agentModule.state === 0 && agentModule.goalState === 0
                 flat: true
                 icon.source: "qrc:/icon/add.svg"
                 icon.width: 16; icon.height: 16
@@ -240,7 +254,7 @@ Item {
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                 checkable: true
-                enabled: conversationComboBox.currentIndex >= 0 && agentModule.state === 0
+                enabled: conversationComboBox.currentIndex >= 0 && agentModule.state === 0 && agentModule.goalState === 0
                 flat: true
                 icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
                 icon.width: 16; icon.height: 16
@@ -411,6 +425,208 @@ Item {
                 ColumnLayout {
                     id: chatColumn
                     width: chatView.availableWidth
+                }
+            }
+        }
+
+        Item {
+            id: goalCard
+            visible: opened || goalState !== idleState
+            clip: true
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? goalLayout.implicitHeight + 24 : 0
+            property bool opened: false
+            property int goalState: agentModule.goalState
+            property double remaining: 0
+            readonly property int idleState: 0
+            readonly property int runningState: 1
+            readonly property int pausedState: 2
+
+            function remainingText(): string {
+                const seconds = Math.ceil(remaining / 1000)
+                const hours = Math.floor(seconds / 3600)
+                const minutes = Math.floor(seconds % 3600 / 60)
+                const remainder = seconds % 60
+                return hours.toString().padStart(2, "0") + ":"
+                    + minutes.toString().padStart(2, "0") + ":"
+                    + remainder.toString().padStart(2, "0")
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: global.backSelected
+                border.color: global.stroke
+                border.width: 1
+                radius: 6
+            }
+
+            Item {
+                id: goalRoad
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                anchors.leftMargin: 1; anchors.rightMargin: 1; anchors.topMargin: 1
+                height: 4
+                clip: true
+
+                Rectangle {
+                    id: goalRainbow
+                    x: -goalRoad.width
+                    width: goalRoad.width * 2
+                    height: goalRoad.height
+                    opacity: goalCard.goalState === goalCard.idleState ? 0.4 : 1
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.00; color: "#ff5f57" }
+                        GradientStop { position: 0.08; color: "#ffbd2e" }
+                        GradientStop { position: 0.16; color: "#28c840" }
+                        GradientStop { position: 0.24; color: "#27c2ff" }
+                        GradientStop { position: 0.32; color: "#2f80ed" }
+                        GradientStop { position: 0.40; color: "#9b51e0" }
+                        GradientStop { position: 0.50; color: "#ff5f57" }
+                        GradientStop { position: 0.58; color: "#ffbd2e" }
+                        GradientStop { position: 0.66; color: "#28c840" }
+                        GradientStop { position: 0.74; color: "#27c2ff" }
+                        GradientStop { position: 0.82; color: "#2f80ed" }
+                        GradientStop { position: 0.90; color: "#9b51e0" }
+                        GradientStop { position: 1.00; color: "#ff5f57" }
+                    }
+
+                    NumberAnimation on x {
+                        running: goalCard.goalState === goalCard.runningState
+                        from: -goalRoad.width
+                        to: 0
+                        duration: 5000
+                        loops: Animation.Infinite
+                    }
+                }
+            }
+
+            ColumnLayout {
+                id: goalLayout
+                anchors.fill: parent
+                anchors.leftMargin: 10; anchors.rightMargin: 10
+                anchors.topMargin: 12; anchors.bottomMargin: 10
+                spacing: 8
+
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    TextField {
+                        id: goalTextField
+                        enabled: goalCard.goalState === goalCard.idleState
+                        placeholderText: qsTr("What should the agent explore?")
+                        selectByMouse: true
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 28
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    IconImage {
+                        color: global.stroke
+                        source: "qrc:/icon/clock.svg"
+                        sourceSize.width: 16; sourceSize.height: 16
+                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    }
+
+                    SpinBox {
+                        id: goalHoursSpinBox
+                        from: 0
+                        to: 99
+                        value: 8
+                        editable: true
+                        enabled: goalCard.goalState === goalCard.idleState
+                        textFromValue: function(value) { return value.toString().padStart(2, "0") }
+                        valueFromText: function(text) { return parseInt(text, 10) }
+                        Layout.preferredWidth: 96; Layout.preferredHeight: 36
+                    }
+
+                    Label {
+                        text: ":"
+                        color: global.stroke
+                    }
+
+                    SpinBox {
+                        id: goalMinutesSpinBox
+                        from: 0
+                        to: 59
+                        editable: true
+                        enabled: goalCard.goalState === goalCard.idleState
+                        textFromValue: function(value) { return value.toString().padStart(2, "0") }
+                        valueFromText: function(text) { return parseInt(text, 10) }
+                        Layout.preferredWidth: 96; Layout.preferredHeight: 36
+                    }
+
+                    Label {
+                        visible: goalCard.goalState !== goalCard.idleState
+                        text: goalCard.remainingText()
+                        color: goalCard.goalState === goalCard.pausedState ? global.warningFore3 : global.stroke
+                        Layout.leftMargin: 4
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                        flat: true
+                        icon.source: "qrc:/icon/play.svg"
+                        icon.width: 16; icon.height: 16
+                        enabled: goalCard.goalState === goalCard.idleState
+                            && agentModule.state === 0
+                            && goalTextField.text.trim().length > 0
+                            && (goalHoursSpinBox.value > 0 || goalMinutesSpinBox.value > 0)
+                        Layout.preferredWidth: 28; Layout.preferredHeight: 28
+
+                        onClicked: agentModule.goalStart(
+                            goalTextField.text.trim(),
+                            goalHoursSpinBox.value,
+                            goalMinutesSpinBox.value)
+                    }
+
+                    Button {
+                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                        flat: true
+                        icon.source: goalCard.goalState === goalCard.pausedState ? "qrc:/icon/play.svg" : "qrc:/icon/pause.svg"
+                        icon.width: 16; icon.height: 16
+                        enabled: goalCard.goalState !== goalCard.idleState
+                        Layout.preferredWidth: 28; Layout.preferredHeight: 28
+
+                        onClicked: goalCard.goalState === goalCard.pausedState
+                            ? agentModule.goalResume()
+                            : agentModule.goalPause()
+                    }
+
+                    Button {
+                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                        flat: true
+                        icon.source: "qrc:/icon/stop.svg"
+                        icon.width: 16; icon.height: 16
+                        enabled: goalCard.goalState !== goalCard.idleState
+                        Layout.preferredWidth: 28; Layout.preferredHeight: 28
+
+                        onClicked: agentModule.goalStop()
+                    }
+                }
+            }
+
+            Timer {
+                interval: 1000
+                repeat: true
+                running: goalCard.goalState !== goalCard.idleState
+                triggeredOnStart: true
+
+                onTriggered: goalCard.remaining = agentModule.goalRemainingGet()
+            }
+
+            Connections {
+                target: agentModule
+
+                function onChangeGoal(): void {
+                    goalCard.remaining = agentModule.goalRemainingGet()
                 }
             }
         }
@@ -1326,9 +1542,7 @@ Item {
 
                     Keys.onPressed: (event) => {
                         if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
-                            if (textArea.text.trim().length > 0) {
-                                agentModule.state === 0 ? agentModule.pre() : agentModule.steer()
-                            }
+                            rootItem.requestSubmit()
                             event.accepted = true
                         }
                     }
@@ -1356,7 +1570,7 @@ Item {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     checkable: true
                     checked: strategy === 1
-                    enabled: agentModule.state === 0
+                    enabled: agentModule.state === 0 && agentModule.goalState === 0
                     flat: true
                     icon.source: checked ? "qrc:/icon/team.svg" : "qrc:/icon/solo.svg"
                     icon.width: 16; icon.height: 16
@@ -1381,7 +1595,7 @@ Item {
                     id: modeButton
                     property int mode: 0
                     leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && mode >= 0
+                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && mode >= 0
                     flat: true
                     text: mode === 0 ? qsTr("Chat") :
                             mode === 1 ? qsTr("Read") :
@@ -1411,7 +1625,7 @@ Item {
                 Button {
                     id: modelButton
                     leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0
+                    enabled: agentModule.state === 0 && agentModule.goalState === 0
                     flat: true
                     text: qsTr("Select model")
                     implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
@@ -1547,7 +1761,7 @@ Item {
 
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && chatColumn.children.length > 0
+                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && chatColumn.children.length > 0
                     flat: true
                     icon.source: "qrc:/icon/undo.svg"
                     icon.width: 16; icon.height: 16
@@ -1575,13 +1789,7 @@ Item {
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                    onClicked: {
-                        if (textArea.text.trim().length > 0) {
-                            agentModule.state === 0 ? agentModule.pre() : agentModule.steer()
-                        } else {
-                            agentModule.abort()
-                        }
-                    }
+                    onClicked: rootItem.requestSubmit()
                 }
             }
         }

@@ -24,6 +24,7 @@ class ToastModule;
 class AgentModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
     Q_PROPERTY(int state READ stateGet NOTIFY changeState)
+    Q_PROPERTY(int goalState READ goalStateGet NOTIFY changeGoal)
 
 public:
     using AgentState = RuntimeModule::AgentState;
@@ -33,6 +34,14 @@ public:
         enum {
             Solo,
             Team
+        };
+    };
+
+    struct GoalState {
+        enum {
+            Idle,
+            Running,
+            Paused
         };
     };
 
@@ -53,6 +62,10 @@ public:
     [[nodiscard]] RuntimeServices runtimeServicesGet() const;
 
     [[nodiscard]] int stateGet() const;
+
+    [[nodiscard]] int goalStateGet() const;
+
+    Q_INVOKABLE [[nodiscard]] qint64 goalRemainingGet() const;
 
     [[nodiscard]] QString undoGroupIdGet() const;
 
@@ -126,7 +139,15 @@ public:
 
     Q_INVOKABLE void changeRevert() const;
 
-    Q_INVOKABLE void abort() const;
+    Q_INVOKABLE void abort();
+
+    Q_INVOKABLE void goalStart(const QString &prompt, int hours, int minutes);
+
+    Q_INVOKABLE void goalPause();
+
+    Q_INVOKABLE void goalResume();
+
+    Q_INVOKABLE void goalStop();
 
     Q_INVOKABLE void pre();
 
@@ -157,8 +178,20 @@ public:
 signals:
     void changeState();
 
+    void changeGoal();
+
 private:
+    struct Goal {
+        QString conversationId{};
+        QString prompt{};
+        qint64 remaining{};
+        qint64 startedAt{};
+        int state{GoalState::Idle};
+    };
+
     void primaryRuntimeConnect(RuntimeModule *runtime);
+
+    void goalContinue();
 
     void modelUpdate(const QString &provider, const QString &model) const;
 
@@ -203,6 +236,7 @@ private:
     int m_additions{};
     int m_deletions{};
     QHash<QString, RuntimeModule *> m_runtimes{};
+    Goal m_goal{};
 };
 
 class ConversationModel final : public QStandardItemModel {
