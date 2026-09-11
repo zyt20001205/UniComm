@@ -499,7 +499,8 @@ Item {
                                                 id: inputCellComponent
 
                                                 RowLayout {
-                                                    anchors.centerIn: parent
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 8; anchors.rightMargin: 8
                                                     spacing: 4
 
                                                     Repeater {
@@ -529,6 +530,10 @@ Item {
                                                                 }
                                                             }
                                                         }
+                                                    }
+
+                                                    Item {
+                                                        Layout.fillWidth: true
                                                     }
                                                 }
                                             }
