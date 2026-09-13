@@ -618,6 +618,12 @@ QString DocumentModule::linesSet(const QUrl &documentUrl, const QStringList &tex
         return error;
     }
 
+    if (state->dirty) {
+        const auto error = documentSave(documentUrl);
+        if (!error.isEmpty()) return error;
+        state->dirty = false;
+    }
+
     const auto lineCount = [](QString text) {
         text.replace("\r\n", "\n");
         text.replace('\r', '\n');
@@ -633,6 +639,13 @@ QString DocumentModule::linesSet(const QUrl &documentUrl, const QStringList &tex
 
     const auto error = _linesSet(documentUrl, texts, startLines, lineCounts);
     if (!error.isEmpty()) return error;
+
+    const auto saveError = documentSave(documentUrl);
+    if (!saveError.isEmpty()) {
+        handler->textSet(state->after);
+        handler->savepointSet();
+        return saveError;
+    }
 
     state->after = handler->textGet();
     auto &diff = transaction->diffs[documentUrl];
@@ -1369,6 +1382,8 @@ QString DocumentModule::_transactionRedo(const QSharedPointer<const DocumentTran
 
     for (auto document = transaction->documents.cbegin(); document != transaction->documents.cend(); ++document) {
         handlers.value(document.key())->textSet(document->after);
+        const auto error = documentSave(document.key());
+        if (!error.isEmpty()) return error;
     }
     return {};
 }
@@ -1391,9 +1406,9 @@ QString DocumentModule::_transactionUndo(const QSharedPointer<const DocumentTran
     if (!atAfter) return tr("Document undo failed: document content has changed.");
 
     for (auto document = transaction->documents.cbegin(); document != transaction->documents.cend(); ++document) {
-        auto *handler = handlers.value(document.key());
-        handler->textSet(document->before);
-        if (!document->dirty) handler->savepointSet();
+        handlers.value(document.key())->textSet(document->before);
+        const auto error = documentSave(document.key());
+        if (!error.isEmpty()) return error;
     }
     return {};
 }

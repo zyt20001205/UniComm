@@ -881,7 +881,7 @@ void ToolsModule::initialize() {
                     {"name", "line_set"},
                     {
                         "description",
-                        "Apply one or more non-overlapping whole-line replacements to a text document. All coordinates refer to the document state before this tool call. Each replacement whose expected line no longer matches is skipped without blocking the others."
+                        "Apply one or more non-overlapping whole-line replacements to a text document and save successful edits to disk before returning. All coordinates refer to the document state before this tool call. Each replacement whose expected line no longer matches is skipped without blocking the others."
                     },
                     {
                         "parameters", QJsonObject{
