@@ -20,6 +20,7 @@ class ProviderModule;
 class SqlModule;
 class ToolsModule;
 class ToastModule;
+class TurnModel;
 
 class AgentModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
@@ -171,10 +172,6 @@ public:
 
     [[nodiscard]] RuntimeModule *subagentDispatch(const QString &role, const QString &prompt, const QList<QUrl> &attachments = {});
 
-    void subagentCreate(const QString &turnId, const QString &runtimeId, const QString &role, const QString &message) const;
-
-    void subagentUpdate(const QString &runtimeId, const QString &message) const;
-
 signals:
     void changeState();
 
@@ -199,12 +196,6 @@ private:
 
     void turnFinish(const QString &turnId, qint64 finishedAt) const;
 
-    void chatCreate(const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) const;
-
-    void chatAppend(const QString &messageId, const QString &text) const;
-
-    void chatReset(const QString &messageId) const;
-
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
     QQuickView *m_evalWindow{};
@@ -227,6 +218,7 @@ private:
     EvalModule *m_evalModule{};
     HookModule *m_hookModule{};
     ToolsModule *m_toolsModule{};
+    TurnModel *m_turnModel{};
     QString m_general{};
     QString m_primary{};
     QString m_supervisor{};

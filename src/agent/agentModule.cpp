@@ -14,6 +14,7 @@
 #include "agent/module/mcpModule.h"
 #include "agent/module/sqlModule.h"
 #include "agent/module/toolsModule.h"
+#include "agent/model/turnModel.h"
 #include "agent/provider/baseProvider.h"
 #include "agent/provider/providerModule.h"
 #include "agent/role/dataAgent.h"
@@ -43,7 +44,8 @@ AgentModule::AgentModule()
       m_sqlModule(new SqlModule(m_config["sql"].toObject(), this)),
       m_evalModule(new EvalModule(m_sqlModule, this)),
       m_hookModule(new HookModule(m_config["hooks"].toArray(), this)),
-      m_toolsModule(new ToolsModule(m_mcpModule, m_sqlModule, this)) {
+      m_toolsModule(new ToolsModule(m_mcpModule, m_sqlModule, this)),
+      m_turnModel(new TurnModel(this)) {
     connect(m_mcpModule, &McpModule::registerTools, m_toolsModule, &ToolsModule::toolsRegister);
     auto *general = new RuntimeModule(new GeneralAgent(), runtimeServicesGet(), this); // NOLINT
     m_general = general->idGet();
@@ -96,6 +98,7 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("fileModule", objects["fileModule"]);
     m_widget->rootContext()->setContextProperty("renameDialog", objects["agentModuleRenameDialog"]);
     m_widget->rootContext()->setContextProperty("conversationModel", m_conversationModel);
+    m_widget->rootContext()->setContextProperty("turnModel", m_turnModel);
     m_widget->rootContext()->setContextProperty("modeMenu", m_modeMenu);
     m_widget->rootContext()->setContextProperty("modelMenu", objects["agentModuleModelMenu"]);
 
@@ -352,7 +355,8 @@ void AgentModule::conversationsGet() {
 
 void AgentModule::conversationGet(const QString &id) {
     if (m_strategyButton == nullptr || m_modeButton == nullptr || m_modelButton == nullptr) return;
-    QMetaObject::invokeMethod(m_root, "chatClear");
+    QMetaObject::invokeMethod(m_root, "turnClear");
+    m_turnModel->clear();
     const auto [conversation, messages] = m_sqlModule->conversationGet(id);
     if (conversation.id.isEmpty()) {
         m_conversationId.clear();
@@ -387,15 +391,15 @@ void AgentModule::conversationGet(const QString &id) {
         }
         if (role == "tool") {
             const auto toolCall = toolCalls.value(message.toolCallId);
-            chatCreate(turnId, message.id, role, message.attachments);
-            chatAppend(message.id, m_toolsModule->toolTextGet(toolCall.first, toolCall.second));
-            chatAppend(message.id, message.approved ? " ✓" : " ✗");
+            m_turnModel->chatCreate(turnId, message.id, role, message.attachments);
+            m_turnModel->chatAppend(message.id, m_toolsModule->toolTextGet(toolCall.first, toolCall.second));
+            m_turnModel->chatAppend(message.id, message.approved ? " ✓" : " ✗");
             continue;
         }
         const auto &content = message.content;
         if (!content.isEmpty() || !message.attachments.isEmpty()) {
-            chatCreate(turnId, message.id, role, message.attachments);
-            chatAppend(message.id, content);
+            m_turnModel->chatCreate(turnId, message.id, role, message.attachments);
+            m_turnModel->chatAppend(message.id, content);
         }
     }
     if (!turnId.isEmpty()) turnFinish(turnId, finishedAt);
@@ -504,7 +508,6 @@ void AgentModule::abort() {
     }
     auto *primary = m_runtimes.value(m_primary);
     if (primary->stateGet() != AgentState::Ready) primary->abort();
-    QMetaObject::invokeMethod(m_root, "requestsClear");
     const auto runtimes = m_runtimes.values();
     for (auto *runtime: runtimes) {
         if (runtime == primary || runtime->roleGet() == "general" || runtime->roleGet() == "supervisor") continue;
@@ -608,25 +611,14 @@ RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString 
 
     auto *worker = new RuntimeModule(agent, runtimeServicesGet(), this); // NOLINT
     m_runtimes.insert(worker->idGet(), worker);
-    subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, prompt);
-    connect(worker, &RuntimeModule::finishRun, worker, [this, worker](const QString &result, const bool) {
-        subagentUpdate(worker->idGet(), result);
+    auto *subagent = m_turnModel->subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, prompt);
+    connect(worker, &RuntimeModule::setActivity, subagent, &TurnSubagent::activitySet);
+    connect(worker, &RuntimeModule::finishRun, worker, [this, worker] {
         m_runtimes.remove(worker->idGet());
         worker->deleteLater();
     });
-    connect(worker, &RuntimeModule::retryRequest, worker, [this, worker](const int attempt, const int limit) {
-        subagentUpdate(worker->idGet(), tr("Connection lost. Retrying %1/%2...").arg(attempt).arg(limit));
-    });
     worker->request(provider, model, conversation.mode, prompt, attachments);
     return worker;
-}
-
-void AgentModule::subagentCreate(const QString &turnId, const QString &runtimeId, const QString &role, const QString &message) const {
-    QMetaObject::invokeMethod(m_root, "subagentCreate", Q_ARG(QString, turnId), Q_ARG(QString, runtimeId), Q_ARG(QString, role), Q_ARG(QString, message));
-}
-
-void AgentModule::subagentUpdate(const QString &runtimeId, const QString &message) const {
-    QMetaObject::invokeMethod(m_root, "subagentUpdate", Q_ARG(QString, runtimeId), Q_ARG(QString, message));
 }
 
 // private
@@ -657,14 +649,14 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         const auto turnId = runtime->turnIdGet();
         switch (runtime->stateGet()) {
             case AgentState::Ready:
-                QMetaObject::invokeMethod(m_root, "activityFinish", Q_ARG(QString, turnId));
+                m_turnModel->activitySet(turnId, {});
                 break;
             case AgentState::Compact:
-                QMetaObject::invokeMethod(m_root, "compactStart", Q_ARG(QString, turnId));
+                m_turnModel->activitySet(turnId, tr("Compacting context..."), QUrl("qrc:/icon/arrowMinimize.svg"));
                 break;
             case AgentState::Request:
             case AgentState::Think:
-                QMetaObject::invokeMethod(m_root, "thinkingStart", Q_ARG(QString, turnId));
+                m_turnModel->activitySet(turnId, tr("Thinking..."), QUrl("qrc:/icon/thinking.svg"));
                 break;
             case AgentState::Abort:
             case AgentState::Error:
@@ -674,7 +666,7 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
             case AgentState::Permission:
             case AgentState::UserInput:
             case AgentState::ToolExec:
-                QMetaObject::invokeMethod(m_root, "activityFinish", Q_ARG(QString, turnId));
+                m_turnModel->activitySet(turnId, {});
                 break;
             default: break;
         }
@@ -712,21 +704,19 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         goalContinue();
     });
     connect(runtime, &RuntimeModule::createChat, this, [this, runtime](const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) {
-        if (runtime == m_runtimes.value(m_primary)) chatCreate(turnId, messageId, role, attachments);
+        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatCreate(turnId, messageId, role, attachments);
     });
     connect(runtime, &RuntimeModule::appendChat, this, [this, runtime](const QString &messageId, const QString &text) {
-        if (runtime == m_runtimes.value(m_primary)) chatAppend(messageId, text);
+        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatAppend(messageId, text);
     });
     connect(runtime, &RuntimeModule::resetChat, this, [this, runtime](const QString &messageId) {
-        if (runtime == m_runtimes.value(m_primary)) chatReset(messageId);
+        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatReset(messageId);
     });
-    connect(runtime, &RuntimeModule::retryRequest, this, [this, runtime](const int attempt, const int limit) {
-        if (runtime != m_runtimes.value(m_primary)) return;
-        QMetaObject::invokeMethod(m_root, "reconnectStart", Q_ARG(QString, runtime->turnIdGet()), Q_ARG(int, attempt), Q_ARG(int, limit));
+    connect(runtime, &RuntimeModule::setActivity, this, [this, runtime](const QString &activity) {
+        if (runtime == m_runtimes.value(m_primary)) m_turnModel->activitySet(runtime->turnIdGet(), activity, QUrl("qrc:/icon/wifiOff.svg"));
     });
     connect(runtime, &RuntimeModule::updateUsage, this, [this, runtime](const qint64 totalTokens) {
-        if (runtime != m_runtimes.value(m_primary)) return;
-        QMetaObject::invokeMethod(m_root, "usageUpdate", Q_ARG(double, totalTokens));
+        if (runtime == m_runtimes.value(m_primary)) QMetaObject::invokeMethod(m_root, "usageUpdate", Q_ARG(double, totalTokens));
     });
 }
 
@@ -760,38 +750,13 @@ void AgentModule::modelUpdate(const QString &provider, const QString &model) con
 }
 
 void AgentModule::turnCreate(const QString &turnId, const qint64 startedAt) const {
-    QMetaObject::invokeMethod(m_root, "turnCreate", Q_ARG(QString, turnId), Q_ARG(double, startedAt));
+    m_turnModel->turnCreate(turnId, startedAt);
+    QMetaObject::invokeMethod(m_root, "turnCreate");
 }
 
 void AgentModule::turnFinish(const QString &turnId, const qint64 finishedAt) const {
-    QMetaObject::invokeMethod(m_root, "turnFinish", Q_ARG(QString, turnId), Q_ARG(double, finishedAt));
-}
-
-void AgentModule::chatCreate(const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) const {
-    QVariantList items{};
-    for (const auto &attachment: attachments) {
-        items.append(QVariantMap{
-            {"attachmentUrl", attachment},
-            {"fileName", QFileInfo(attachment.toLocalFile()).fileName()},
-            {"iconSource", uni_cast<QFileIcon>(attachment).value}
-        });
-    }
-    QMetaObject::invokeMethod(
-        m_root,
-        "chatCreate",
-        Q_ARG(QString, turnId),
-        Q_ARG(QString, messageId),
-        Q_ARG(QString, role),
-        Q_ARG(QVariant, items)
-    );
-}
-
-void AgentModule::chatAppend(const QString &messageId, const QString &text) const {
-    QMetaObject::invokeMethod(m_root, "chatAppend", Q_ARG(QString, messageId), Q_ARG(QString, text));
-}
-
-void AgentModule::chatReset(const QString &messageId) const {
-    QMetaObject::invokeMethod(m_root, "chatReset", Q_ARG(QString, messageId));
+    m_turnModel->turnFinish(turnId, finishedAt);
+    QMetaObject::invokeMethod(m_root, "turnFinish");
 }
 
 // public

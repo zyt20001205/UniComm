@@ -141,6 +141,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                 const auto success = m_turn.status == SqlModule::TurnStatus::Completed;
                 m_turn = {};
                 stateSet(AgentState::Ready);
+                emit setActivity(result);
                 emit finishRun(result, success);
                 break;
             }
@@ -269,13 +270,13 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
         }
         break;
         case AgentState::Permission: {
-            if (m_turn.conversationId.isEmpty()) g_agent->subagentUpdate(m_id, "Waiting for approval...");
+            if (m_turn.conversationId.isEmpty()) emit setActivity("Waiting for approval...");
             g_agent->permissionRequest(m_id, payload.toString());
         }
         break;
         case AgentState::UserInput: {
             const auto request = payload.toMap();
-            if (m_turn.conversationId.isEmpty()) g_agent->subagentUpdate(m_id, "Waiting for input...");
+            if (m_turn.conversationId.isEmpty()) emit setActivity("Waiting for input...");
             g_agent->userInputRequest(m_id, request);
         }
         break;
@@ -286,7 +287,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                 break;
             }
 
-            if (m_turn.conversationId.isEmpty()) g_agent->subagentUpdate(m_id, m_toolsModule->toolTextGet(toolCall.name, toolCall.arguments));
+            if (m_turn.conversationId.isEmpty()) emit setActivity(m_toolsModule->toolTextGet(toolCall.name, toolCall.arguments));
             const auto turnId = m_turn.id;
             m_turn.messages[toolCall.messageIndex].timing.startedAt = QDateTime::currentMSecsSinceEpoch();
             auto future = m_toolsModule->toolExecute(m_id, m_agent->roleGet(), toolCall.name, toolCall.arguments);
@@ -333,7 +334,7 @@ bool RuntimeModule::retry(const QNetworkReply::NetworkError error, const BasePro
     constexpr int limit = std::size(intervals);
     if (retryCount >= limit) return false;
     const auto turnId = m_turn.id;
-    emit retryRequest(retryCount + 1, limit);
+    emit setActivity(tr("Reconnecting %1 / %2...").arg(QString::number(retryCount + 1), QString::number(limit)));
     QTimer::singleShot(intervals[retryCount], this, [this, provider, body, messageIndex, retryCount, turnId] {
         if (m_turn.id != turnId || m_state == AgentState::Ready) return;
         _request(provider, body, messageIndex, retryCount + 1);

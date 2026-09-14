@@ -95,7 +95,7 @@ signals:
 
     void resetChat(const QString &messageId);
 
-    void retryRequest(int attempt, int limit);
+    void setActivity(const QString &activity);
 
     void updateUsage(qint64 totalTokens);
 
