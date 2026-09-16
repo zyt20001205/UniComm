@@ -1041,6 +1041,7 @@ Item {
                             Layout.fillWidth: true; Layout.fillHeight: true
 
                             ScrollBar.vertical: ScrollBar {
+                                minimumSize: Math.min(1, 20 / Math.max(1, height))
                                 policy: ScrollBar.AsNeeded
                                 palette {
                                     mid: global.stroke
@@ -1048,6 +1049,7 @@ Item {
                                 }
                             }
                             ScrollBar.horizontal: ScrollBar {
+                                minimumSize: Math.min(1, 20 / Math.max(1, width))
                                 policy: ScrollBar.AsNeeded
                                 palette {
                                     mid: global.stroke
@@ -1348,6 +1350,7 @@ Item {
                                         onSelectedRowChanged: previewLoader.start()
 
                                         ScrollBar.vertical: ScrollBar {
+                                            minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
                                                 mid: global.stroke
@@ -1597,6 +1600,7 @@ Item {
                                         contentWidth: width
 
                                         ScrollBar.vertical: ScrollBar {
+                                            minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
                                                 mid: global.stroke
@@ -1995,6 +1999,7 @@ Item {
                                 Layout.fillWidth: true; Layout.fillHeight: true
 
                                 ScrollBar.vertical: ScrollBar {
+                                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                                     policy: ScrollBar.AsNeeded
                                     palette {
                                         mid: global.stroke
@@ -2002,6 +2007,7 @@ Item {
                                     }
                                 }
                                 ScrollBar.horizontal: ScrollBar {
+                                    minimumSize: Math.min(1, 20 / Math.max(1, width))
                                     policy: ScrollBar.AsNeeded
                                     palette {
                                         mid: global.stroke

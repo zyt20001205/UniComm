@@ -1647,6 +1647,7 @@ Item {
 
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 ScrollBar.vertical: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     id: settingsPageScrollBar
                     x: settingsPageScrollView.width - width
                     y: settingsPageScrollView.topPadding

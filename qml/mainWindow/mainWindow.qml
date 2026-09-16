@@ -292,8 +292,39 @@ Item {
             }
 
             ScrollView {
+                id: mainWindowTextViewScrollView
+                rightPadding: effectiveScrollBarWidth
+                bottomPadding: effectiveScrollBarHeight
                 Layout.minimumWidth: 600; Layout.maximumWidth: 1200
                 Layout.minimumHeight: 200; Layout.maximumHeight: 400
+
+                ScrollBar.vertical: ScrollBar {
+                    parent: mainWindowTextViewScrollView
+                    x: parent.mirrored ? 0 : parent.width - width
+                    y: parent.topPadding
+                    height: parent.availableHeight
+                    active: parent.ScrollBar.horizontal.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
+
+                ScrollBar.horizontal: ScrollBar {
+                    parent: mainWindowTextViewScrollView
+                    x: parent.leftPadding
+                    y: parent.height - height
+                    width: parent.availableWidth
+                    active: parent.ScrollBar.vertical.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
 
                 TextArea {
                     id: mainWindowTextViewTextArea
@@ -1416,6 +1447,7 @@ Item {
             property int selectedRow: -1
 
             ScrollBar.vertical: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.stroke
@@ -1637,8 +1669,39 @@ Item {
         contentItem: ColumnLayout {
 
             ScrollView {
+                id: documentModuleDwellDiagnosticScrollView
                 visible: documentModuleDwellDiagnosticTextArea.length > 0
+                rightPadding: effectiveScrollBarWidth
+                bottomPadding: effectiveScrollBarHeight
                 Layout.minimumWidth: 400; Layout.maximumWidth: 800
+
+                ScrollBar.vertical: ScrollBar {
+                    parent: documentModuleDwellDiagnosticScrollView
+                    x: parent.mirrored ? 0 : parent.width - width
+                    y: parent.topPadding
+                    height: parent.availableHeight
+                    active: parent.ScrollBar.horizontal.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
+
+                ScrollBar.horizontal: ScrollBar {
+                    parent: documentModuleDwellDiagnosticScrollView
+                    x: parent.leftPadding
+                    y: parent.height - height
+                    width: parent.availableWidth
+                    active: parent.ScrollBar.vertical.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
 
                 TextArea {
                     id: documentModuleDwellDiagnosticTextArea
@@ -1665,8 +1728,39 @@ Item {
             }
 
             ScrollView {
+                id: documentModuleDwellHoverScrollView
                 visible: documentModuleDwellHoverTextArea.length > 0
+                rightPadding: effectiveScrollBarWidth
+                bottomPadding: effectiveScrollBarHeight
                 Layout.minimumWidth: 400; Layout.maximumWidth: 800
+
+                ScrollBar.vertical: ScrollBar {
+                    parent: documentModuleDwellHoverScrollView
+                    x: parent.mirrored ? 0 : parent.width - width
+                    y: parent.topPadding
+                    height: parent.availableHeight
+                    active: parent.ScrollBar.horizontal.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
+
+                ScrollBar.horizontal: ScrollBar {
+                    parent: documentModuleDwellHoverScrollView
+                    x: parent.leftPadding
+                    y: parent.height - height
+                    width: parent.availableWidth
+                    active: parent.ScrollBar.vertical.active
+                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
 
                 TextArea {
                     id: documentModuleDwellHoverTextArea
@@ -1843,7 +1937,12 @@ Item {
             property int selectedRow: -1
 
             ScrollBar.vertical: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
+                palette {
+                    mid: global.stroke
+                    dark: global.strokePressed
+                }
             }
 
             delegate: Item {
@@ -4422,6 +4521,7 @@ Item {
             contentWidth: width
 
             ScrollBar.vertical: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.stroke

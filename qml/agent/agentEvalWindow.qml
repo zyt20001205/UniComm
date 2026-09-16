@@ -57,8 +57,11 @@ Item {
         id: scrollView
         anchors.fill: parent
         contentWidth: availableWidth
+        rightPadding: effectiveScrollBarWidth
+        bottomPadding: effectiveScrollBarHeight
 
         ScrollBar.vertical: ScrollBar {
+            minimumSize: Math.min(1, 20 / Math.max(1, height))
             x: scrollView.mirrored ? 0 : scrollView.width - width
             y: scrollView.topPadding
             height: scrollView.availableHeight
@@ -71,6 +74,7 @@ Item {
         }
 
         ScrollBar.horizontal: ScrollBar {
+            minimumSize: Math.min(1, 20 / Math.max(1, width))
             x: scrollView.leftPadding
             y: scrollView.height - height
             width: scrollView.availableWidth
@@ -410,6 +414,7 @@ Item {
                         Component.onCompleted: selectedConversationId = rootItem.summary.conversationId
 
                         ScrollBar.vertical: ScrollBar {
+                            minimumSize: Math.min(1, 20 / Math.max(1, height))
                             policy: ScrollBar.AsNeeded
                             palette {
                                 mid: global.stroke

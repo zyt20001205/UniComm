@@ -24,6 +24,7 @@ Item {
         }
 
         ScrollBar {
+            minimumSize: Math.min(1, 20 / Math.max(1, height))
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.bottom: parent.bottom

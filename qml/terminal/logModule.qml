@@ -159,10 +159,13 @@ Item {
 
         ScrollView {
             id: scrollView
+            rightPadding: effectiveScrollBarWidth
+            bottomPadding: effectiveScrollBarHeight
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.topMargin: 4; Layout.rightMargin: 4; Layout.bottomMargin: 4
 
             ScrollBar.vertical: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
                 x: parent.mirrored ? 0 : parent.width - width
                 y: parent.topPadding
                 height: parent.availableHeight
@@ -175,6 +178,7 @@ Item {
             }
 
             ScrollBar.horizontal: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, width))
                 x: parent.leftPadding
                 y: parent.height - height
                 width: parent.availableWidth

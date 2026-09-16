@@ -119,6 +119,7 @@ Item {
             property int hoveredRow: -1
 
             ScrollBar.vertical: ScrollBar {
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.stroke
