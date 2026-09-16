@@ -11,7 +11,7 @@
 class QQuickView;
 class QQuickWidget;
 
-class ConversationModel;
+class ConversationListModel;
 class ContextModule;
 class EvalModule;
 class HookModule;
@@ -20,7 +20,10 @@ class ProviderModule;
 class SqlModule;
 class ToolsModule;
 class ToastModule;
-class TurnModel;
+
+namespace Conversation {
+    class Model;
+}
 
 class AgentModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
@@ -210,7 +213,7 @@ private:
     QObject *m_modelButton{};
 
     QString m_conversationId{};
-    ConversationModel *m_conversationModel{};
+    ConversationListModel *m_conversationListModel{};
     ContextModule *m_contextModule{};
     McpModule *m_mcpModule{};
     ProviderModule *m_providerModule{};
@@ -218,7 +221,7 @@ private:
     EvalModule *m_evalModule{};
     HookModule *m_hookModule{};
     ToolsModule *m_toolsModule{};
-    TurnModel *m_turnModel{};
+    Conversation::Model *m_conversationModel{};
     QString m_general{};
     QString m_primary{};
     QString m_supervisor{};
@@ -231,7 +234,7 @@ private:
     Goal m_goal{};
 };
 
-class ConversationModel final : public QStandardItemModel {
+class ConversationListModel final : public QStandardItemModel {
     Q_OBJECT
 
 public:

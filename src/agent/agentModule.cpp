@@ -14,7 +14,8 @@
 #include "agent/module/mcpModule.h"
 #include "agent/module/sqlModule.h"
 #include "agent/module/toolsModule.h"
-#include "agent/model/turnModel.h"
+#include "agent/model/subagent.h"
+#include "agent/model/conversationModel.h"
 #include "agent/provider/baseProvider.h"
 #include "agent/provider/providerModule.h"
 #include "agent/role/dataAgent.h"
@@ -37,7 +38,7 @@ AgentModule::AgentModule()
       m_evalWindow(new QQuickView()),
       m_manageWindow(new QQuickView()),
       m_conversationId(m_config["id"].toString()),
-      m_conversationModel(new ConversationModel(this)),
+      m_conversationListModel(new ConversationListModel(this)),
       m_contextModule(new ContextModule(m_config["context"].toObject(), this)),
       m_mcpModule(new McpModule(m_config["mcp"].toObject(), this)),
       m_providerModule(new ProviderModule(m_config["providers"].toObject(), m_config["default"].toObject(), this)),
@@ -45,7 +46,7 @@ AgentModule::AgentModule()
       m_evalModule(new EvalModule(m_sqlModule, this)),
       m_hookModule(new HookModule(m_config["hooks"].toArray(), this)),
       m_toolsModule(new ToolsModule(m_mcpModule, m_sqlModule, this)),
-      m_turnModel(new TurnModel(this)) {
+      m_conversationModel(new Conversation::Model(this)) {
     connect(m_mcpModule, &McpModule::registerTools, m_toolsModule, &ToolsModule::toolsRegister);
     auto *general = new RuntimeModule(new GeneralAgent(), runtimeServicesGet(), this); // NOLINT
     m_general = general->idGet();
@@ -97,8 +98,8 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("documentModule", objects["documentModule"]);
     m_widget->rootContext()->setContextProperty("fileModule", objects["fileModule"]);
     m_widget->rootContext()->setContextProperty("renameDialog", objects["agentModuleRenameDialog"]);
+    m_widget->rootContext()->setContextProperty("conversationListModel", m_conversationListModel);
     m_widget->rootContext()->setContextProperty("conversationModel", m_conversationModel);
-    m_widget->rootContext()->setContextProperty("turnModel", m_turnModel);
     m_widget->rootContext()->setContextProperty("modeMenu", m_modeMenu);
     m_widget->rootContext()->setContextProperty("modelMenu", objects["agentModuleModelMenu"]);
 
@@ -330,14 +331,14 @@ void AgentModule::conversationsGet() {
     auto currentIndex = -1;
     SqlModule::Conversation currentConversation{};
 
-    m_conversationModel->clear();
+    m_conversationListModel->clear();
     for (const auto &conversation: conversations) {
         auto *item = new QStandardItem(conversation.title); // NOLINT
-        item->setData(conversation.id, ConversationModel::IdRole);
-        m_conversationModel->appendRow(item);
+        item->setData(conversation.id, ConversationListModel::IdRole);
+        m_conversationListModel->appendRow(item);
 
         if (!currentConversation.id.isEmpty() && conversation.id != conversationId) continue;
-        currentIndex = m_conversationModel->rowCount() - 1;
+        currentIndex = m_conversationListModel->rowCount() - 1;
         currentConversation = conversation;
     }
 
@@ -356,7 +357,7 @@ void AgentModule::conversationsGet() {
 void AgentModule::conversationGet(const QString &id) {
     if (m_strategyButton == nullptr || m_modeButton == nullptr || m_modelButton == nullptr) return;
     QMetaObject::invokeMethod(m_root, "turnClear");
-    m_turnModel->clear();
+    m_conversationModel->clear();
     const auto [conversation, messages] = m_sqlModule->conversationGet(id);
     if (conversation.id.isEmpty()) {
         m_conversationId.clear();
@@ -391,15 +392,15 @@ void AgentModule::conversationGet(const QString &id) {
         }
         if (role == "tool") {
             const auto toolCall = toolCalls.value(message.toolCallId);
-            m_turnModel->chatCreate(turnId, message.id, role, message.attachments);
-            m_turnModel->chatAppend(message.id, m_toolsModule->toolTextGet(toolCall.first, toolCall.second));
-            m_turnModel->chatAppend(message.id, message.approved ? " ✓" : " ✗");
+            m_conversationModel->chatCreate(turnId, message.id, role, message.attachments);
+            m_conversationModel->chatAppend(message.id, m_toolsModule->toolTextGet(toolCall.first, toolCall.second));
+            m_conversationModel->chatAppend(message.id, message.approved ? " ✓" : " ✗");
             continue;
         }
         const auto &content = message.content;
         if (!content.isEmpty() || !message.attachments.isEmpty()) {
-            m_turnModel->chatCreate(turnId, message.id, role, message.attachments);
-            m_turnModel->chatAppend(message.id, content);
+            m_conversationModel->chatCreate(turnId, message.id, role, message.attachments);
+            m_conversationModel->chatAppend(message.id, content);
         }
     }
     if (!turnId.isEmpty()) turnFinish(turnId, finishedAt);
@@ -611,8 +612,8 @@ RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString 
 
     auto *worker = new RuntimeModule(agent, runtimeServicesGet(), this); // NOLINT
     m_runtimes.insert(worker->idGet(), worker);
-    auto *subagent = m_turnModel->subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, prompt);
-    connect(worker, &RuntimeModule::setActivity, subagent, &TurnSubagent::activitySet);
+    auto *subagent = m_conversationModel->subagentCreate(m_runtimes.value(m_primary)->turnIdGet(), worker->idGet(), role, prompt);
+    connect(worker, &RuntimeModule::setActivity, subagent, &Conversation::Subagent::activitySet);
     connect(worker, &RuntimeModule::finishRun, worker, [this, worker] {
         m_runtimes.remove(worker->idGet());
         worker->deleteLater();
@@ -637,7 +638,8 @@ void AgentModule::goalContinue() {
         if (m_goal.state != GoalState::Running || runtime->stateGet() != AgentState::Ready) return;
         runtime->pre(
             m_goal.conversationId,
-            tr("Continue working autonomously toward this timed goal until time expires:\n%1\n\nChoose another useful, non-repetitive step and continue making progress.").arg(m_goal.prompt),
+            tr("Continue working autonomously toward this timed goal until time expires:\n%1\n\nChoose another useful, non-repetitive step and continue making progress.").
+            arg(m_goal.prompt),
             {});
     }, Qt::QueuedConnection);
 }
@@ -649,14 +651,14 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         const auto turnId = runtime->turnIdGet();
         switch (runtime->stateGet()) {
             case AgentState::Ready:
-                m_turnModel->activitySet(turnId, {});
+                m_conversationModel->activitySet(turnId, {});
                 break;
             case AgentState::Compact:
-                m_turnModel->activitySet(turnId, tr("Compacting context..."), QUrl("qrc:/icon/arrowMinimize.svg"));
+                m_conversationModel->activitySet(turnId, tr("Compacting context..."), QUrl("qrc:/icon/arrowMinimize.svg"));
                 break;
             case AgentState::Request:
             case AgentState::Think:
-                m_turnModel->activitySet(turnId, tr("Thinking..."), QUrl("qrc:/icon/thinking.svg"));
+                m_conversationModel->activitySet(turnId, tr("Thinking..."), QUrl("qrc:/icon/thinking.svg"));
                 break;
             case AgentState::Abort:
             case AgentState::Error:
@@ -666,7 +668,7 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
             case AgentState::Permission:
             case AgentState::UserInput:
             case AgentState::ToolExec:
-                m_turnModel->activitySet(turnId, {});
+                m_conversationModel->activitySet(turnId, {});
                 break;
             default: break;
         }
@@ -704,16 +706,16 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         goalContinue();
     });
     connect(runtime, &RuntimeModule::createChat, this, [this, runtime](const QString &turnId, const QString &messageId, const QString &role, const QList<QUrl> &attachments) {
-        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatCreate(turnId, messageId, role, attachments);
+        if (runtime == m_runtimes.value(m_primary)) m_conversationModel->chatCreate(turnId, messageId, role, attachments);
     });
     connect(runtime, &RuntimeModule::appendChat, this, [this, runtime](const QString &messageId, const QString &text) {
-        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatAppend(messageId, text);
+        if (runtime == m_runtimes.value(m_primary)) m_conversationModel->chatAppend(messageId, text);
     });
     connect(runtime, &RuntimeModule::resetChat, this, [this, runtime](const QString &messageId) {
-        if (runtime == m_runtimes.value(m_primary)) m_turnModel->chatReset(messageId);
+        if (runtime == m_runtimes.value(m_primary)) m_conversationModel->chatReset(messageId);
     });
     connect(runtime, &RuntimeModule::setActivity, this, [this, runtime](const QString &activity) {
-        if (runtime == m_runtimes.value(m_primary)) m_turnModel->activitySet(runtime->turnIdGet(), activity, QUrl("qrc:/icon/wifiOff.svg"));
+        if (runtime == m_runtimes.value(m_primary)) m_conversationModel->activitySet(runtime->turnIdGet(), activity, QUrl("qrc:/icon/wifiOff.svg"));
     });
     connect(runtime, &RuntimeModule::updateUsage, this, [this, runtime](const qint64 totalTokens) {
         if (runtime == m_runtimes.value(m_primary)) QMetaObject::invokeMethod(m_root, "usageUpdate", Q_ARG(double, totalTokens));
@@ -750,17 +752,17 @@ void AgentModule::modelUpdate(const QString &provider, const QString &model) con
 }
 
 void AgentModule::turnCreate(const QString &turnId, const qint64 startedAt) const {
-    m_turnModel->turnCreate(turnId, startedAt);
+    m_conversationModel->turnCreate(turnId, startedAt);
     QMetaObject::invokeMethod(m_root, "turnCreate");
 }
 
 void AgentModule::turnFinish(const QString &turnId, const qint64 finishedAt) const {
-    m_turnModel->turnFinish(turnId, finishedAt);
+    m_conversationModel->turnFinish(turnId, finishedAt);
     QMetaObject::invokeMethod(m_root, "turnFinish");
 }
 
 // public
-QHash<int, QByteArray> ConversationModel::roleNames() const {
+QHash<int, QByteArray> ConversationListModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[IdRole] = "id";
     return roles;
