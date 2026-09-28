@@ -5,6 +5,7 @@
 #include <QTime>
 #include <sol/state_view.hpp>
 #include <sol/table_core.hpp>
+#include <sol/utility/is_integer.hpp>
 #include <sol/variadic_args.hpp>
 #include <sol/userdata.hpp>
 
@@ -82,9 +83,7 @@ QVariant uni_cast<QVariant, sol::object>(const sol::object &s, const int depth) 
             return s.as<bool>();
         }
         case sol::type::number: {
-            if (s.is<int>()) {
-                return s.as<int>();
-            }
+            if (sol::utility::is_integer(s)) return s.as<lua_Integer>();
             return s.as<double>();
         }
         case sol::type::string: {

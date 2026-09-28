@@ -322,6 +322,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         string.set_function("fromBase64", [](const std::string &str) { return String::fromBase64(str); });
         string.set_function("toHex", [](const std::string &ba, const sol::optional<char> separator) { return String::toHex(ba, separator.value_or('\0')); });
         string.set_function("fromHex", [](const std::string &str) { return String::fromHex(str); });
+        string.set_function("toJson", [](const sol::table &value) { return String::toJson(value); });
+        string.set_function("fromJson", [](const sol::this_state ts, const std::string &str) { return String::fromJson(ts, str); });
         m_lua["string"] = string;
     }
     // Thread lib (static)
