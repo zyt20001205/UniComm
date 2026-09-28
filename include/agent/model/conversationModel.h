@@ -41,7 +41,7 @@ public:
 
     void activitySet(const QString &turnId, const QString &activity, const QUrl &activityIcon = {});
 
-    [[nodiscard]] Subagent *subagentCreate(const QString &turnId, const QString &runtimeId, const QString &role, const QString &activity);
+    [[nodiscard]] Subagent *subagentCreate(const QString &turnId);
 
 private:
     [[nodiscard]] Turn *turnGet(const QString &turnId) const;

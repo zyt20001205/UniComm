@@ -99,10 +99,12 @@ void Model::activitySet(const QString &turnId, const QString &activity, const QU
     turnGet(turnId)->activitySet(activity, activityIcon);
 }
 
-Subagent *Model::subagentCreate(const QString &turnId, const QString &runtimeId, const QString &role, const QString &activity) {
+Subagent *Model::subagentCreate(const QString &turnId) {
     auto *turn = turnGet(turnId);
-    auto *subagent = new Subagent(runtimeId, role, activity, turn); // NOLINT
-    turn->subagentAppend(subagent);
+    auto *subagent = new Subagent(turn); // NOLINT
+    turn->lastActivitySet("subagent");
+    turn->toolSet(nullptr);
+    turn->blockAppend(subagent);
     return subagent;
 }
 

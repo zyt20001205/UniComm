@@ -9,9 +9,6 @@ import QtQuick.Layouts
 Item {
     id: rootItem
     anchors.fill: parent
-    property var turnMap: ({})
-    property var chatMap: ({})
-    property var subagentMap: ({})
 
     function requestSubmit(): void {
         const text = textArea.text.trim()
@@ -219,7 +216,7 @@ Item {
             ComboBox {
                 id: conversationComboBox
                 enabled: agentModule.state === 0 && agentModule.goalState === 0
-                model: conversationModel
+                model: conversationListModel
                 textRole: "display"
                 valueRole: "id"
                 Layout.fillWidth: true; Layout.preferredHeight: 30
@@ -303,11 +300,8 @@ Item {
             ListView {
                 id: turnListView
                 visible: count > 0
-                model: chatColumn.children.length
+                model: conversationModel
                 property int hoveredIndex: -1
-                readonly property real viewportPosition: Math.max(0, Math.min(chatScrollBar.position, 1 - chatScrollBar.size))
-                readonly property real viewportTop: viewportPosition * chatColumn.height
-                readonly property real viewportBottom: viewportTop + chatView.availableHeight
                 topMargin: Math.max(0, (height - count * 12) / 2)
                 bottomMargin: topMargin
                 boundsBehavior: Flickable.StopAtBounds
@@ -324,11 +318,10 @@ Item {
                 delegate: Item {
                     id: turnDelegate
                     required property int index
+                    required property var turn
                     width: turnListView.width
                     height: 12
                     readonly property int hoverDistance: turnListView.hoveredIndex < 0 ? 4 : Math.min(4, Math.abs(index - turnListView.hoveredIndex))
-                    readonly property var turn: chatColumn.children[index]
-                    readonly property bool turnVisible: turn.y < turnListView.viewportBottom && turn.y + turn.height > turnListView.viewportTop
 
                     Rectangle {
                         anchors.left: parent.left
@@ -337,7 +330,7 @@ Item {
                         height: 2
                         radius: 1
                         color: turnListView.hoveredIndex < 0
-                            ? turnDelegate.turnVisible ? global.fore : global.stroke
+                            ? turnListView.currentIndex === turnDelegate.index ? global.fore : global.stroke
                             : hoverHandler.hovered ? global.fore : global.stroke
                         opacity: turnListView.hoveredIndex < 0 ? 1 : 1 - turnDelegate.hoverDistance * 0.15
 
@@ -370,24 +363,31 @@ Item {
                         onTapped: {
                             turnListView.currentIndex = turnDelegate.index
                             turnListView.positionViewAtIndex(turnDelegate.index, ListView.Visible)
-                            rootItem.navigateTo(turnDelegate.turn.y)
+                            rootItem.navigateTo(turnDelegate.index)
                         }
                     }
                 }
             }
 
-            ScrollView {
+            ListView {
                 id: chatView
-                rightPadding: 14
-                Layout.fillWidth: true; Layout.fillHeight: true
+                readonly property real availableWidth: width - 14
+                readonly property real availableHeight: height
                 property bool followTail: true
+                model: conversationModel
+                reuseItems: true
+                cacheBuffer: height
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+                Layout.fillWidth: true; Layout.fillHeight: true
+
+                delegate: turnComponent
 
                 ScrollBar.vertical: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     id: chatScrollBar
                     x: parent.mirrored ? 0 : parent.width - width
-                    y: parent.topPadding
-                    height: parent.availableHeight
-                    active: parent.ScrollBar.horizontal.active
+                    height: parent.height
                     policy: ScrollBar.AsNeeded
                     palette {
                         mid: global.stroke
@@ -395,19 +395,9 @@ Item {
                     }
 
                     onPositionChanged: {
-                        if (followAnimation.running || navigationAnimation.running) return
-                        const viewportPosition = turnListView.viewportPosition
-                        let index = viewportPosition === 0 ? 0 : turnListView.count - 1
-                        if (viewportPosition > 0 && viewportPosition < 1 - size) {
-                            const viewportY = viewportPosition * chatColumn.height + chatView.availableHeight / 2
-                            for (let i = 0; i < chatColumn.children.length; ++i) {
-                                const turn = chatColumn.children[i]
-                                if (viewportY < turn.y + turn.height) {
-                                    index = i
-                                    break
-                                }
-                            }
-                        }
+                        if (followAnimation.running) return
+                        const index = chatView.indexAt(1, chatView.contentY + chatView.height / 2)
+                        if (index < 0) return
                         if (index === turnListView.currentIndex) return
                         turnListView.currentIndex = index
                         turnListView.positionViewAtIndex(index, ListView.Visible)
@@ -419,13 +409,8 @@ Item {
                             rootItem.scrollStop()
                             return
                         }
-                        chatView.followTail = chatView.contentItem.atYEnd
+                        chatView.followTail = chatView.atYEnd
                     }
-                }
-
-                ColumnLayout {
-                    id: chatColumn
-                    width: chatView.availableWidth
                 }
             }
         }
@@ -1202,9 +1187,23 @@ Item {
                 ScrollView {
                     id: changeScrollView
                     clip: true
+                    contentWidth: availableWidth
+                    rightPadding: effectiveScrollBarWidth
                     Layout.fillWidth: true
                     Layout.preferredHeight: Math.min(changeContent.implicitHeight, 240)
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+                    ScrollBar.vertical: ScrollBar {
+                        minimumSize: Math.min(1, 20 / Math.max(1, height))
+                        x: parent.mirrored ? 0 : parent.width - width
+                        y: parent.topPadding
+                        height: parent.availableHeight
+                        policy: ScrollBar.AsNeeded
+                        palette {
+                            mid: global.stroke
+                            dark: global.strokePressed
+                        }
+                    }
 
                     ColumnLayout {
                         id: changeContent
@@ -1517,8 +1516,10 @@ Item {
                 anchors.top: attachmentFlow.bottom
                 anchors.topMargin: attachmentFlow.visible ? 4 : 0
                 bottomPadding: 42
+                rightPadding: effectiveScrollBarWidth
 
                 ScrollBar.vertical: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     x: parent.mirrored ? 0 : parent.width - width
                     y: parent.topPadding
                     height: parent.availableHeight
@@ -1761,7 +1762,7 @@ Item {
 
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && chatColumn.children.length > 0
+                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && turnListView.count > 0
                     flat: true
                     icon.source: "qrc:/icon/undo.svg"
                     icon.width: 16; icon.height: 16
@@ -1863,27 +1864,17 @@ Item {
 
         ColumnLayout {
             id: turnItem
-            Layout.fillWidth: true
-            Layout.preferredWidth: chatColumn.width
+            required property int index
+            required property var turn
+            width: chatView.availableWidth
+            height: implicitHeight
             spacing: 6
-            property string turnId
-            property double startedAt
-            property double finishedAt: 0
             property int elapsedSeconds: 0
-            property bool collapsed: false
-            property string prompt
-            property string response
-            property string lastAssistantId
-            property string lastActivityType
-            property var activityItem
-            property var currentToolGroup
-            property alias subagents: subagentColumn
-            property alias messages: messageColumn
-            readonly property bool running: finishedAt === 0
+            readonly property bool running: turn.finishedAt === 0
 
             function elapsedUpdate(): void {
-                const end = finishedAt === 0 ? Date.now() : finishedAt
-                elapsedSeconds = Math.max(0, Math.floor((end - startedAt) / 1000))
+                const end = turn.finishedAt === 0 ? Date.now() : turn.finishedAt
+                elapsedSeconds = Math.max(0, Math.floor((end - turn.startedAt) / 1000))
             }
 
             function durationText(): string {
@@ -1903,11 +1894,11 @@ Item {
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     flat: true
-                    icon.source: turnItem.collapsed ? "qrc:/icon/arrowCollapse.svg" : "qrc:/icon/arrowExpand.svg"
+                    icon.source: turnItem.turn.collapsed ? "qrc:/icon/arrowCollapse.svg" : "qrc:/icon/arrowExpand.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                    onClicked: turnItem.collapsed = !turnItem.collapsed
+                    onClicked: turnItem.turn.collapsed = !turnItem.turn.collapsed
                 }
 
                 Item {
@@ -1922,19 +1913,245 @@ Item {
 
             ColumnLayout {
                 id: turnContent
-                Layout.fillWidth: true; Layout.preferredWidth: chatColumn.width
+                Layout.fillWidth: true
                 spacing: 6
 
-                ColumnLayout {
-                    id: subagentColumn
-                    visible: !turnItem.collapsed
-                    Layout.fillWidth: true; Layout.preferredWidth: chatColumn.width
-                    spacing: 6
+                Repeater {
+                    model: turnItem.turn.blocks
+
+                    delegate: DelegateChooser {
+                        role: "type"
+
+                        DelegateChoice {
+                            roleValue: "subagent"
+                            delegate: ColumnLayout {
+                                id: subagentGroup
+                                required property var modelData
+                                property var subagent: modelData
+                                visible: !turnItem.turn.collapsed
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                RowLayout {
+                                    Layout.fillWidth: true; Layout.preferredHeight: 24
+                                    spacing: 4
+
+                                    IconImage {
+                                        color: global.stroke
+                                        source: "qrc:/icon/team.svg"
+                                        sourceSize.width: 16; sourceSize.height: 16
+                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                    }
+
+                                    Label {
+                                        text: subagentGroup.subagent.count === 1
+                                              ? qsTr("1 action") : qsTr("%1 actions").arg(subagentGroup.subagent.count)
+                                        color: global.stroke
+                                    }
+
+                                    IconImage {
+                                        color: global.stroke
+                                        source: subagentGroup.subagent.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
+                                        sourceSize.width: 16; sourceSize.height: 16
+                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+
+                                        TapHandler {
+                                            onTapped: subagentGroup.subagent.expanded = !subagentGroup.subagent.expanded
+                                        }
+                                    }
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    visible: subagentGroup.subagent.expanded
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    Repeater {
+                                        model: subagentGroup.subagent.actions
+
+                                        delegate: Label {
+                                            required property string modelData
+                                            text: modelData
+                                            textFormat: Text.PlainText
+                                            color: global.stroke
+                                            elide: Text.ElideRight
+                                            wrapMode: Text.NoWrap
+                                            Layout.fillWidth: true; Layout.preferredHeight: 24
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        DelegateChoice {
+                            roleValue: "tool"
+                            delegate: ColumnLayout {
+                                id: toolGroup
+                                required property var modelData
+                                property var group: modelData
+                                visible: !turnItem.turn.collapsed
+                                Layout.fillWidth: true
+                                spacing: 2
+
+                                RowLayout {
+                                    Layout.fillWidth: true; Layout.preferredHeight: 24
+                                    spacing: 4
+
+                                    IconImage {
+                                        color: global.stroke
+                                        source: "qrc:/icon/wrenchScrewdriver.svg"
+                                        sourceSize.width: 16; sourceSize.height: 16
+                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                    }
+
+                                    Label {
+                                        text: toolGroup.group.count === 1 ? qsTr("Used 1 tool") : qsTr("Used %1 tools").arg(toolGroup.group.count)
+                                        color: global.stroke
+                                    }
+
+                                    IconImage {
+                                        color: global.stroke
+                                        source: toolGroup.group.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
+                                        sourceSize.width: 16; sourceSize.height: 16
+                                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+
+                                        TapHandler {
+                                            onTapped: toolGroup.group.expanded = !toolGroup.group.expanded
+                                        }
+                                    }
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    visible: toolGroup.group.expanded
+                                    Layout.fillWidth: true
+                                    spacing: 2
+
+                                    Repeater {
+                                        model: toolGroup.group.messages
+
+                                        delegate: ChatItem {
+                                            turn: turnItem.turn
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        DelegateChoice {
+                            delegate: ChatItem {
+                                turn: turnItem.turn
+                            }
+                        }
+                    }
                 }
 
-                ColumnLayout {
-                    id: messageColumn
-                    Layout.fillWidth: true; Layout.preferredWidth: chatColumn.width
+                RowLayout {
+                    id: activityItem
+                    visible: turnItem.turn.activity.length > 0 && !turnItem.turn.collapsed
+                    Layout.fillWidth: true; Layout.preferredHeight: 24
+                    spacing: 6
+
+                    Item {
+                        id: activityVisual
+                        Layout.preferredWidth: activityContent.implicitWidth
+                        Layout.preferredHeight: 24
+
+                        RowLayout {
+                            id: activityContent
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+
+                            IconImage {
+                                color: global.stroke
+                                source: turnItem.turn.activityIcon
+                                sourceSize.width: 16; sourceSize.height: 16
+                                Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                            }
+
+                            Label {
+                                text: turnItem.turn.activity
+                                color: global.stroke
+                            }
+                        }
+
+                        Item {
+                            id: activityHighlightSource
+                            anchors.fill: parent
+                            visible: false
+                            layer.enabled: true
+
+                            RowLayout {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                IconImage {
+                                    color: global.fore
+                                    source: turnItem.turn.activityIcon
+                                    sourceSize.width: 16; sourceSize.height: 16
+                                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                }
+
+                                Label {
+                                    text: turnItem.turn.activity
+                                    color: global.fore
+                                }
+                            }
+                        }
+
+                        Item {
+                            id: activityHighlightMask
+                            anchors.fill: parent
+                            visible: false
+                            layer.enabled: true
+
+                            Rectangle {
+                                id: activitySweep
+                                width: 32
+                                height: parent.height
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: "transparent" }
+                                    GradientStop { position: 0.5; color: "white" }
+                                    GradientStop { position: 1; color: "transparent" }
+                                }
+
+                                SequentialAnimation on x {
+                                    running: activityItem.visible
+                                    loops: Animation.Infinite
+
+                                    NumberAnimation {
+                                        from: -activitySweep.width
+                                        to: activityVisual.width
+                                        duration: 1600
+                                        easing.type: Easing.InOutCubic
+                                    }
+
+                                    PauseAnimation {
+                                        duration: 500
+                                    }
+                                }
+                            }
+                        }
+
+                        MultiEffect {
+                            anchors.fill: parent
+                            source: activityHighlightSource
+                            maskEnabled: true
+                            maskSource: activityHighlightMask
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
                 }
             }
 
@@ -1946,227 +2163,52 @@ Item {
                 onTriggered: turnItem.elapsedUpdate()
             }
 
-            onFinishedAtChanged: elapsedUpdate()
+            Connections {
+                target: turnItem.turn
+                function onChangeFinishedAt(): void { turnItem.elapsedUpdate() }
+            }
+
             Component.onCompleted: elapsedUpdate()
         }
     }
 
-    Component {
-        id: activityComponent
-
-        RowLayout {
-            id: activityItem
-            Layout.fillWidth: true; Layout.preferredHeight: 24
-            spacing: 6
-            property string activity: "thinking"
-            property int reconnectAttempt: 0
-            property int reconnectLimit: 0
-            readonly property string activityText: activity === "reconnecting"
-                                                   ? qsTr("Reconnecting %1 / %2...").arg(reconnectAttempt).arg(reconnectLimit)
-                                                   : activity === "compacting" ? qsTr("Compacting context...")
-                                                   : qsTr("Thinking...")
-            readonly property url activityIcon: activity === "reconnecting" ? "qrc:/icon/wifiOff.svg" :
-                                                activity === "compacting" ? "qrc:/icon/arrowMinimize.svg" :
-                                                "qrc:/icon/thinking.svg"
-
-            Item {
-                id: activityVisual
-                Layout.preferredWidth: activityContent.implicitWidth
-                Layout.preferredHeight: 24
-
-                RowLayout {
-                    id: activityContent
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 6
-
-                    IconImage {
-                        color: global.stroke
-                        source: activityItem.activityIcon
-                        sourceSize.width: 16; sourceSize.height: 16
-                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
-                    }
-
-                    Label {
-                        text: activityItem.activityText
-                        color: global.stroke
-                    }
-                }
-
-                Item {
-                    id: activityHighlightSource
-                    anchors.fill: parent
-                    visible: false
-                    layer.enabled: true
-
-                    RowLayout {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
-
-                        IconImage {
-                            color: global.fore
-                            source: activityItem.activityIcon
-                            sourceSize.width: 16; sourceSize.height: 16
-                            Layout.preferredWidth: 16; Layout.preferredHeight: 16
-                        }
-
-                        Label {
-                            text: activityItem.activityText
-                            color: global.fore
-                        }
-                    }
-                }
-
-                Item {
-                    id: activityHighlightMask
-                    anchors.fill: parent
-                    visible: false
-                    layer.enabled: true
-
-                    Rectangle {
-                        id: activitySweep
-                        width: 32
-                        height: parent.height
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop { position: 0; color: "transparent" }
-                            GradientStop { position: 0.5; color: "white" }
-                            GradientStop { position: 1; color: "transparent" }
-                        }
-
-                        SequentialAnimation on x {
-                            running: activityItem.visible
-                            loops: Animation.Infinite
-
-                            NumberAnimation {
-                                from: -activitySweep.width
-                                to: activityVisual.width
-                                duration: 1600
-                                easing.type: Easing.InOutCubic
-                            }
-
-                            PauseAnimation {
-                                duration: 500
-                            }
-                        }
-                    }
-                }
-
-                MultiEffect {
-                    anchors.fill: parent
-                    source: activityHighlightSource
-                    maskEnabled: true
-                    maskSource: activityHighlightMask
-                }
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-        }
-    }
-
-    Component {
-        id: toolGroupComponent
-
-        ColumnLayout {
-            id: toolGroup
-            Layout.fillWidth: true
-            spacing: 2
-            visible: !turn.collapsed
-            property var turn
-            property int count
-            property bool expanded: false
-            property alias messages: toolColumn
-
-            RowLayout {
-                Layout.fillWidth: true; Layout.preferredHeight: 24
-                spacing: 4
-
-                Label {
-                    text: toolGroup.count === 1 ? qsTr("Used 1 tool") : qsTr("Used %1 tools").arg(toolGroup.count)
-                    color: global.stroke
-                }
-
-                IconImage {
-                    color: global.stroke
-                    source: toolGroup.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                    sourceSize.width: 16; sourceSize.height: 16
-                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
-
-                    TapHandler {
-                        onTapped: toolGroup.expanded = !toolGroup.expanded
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                }
-            }
-
-            ColumnLayout {
-                id: toolColumn
-                visible: toolGroup.expanded
-                Layout.fillWidth: true
-                spacing: 2
-            }
-        }
-    }
-
-    Component {
-        id: subagentComponent
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-            property string runtimeId
-            property string role
-            property string message
-
-            IconImage {
-                color: global.fore
-                source: role === "data" ? "qrc:/icon/database.svg" :
-                        role === "hardware" ? "qrc:/icon/hardware.svg" :
-                            role === "vision" ? "qrc:/icon/eye.svg" : "qrc:/icon/code.svg"
-                sourceSize.width: 24; sourceSize.height: 24
-                Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                Layout.alignment: Qt.AlignTop
-            }
-
-            Label {
-                text: message
-                color: global.fore
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.NoWrap
-                Layout.fillWidth: true; Layout.preferredHeight: 24
-            }
-        }
-    }
-
-    Component {
-        id: chatComponent
-
-        ColumnLayout {
+    component ChatItem: ColumnLayout {
             id: chatItem
+            required property var modelData
+            required property var turn
+            property var chat: modelData
+            readonly property string messageId: chat ? chat.id : ""
+            readonly property string role: chat ? chat.role : ""
+            readonly property string contentBuffer: chat ? chat.content : ""
+            readonly property var attachments: chat ? chat.attachments : []
             spacing: 4
             visible: (contentBuffer.length > 0 || attachments.length > 0) && (!turn.collapsed || role === "user" || role === "assistant")
             Layout.preferredWidth: role === "assistant" || role === "comment" || role === "tool"
                                    ? chatView.availableWidth
                                    : Math.min(chatView.availableWidth * 0.8, implicitWidth)
             Layout.alignment: role === "user" || role === "steering" ? Qt.AlignRight : Qt.AlignLeft
-            property var turn
-            property string messageId
-            property string role
-            property string contentBuffer
-            property var attachments: []
 
             function flush(): void {
                 markdownModel.flush()
             }
 
+            function contentUpdate(): void {
+                markdownModel.source = contentBuffer
+                if (turn.finishedAt !== 0) flush()
+            }
+
             MarkdownModel {
                 id: markdownModel
-                source: chatItem.contentBuffer
+            }
+
+            onRoleChanged: {
+                if (role === "assistant") flush()
+            }
+
+            onContentBufferChanged: contentUpdate()
+            Component.onCompleted: {
+                markdownModel.source = contentBuffer
+                flush()
             }
 
             Control {
@@ -2295,6 +2337,7 @@ Item {
                                             Layout.preferredHeight: codeText.implicitHeight + (codeScrollBar.visible ? codeScrollBar.implicitHeight : 0)
 
                                             ScrollBar.horizontal: ScrollBar {
+                                                minimumSize: Math.min(1, 20 / Math.max(1, width))
                                                 id: codeScrollBar
                                                 policy: ScrollBar.AsNeeded
                                                 palette {
@@ -2460,6 +2503,7 @@ Item {
                                                     }
 
                                                     ScrollBar.horizontal: ScrollBar {
+                                                        minimumSize: Math.min(1, 20 / Math.max(1, width))
                                                         id: tableScrollBar
                                                         policy: ScrollBar.AsNeeded
                                                         palette {
@@ -2588,7 +2632,7 @@ Item {
                 Layout.alignment: chatItem.role === "user" ? Qt.AlignRight : Qt.AlignLeft
 
                 Label {
-                    text: Qt.formatDateTime(new Date(chatItem.role === "user" ? turn.startedAt : turn.finishedAt), "HH:mm")
+                    text: Qt.formatDateTime(new Date(chatItem.role === "user" ? chatItem.turn.startedAt : chatItem.turn.finishedAt), "HH:mm")
                     color: global.stroke
                 }
 
@@ -2613,28 +2657,19 @@ Item {
                 id: chatHover
                 cursorShape: Qt.IBeamCursor
             }
-        }
     }
 
     SmoothedAnimation {
         id: followAnimation
-        target: chatView.contentItem
+        target: chatView
         property: "contentY"
         duration: 160
         velocity: -1
         maximumEasingTime: 60
     }
 
-    NumberAnimation {
-        id: navigationAnimation
-        target: chatView.contentItem
-        property: "contentY"
-        duration: 220
-        easing.type: Easing.OutCubic
-    }
-
     Connections {
-        target: chatView.contentItem
+        target: chatView
 
         function onMovementStarted(): void {
             chatView.followTail = false
@@ -2642,7 +2677,7 @@ Item {
         }
 
         function onMovementEnded(): void {
-            chatView.followTail = chatView.contentItem.atYEnd
+            chatView.followTail = chatView.atYEnd
         }
 
         function onContentHeightChanged(): void {
@@ -2668,86 +2703,37 @@ Item {
 
     function followToTail(): void {
         if (!chatView.followTail) return
-        const flickable = chatView.contentItem
-        if (navigationAnimation.running) navigationAnimation.stop()
-        const target = Math.max(flickable.originY, flickable.originY + flickable.contentHeight - flickable.height)
+        const target = Math.max(chatView.originY, chatView.originY + chatView.contentHeight - chatView.height)
         followAnimation.stop()
-        followAnimation.from = flickable.contentY
+        followAnimation.from = chatView.contentY
         followAnimation.to = target
         followAnimation.start()
     }
 
-    function navigateTo(position: double): void {
+    function navigateTo(index: int): void {
         scrollStop()
-        const flickable = chatView.contentItem
-        const bottom = Math.max(flickable.originY, flickable.originY + flickable.contentHeight - flickable.height)
-        const target = Math.max(flickable.originY, Math.min(position, bottom))
-        chatView.followTail = target === bottom
-        navigationAnimation.to = target
-        navigationAnimation.restart()
+        chatView.positionViewAtIndex(index, ListView.Beginning)
+        chatView.followTail = index === chatView.count - 1
     }
 
     function scrollStop(): void {
         followAnimation.stop()
-        navigationAnimation.stop()
     }
 
-    function turnCreate(turnId: string, startedAt: double): void {
+    function turnCreate(): void {
         planCard.explanation = ""
         planCard.steps = []
         planCard.minimized = false
         changeCard.changes = ({})
         changeCard.minimized = true
-        const obj = turnComponent.createObject(chatColumn, {
-            turnId: turnId,
-            startedAt: startedAt,
-        })
-        rootItem.turnMap[turnId] = obj
     }
 
-    function turnFinish(turnId: string, finishedAt: double): void {
-        const turn = rootItem.turnMap[turnId]
-        if (turn.lastAssistantId) {
-            rootItem.chatMap[turn.lastAssistantId].flush()
-            rootItem.chatMap[turn.lastAssistantId].role = "assistant"
-        }
-        turn.finishedAt = finishedAt
-        turn.collapsed = true
+    function turnFinish(): void {
         planCard.minimized = true
         changeCard.minimized = false
     }
 
-    function thinkingStart(turnId: string): void {
-        activityStart(turnId, "thinking")
-    }
-
-    function compactStart(turnId: string): void {
-        activityStart(turnId, "compacting")
-    }
-
-    function reconnectStart(turnId: string, attempt: int, limit: int): void {
-        const activity = activityStart(turnId, "reconnecting")
-        if (!activity) return
-        activity.reconnectAttempt = attempt
-        activity.reconnectLimit = limit
-    }
-
-    function activityStart(turnId: string, type: string): var {
-        const turn = rootItem.turnMap[turnId] || chatColumn.children[chatColumn.children.length - 1]
-        if (!turn) return null
-        if (!turn.activityItem) turn.activityItem = activityComponent.createObject(turn.messages)
-        turn.activityItem.activity = type
-        return turn.activityItem
-    }
-
-    function activityFinish(turnId: string): void {
-        const turn = rootItem.turnMap[turnId] || chatColumn.children[chatColumn.children.length - 1]
-        if (!turn || !turn.activityItem) return
-        turn.activityItem.destroy()
-        turn.activityItem = null
-    }
-
-    function chatClear(): void {
+    function turnClear(): void {
         scrollStop()
         chatView.followTail = true
         planCard.explanation = ""
@@ -2755,73 +2741,9 @@ Item {
         planCard.minimized = true
         changeCard.changes = ({})
         changeCard.minimized = true
-        requestsClear()
+        permissionModel.clear()
+        userInputModel.clear()
         usageUpdate(0)
-        for (let i = chatColumn.children.length - 1; i >= 0; --i) {
-            chatColumn.children[i].destroy();
-        }
-        rootItem.turnMap = ({})
-        rootItem.chatMap = ({})
-        rootItem.subagentMap = ({})
-    }
-
-    function chatCreate(turnId: string, messageId: string, role: string, attachments: var): void {
-        const turn = rootItem.turnMap[turnId]
-        if (role === "user" && turn.prompt) role = "steering"
-        else if (role === "assistant") role = "comment"
-        let container = turn.messages
-        if (role === "tool") {
-            if (turn.lastActivityType !== "tool") {
-                turn.currentToolGroup = toolGroupComponent.createObject(turn.messages, {
-                    turn: turn,
-                })
-            }
-            container = turn.currentToolGroup.messages
-            turn.currentToolGroup.count += 1
-            turn.lastActivityType = "tool"
-        } else if (role === "steering") {
-            turn.lastActivityType = "steering"
-        }
-        const obj = chatComponent.createObject(container, {
-            turn: turn,
-            messageId: messageId,
-            role: role,
-            attachments: attachments,
-        })
-        rootItem.chatMap[messageId] = obj
-    }
-
-    function chatAppend(messageId: string, text: string): void {
-        const chat = rootItem.chatMap[messageId]
-        chat.contentBuffer += text
-        if (chat.role === "user") chat.turn.prompt += text
-        else if (chat.role === "comment") {
-            chat.turn.lastAssistantId = messageId
-            chat.turn.lastActivityType = "comment"
-            chat.turn.currentToolGroup = null
-            chat.turn.response = chat.contentBuffer
-        }
-    }
-
-    function chatReset(messageId: string): void {
-        const chat = rootItem.chatMap[messageId]
-        chat.contentBuffer = ""
-        chat.flush()
-        chat.turn.response = ""
-    }
-
-    function subagentCreate(turnId: string, runtimeId: string, role: string, message: string): void {
-        const turn = rootItem.turnMap[turnId]
-        const obj = subagentComponent.createObject(turn.subagents, {
-            runtimeId: runtimeId,
-            role: role,
-            message: message,
-        })
-        rootItem.subagentMap[runtimeId] = obj
-    }
-
-    function subagentUpdate(runtimeId: string, message: string): void {
-        rootItem.subagentMap[runtimeId].message = message
     }
 
     function permissionRequest(runtimeId: string, role: string, message: string): void {
@@ -2863,11 +2785,6 @@ Item {
             userInputSwipeView.currentIndex = Math.min(userInputSwipeView.currentIndex, userInputModel.count - 1)
             return
         }
-    }
-
-    function requestsClear(): void {
-        permissionModel.clear()
-        userInputModel.clear()
     }
 
     function planUpdate(plan): void {

@@ -1,25 +1,33 @@
 #include "agent/model/subagent.h"
 
 namespace Conversation {
-    Subagent::Subagent(const QString &runtimeId, const QString &role, const QString &activity, QObject *parent)
-        : QObject(parent), m_runtimeId(runtimeId), m_role(role), m_activity(activity) {
+    Subagent::Subagent(QObject *parent) : QObject(parent) {
     }
 
-    QString Subagent::runtimeIdGet() const {
-        return m_runtimeId;
+    QString Subagent::typeGet() const {
+        return "subagent";
     }
 
-    QString Subagent::roleGet() const {
-        return m_role;
+    QVariantList Subagent::actionsGet() const {
+        return m_actions;
     }
 
-    QString Subagent::activityGet() const {
-        return m_activity;
+    int Subagent::countGet() const {
+        return static_cast<int>(m_actions.size());
     }
 
-    void Subagent::activitySet(const QString &activity) {
-        if (m_activity == activity) return;
-        m_activity = activity;
-        emit changeActivity();
+    bool Subagent::expandedGet() const {
+        return m_expanded;
+    }
+
+    void Subagent::actionAppend(const QString &activity) {
+        m_actions.append(activity);
+        emit changeActions();
+    }
+
+    void Subagent::expandedSet(const bool expanded) {
+        if (m_expanded == expanded) return;
+        m_expanded = expanded;
+        emit changeExpanded();
     }
 }

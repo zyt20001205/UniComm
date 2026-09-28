@@ -141,7 +141,6 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
                 const auto success = m_turn.status == SqlModule::TurnStatus::Completed;
                 m_turn = {};
                 stateSet(AgentState::Ready);
-                emit setActivity(result);
                 emit finishRun(result, success);
                 break;
             }

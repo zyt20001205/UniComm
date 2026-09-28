@@ -2,32 +2,39 @@
 #define UNICOMM_SUBAGENT_H
 
 #include <QObject>
+#include <QVariantList>
 
 namespace Conversation {
     class Subagent final : public QObject {
         Q_OBJECT
-        Q_PROPERTY(QString runtimeId READ runtimeIdGet CONSTANT)
-        Q_PROPERTY(QString role READ roleGet CONSTANT)
-        Q_PROPERTY(QString activity READ activityGet NOTIFY changeActivity)
+        Q_PROPERTY(QString type READ typeGet CONSTANT)
+        Q_PROPERTY(QVariantList actions READ actionsGet NOTIFY changeActions)
+        Q_PROPERTY(int count READ countGet NOTIFY changeActions)
+        Q_PROPERTY(bool expanded READ expandedGet WRITE expandedSet NOTIFY changeExpanded)
 
     public:
-        Subagent(const QString &runtimeId, const QString &role, const QString &activity, QObject *parent = nullptr);
+        explicit Subagent(QObject *parent = nullptr);
 
-        [[nodiscard]] QString runtimeIdGet() const;
+        [[nodiscard]] QString typeGet() const;
 
-        [[nodiscard]] QString roleGet() const;
+        [[nodiscard]] QVariantList actionsGet() const;
 
-        [[nodiscard]] QString activityGet() const;
+        [[nodiscard]] int countGet() const;
 
-        void activitySet(const QString &activity);
+        [[nodiscard]] bool expandedGet() const;
+
+        void actionAppend(const QString &activity);
+
+        void expandedSet(bool expanded);
 
     signals:
-        void changeActivity();
+        void changeActions();
+
+        void changeExpanded();
 
     private:
-        QString m_runtimeId{};
-        QString m_role{};
-        QString m_activity{};
+        QVariantList m_actions{};
+        bool m_expanded{false};
     };
 }
 

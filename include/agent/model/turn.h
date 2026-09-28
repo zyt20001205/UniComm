@@ -6,7 +6,6 @@
 
 namespace Conversation {
     class Message;
-    class Subagent;
     class Tool;
 
     class Turn final : public QObject {
@@ -18,7 +17,6 @@ namespace Conversation {
         Q_PROPERTY(QString response READ responseGet NOTIFY changeResponse)
         Q_PROPERTY(bool collapsed READ collapsedGet WRITE collapsedSet NOTIFY changeCollapsed)
         Q_PROPERTY(QVariantList blocks READ blocksGet NOTIFY changeBlocks)
-        Q_PROPERTY(QVariantList subagents READ subagentsGet NOTIFY changeSubagents)
         Q_PROPERTY(QString activity READ activityGet NOTIFY changeActivity)
         Q_PROPERTY(QUrl activityIcon READ activityIconGet NOTIFY changeActivity)
 
@@ -41,15 +39,11 @@ namespace Conversation {
 
         [[nodiscard]] QVariantList blocksGet() const;
 
-        [[nodiscard]] QVariantList subagentsGet() const;
-
         [[nodiscard]] QString activityGet() const;
 
         [[nodiscard]] QUrl activityIconGet() const;
 
         void blockAppend(QObject *block);
-
-        void subagentAppend(Subagent *subagent);
 
         void promptChatSet(Message *chat);
 
@@ -82,8 +76,6 @@ namespace Conversation {
 
         void changeBlocks();
 
-        void changeSubagents();
-
         void changeActivity();
 
     private:
@@ -92,7 +84,6 @@ namespace Conversation {
         qint64 m_finishedAt{};
         bool m_collapsed{false};
         QVariantList m_blocks{};
-        QVariantList m_subagents{};
         QString m_activity{};
         QUrl m_activityIcon{};
         QString m_lastActivity{};

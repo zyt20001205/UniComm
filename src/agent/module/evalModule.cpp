@@ -151,7 +151,7 @@ void EvalModel::turnBuild(const QList<SqlModule::Message> &messages, const qsize
         auto *messageTokensItem = new QStandardItem(message.role == "assistant" ? uni_cast<QCompactNumber>(messageTokens).value : QString{}); // NOLINT
         if (message.role == "user") messageTraceItem->setData(QUrl("qrc:/icon/solo.svg"), Qt::DecorationRole);
         else if (message.role == "assistant") messageTraceItem->setData(QUrl("qrc:/icon/model.svg"), Qt::DecorationRole);
-        else messageTraceItem->setData(QUrl("qrc:/icon/toolbox.svg"), Qt::DecorationRole);
+        else messageTraceItem->setData(QUrl("qrc:/icon/wrenchScrewdriver.svg"), Qt::DecorationRole);
         for (auto *item: {messageTraceItem, messageDurationItem, messageTtftItem, messageTokensItem}) item->setData(message.id, NodeIdRole);
         messageTraceItem->setData(message.turnId, TurnIdRole);
         messageTraceItem->setData(message.role, MessageRole);

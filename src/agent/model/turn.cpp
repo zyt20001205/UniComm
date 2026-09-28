@@ -1,7 +1,6 @@
 #include "agent/model/turn.h"
 
 #include "agent/model/message.h"
-#include "agent/model/subagent.h"
 
 namespace Conversation {
     Turn::Turn(const QString &id, const qint64 startedAt, QObject *parent)
@@ -40,10 +39,6 @@ namespace Conversation {
         return m_blocks;
     }
 
-    QVariantList Turn::subagentsGet() const {
-        return m_subagents;
-    }
-
     QString Turn::activityGet() const {
         return m_activity;
     }
@@ -55,11 +50,6 @@ namespace Conversation {
     void Turn::blockAppend(QObject *block) {
         m_blocks.append(QVariant::fromValue(block));
         emit changeBlocks();
-    }
-
-    void Turn::subagentAppend(Subagent *subagent) {
-        m_subagents.append(QVariant::fromValue(static_cast<QObject *>(subagent)));
-        emit changeSubagents();
     }
 
     void Turn::promptChatSet(Message *chat) {

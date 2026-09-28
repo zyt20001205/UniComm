@@ -1445,6 +1445,7 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         const auto lineCount = object.value("line_count").toInt();
         if (startLine < 0) return {"Line get failed: start_line is out of range.", false};
         if (lineCount == 0 || lineCount < -1) return {"Line get failed: line_count is out of range.", false};
+        if (documentInfo.size() == 0 && startLine == 0) return {QString("")};
 
         const auto text = g_document->linesGet(documentUrl, startLine, lineCount);
         if (text.isNull()) return {"Line get failed: start_line is out of range.", false};
