@@ -1,7 +1,6 @@
 #ifndef UNICOMM_RUNTIMEMODULE_H
 #define UNICOMM_RUNTIMEMODULE_H
 
-#include <QJsonObject>
 #include <QNetworkReply>
 #include <QUrl>
 
@@ -136,6 +135,8 @@ private:
     bool retry(QNetworkReply::NetworkError error, const BaseProvider *provider, const QJsonObject &body, qsizetype messageIndex, int retryCount);
 
     void _request(const BaseProvider *provider, const QJsonObject &body, qsizetype messageIndex = -1, int retryCount = 0);
+
+    void _response(QNetworkReply *reply, qsizetype messageIndex, QMap<int, ToolCall> &toolCalls, QString &finishReason, QByteArray &buffer, bool finished = false);
 
     qsizetype conversationAppend(const QString &role, const QString &toolCallId = {});
 

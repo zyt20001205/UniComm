@@ -396,82 +396,22 @@ void RuntimeModule::_request(const BaseProvider *provider, const QJsonObject &bo
         return;
     }
 
-    const auto messageId = m_turn.messages.at(messageIndex).id;
     auto toolCalls = QSharedPointer<QMap<int, ToolCall> >::create();
     auto finishReason = QSharedPointer<QString>::create();
+    auto buffer = QSharedPointer<QByteArray>::create();
 
-    connect(reply, &QNetworkReply::readyRead, this, [this, reply, messageIndex, messageId, toolCalls, finishReason] {
-        if (reply->error() != QNetworkReply::NoError) return;
-        while (reply->canReadLine()) {
-            auto line = reply->readLine().trimmed();
-            if (line.isEmpty()) continue;
-            if (!line.startsWith("data: ")) continue;
-
-            line = line.mid(6);
-            if (line == "[DONE]") continue;
-
-            const auto doc = QJsonDocument::fromJson(line);
-            if (doc.isNull() || !doc.isObject()) continue;
-
-            const auto object = doc.object();
-            const auto usage = object.value("usage").toObject();
-            if (!usage.isEmpty()) {
-                m_turn.currentUsage = usage.value("total_tokens").toInt();
-                m_turn.messages[messageIndex].usage = {
-                    .promptTokens = usage.value("prompt_tokens").toInt(),
-                    .completionTokens = usage.value("completion_tokens").toInt(),
-                    .cacheHitTokens = usage.value("prompt_cache_hit_tokens").toInt(),
-                    .reasoningTokens = usage.value("completion_tokens_details").toObject().value("reasoning_tokens").toInt()
-                };
-                emit updateUsage(m_turn.currentUsage);
-            }
-
-            const auto choices = object.value("choices").toArray();
-            if (choices.isEmpty()) continue;
-
-            const auto choice = choices.at(0).toObject();
-            const auto reason = choice.value("finish_reason").toString();
-            if (!reason.isEmpty()) *finishReason = reason;
-            const auto delta = choice.value("delta").toObject();
-            const auto reasoning = delta.value("reasoning_content").toString();
-            const auto content = delta.value("content").toString();
-            const auto deltaToolCalls = delta.value("tool_calls").toArray();
-            if ((!reasoning.isEmpty() || !content.isEmpty() || !deltaToolCalls.isEmpty()) && m_turn.messages[messageIndex].timing.firstOutputAt == 0) {
-                m_turn.messages[messageIndex].timing.firstOutputAt = QDateTime::currentMSecsSinceEpoch();
-            }
-            if (!reasoning.isEmpty()) {
-                auto &message = m_turn.messages[messageIndex];
-                if (message.reasoningContent.isEmpty()) stateSet(AgentState::Think);
-                message.reasoningContent.append(reasoning);
-            }
-
-            if (!content.isEmpty()) {
-                auto &message = m_turn.messages[messageIndex];
-                if (message.content.isEmpty()) stateSet(AgentState::Response);
-                message.content.append(content);
-                emit appendChat(messageId, content);
-            }
-
-            for (const auto &value: deltaToolCalls) {
-                const auto object = value.toObject();
-                if (!object.contains("index")) continue;
-                const auto index = object.value("index").toInt();
-                auto toolCall = toolCalls->value(index);
-                if (object.contains("id")) toolCall.id = object.value("id").toString();
-                const auto function = object.value("function").toObject();
-                if (function.contains("name")) toolCall.name = function.value("name").toString();
-                if (function.contains("arguments")) toolCall.arguments.append(function.value("arguments").toString());
-                (*toolCalls)[index] = toolCall;
-            }
-        }
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply, messageIndex, toolCalls, finishReason, buffer] {
+        _response(reply, messageIndex, *toolCalls, *finishReason, *buffer);
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, provider, body, messageIndex, retryCount, messageId, toolCalls, finishReason] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, provider, body, messageIndex, retryCount, toolCalls, finishReason, buffer] {
         if (m_reply == reply) m_reply = nullptr;
         if (reply->error() == QNetworkReply::OperationCanceledError) {
             stateSet(AgentState::Complete);
         } else if (reply->error() == QNetworkReply::NoError) {
+            _response(reply, messageIndex, *toolCalls, *finishReason, *buffer, true);
             if (finishReason->isEmpty()) {
-                if (!retry(QNetworkReply::RemoteHostClosedError, provider, body, messageIndex, retryCount)) stateSet(AgentState::Error, "Model response ended without a finish reason.");
+                if (!retry(QNetworkReply::RemoteHostClosedError, provider, body, messageIndex, retryCount)) stateSet(
+                    AgentState::Error, "Model response ended without a finish reason.");
                 reply->deleteLater();
                 return;
             }
@@ -516,6 +456,78 @@ void RuntimeModule::_request(const BaseProvider *provider, const QJsonObject &bo
         }
         reply->deleteLater();
     });
+}
+
+void RuntimeModule::_response(QNetworkReply *reply, const qsizetype messageIndex, QMap<int, ToolCall> &toolCalls, QString &finishReason, QByteArray &buffer, const bool finished) {
+    if (reply->error() != QNetworkReply::NoError) return;
+    const auto messageId = m_turn.messages.at(messageIndex).id;
+    buffer.append(reply->readAll());
+    if (finished && !buffer.isEmpty() && !buffer.endsWith('\n')) buffer.append('\n');
+    while (true) {
+        const auto end = buffer.indexOf('\n');
+        if (end < 0) break;
+        auto line = buffer.left(end).trimmed();
+        buffer.remove(0, end + 1);
+        if (line.isEmpty()) continue;
+        if (!line.startsWith("data:")) continue;
+
+        line = line.mid(5).trimmed();
+        if (line == "[DONE]") continue;
+
+        const auto doc = QJsonDocument::fromJson(line);
+        if (doc.isNull() || !doc.isObject()) continue;
+
+        const auto object = doc.object();
+        const auto usage = object.value("usage").toObject();
+        if (!usage.isEmpty()) {
+            m_turn.currentUsage = usage.value("total_tokens").toInt();
+            m_turn.messages[messageIndex].usage = {
+                .promptTokens = usage.value("prompt_tokens").toInt(),
+                .completionTokens = usage.value("completion_tokens").toInt(),
+                .cacheHitTokens = usage.value("prompt_cache_hit_tokens").toInt(),
+                .reasoningTokens = usage.value("completion_tokens_details").toObject().value("reasoning_tokens").toInt()
+            };
+            emit updateUsage(m_turn.currentUsage);
+        }
+
+        const auto choices = object.value("choices").toArray();
+        if (choices.isEmpty()) continue;
+
+        const auto choice = choices.at(0).toObject();
+        const auto reason = choice.value("finish_reason").toString();
+        if (!reason.isEmpty()) finishReason = reason;
+        const auto delta = choice.value("delta").toObject();
+        const auto reasoning = delta.value("reasoning_content").toString();
+        const auto content = delta.value("content").toString();
+        const auto deltaToolCalls = delta.value("tool_calls").toArray();
+        if ((!reasoning.isEmpty() || !content.isEmpty() || !deltaToolCalls.isEmpty()) && m_turn.messages[messageIndex].timing.firstOutputAt == 0) {
+            m_turn.messages[messageIndex].timing.firstOutputAt = QDateTime::currentMSecsSinceEpoch();
+        }
+        if (!reasoning.isEmpty()) {
+            auto &message = m_turn.messages[messageIndex];
+            if (message.reasoningContent.isEmpty()) stateSet(AgentState::Think);
+            message.reasoningContent.append(reasoning);
+        }
+
+        if (!content.isEmpty()) {
+            auto &message = m_turn.messages[messageIndex];
+            if (message.content.isEmpty()) stateSet(AgentState::Response);
+            message.content.append(content);
+            emit appendChat(messageId, content);
+        }
+
+        for (const auto &value: deltaToolCalls) {
+            const auto object = value.toObject();
+            if (!object.contains("index")) continue;
+            const auto index = object.value("index").toInt();
+            auto toolCall = toolCalls.value(index);
+            if (object.contains("id")) toolCall.id = object.value("id").toString();
+            const auto function = object.value("function").toObject();
+            if (function.contains("name")) toolCall.name = function.value("name").toString();
+            if (function.contains("arguments")) toolCall.arguments.append(function.value("arguments").toString());
+            toolCalls[index] = toolCall;
+        }
+    }
 }
 
 qsizetype RuntimeModule::conversationAppend(const QString &role, const QString &toolCallId) {

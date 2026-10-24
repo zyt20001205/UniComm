@@ -1,6 +1,5 @@
 #include "runtime/luaInterpreter.h"
 
-#include <QStandardItemModel>
 #include <QThread>
 #include <QTimer>
 #include <sol/sol.hpp>
