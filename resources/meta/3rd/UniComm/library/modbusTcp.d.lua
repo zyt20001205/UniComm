@@ -4,7 +4,7 @@
 ModbusTcp = {}
 
 ---
----Create a Modbus TCP instance.
+---Create a Modbus TCP instance and open the configured port.
 ---
 ---[Modbus TCP demo](../demo/modbusTcp.lua)
 ---

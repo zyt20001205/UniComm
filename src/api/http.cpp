@@ -22,9 +22,16 @@ void Http::init(const std::string &portName, const int timeout) {
     m_port = port.value();
 
     QByteArray remoteHost{};
-    QMetaObject::invokeMethod(m_port, [&remoteHost, this] {
+    QString exception{};
+
+    QMetaObject::invokeMethod(m_port, [&remoteHost, this]() -> QString {
+        if (!m_port->open()) return "open failed";
+
         remoteHost = m_port->config().value("remoteHost").toString().toUtf8();
-    }, Qt::BlockingQueuedConnection);
+
+        return {};
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
     m_remoteHost = remoteHost;
 }
 
@@ -77,8 +84,6 @@ sol::object Http::request(const sol::this_state ts, const QByteArray &method, co
     if (body.has_value()) txData += _body;
 
     QMetaObject::invokeMethod(m_port, [this, &method, &txData]() -> Result {
-        if (!m_port->open()) return {.exception = "open failed"};
-
         if (!m_port->write(txData, "utf-8", "null")) return {.exception = "write failed"};
 
         const QByteArray rxHeader = m_port->readUntil("\r\n\r\n", m_timeout, "utf-8");

@@ -1,3 +1,5 @@
+-- Configure a port named "HTTP" before running.
+-- new() opens the configured port automatically.
 local http = Http.new("HTTP", 30000)
 
 local header = {

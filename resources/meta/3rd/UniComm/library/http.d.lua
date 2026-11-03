@@ -4,7 +4,7 @@
 Http = {}
 
 ---
----Create an HTTP instance over an existing port.
+---Create an HTTP instance and open the configured port.
 ---
 ---[HTTP demo](../demo/http.lua)
 ---

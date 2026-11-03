@@ -4,7 +4,7 @@
 Smtp = {}
 
 ---
----Create an SMTP instance.
+---Create an SMTP instance, open the configured port and read the server greeting.
 ---
 ---[SMTP demo](../demo/smtp.lua)
 ---

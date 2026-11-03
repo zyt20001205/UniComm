@@ -21,6 +21,15 @@ void ModbusRtu::init(const std::string &portName, const int slaveAddr, const int
     m_slaveAddr = slaveAddr;
     m_timeout = timeout;
     m_port = port.value();
+
+    QString exception{};
+
+    QMetaObject::invokeMethod(m_port, [this]() -> QString {
+        if (!m_port->open()) return "open failed";
+
+        return {};
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
 }
 
 sol::table ModbusRtu::readCoils(const sol::this_state ts, const int startAddr, const int quantity) const {

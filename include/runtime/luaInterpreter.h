@@ -13,7 +13,6 @@ class Data;
 class IO;
 class Key;
 class Mouse;
-class Mqtt;
 class String;
 class Thread;
 
@@ -69,7 +68,6 @@ private:
     IO *m_io{};
     Key *m_key{};
     Mouse *m_mouse{};
-    Mqtt *m_mqtt{};
     String *m_string{};
     Thread *m_thread{};
 };

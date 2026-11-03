@@ -21,6 +21,15 @@ void ModbusTcp::init(const std::string &portName, const int transactionId, const
     m_unitId = unitId;
     m_timeout = timeout;
     m_port = port.value();
+
+    QString exception{};
+
+    QMetaObject::invokeMethod(m_port, [this]() -> QString {
+        if (!m_port->open()) return "open failed";
+
+        return {};
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
 }
 
 sol::table ModbusTcp::readCoils(const sol::this_state ts, const int startAddr, const int quantity) const {

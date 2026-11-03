@@ -1,6 +1,5 @@
 -- Configure a TCP client port named "Modbus TCP" before running.
-local port = Port.get("Modbus TCP")
-port:open()
+-- new() opens the configured port automatically.
 local modbusTcp = ModbusTcp.new("Modbus TCP", 1, 1, 1000)
 
 -- Read multiple coil states.

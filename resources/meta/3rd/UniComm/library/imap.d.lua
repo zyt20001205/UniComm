@@ -4,7 +4,7 @@
 Imap = {}
 
 ---
----Create an IMAP instance.
+---Create an IMAP instance, open the configured port and read the server greeting.
 ---
 ---[IMAP demo](../demo/imap.lua)
 ---

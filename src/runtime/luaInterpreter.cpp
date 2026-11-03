@@ -35,7 +35,6 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
       m_io(new IO(luaSession.value("threadId").toString(), luaSession.value("mode").toInt() == InterpreterMode::Agent, this)),
       m_key(new Key(this)),
       m_mouse(new Mouse(this)),
-      m_mqtt(new Mqtt(this)),
       m_string(new String(this)),
       m_thread(new Thread(this)) {
     // LuaStandard lib
@@ -248,14 +247,12 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "Mqtt",
             sol::no_constructor,
             sol::meta_function::garbage_collect, [](Mqtt *) {
-            },
-            "options", sol::readonly_property(&Mqtt::optionsProxy),
-            "connect", &Mqtt::connect
+            }
         );
         auto mqtt = m_lua.create_table();
         mqtt.set_function("new", [this](const std::string &portName, const sol::optional<int> timeout) {
             auto *obj = new Mqtt(this);
-            obj->init(portName, timeout.value_or(1000));
+            obj->init(portName, timeout.value_or(30000));
             return obj;
         });
         m_lua["Mqtt"] = mqtt;

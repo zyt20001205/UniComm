@@ -4,7 +4,7 @@
 ModbusRtu = {}
 
 ---
----Create a Modbus RTU instance.
+---Create a Modbus RTU instance and open the configured port.
 ---
 ---[Modbus RTU demo](../demo/modbusRtu.lua)
 ---

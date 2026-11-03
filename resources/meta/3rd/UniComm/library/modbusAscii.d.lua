@@ -4,7 +4,7 @@
 ModbusAscii = {}
 
 ---
----Create a Modbus ASCII instance.
+---Create a Modbus ASCII instance and open the configured port.
 ---
 ---[Modbus ASCII demo](../demo/modbusAscii.lua)
 ---

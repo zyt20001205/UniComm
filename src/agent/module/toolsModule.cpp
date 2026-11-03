@@ -1249,7 +1249,7 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         const auto entries = apiDir.entryInfoList({"*.d.lua"}, QDir::Files | QDir::NoDotAndDotDot, QDir::Name);
         for (const auto &entry: entries) {
             const auto packageName = entry.fileName().chopped(QStringLiteral(".d.lua").size());
-            if (!QStringList({"mqtt", "types"}).contains(packageName)) {
+            if (packageName != "types") {
                 array.append(packageName);
             }
         }
