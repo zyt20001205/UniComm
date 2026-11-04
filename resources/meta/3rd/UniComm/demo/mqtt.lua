@@ -50,6 +50,6 @@ end
 -- An anonymous broker can use mqtt:connect("UniCommTest") instead.
 -- To request a persistent session, pass 60, false as the last two arguments.
 
--- Close the transport after the test; no MQTT DISCONNECT is sent.
+-- Send DISCONNECT and close the transport; no MQTT reply is expected.
 -- Before retrying a failed CONNECT, close and reopen the port as well.
-Port.get(name):close()
+mqtt:disconnect()

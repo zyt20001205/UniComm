@@ -37,6 +37,8 @@ public:
 
     void publish(const std::string &topic, const std::string &payload, sol::optional<int> qos, sol::optional<bool> retain) const;
 
+    void disconnect() const;
+
     [[nodiscard]] sol::object consume(sol::this_state ts);
 
 private:

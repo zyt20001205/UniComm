@@ -176,6 +176,18 @@ void Mqtt::publish(const std::string &topic, const std::string &payload, const s
     if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
 }
 
+void Mqtt::disconnect() const {
+    if (m_port.isNull()) throw sol::error(m_portName + ": port is no longer available");
+    QString exception{};
+
+    QMetaObject::invokeMethod(m_port, [this]() -> QString {
+        const auto exception = request(ControlPacketType::Disconnect, 0, {});
+        m_port->close();
+        return exception;
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
+}
+
 sol::object Mqtt::consume(const sol::this_state ts) {
     if (m_port.isNull()) throw sol::error(m_portName + ": port is no longer available");
 

@@ -73,6 +73,15 @@ function mqtt:subscribe(topicFilter, qos) end
 function mqtt:publish(topic, payload, qos, retain) end
 
 ---
+---Send MQTT DISCONNECT and close the transport without waiting for an MQTT reply.
+---
+---The port configuration is retained. Open the transport again before sending another CONNECT.
+---A missing port or failed write raises a Lua error; the transport is still closed after a failed write.
+---
+---@return nil
+function mqtt:disconnect() end
+
+---
 ---Consume the next QoS 0 publication without sending an MQTT request.
 ---
 ---Publications queued while waiting for a control reply are returned first, in arrival order.
