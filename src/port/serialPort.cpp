@@ -150,16 +150,16 @@ bool SerialPort::write(const QByteArray &txData, const QString &logFormat, const
     return handleWrite(f_txData);
 }
 
-QByteArray SerialPort::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray SerialPort::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout);
+    return handleRead(length, timeout, peek);
 }
 
-QByteArray SerialPort::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray SerialPort::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout);
+    return handleReadUntil(text, timeout, peek);
 }
 
 // private
@@ -196,7 +196,7 @@ bool SerialPort::handleWrite(const QByteArray &f_txData) {
     return true;
 }
 
-QByteArray SerialPort::handleRead(const int length, const int timeout) {
+QByteArray SerialPort::handleRead(const int length, const int timeout, const bool peek) {
     // check port status
     if (m_serialPort == nullptr || !m_serialPort->isOpen()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -207,10 +207,10 @@ QByteArray SerialPort::handleRead(const int length, const int timeout) {
         if (deadline.hasExpired()) break;
         m_serialPort->waitForReadyRead(10);
     }
-    return m_buffer.read(length);
+    return m_buffer.read(length, peek);
 }
 
-QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout) {
+QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
     // check port status
     if (m_serialPort == nullptr || !m_serialPort->isOpen()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -218,11 +218,11 @@ QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout
     }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
-    QByteArray data = m_buffer.readUntil(text);
+    QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
         if (deadline.hasExpired()) break;
         m_serialPort->waitForReadyRead(10);
-        data = m_buffer.readUntil(text);
+        data = m_buffer.readUntil(text, peek);
     }
     return data;
 }

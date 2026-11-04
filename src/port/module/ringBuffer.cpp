@@ -26,32 +26,16 @@ qsizetype RingBuffer::write(const QByteArray &data) {
     return length;
 }
 
-QByteArray RingBuffer::read(qsizetype length) {
-    QByteArray data;
-    {
-        QMutexLocker locker(&m_mutex);
-        data = readLocked(length);
-        if (!data.isEmpty()) {
-            ++m_readCount;
-            m_readBytes += static_cast<quint64>(data.size());
-        }
-    }
-    return data;
+QByteArray RingBuffer::read(const qsizetype length, const bool peek) {
+    QMutexLocker locker(&m_mutex);
+    return readLocked(length, peek);
 }
 
-QByteArray RingBuffer::readUntil(const QByteArray &text) {
-    QByteArray data;
-    {
-        QMutexLocker locker(&m_mutex);
-        const qsizetype length = distanceLocked(text);
-        if (length < 0) return {};
-        data = readLocked(length);
-        if (!data.isEmpty()) {
-            ++m_readCount;
-            m_readBytes += static_cast<quint64>(data.size());
-        }
-    }
-    return data;
+QByteArray RingBuffer::readUntil(const QByteArray &text, const bool peek) {
+    QMutexLocker locker(&m_mutex);
+    const qsizetype length = distanceLocked(text);
+    if (length < 0) return {};
+    return readLocked(length, peek);
 }
 
 qsizetype RingBuffer::used() {
@@ -86,7 +70,7 @@ void RingBuffer::clear() {
 }
 
 // private
-QByteArray RingBuffer::readLocked(qsizetype length) {
+QByteArray RingBuffer::readLocked(qsizetype length, const bool peek) {
     if (length < 0 || length > m_used) return {};
     if (length == 0) length = m_used;
     if (length == 0 || m_capacity == 0) return {};
@@ -97,8 +81,12 @@ QByteArray RingBuffer::readLocked(qsizetype length) {
     if (firstChunk > 0) data.append(m_buffer.constData() + m_readPos, firstChunk);
     if (secondChunk > 0) data.append(m_buffer.constData(), secondChunk);
 
-    m_readPos = (m_readPos + length) % m_capacity;
-    m_used -= length;
+    if (!peek) {
+        m_readPos = (m_readPos + length) % m_capacity;
+        m_used -= length;
+        ++m_readCount;
+        m_readBytes += static_cast<quint64>(length);
+    }
     return data;
 }
 

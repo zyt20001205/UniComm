@@ -208,6 +208,28 @@ function port:write(data, peerIp) end
 function port:read(length, timeout, peerIp) end
 
 ---
+---Peeks at data in this port's receive buffer without consuming it.
+---
+---A positive `length` waits for exactly that many bytes. If the timeout expires
+---first, an empty string is returned and the buffered data is preserved. A zero
+---or omitted `length` immediately returns all currently buffered data and never
+---waits. The returned string preserves all bytes, including null bytes.
+---
+---TCP, SSL, and WebSocket servers select one unspecified connected peer when
+---`peerIp` is omitted. Use the same explicit `peerIp` for a peek and its later
+---read. Other byte-buffered port types ignore `peerIp`. Vision ports do not
+---support peeking and raise a Lua error.
+---
+---Peeking does not reserve data for a later read. Avoid independent consumers
+---on the same connection. Reading statistics are not increased by peeking.
+---
+---@param length? integer (default: 0) Number of bytes to peek at.
+---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
+---@param peerIp? string Server peer identifier in `address:port` form.
+---@return string data
+function port:peek(length, timeout, peerIp) end
+
+---
 ---Reads through the first occurrence of a delimiter.
 ---
 ---The returned data includes the delimiter. If the delimiter is not found before
@@ -221,3 +243,25 @@ function port:read(length, timeout, peerIp) end
 ---@param peerIp? string Server peer identifier in `address:port` form.
 ---@return string data
 function port:readUntil(text, timeout, peerIp) end
+
+---
+---Peeks through the first occurrence of a delimiter without consuming data.
+---
+---The returned string includes the delimiter and preserves all bytes, including
+---null bytes. If the delimiter is not found before the timeout expires, an empty
+---string is returned and the buffered data is preserved. An empty delimiter
+---returns an empty string immediately.
+---
+---TCP, SSL, and WebSocket servers select one unspecified connected peer when
+---`peerIp` is omitted. Use the same explicit `peerIp` for a peek and its later
+---read. Other byte-buffered port types ignore `peerIp`. Vision ports do not
+---support peeking and raise a Lua error.
+---
+---Peeking does not reserve data for a later read or increase reading statistics.
+---Avoid independent consumers on the same connection.
+---
+---@param text? string (default: "\r\n") Delimiter to peek through.
+---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
+---@param peerIp? string Server peer identifier in `address:port` form.
+---@return string data
+function port:peekUntil(text, timeout, peerIp) end

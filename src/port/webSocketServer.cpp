@@ -150,30 +150,30 @@ bool WebSocketServer::write(const QByteArray &txData, const QString &peerIp, con
     return handleWrite(f_txData, peerIp);
 }
 
-QByteArray WebSocketServer::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray WebSocketServer::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (m_peerHash.isEmpty()) return {};
-    return handleRead(length, timeout, m_peerHash.keys().first());
+    return handleRead(length, timeout, m_peerHash.keys().first(), peek);
 }
 
-QByteArray WebSocketServer::read(const int length, const int timeout, const QString &peerIp, const QString &logFormat) {
+QByteArray WebSocketServer::read(const int length, const int timeout, const QString &peerIp, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout, peerIp);
+    return handleRead(length, timeout, peerIp, peek);
 }
 
-QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (m_peerHash.isEmpty()) return {};
-    return handleReadUntil(text, timeout, m_peerHash.keys().first());
+    return handleReadUntil(text, timeout, m_peerHash.keys().first(), peek);
 }
 
-QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout, const QString &peerIp, const QString &logFormat) {
+QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout, const QString &peerIp, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout, peerIp);
+    return handleReadUntil(text, timeout, peerIp, peek);
 }
 
 // private
@@ -288,7 +288,7 @@ bool WebSocketServer::handleWrite(const QByteArray &f_txData, const QString &pee
     return true;
 }
 
-QByteArray WebSocketServer::handleRead(const int length, const int timeout, const QString &peerIp) {
+QByteArray WebSocketServer::handleRead(const int length, const int timeout, const QString &peerIp, const bool peek) {
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
@@ -307,10 +307,10 @@ QByteArray WebSocketServer::handleRead(const int length, const int timeout, cons
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};
     }
-    return buffer->read(length);
+    return buffer->read(length, peek);
 }
 
-QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp) {
+QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp, const bool peek) {
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
@@ -323,14 +323,14 @@ QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int ti
         return {};
     }
     const QDeadlineTimer deadline(timeout);
-    QByteArray data = buffer->readUntil(text);
+    QByteArray data = buffer->readUntil(text, peek);
     while (data.isEmpty()) {
         if (deadline.hasExpired()) break;
         waitForMessage(peer);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};
-        data = buffer->readUntil(text);
+        data = buffer->readUntil(text, peek);
     }
     return data;
 }

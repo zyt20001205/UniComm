@@ -183,16 +183,16 @@ bool WebSocketClient::write(const QByteArray &txData, const QString &logFormat, 
     return handleWrite(f_txData);
 }
 
-QByteArray WebSocketClient::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray WebSocketClient::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout);
+    return handleRead(length, timeout, peek);
 }
 
-QByteArray WebSocketClient::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray WebSocketClient::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout);
+    return handleReadUntil(text, timeout, peek);
 }
 
 // private
@@ -243,7 +243,7 @@ bool WebSocketClient::handleWrite(const QByteArray &f_txData) {
     return true;
 }
 
-QByteArray WebSocketClient::handleRead(const int length, const int timeout) {
+QByteArray WebSocketClient::handleRead(const int length, const int timeout, const bool peek) {
     if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
@@ -253,21 +253,21 @@ QByteArray WebSocketClient::handleRead(const int length, const int timeout) {
         if (deadline.hasExpired()) break;
         waitForMessage(m_webSocketClient);
     }
-    return m_buffer.read(length);
+    return m_buffer.read(length, peek);
 }
 
-QByteArray WebSocketClient::handleReadUntil(const QByteArray &text, const int timeout) {
+QByteArray WebSocketClient::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
     if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
-    QByteArray data = m_buffer.readUntil(text);
+    QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
         if (deadline.hasExpired()) break;
         waitForMessage(m_webSocketClient);
-        data = m_buffer.readUntil(text);
+        data = m_buffer.readUntil(text, peek);
     }
     return data;
 }

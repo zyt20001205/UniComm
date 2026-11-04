@@ -18,9 +18,9 @@ public:
 
     [[nodiscard]] qsizetype write(const QByteArray &data);
 
-    [[nodiscard]] QByteArray read(qsizetype length);
+    [[nodiscard]] QByteArray read(qsizetype length, bool peek = false);
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text);
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, bool peek = false);
 
     [[nodiscard]] qsizetype used();
 
@@ -33,7 +33,7 @@ public:
     void clear();
 
 private:
-    [[nodiscard]] QByteArray readLocked(qsizetype length);
+    [[nodiscard]] QByteArray readLocked(qsizetype length, bool peek);
 
     [[nodiscard]] qsizetype distanceLocked(const QByteArray &text) const;
 

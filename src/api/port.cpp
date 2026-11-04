@@ -108,49 +108,41 @@ void Port::write(const std::string &data, const std::string &peerIp) const {
     if (!status) throw sol::error("failed to write port: " + m_portName.toStdString());
 }
 
-sol::object Port::read(const sol::this_state ts, const int length, const int timeout, const std::string &peerIp) const {
+sol::object Port::read(const sol::this_state ts, const int length, const int timeout, const std::string &peerIp, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     sol::state_view lua(ts);
     QByteArray rxData{};
     auto *port = m_port.data();
 
-    if (port->type() == PortType::TcpServer || port->type() == PortType::SslServer || port->type() == PortType::WebSocketServer) {
-        QMetaObject::invokeMethod(port, [&rxData, &port, &length, &timeout, &peerIp] {
-            if (peerIp.empty()) rxData = port->read(length, timeout, "");
-            else rxData = port->read(length, timeout, QString::fromStdString(peerIp), "");
-        }, Qt::BlockingQueuedConnection);
-        return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
-    }
     if (port->type() == PortType::Vision) {
+        if (peek) throw sol::error(m_portName.toStdString() + ": vision ports do not support peek");
         QVariantList results{};
         auto *vision = static_cast<Vision *>(port);
-        QMetaObject::invokeMethod(vision, [&results, &vision, &timeout] {
+        QMetaObject::invokeMethod(vision, [&results, vision, timeout] {
             results = vision->result(timeout);
         }, Qt::BlockingQueuedConnection);
         return uni_cast<sol::object>(ts, results);
     }
-    QMetaObject::invokeMethod(port, [&rxData, &port, &length, &timeout] {
-        rxData = port->read(length, timeout, "");
+    QMetaObject::invokeMethod(port, [&rxData, port, length, timeout, &peerIp, peek] {
+        if (!peerIp.empty() && (port->type() == PortType::TcpServer || port->type() == PortType::SslServer || port->type() == PortType::WebSocketServer))
+            rxData = port->read(length, timeout, QString::fromStdString(peerIp), "", peek);
+        else rxData = port->read(length, timeout, "", peek);
     }, Qt::BlockingQueuedConnection);
     return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
 }
 
-sol::object Port::readUntil(const sol::this_state ts, const std::string &text, const int timeout, const std::string &peerIp) const {
+sol::object Port::readUntil(const sol::this_state ts, const std::string &text, const int timeout, const std::string &peerIp, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     sol::state_view lua(ts);
     QByteArray rxData{};
     auto *port = m_port.data();
+    if (peek && port->type() == PortType::Vision) throw sol::error(m_portName.toStdString() + ": vision ports do not support peekUntil");
     const QByteArray textData(text.data(), static_cast<qsizetype>(text.size()));
 
-    if (port->type() == PortType::TcpServer || port->type() == PortType::SslServer || port->type() == PortType::WebSocketServer) {
-        QMetaObject::invokeMethod(port, [&rxData, &port, &textData, &timeout, &peerIp] {
-            if (peerIp.empty()) rxData = port->readUntil(textData, timeout, "");
-            else rxData = port->readUntil(textData, timeout, QString::fromStdString(peerIp), "");
-        }, Qt::BlockingQueuedConnection);
-        return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
-    }
-    QMetaObject::invokeMethod(port, [&rxData, &port, &textData, &timeout] {
-        rxData = port->readUntil(textData, timeout, "");
+    QMetaObject::invokeMethod(port, [&rxData, port, &textData, timeout, &peerIp, peek] {
+        if (!peerIp.empty() && (port->type() == PortType::TcpServer || port->type() == PortType::SslServer || port->type() == PortType::WebSocketServer))
+            rxData = port->readUntil(textData, timeout, QString::fromStdString(peerIp), "", peek);
+        else rxData = port->readUntil(textData, timeout, "", peek);
     }, Qt::BlockingQueuedConnection);
     return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
 }

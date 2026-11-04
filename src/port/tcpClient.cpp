@@ -160,16 +160,16 @@ bool TcpClient::write(const QByteArray &txData, const QString &logFormat, const 
     return handleWrite(f_txData);
 }
 
-QByteArray TcpClient::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray TcpClient::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout);
+    return handleRead(length, timeout, peek);
 }
 
-QByteArray TcpClient::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray TcpClient::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout);
+    return handleReadUntil(text, timeout, peek);
 }
 
 // private
@@ -222,7 +222,7 @@ bool TcpClient::handleWrite(const QByteArray &f_txData) {
     return true;
 }
 
-QByteArray TcpClient::handleRead(const int length, const int timeout) {
+QByteArray TcpClient::handleRead(const int length, const int timeout, const bool peek) {
     // check port status
     if (m_tcpClient == nullptr || !m_tcpClient->isOpen()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -233,10 +233,10 @@ QByteArray TcpClient::handleRead(const int length, const int timeout) {
         if (deadline.hasExpired()) break;
         m_tcpClient->waitForReadyRead(10);
     }
-    return m_buffer.read(length);
+    return m_buffer.read(length, peek);
 }
 
-QByteArray TcpClient::handleReadUntil(const QByteArray &text, const int timeout) {
+QByteArray TcpClient::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
     // check port status
     if (m_tcpClient == nullptr || !m_tcpClient->isOpen()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -244,11 +244,11 @@ QByteArray TcpClient::handleReadUntil(const QByteArray &text, const int timeout)
     }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
-    QByteArray data = m_buffer.readUntil(text);
+    QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
         if (deadline.hasExpired()) break;
         m_tcpClient->waitForReadyRead(10);
-        data = m_buffer.readUntil(text);
+        data = m_buffer.readUntil(text, peek);
     }
     return data;
 }

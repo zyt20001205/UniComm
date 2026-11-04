@@ -96,13 +96,13 @@ bool Visa::write(const QByteArray &txData, const QString &logFormat, const QStri
     return handleWrite(f_txData);
 }
 
-QByteArray Visa::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray Visa::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     return handleRead(length, timeout);
 }
 
-QByteArray Visa::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray Visa::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     return handleReadUntil(text, timeout);

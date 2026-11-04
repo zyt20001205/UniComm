@@ -34,9 +34,9 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat) override;
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat) override;
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) override;
 
 signals:
     void connected();
@@ -54,9 +54,9 @@ private:
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData);
 
-    [[nodiscard]] QByteArray handleRead(int length, int timeout);
+    [[nodiscard]] QByteArray handleRead(int length, int timeout, bool peek);
 
-    [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout);
+    [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
     void handleUpdate();
 

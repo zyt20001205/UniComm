@@ -88,30 +88,51 @@ print(port:info())
 port:open()
 port:clear()
 
--- readUntil includes the delimiter in the returned data.
+-- peekUntil includes the delimiter but leaves the complete line buffered.
 local line = "Hello from UniComm\r\n"
 port:write(line)
-print(port:readUntil("\r\n", timeout))
+local preview = port:peekUntil("\r\n", timeout)
+assert(preview == line, "echo line was not received")
+assert(port:peekUntil() == preview, "peekUntil must not consume the line")
 
--- read with a positive length waits for exactly that many bytes.
+-- readUntil consumes that same line, including its delimiter.
+local receivedLine = port:readUntil("\r\n", timeout)
+assert(receivedLine == preview, "peekUntil changed the buffered line")
+print(receivedLine)
+
+-- peek and read both wait for exactly the requested number of bytes.
+-- Only read consumes them. This request also contains null bytes.
 local request = string.fromHex("01 03 00 00 00 01")
 port:write(request)
+assert(port:peek(#request, timeout) == request, "echo bytes were not received")
+assert(port:peek() == request, "peek must not consume the bytes")
 local response = port:read(#request, timeout)
 ---@cast response string
+assert(response == request, "peek changed the buffered bytes")
 print(string.toHex(response, " "))
 
+-- Incomplete data stays buffered after an unsuccessful nonblocking peek.
+local partial = "partial"
+port:write(partial)
+assert(port:peek(#partial, timeout) == partial, "partial echo was not received")
+assert(port:peek(#partial + 1) == "", "an incomplete fixed-length peek must return empty")
+assert(port:peekUntil("\r\n") == "", "a missing delimiter must return empty")
+assert(port:read(#partial, timeout) == partial, "unsuccessful peeks must preserve data")
+
+-- port:peek() immediately copies all currently buffered bytes without consuming.
 -- port:read() immediately drains all bytes currently in the receive buffer.
 
 -- TCP, SSL, and WebSocket servers identify a peer as "address:port".
 -- Build the identifier from peerAddress and peerPort returned by port:info().
--- Omitting peerIp from port:write broadcasts; omitting it from port:read selects
--- one unspecified connected peer.
+-- Omitting peerIp from port:write broadcasts; omitting it from read/peek selects
+-- one unspecified connected peer. Keep peerIp explicit when pairing peek/read.
 -- local server = Port.get("Server")
 -- local information = server:info()
 -- local peer = information.peer1
 -- local peerIp = peer.peerAddress .. ":" .. peer.peerPort
 -- server:write("Hello", peerIp)
--- local data = server:read(0, 0, peerIp)
+-- local preview = server:peek(5, timeout, peerIp)
+-- local data = server:read(5, timeout, peerIp)
 
 port:close()
 

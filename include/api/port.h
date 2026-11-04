@@ -35,9 +35,9 @@ public:
 
     void write(const std::string &data, const std::string &peerIp) const;
 
-    [[nodiscard]] sol::object read(sol::this_state ts, int length, int timeout, const std::string &peerIp) const;
+    [[nodiscard]] sol::object read(sol::this_state ts, int length, int timeout, const std::string &peerIp, bool peek = false) const;
 
-    [[nodiscard]] sol::object readUntil(sol::this_state ts, const std::string &text, int timeout, const std::string &peerIp) const;
+    [[nodiscard]] sol::object readUntil(sol::this_state ts, const std::string &text, int timeout, const std::string &peerIp, bool peek = false) const;
 
 private:
     QString m_portName{};

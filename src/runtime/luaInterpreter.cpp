@@ -278,11 +278,18 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "clear", &Port::clear,
             "write", [](const Port &port, const std::string &data, const sol::optional<std::string> &peerIp) { port.write(data, peerIp.value_or("")); },
             "read", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
-                return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""));
+                return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), false);
+            },
+            "peek", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
+                return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), true);
             },
             "readUntil", [](const Port &port, const sol::this_state ts, const sol::optional<std::string> &text, const sol::optional<int> timeout,
                             const sol::optional<std::string> &peerIp) {
-                return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""));
+                return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), false);
+            },
+            "peekUntil", [](const Port &port, const sol::this_state ts, const sol::optional<std::string> &text, const sol::optional<int> timeout,
+                            const sol::optional<std::string> &peerIp) {
+                return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), true);
             }
         );
         auto port = m_lua.create_table();

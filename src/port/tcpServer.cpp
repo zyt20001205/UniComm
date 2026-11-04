@@ -136,30 +136,30 @@ bool TcpServer::write(const QByteArray &txData, const QString &peerIp, const QSt
     return handleWrite(f_txData, peerIp);
 }
 
-QByteArray TcpServer::read(const int length, const int timeout, const QString &logFormat) {
+QByteArray TcpServer::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (m_peerHash.isEmpty()) return {};
-    return handleRead(length, timeout, m_peerHash.keys().first());
+    return handleRead(length, timeout, m_peerHash.keys().first(), peek);
 }
 
-QByteArray TcpServer::read(const int length, const int timeout, const QString &peerIp, const QString &logFormat) {
+QByteArray TcpServer::read(const int length, const int timeout, const QString &peerIp, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout, peerIp);
+    return handleRead(length, timeout, peerIp, peek);
 }
 
-QByteArray TcpServer::readUntil(const QByteArray &text, const int timeout, const QString &logFormat) {
+QByteArray TcpServer::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (m_peerHash.isEmpty()) return {};
-    return handleReadUntil(text, timeout, m_peerHash.keys().first());
+    return handleReadUntil(text, timeout, m_peerHash.keys().first(), peek);
 }
 
-QByteArray TcpServer::readUntil(const QByteArray &text, const int timeout, const QString &peerIp, const QString &logFormat) {
+QByteArray TcpServer::readUntil(const QByteArray &text, const int timeout, const QString &peerIp, const QString &logFormat, const bool peek) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout, peerIp);
+    return handleReadUntil(text, timeout, peerIp, peek);
 }
 
 // private
@@ -248,7 +248,7 @@ bool TcpServer::handleWrite(const QByteArray &f_txData, const QString &peerIp) {
     return true;
 }
 
-QByteArray TcpServer::handleRead(const int length, const int timeout, const QString &peerIp) {
+QByteArray TcpServer::handleRead(const int length, const int timeout, const QString &peerIp, const bool peek) {
     // check port status
     if (m_tcpServer == nullptr || !m_tcpServer->isListening()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -268,10 +268,10 @@ QByteArray TcpServer::handleRead(const int length, const int timeout, const QStr
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};
     }
-    return buffer->read(length);
+    return buffer->read(length, peek);
 }
 
-QByteArray TcpServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp) {
+QByteArray TcpServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp, const bool peek) {
     // check port status
     if (m_tcpServer == nullptr || !m_tcpServer->isListening()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
@@ -285,14 +285,14 @@ QByteArray TcpServer::handleReadUntil(const QByteArray &text, const int timeout,
         return {};
     }
     const QDeadlineTimer deadline(timeout);
-    QByteArray data = buffer->readUntil(text);
+    QByteArray data = buffer->readUntil(text, peek);
     while (data.isEmpty()) {
         if (deadline.hasExpired()) break;
         peer->waitForReadyRead(10);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};
-        data = buffer->readUntil(text);
+        data = buffer->readUntil(text, peek);
     }
     return data;
 }

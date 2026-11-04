@@ -34,19 +34,19 @@ public:
         return false;
     }
 
-    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &logFormat) {
+    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) {
         return {};
     }
 
-    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat) {
+    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) {
         return {};
     }
 
-    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat) {
+    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) {
         return {};
     }
 
-    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat) {
+    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) {
         return {};
     }
 

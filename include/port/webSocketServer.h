@@ -37,13 +37,13 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat) override;
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat) override;
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat) override;
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat) override;
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) override;
 
 signals:
     void connected(const QString &peerIp);
@@ -69,9 +69,9 @@ private:
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, const QString &peerIp = QString());
 
-    [[nodiscard]] QByteArray handleRead(int length, int timeout, const QString &peerIp);
+    [[nodiscard]] QByteArray handleRead(int length, int timeout, const QString &peerIp, bool peek);
 
-    [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, const QString &peerIp);
+    [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, const QString &peerIp, bool peek);
 
     void handleLog(int type, const QByteArray &data, const QWebSocket *webSocketServerPeer);
 
