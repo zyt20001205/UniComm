@@ -84,6 +84,8 @@ bool TcpClient::open() {
     }
     if (m_tcpClient->state() != QAbstractSocket::UnconnectedState) return true;
     // port open
+    m_buffer.clear();
+    m_buffer.resetStatistics();
     m_tcpClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     m_tcpClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
     emit appendLog(LogLevel::Info,
@@ -94,8 +96,6 @@ bool TcpClient::open() {
         handleError();
         return false;
     }
-    m_buffer.clear();
-    m_buffer.resetStatistics();
     m_activeTimer.start();
     const QVariantHash session{
         {"active", true},
@@ -183,7 +183,6 @@ void TcpClient::handleConnected() {
 
 void TcpClient::handleDisconnected() {
     if (m_monitorTimer) m_monitorTimer->stop();
-    clear();
     const QVariantHash session{{"active", false}};
     emit refreshPort(m_portConfig["portName"].toString(), session);
     emit appendLog(LogLevel::Info,
@@ -201,7 +200,7 @@ void TcpClient::handleReadyRead() {
 }
 
 void TcpClient::handleError() {
-    if (m_tcpClient->error() == QAbstractSocket::SocketTimeoutError) return;
+    if (m_tcpClient->error() == QAbstractSocket::SocketTimeoutError || m_tcpClient->error() == QAbstractSocket::RemoteHostClosedError) return;
     if (m_tcpClient->isOpen()) {
         m_tcpClient->close();
     }
@@ -223,30 +222,20 @@ bool TcpClient::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray TcpClient::handleRead(const int length, const int timeout, const bool peek) {
-    // check port status
-    if (m_tcpClient == nullptr || !m_tcpClient->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
-        if (deadline.hasExpired()) break;
+        if (m_tcpClient == nullptr || m_tcpClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         m_tcpClient->waitForReadyRead(10);
     }
     return m_buffer.read(length, peek);
 }
 
 QByteArray TcpClient::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    // check port status
-    if (m_tcpClient == nullptr || !m_tcpClient->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (m_tcpClient == nullptr || m_tcpClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         m_tcpClient->waitForReadyRead(10);
         data = m_buffer.readUntil(text, peek);
     }

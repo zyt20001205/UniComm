@@ -63,13 +63,13 @@ bool UdpSocket::open() {
     }
     if (m_udpSocket->state() != QAbstractSocket::UnconnectedState) return true;
     // open port
+    m_buffer.clear();
+    m_buffer.resetStatistics();
     if (!m_udpSocket->bind(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_udpSocket->errorString()));
         return false;
     }
     m_udpSocket->connectToHost(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
-    m_buffer.clear();
-    m_buffer.resetStatistics();
     m_activeTimer.start();
     const QVariantHash session{
         {"active", true},
@@ -94,8 +94,6 @@ void UdpSocket::close() {
         m_udpSocket->close();
     }
     if (m_monitorTimer) m_monitorTimer->stop();
-    // port close
-    clear();
     const QVariantHash session{{"active", false}};
     emit refreshPort(m_portConfig["portName"].toString(), session);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
@@ -172,30 +170,20 @@ bool UdpSocket::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray UdpSocket::handleRead(const int length, const int timeout, const bool peek) {
-    // check port status
-    if (m_udpSocket == nullptr || !m_udpSocket->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
-        if (deadline.hasExpired()) break;
+        if (m_udpSocket == nullptr || !m_udpSocket->isOpen() || deadline.hasExpired()) break;
         m_udpSocket->waitForReadyRead(10);
     }
     return m_buffer.read(length, peek);
 }
 
 QByteArray UdpSocket::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    // check port status
-    if (m_udpSocket == nullptr || !m_udpSocket->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (m_udpSocket == nullptr || !m_udpSocket->isOpen() || deadline.hasExpired()) break;
         m_udpSocket->waitForReadyRead(10);
         data = m_buffer.readUntil(text, peek);
     }

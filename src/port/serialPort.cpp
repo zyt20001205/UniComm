@@ -88,14 +88,14 @@ bool SerialPort::open() {
     }
     if (m_serialPort->isOpen()) return true;
     // port open
+    m_buffer.clear();
+    m_buffer.resetStatistics();
     m_serialPort->setPortName(m_portConfig["portName"].toString());
     m_serialPort->setBaudRate(m_portConfig["baudRate"].toInt());
     m_serialPort->setDataBits(static_cast<QSerialPort::DataBits>(m_portConfig["dataBits"].toInt()));
     m_serialPort->setParity(static_cast<QSerialPort::Parity>(m_portConfig["parity"].toInt()));
     m_serialPort->setStopBits(static_cast<QSerialPort::StopBits>(m_portConfig["stopBits"].toInt()));
     if (m_serialPort->open(QSerialPort::ReadWrite)) {
-        m_buffer.clear();
-        m_buffer.resetStatistics();
         m_activeTimer.start();
         const auto &session = QVariantHash{
             {"active", true},
@@ -116,7 +116,6 @@ void SerialPort::close() {
     // port close
     m_serialPort->close();
     if (m_monitorTimer) m_monitorTimer->stop();
-    clear();
     const auto &session = QVariantHash{
         {"active", false}
     };
@@ -197,30 +196,20 @@ bool SerialPort::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray SerialPort::handleRead(const int length, const int timeout, const bool peek) {
-    // check port status
-    if (m_serialPort == nullptr || !m_serialPort->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
-        if (deadline.hasExpired()) break;
+        if (m_serialPort == nullptr || !m_serialPort->isOpen() || deadline.hasExpired()) break;
         m_serialPort->waitForReadyRead(10);
     }
     return m_buffer.read(length, peek);
 }
 
 QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    // check port status
-    if (m_serialPort == nullptr || !m_serialPort->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (m_serialPort == nullptr || !m_serialPort->isOpen() || deadline.hasExpired()) break;
         m_serialPort->waitForReadyRead(10);
         data = m_buffer.readUntil(text, peek);
     }

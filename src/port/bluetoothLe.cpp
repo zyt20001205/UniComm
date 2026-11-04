@@ -151,7 +151,6 @@ void BluetoothLe::close() {
     }
     m_subscribed = false;
     if (m_monitorTimer) m_monitorTimer->stop();
-    clear();
     emit refreshPort(m_portConfig["portName"].toString(), QVariantHash{{"active", false}});
     if (connected) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
 }
@@ -205,7 +204,6 @@ bool BluetoothLe::connectedGet() {
 void BluetoothLe::handleDisconnected() {
     if (m_monitorTimer) m_monitorTimer->stop();
     m_subscribed = false;
-    clear();
     emit refreshPort(m_portConfig["portName"].toString(), QVariantHash{{"active", false}});
     emit disconnected();
     if (!m_closing) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
@@ -246,10 +244,6 @@ bool BluetoothLe::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray BluetoothLe::handleRead(const int length, const int timeout, const bool peek) {
-    if (!connectedGet()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
         if (deadline.hasExpired() || !connectedGet()) break;
@@ -259,10 +253,6 @@ QByteArray BluetoothLe::handleRead(const int length, const int timeout, const bo
 }
 
 QByteArray BluetoothLe::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    if (!connectedGet()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);

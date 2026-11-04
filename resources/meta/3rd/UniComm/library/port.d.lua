@@ -146,6 +146,10 @@ function port:info() end
 
 ---
 ---Opens or starts this port.
+---
+---Single-buffer byte ports clear old receive data and reset statistics before a
+---fresh open. Calling open again on an already active port does not clear data.
+---
 ---A Vision port waits up to 30 seconds for its first valid frame.
 ---
 ---@return nil
@@ -153,6 +157,11 @@ function port:open() end
 
 ---
 ---Closes or stops this port.
+---
+---Serial, UDP, BLE, TCP/SSL clients and WebSocket clients preserve bytes already
+---held in the receive buffer after closing or disconnecting. These bytes remain
+---readable and peekable until consumed, explicitly cleared, or a fresh open.
+---Server ports keep their existing behavior and discard disconnected peer buffers.
 ---
 ---@return nil
 function port:close() end
@@ -194,6 +203,11 @@ function port:write(data, peerIp) end
 ---if the timeout expires first, an empty string is returned. A zero or omitted
 ---`length` immediately drains all currently buffered data and never waits.
 ---
+---On the single-buffer byte ports described by `close`, cached data remains
+---readable after the transport closes. If the requested length cannot be satisfied,
+---return an empty string immediately without consuming the tail. Use `read(0)`
+---to retrieve a tail shorter than the requested length.
+---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
 ---unspecified connected peer. A Vision port waits for the next captured frame
 ---according to `timeout`, then returns one structured result per configured ROI
@@ -215,6 +229,10 @@ function port:read(length, timeout, peerIp) end
 ---or omitted `length` immediately returns all currently buffered data and never
 ---waits. The returned string preserves all bytes, including null bytes.
 ---
+---On single-buffer byte ports, cached data remains peekable after the transport
+---closes. An incomplete request returns an empty string immediately without
+---waiting or consuming buffered data.
+---
 ---TCP, SSL, and WebSocket servers select one unspecified connected peer when
 ---`peerIp` is omitted. Use the same explicit `peerIp` for a peek and its later
 ---read. Other byte-buffered port types ignore `peerIp`. Vision ports do not
@@ -235,6 +253,10 @@ function port:peek(length, timeout, peerIp) end
 ---The returned data includes the delimiter. If the delimiter is not found before
 ---the timeout expires, an empty string is returned.
 ---
+---On single-buffer byte ports, complete buffered lines remain readable after
+---the transport closes. If no delimiter is buffered, return an empty string
+---immediately without consuming the tail. Use `read(0)` to retrieve that tail.
+---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
 ---unspecified connected peer. Vision ports do not support delimiter reads.
 ---
@@ -251,6 +273,10 @@ function port:readUntil(text, timeout, peerIp) end
 ---null bytes. If the delimiter is not found before the timeout expires, an empty
 ---string is returned and the buffered data is preserved. An empty delimiter
 ---returns an empty string immediately.
+---
+---On single-buffer byte ports, complete buffered lines remain peekable after
+---the transport closes. If no delimiter is buffered, return an empty string
+---immediately without waiting or consuming the tail.
 ---
 ---TCP, SSL, and WebSocket servers select one unspecified connected peer when
 ---`peerIp` is omitted. Use the same explicit `peerIp` for a peek and its later

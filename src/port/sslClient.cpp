@@ -87,6 +87,8 @@ bool SslClient::open() {
     }
     if (m_sslClient->state() != QAbstractSocket::UnconnectedState) return true;
     // open port
+    m_buffer.clear();
+    m_buffer.resetStatistics();
     m_sslClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
     m_sslClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
     emit appendLog(LogLevel::Info,
@@ -97,8 +99,6 @@ bool SslClient::open() {
         handleError();
         return false;
     }
-    m_buffer.clear();
-    m_buffer.resetStatistics();
     m_activeTimer.start();
     const QVariantHash session{
         {"active", true},
@@ -191,7 +191,6 @@ void SslClient::handleEncrypted() {
 
 void SslClient::handleDisconnected() {
     if (m_monitorTimer) m_monitorTimer->stop();
-    clear();
     const QVariantHash session{{"active", false}};
     emit refreshPort(m_portConfig["portName"].toString(), session);
     emit appendLog(LogLevel::Info,
@@ -209,7 +208,7 @@ void SslClient::handleReadyRead() {
 }
 
 void SslClient::handleError() {
-    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError) return;
+    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError || m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) return;
     if (m_sslClient->isOpen()) {
         m_sslClient->close();
     }
@@ -231,30 +230,20 @@ bool SslClient::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray SslClient::handleRead(const int length, const int timeout, const bool peek) {
-    // check port status
-    if (m_sslClient == nullptr || !m_sslClient->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
-        if (deadline.hasExpired()) break;
+        if (m_sslClient == nullptr || m_sslClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         m_sslClient->waitForReadyRead(10);
     }
     return m_buffer.read(length, peek);
 }
 
 QByteArray SslClient::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    // check port status
-    if (m_sslClient == nullptr || !m_sslClient->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (m_sslClient == nullptr || m_sslClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         m_sslClient->waitForReadyRead(10);
         data = m_buffer.readUntil(text, peek);
     }

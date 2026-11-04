@@ -205,7 +205,6 @@ void WebSocketClient::handleConnected() {
 
 void WebSocketClient::handleDisconnected() {
     if (m_monitorTimer) m_monitorTimer->stop();
-    clear();
     const QVariantHash session{{"active", false}};
     emit refreshPort(m_portConfig["portName"].toString(), session);
     emit disconnected();
@@ -244,28 +243,20 @@ bool WebSocketClient::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray WebSocketClient::handleRead(const int length, const int timeout, const bool peek) {
-    if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < length) {
-        if (deadline.hasExpired()) break;
+        if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         waitForMessage(m_webSocketClient);
     }
     return m_buffer.read(length, peek);
 }
 
 QByteArray WebSocketClient::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return {};
-    }
     if (text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         waitForMessage(m_webSocketClient);
         data = m_buffer.readUntil(text, peek);
     }

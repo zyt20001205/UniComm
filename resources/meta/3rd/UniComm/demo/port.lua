@@ -76,7 +76,8 @@
 -- print(results)
 -- vision:close()
 
--- Configure an echo-capable stream port named "Echo" before running this demo.
+-- Configure an echo-capable single-buffer byte port named "Echo" before running:
+-- serial, UDP, BLE, TCP/SSL client, or WebSocket client (not a server port).
 local name = "Echo"
 local timeout = 1000
 local port = Port.get(name)
@@ -134,7 +135,32 @@ assert(port:read(#partial, timeout) == partial, "unsuccessful peeks must preserv
 -- local preview = server:peek(5, timeout, peerIp)
 -- local data = server:read(5, timeout, peerIp)
 
+-- Already buffered data survives close on the six single-buffer port types above.
+-- A repeated open while active must not discard data either.
+local tailLine = "buffered before close\r\n"
+local tail = tailLine .. partial
+port:write(tail)
+assert(port:peek(#tail, timeout) == tail, "tail echo was not received")
+port:open()
+assert(port:peek() == tail, "repeated open must preserve buffered data")
 port:close()
+
+-- Complete cached requests still succeed after close, even with timeout = -1.
+assert(port:peekUntil("\r\n", -1) == tailLine, "closed port must allow peeking at a cached line")
+assert(port:readUntil("\r\n", -1) == tailLine, "closed port must allow reading a cached line")
+
+-- Unsatisfied requests return empty immediately and preserve the remaining tail.
+assert(port:peek(#partial + 1, -1) == "", "closed port must not wait for more bytes")
+assert(port:read(#partial + 1, -1) == "", "closed port must not return a partial fixed-length read")
+assert(port:peekUntil("\r\n", -1) == "", "closed port must not wait for a missing delimiter")
+assert(port:readUntil("\r\n", -1) == "", "closed port must preserve an incomplete line")
+assert(port:peek() == partial, "unsatisfied requests must preserve the tail")
+assert(port:read(0) == partial, "read(0) must drain the closed port's tail")
+assert(port:read(1, -1) == "", "an empty closed port must return immediately")
+assert(port:peek(1, -1) == "", "an empty closed port must not wait when peeking")
+
+-- A fresh open starts a new session and clears any old unread data.
+-- Explicit clear() still discards buffered data without reopening the port.
 
 -- Remove a port created by Lua when it is no longer needed.
 -- Port.remove(name)
