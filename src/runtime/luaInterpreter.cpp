@@ -247,9 +247,16 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "Mqtt",
             sol::no_constructor,
             sol::meta_function::garbage_collect, [](Mqtt *) {
-            }
+            },
+            "connect", &Mqtt::connect,
+            "subscribe", &Mqtt::subscribe
         );
         auto mqtt = m_lua.create_table();
+        auto qos = m_lua.create_table();
+        qos["AtMostOnce"] = Mqtt::QoS::AtMostOnce;
+        qos["AtLeastOnce"] = Mqtt::QoS::AtLeastOnce;
+        qos["ExactlyOnce"] = Mqtt::QoS::ExactlyOnce;
+        mqtt["QoS"] = qos;
         mqtt.set_function("new", [this](const std::string &portName, const sol::optional<int> timeout) {
             auto *obj = new Mqtt(this);
             obj->init(portName, timeout.value_or(30000));
