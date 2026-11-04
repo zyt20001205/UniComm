@@ -1,6 +1,6 @@
 #include "api/imap.h"
 
-#include <QElapsedTimer>
+#include <QDeadlineTimer>
 #include <QRegularExpression>
 #include <limits>
 #include <sol/error.hpp>
@@ -107,8 +107,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
             return "unexpected imap response(" + QString::fromUtf8(tagged->code) + ")";
         }
 
-        QElapsedTimer timer{};
-        timer.start();
+        const QDeadlineTimer deadline(_timeout);
 
         while (true) {
             const auto idleTag = nextTag();
@@ -132,13 +131,12 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
             QString waitException{};
 
             while (sequenceNumber == 0) {
-                const auto remaining = _timeout - static_cast<int>(timer.elapsed());
-                if (remaining <= 0) {
+                if (deadline.hasExpired()) {
                     waitException = "read timeout";
                     break;
                 }
 
-                const auto result = parser(m_port->readUntil("\r\n", remaining, "utf-8"));
+                const auto result = parser(m_port->readUntil("\r\n", static_cast<int>(deadline.remainingTime()), "utf-8"));
                 if (!result.exception.isEmpty()) {
                     waitException = result.exception;
                     break;
@@ -181,12 +179,9 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
             const auto fetchTag = nextTag();
             if (!m_port->write(fetchTag + " FETCH " + QByteArray::number(sequenceNumber) + " BODY.PEEK[]", "utf-8", "crlf")) return "write failed";
             QByteArray rxData{};
-            QElapsedTimer fetchTimer{};
-            fetchTimer.start();
+            const QDeadlineTimer fetchDeadline(m_timeout);
             while (true) {
-                if (m_timeout >= 0 && fetchTimer.elapsed() > m_timeout) return "read timeout";
-                const auto headerTimeout = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - fetchTimer.elapsed()));
-                const auto header = m_port->readUntil("\r\n", headerTimeout, "utf-8", true);
+                const auto header = m_port->readUntil("\r\n", static_cast<int>(fetchDeadline.remainingTime()), "utf-8", true);
                 const auto result = parser(header);
                 if (!result.exception.isEmpty()) return result.exception;
 
@@ -213,9 +208,8 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
 
                 const auto length = header.size() + qMax(0, size);
                 if (length > std::numeric_limits<int>::max()) return "imap fetch response too large";
-                const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - fetchTimer.elapsed()));
-                rxData = m_port->read(static_cast<int>(length), remaining, "utf-8");
-                if (rxData.size() != length) return "read timeout";
+                rxData = m_port->read(static_cast<int>(length), static_cast<int>(fetchDeadline.remainingTime()), "utf-8");
+                if (rxData.isEmpty()) return "read timeout";
                 if (size >= 0) {
                     rxData.remove(0, header.size());
                     break;
@@ -226,6 +220,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
                     if (tagged->code != "OK" && !tagged->text.isEmpty()) return QString::fromUtf8(tagged->text);
                     return "invalid imap fetch response";
                 }
+                if (fetchDeadline.hasExpired()) return "read timeout";
             }
 
             if (m_port->readUntil("\r\n", m_timeout, "utf-8").isEmpty()) return "read timeout";

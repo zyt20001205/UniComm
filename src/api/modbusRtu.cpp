@@ -1,6 +1,6 @@
 #include "api/modbusRtu.h"
 
-#include <QElapsedTimer>
+#include <QDeadlineTimer>
 #include <sol/error.hpp>
 #include <sol/state_view.hpp>
 
@@ -230,10 +230,9 @@ std::string ModbusRtu::readRegisters(const int funcCode, const int startAddr, co
 }
 
 ModbusRtu::Result ModbusRtu::response(const int funcCode) const {
-    QElapsedTimer timer{};
-    timer.start();
-    const auto header = m_port->read(2, m_timeout, "hex", true);
-    if (header.size() != 2) return {.data = {}, .exception = "read timeout"};
+    const QDeadlineTimer deadline(m_timeout);
+    const auto header = m_port->read(2, static_cast<int>(deadline.remainingTime()), "hex", true);
+    if (header.isEmpty()) return {.data = {}, .exception = "read timeout"};
 
     const auto rxFuncCode = static_cast<quint8>(header.at(1));
     int length{};
@@ -244,9 +243,8 @@ ModbusRtu::Result ModbusRtu::response(const int funcCode) const {
             case FuncCode::ReadDiscreteInputs:
             case FuncCode::ReadHoldingRegisters:
             case FuncCode::ReadInputRegisters: {
-                const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-                const auto data = m_port->read(3, remaining, "hex", true);
-                if (data.size() != 3) return {.data = {}, .exception = "read timeout"};
+                const auto data = m_port->read(3, static_cast<int>(deadline.remainingTime()), "hex", true);
+                if (data.isEmpty()) return {.data = {}, .exception = "read timeout"};
                 length = static_cast<quint8>(data.at(2)) + 5;
                 break;
             }
@@ -262,8 +260,7 @@ ModbusRtu::Result ModbusRtu::response(const int funcCode) const {
     }
 
     if (length > 256) return {.data = {}, .exception = "invalid modbus rtu length"};
-    const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-    return parser(funcCode, m_port->read(length, remaining, "hex"));
+    return parser(funcCode, m_port->read(length, static_cast<int>(deadline.remainingTime()), "hex"));
 }
 
 ModbusRtu::Result ModbusRtu::parser(const int funcCode, const QByteArray &rxData) const {

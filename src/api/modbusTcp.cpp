@@ -1,6 +1,6 @@
 #include "api/modbusTcp.h"
 
-#include <QElapsedTimer>
+#include <QDeadlineTimer>
 #include <sol/error.hpp>
 #include <sol/state_view.hpp>
 
@@ -278,17 +278,15 @@ std::string ModbusTcp::readRegisters(const int funcCode, const int startAddr, co
 }
 
 ModbusTcp::Result ModbusTcp::response(const int funcCode) const {
-    QElapsedTimer timer{};
-    timer.start();
+    const QDeadlineTimer deadline(m_timeout);
     constexpr int prefixSize = 6;
-    const auto header = m_port->read(prefixSize, m_timeout, "hex", true);
-    if (header.size() != prefixSize) return {.data = {}, .exception = "read timeout"};
+    const auto header = m_port->read(prefixSize, static_cast<int>(deadline.remainingTime()), "hex", true);
+    if (header.isEmpty()) return {.data = {}, .exception = "read timeout"};
 
     // Length includes the Unit Identifier and PDU, but not the first six bytes.
     const int length = static_cast<quint8>(header.at(4)) << 8 | static_cast<quint8>(header.at(5));
     if (length < 2 || length > 254) return {.data = {}, .exception = "invalid modbus tcp length"};
-    const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-    return parser(funcCode, m_port->read(prefixSize + length, remaining, "hex"));
+    return parser(funcCode, m_port->read(prefixSize + length, static_cast<int>(deadline.remainingTime()), "hex"));
 }
 
 ModbusTcp::Result ModbusTcp::parser(const int funcCode, const QByteArray &rxData) const {
