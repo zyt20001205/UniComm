@@ -2,8 +2,11 @@
 
 #include <QDeadlineTimer>
 #include <QList>
+#include <QSslSocket>
 #include <QTcpSocket>
 #include <sol/error.hpp>
+
+#include <memory>
 
 #include "globals.h"
 #include "port/basePort.h"
@@ -19,7 +22,7 @@ void Ftp::init(const std::string &portName, const int timeout) {
     const auto name = QString::fromStdString(portName);
     const auto port = g_port->m_portHash.constFind(name);
     if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
-    if (port.value()->type() != PortType::TcpClient) throw sol::error(portName + " is not a TCP client");
+    if (port.value()->type() != PortType::TcpClient && port.value()->type() != PortType::SslClient) throw sol::error(portName + " is not a TCP or SSL client");
 
     m_portName = portName;
     m_timeout = timeout;
@@ -520,9 +523,11 @@ Ftp::DataResult Ftp::dataTransfer(const QByteArray &command, const QByteArray *d
         if (port == 0) return {.exception = "invalid PASV response"};
     }
 
-    QTcpSocket socket;
-    socket.connectToHost(host, port);
-    if (!socket.waitForConnected(m_timeout)) return {.exception = "data connection failed: " + socket.errorString()};
+    std::unique_ptr<QTcpSocket> socket;
+    if (m_port->type() == PortType::SslClient) socket = std::make_unique<QSslSocket>();
+    else socket = std::make_unique<QTcpSocket>();
+    socket->connectToHost(host, port);
+    if (!socket->waitForConnected(m_timeout)) return {.exception = "data connection failed: " + socket->errorString()};
 
     if (!m_port->write(command, "utf-8", "crlf")) return {.exception = "write failed"};
 
@@ -530,34 +535,41 @@ Ftp::DataResult Ftp::dataTransfer(const QByteArray &command, const QByteArray *d
     if (!result.exception.isEmpty()) return {.exception = result.exception};
     if (result.code != StatusCode::DataConnectionAlreadyOpen && result.code != StatusCode::FileStatusOkay) return {.exception = "unexpected ftp response(" + QString::number(result.code) + ")"};
 
+    if (auto *sslSocket = qobject_cast<QSslSocket *>(socket.get())) {
+        // Match SslClient's current test-only certificate policy.
+        sslSocket->setPeerVerifyMode(QSslSocket::VerifyNone);
+        sslSocket->startClientEncryption();
+        if (!sslSocket->waitForEncrypted(m_timeout)) return {.exception = "data TLS handshake failed: " + sslSocket->errorString()};
+    }
+
     if (data) {
         qsizetype written{};
         while (written < data->size()) {
-            const auto length = socket.write(data->constData() + written, data->size() - written);
-            if (length <= 0) return {.exception = "data write failed: " + socket.errorString()};
+            const auto length = socket->write(data->constData() + written, data->size() - written);
+            if (length <= 0) return {.exception = "data write failed: " + socket->errorString()};
             written += length;
 
-            while (socket.bytesToWrite() > 0) {
-                if (!socket.waitForBytesWritten(m_timeout)) return {.exception = "data write failed: " + socket.errorString()};
+            while (socket->bytesToWrite() > 0) {
+                if (!socket->waitForBytesWritten(m_timeout)) return {.exception = "data write failed: " + socket->errorString()};
             }
         }
 
-        socket.disconnectFromHost();
-        if (socket.state() != QAbstractSocket::UnconnectedState && !socket.waitForDisconnected(m_timeout)) {
-            socket.abort();
+        socket->disconnectFromHost();
+        if (socket->state() != QAbstractSocket::UnconnectedState && !socket->waitForDisconnected(m_timeout)) {
+            socket->abort();
             return {.exception = "data disconnect timeout"};
         }
     } else {
         const QDeadlineTimer deadline(m_timeout);
-        while (socket.state() != QAbstractSocket::UnconnectedState) {
+        while (socket->state() != QAbstractSocket::UnconnectedState) {
             if (deadline.hasExpired()) {
-                socket.abort();
+                socket->abort();
                 return {.exception = "data read timeout"};
             }
-            socket.waitForReadyRead(10);
-            rxData += socket.readAll();
+            socket->waitForReadyRead(10);
+            rxData += socket->readAll();
         }
-        rxData += socket.readAll();
+        rxData += socket->readAll();
     }
 
     result = ctrlResponse();

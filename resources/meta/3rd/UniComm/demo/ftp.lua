@@ -1,4 +1,6 @@
 -- Configure a TCP client port named "FTP" and use an account with write permission.
+-- SSL client ports are also accepted for implicit TLS; temporary data sockets
+-- follow the control port type. PBSZ/PROT negotiation is not sent automatically.
 local ftp = Ftp.new("FTP", 30000)
 
 ftp:login("anonymous", "anonymous@example.com")

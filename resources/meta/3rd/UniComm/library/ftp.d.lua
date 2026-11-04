@@ -8,7 +8,10 @@ Ftp = {}
 ---
 ---[FTP demo](../demo/ftp.lua)
 ---
----@param name portName Target TCP client port name.
+---SSL client ports establish implicit TLS before the server greeting. Temporary data sockets follow the port type.
+---Data-channel protection negotiation (`PBSZ` / `PROT`) is not performed automatically.
+---
+---@param name portName Target TCP or SSL client port name.
 ---@param timeout? integer (default: 30000) Timeout in **milliseconds** for blocking FTP operations.
 ---@return ftp
 function Ftp.new(name, timeout) end
