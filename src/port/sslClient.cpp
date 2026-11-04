@@ -208,7 +208,11 @@ void SslClient::handleReadyRead() {
 }
 
 void SslClient::handleError() {
-    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError || m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) return;
+    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError) return;
+    if (m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) {
+        m_sslClient->disconnectFromHost();
+        return;
+    }
     if (m_sslClient->isOpen()) {
         m_sslClient->close();
     }

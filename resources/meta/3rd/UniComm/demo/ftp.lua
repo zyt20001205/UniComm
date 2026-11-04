@@ -17,17 +17,29 @@ ftp:cd(directory)
 
 -- Transfer commands open a temporary passive data connection automatically.
 -- EPSV is preferred and PASV is used as the fallback.
+-- If completion cannot be confirmed, the control connection is closed; reconnect before retrying.
+-- A transfer's final control reply is checked before returning, even on data errors.
 ftp:upload("hello.txt", "Hello from UniComm FTP!\n")
-print("hello.txt exists", ftp:exists("hello.txt"))
 
--- stat() returns one FileInfo through MLST on the control connection.
-local entry = ftp:stat("hello.txt")
-print(entry.name, entry.type, entry.size, entry.modified)
+-- exists() tries SIZE if MLST is rejected with 500/502; SIZE 213 confirms a file.
+-- SIZE 550 returns false; other errors still raise. No directory fallback is provided.
+-- print("hello.txt exists", ftp:exists("hello.txt"))
+-- print("missing file exists", ftp:exists("missing-" .. directory .. ".txt"))
 
--- list() returns multiple FileInfo values through MLSD on a data connection.
+-- stat() still requires MLST support; skip this example when MLST is unsupported.
+-- local entry = ftp:stat("hello.txt")
+-- print(entry.name, entry.type, entry.size, entry.modified)
+
+-- list() prefers MLSD and returns FileInfo entries when it succeeds.
+-- If MLSD is rejected with 500/502, LIST is retried and returns raw string lines.
+-- A raw line is not a filename: permissions, sizes, dates and spaces stay intact.
 local entries = ftp:list()
 for _, item in ipairs(entries) do
-    print(item.name, item.type, item.size, item.modified)
+    if type(item) == "string" then
+        print(item)
+    else
+        print(item.name, item.type, item.size, item.modified)
+    end
 end
 
 -- download() returns a binary Lua string; standard Lua io controls local persistence.

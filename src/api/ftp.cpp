@@ -143,10 +143,17 @@ void Ftp::cd(const std::string &path) const {
 sol::table Ftp::list(const sol::this_state ts, const sol::optional<std::string> &path) const {
     if (m_port.isNull()) throw sol::error(m_portName + ": port is no longer available");
     DataResult result{};
+    bool raw{};
     const auto _path = QByteArray::fromStdString(path.value_or(""));
 
-    QMetaObject::invokeMethod(m_port, [&result, this, &_path]() {
+    QMetaObject::invokeMethod(m_port, [&result, &raw, this, &_path]() {
         QByteArray command{"MLSD"};
+        if (!_path.isEmpty()) command += ' ' + _path;
+        result = dataResponse(command);
+        if (result.code != StatusCode::SyntaxError && result.code != StatusCode::CommandNotImplemented) return;
+
+        raw = true;
+        command = "LIST";
         if (!_path.isEmpty()) command += ' ' + _path;
         result = dataResponse(command);
     }, Qt::BlockingQueuedConnection);
@@ -156,6 +163,10 @@ sol::table Ftp::list(const sol::this_state ts, const sol::optional<std::string> 
     for (auto line: result.data.split('\n')) {
         if (line.endsWith('\r')) line.chop(1);
         if (line.isEmpty()) continue;
+        if (raw) {
+            entries.append(line);
+            continue;
+        }
 
         const auto space = line.indexOf(' ');
         if (space <= 0 || space == line.size() - 1)
@@ -279,14 +290,26 @@ bool Ftp::exists(const std::string &path) const {
     QMetaObject::invokeMethod(m_port, [&exists, this, &_path]() -> QString {
         if (!m_port->write("MLST " + _path, "utf-8", "crlf")) return "write failed";
 
-        const auto result = ctrlResponse();
+        auto result = ctrlResponse();
         if (result.code == StatusCode::RequestedFileActionOkay) {
             exists = true;
             return {};
         }
         if (result.code == StatusCode::FileUnavailable) return {};
+        if (result.code != StatusCode::SyntaxError && result.code != StatusCode::CommandNotImplemented) {
+            if (!result.exception.isEmpty()) return result.exception;
+            return "unexpected ftp response(" + QString::number(result.code) + ")";
+        }
+
+        if (!m_port->write("SIZE " + _path, "utf-8", "crlf")) return "write failed";
+
+        result = ctrlResponse();
+        if (result.code == StatusCode::FileUnavailable) return {};
         if (!result.exception.isEmpty()) return result.exception;
-        return "unexpected ftp response(" + QString::number(result.code) + ")";
+        if (result.code != StatusCode::FileStatus) return "unexpected ftp response(" + QString::number(result.code) + ")";
+
+        exists = true;
+        return {};
     }, Qt::BlockingQueuedConnection, &exception);
     if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
 
@@ -541,6 +564,7 @@ Ftp::DataResult Ftp::dataTransfer(const QByteArray &command, const QByteArray *d
         if (port == 0) return {.exception = "invalid PASV response"};
     }
 
+    QString exception{};
     std::unique_ptr<QTcpSocket> socket;
     if (m_port->type() == PortType::SslClient) socket = std::make_unique<QSslSocket>();
     else socket = std::make_unique<QTcpSocket>();
@@ -550,49 +574,67 @@ Ftp::DataResult Ftp::dataTransfer(const QByteArray &command, const QByteArray *d
     if (!m_port->write(command, "utf-8", "crlf")) return {.exception = "write failed"};
 
     result = ctrlResponse();
-    if (!result.exception.isEmpty()) return {.exception = result.exception};
-    if (result.code != StatusCode::DataConnectionAlreadyOpen && result.code != StatusCode::FileStatusOkay) return {.exception = "unexpected ftp response(" + QString::number(result.code) + ")"};
+    if (!result.exception.isEmpty()) return {.code = result.code, .exception = result.exception};
+    if (result.code != StatusCode::DataConnectionAlreadyOpen && result.code != StatusCode::FileStatusOkay) return {.code = result.code, .exception = "unexpected ftp response(" + QString::number(result.code) + ")"};
 
     if (auto *sslSocket = qobject_cast<QSslSocket *>(socket.get())) {
         // Match SslClient's current test-only certificate policy.
         sslSocket->setPeerVerifyMode(QSslSocket::VerifyNone);
         sslSocket->startClientEncryption();
-        if (!sslSocket->waitForEncrypted(m_timeout)) return {.exception = "data TLS handshake failed: " + sslSocket->errorString()};
+        if (!sslSocket->waitForEncrypted(m_timeout)) exception = "data TLS handshake failed: " + sslSocket->errorString();
     }
 
     if (data) {
         qsizetype written{};
-        while (written < data->size()) {
+        while (exception.isEmpty() && written < data->size()) {
             const auto length = socket->write(data->constData() + written, data->size() - written);
-            if (length <= 0) return {.exception = "data write failed: " + socket->errorString()};
+            if (length <= 0) {
+                exception = "data write failed: " + socket->errorString();
+                break;
+            }
             written += length;
 
             while (socket->bytesToWrite() > 0) {
-                if (!socket->waitForBytesWritten(m_timeout)) return {.exception = "data write failed: " + socket->errorString()};
+                if (!socket->waitForBytesWritten(m_timeout)) {
+                    exception = "data write failed: " + socket->errorString();
+                    break;
+                }
             }
         }
-
-        socket->disconnectFromHost();
-        if (socket->state() != QAbstractSocket::UnconnectedState && !socket->waitForDisconnected(m_timeout)) {
-            socket->abort();
-            return {.exception = "data disconnect timeout"};
-        }
-    } else {
+    } else if (exception.isEmpty()) {
         const QDeadlineTimer deadline(m_timeout);
-        while (socket->state() != QAbstractSocket::UnconnectedState) {
+        while (true) {
+            rxData += socket->readAll();
+            if (socket->state() != QAbstractSocket::ConnectedState) break;
             if (deadline.hasExpired()) {
-                socket->abort();
-                return {.exception = "data read timeout"};
+                exception = "data read timeout(" + QString::number(rxData.size()) + " bytes received)";
+                break;
             }
             socket->waitForReadyRead(10);
-            rxData += socket->readAll();
         }
-        rxData += socket->readAll();
     }
 
+    if (exception.isEmpty()) socket->disconnectFromHost();
+    else socket->abort();
+    if (data && exception.isEmpty()) {
+        if (socket->state() != QAbstractSocket::UnconnectedState && !socket->waitForDisconnected(m_timeout)) {
+            socket->abort();
+            exception = "data disconnect timeout";
+        }
+    }
+
+    // Once a transfer is accepted, consume its final reply even after data I/O fails.
     result = ctrlResponse();
-    if (!result.exception.isEmpty()) return {.exception = result.exception};
-    if (result.code != StatusCode::ClosingDataConnection && result.code != StatusCode::RequestedFileActionOkay) return {.exception = "unexpected ftp response(" + QString::number(result.code) + ")"};
+    if (result.exception.isEmpty()) {
+        if (result.code != StatusCode::ClosingDataConnection && result.code != StatusCode::RequestedFileActionOkay) result.exception = "unexpected ftp completion(" + QString::number(result.code) + ")";
+    }
+    if (!result.exception.isEmpty()) {
+        m_port->close();
+        if (exception.isEmpty()) exception = result.exception;
+        else exception += "; " + result.exception;
+        return {.exception = exception + "; control connection closed; reconnect required"};
+    }
+    if (!exception.isEmpty()) return {.exception = exception};
 
     return {.data = rxData};
 }

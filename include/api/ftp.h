@@ -112,6 +112,7 @@ private:
     };
 
     struct DataResult {
+        int code{}; // Transfer-command rejection code; not passive connection setup errors.
         QByteArray data{};
         QString exception{};
     };
