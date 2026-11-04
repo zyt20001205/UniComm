@@ -2,6 +2,7 @@
 
 #include <QElapsedTimer>
 #include <QRegularExpression>
+#include <limits>
 #include <sol/error.hpp>
 
 #include "globals.h"
@@ -179,29 +180,45 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
 
             const auto fetchTag = nextTag();
             if (!m_port->write(fetchTag + " FETCH " + QByteArray::number(sequenceNumber) + " BODY.PEEK[]", "utf-8", "crlf")) return "write failed";
-            int size{-1};
-            while (size < 0) {
-                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+            QByteArray rxData{};
+            QElapsedTimer fetchTimer{};
+            fetchTimer.start();
+            while (true) {
+                if (m_timeout >= 0 && fetchTimer.elapsed() > m_timeout) return "read timeout";
+                const auto headerTimeout = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - fetchTimer.elapsed()));
+                const auto header = m_port->readUntil("\r\n", headerTimeout, "utf-8", true);
+                const auto result = parser(header);
                 if (!result.exception.isEmpty()) return result.exception;
 
+                int size{-1};
                 if (const auto untagged = std::get_if<Untagged>(&result.value)) {
                     const auto space = untagged->value.indexOf(' ');
-                    if (space == -1) continue;
-                    bool numeric{};
-                    untagged->value.first(space).toInt(&numeric);
-                    const auto tail = untagged->value.sliced(space + 1);
-                    const auto nextSpace = tail.indexOf(' ');
-                    const auto name = nextSpace == -1 ? tail : tail.first(nextSpace);
-                    if (!numeric || name != "FETCH") continue;
+                    if (space != -1) {
+                        bool numeric{};
+                        untagged->value.first(space).toInt(&numeric);
+                        const auto tail = untagged->value.sliced(space + 1);
+                        const auto nextSpace = tail.indexOf(' ');
+                        const auto name = nextSpace == -1 ? tail : tail.first(nextSpace);
+                        if (numeric && name == "FETCH") {
+                            const auto openingBrace = untagged->value.lastIndexOf('{');
+                            const auto closingBrace = untagged->value.indexOf('}', openingBrace + 1);
+                            if (openingBrace == -1 || closingBrace == -1) return "invalid imap fetch response";
 
-                    const auto openingBrace = untagged->value.lastIndexOf('{');
-                    const auto closingBrace = untagged->value.indexOf('}', openingBrace + 1);
-                    if (openingBrace == -1 || closingBrace == -1) return "invalid imap fetch response";
+                            bool validSize{};
+                            size = untagged->value.sliced(openingBrace + 1, closingBrace - openingBrace - 1).toInt(&validSize);
+                            if (!validSize || size < 0) return "invalid imap fetch response";
+                        }
+                    }
+                }
 
-                    bool validSize{};
-                    size = untagged->value.sliced(openingBrace + 1, closingBrace - openingBrace - 1).toInt(&validSize);
-                    if (!validSize) return "invalid imap fetch response";
-                    continue;
+                const auto length = header.size() + qMax(0, size);
+                if (length > std::numeric_limits<int>::max()) return "imap fetch response too large";
+                const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - fetchTimer.elapsed()));
+                rxData = m_port->read(static_cast<int>(length), remaining, "utf-8");
+                if (rxData.size() != length) return "read timeout";
+                if (size >= 0) {
+                    rxData.remove(0, header.size());
+                    break;
                 }
 
                 if (const auto tagged = std::get_if<Tagged>(&result.value)) {
@@ -211,8 +228,6 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
                 }
             }
 
-            const auto rxData = m_port->read(size, m_timeout, "utf-8");
-            if (rxData.size() != size) return "read timeout";
             if (m_port->readUntil("\r\n", m_timeout, "utf-8").isEmpty()) return "read timeout";
 
             while (true) {
@@ -277,19 +292,19 @@ void Imap::logout() {
 
 // private
 Imap::Result Imap::parser(const QByteArray &rxData) {
-    if (rxData.isEmpty()) return {std::monostate{}, "read timeout"};
+    if (rxData.isEmpty()) return {.value = std::monostate{}, .exception = "read timeout"};
 
     const auto response = rxData.trimmed();
     // Continuation
-    if (response.startsWith('+')) return {Continuation{response.sliced(1).trimmed()}, {}};
+    if (response.startsWith('+')) return {.value = Continuation{.value = response.sliced(1).trimmed()}, .exception = {}};
     // Untagged
-    if (response.startsWith('*')) return {Untagged{response.sliced(1).trimmed()}, {}};
+    if (response.startsWith('*')) return {.value = Untagged{.value = response.sliced(1).trimmed()}, .exception = {}};
     // Tagged
     const auto space1 = response.indexOf(' ');
-    if (space1 == -1) return {std::monostate{}, "invalid imap tagged response"};
+    if (space1 == -1) return {.value = std::monostate{}, .exception = "invalid imap tagged response"};
     const auto space2 = response.indexOf(' ', space1 + 1);
-    if (space2 == -1) return {std::monostate{}, "invalid imap tagged response"};
-    return {Tagged{response.first(space1), response.sliced(space1 + 1, space2 - space1 - 1), response.sliced(space2 + 1)}, {}};
+    if (space2 == -1) return {.value = std::monostate{}, .exception = "invalid imap tagged response"};
+    return {.value = Tagged{.tag = response.first(space1), .code = response.sliced(space1 + 1, space2 - space1 - 1), .text = response.sliced(space2 + 1)}, .exception = {}};
 }
 
 QByteArray Imap::nextTag() {

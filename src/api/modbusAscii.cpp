@@ -63,12 +63,9 @@ void ModbusAscii::writeSingleCoil(const int coilAddr, const bool value) const {
     txData += coilValue.toHex().toUpper();
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(17, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(FuncCode::WriteSingleCoil, rxData);
+        return response(FuncCode::WriteSingleCoil);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -91,12 +88,9 @@ void ModbusAscii::writeSingleRegister(const int regAddr, const std::string &data
     txData += value.toHex().toUpper();
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(17, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(FuncCode::WriteSingleRegister, rxData);
+        return response(FuncCode::WriteSingleRegister);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -128,12 +122,9 @@ void ModbusAscii::writeMultipleCoils(const int startAddr, const sol::table &valu
     txData += coilData.toHex().toUpper();
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(17, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(FuncCode::WriteMultipleCoils, rxData);
+        return response(FuncCode::WriteMultipleCoils);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -160,12 +151,9 @@ void ModbusAscii::writeMultipleRegisters(const int startAddr, const std::string 
     txData += value.toHex().toUpper();
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(17, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(FuncCode::WriteMultipleRegisters, rxData);
+        return response(FuncCode::WriteMultipleRegisters);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -186,15 +174,11 @@ sol::table ModbusAscii::readBits(const sol::this_state ts, const int funcCode, c
     txData += QByteArray::number(startAddr, 16).rightJustified(4, '0').toUpper();
     txData += QByteArray::number(quantity, 16).rightJustified(4, '0').toUpper();
     const int byteCount = (quantity + 7) / 8;
-    const int length = byteCount * 2 + 11;
 
-    QMetaObject::invokeMethod(m_port, [this, &txData, length, funcCode] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+    QMetaObject::invokeMethod(m_port, [this, &txData, funcCode] -> Result {
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(length, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(funcCode, rxData);
+        return response(funcCode);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -217,15 +201,11 @@ std::string ModbusAscii::readRegisters(const int funcCode, const int startAddr, 
     txData += QByteArray::number(startAddr, 16).rightJustified(4, '0').toUpper();
     txData += QByteArray::number(quantity, 16).rightJustified(4, '0').toUpper();
     const int byteCount = quantity * 2;
-    const int length = byteCount * 2 + 11;
 
-    QMetaObject::invokeMethod(m_port, [this, &txData, length, funcCode] -> Result {
-        if (!m_port->write(txData, "ascii", "modbus lrc")) return {{}, "write failed"};
+    QMetaObject::invokeMethod(m_port, [this, &txData, funcCode] -> Result {
+        if (!m_port->write(txData, "ascii", "modbus lrc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(length, m_timeout, "ascii");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "ascii");
-
-        return parser(funcCode, rxData);
+        return response(funcCode);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -236,17 +216,21 @@ std::string ModbusAscii::readRegisters(const int funcCode, const int startAddr, 
     return {regData.constData(), static_cast<std::string::size_type>(regData.size())};
 }
 
+ModbusAscii::Result ModbusAscii::response(const int funcCode) const {
+    return parser(funcCode, m_port->readUntil("\r\n", m_timeout, "ascii"));
+}
+
 ModbusAscii::Result ModbusAscii::parser(const int funcCode, const QByteArray &rxData) const {
-    if (rxData.isEmpty()) return {{}, "read timeout"};
-    if (rxData.size() < 11) return {{}, "invalid modbus ascii response"};
-    if (rxData.at(0) != ':') return {{}, "modbus ascii colon missing"};
-    if (rxData.right(4) != uni_cast<ModbusLRC>(rxData.chopped(4)).value) return {{}, "modbus ascii checksum error"};
-    if (rxData.sliced(1, 2).toUInt(nullptr, 16) != m_slaveAddr) return {{}, "modbus ascii slave address inconsistent"};
+    if (rxData.isEmpty()) return {.data = {}, .exception = "read timeout"};
+    if (rxData.size() < 11) return {.data = {}, .exception = "invalid modbus ascii response"};
+    if (rxData.at(0) != ':') return {.data = {}, .exception = "modbus ascii colon missing"};
+    if (rxData.right(4) != uni_cast<ModbusLRC>(rxData.chopped(4)).value) return {.data = {}, .exception = "modbus ascii checksum error"};
+    if (rxData.sliced(1, 2).toUInt(nullptr, 16) != m_slaveAddr) return {.data = {}, .exception = "modbus ascii slave address inconsistent"};
 
     const auto rxFuncCode = rxData.sliced(3, 2).toUInt(nullptr, 16);
     if (rxFuncCode == (funcCode | FuncCode::ExceptionMask))
-        return {{}, "modbus exception(" + QString::number(rxData.sliced(5, 2).toUInt(nullptr, 16)) + ")"};
-    if (rxFuncCode != funcCode) return {{}, "modbus ascii function code inconsistent"};
+        return {.data = {}, .exception = "modbus exception(" + QString::number(rxData.sliced(5, 2).toUInt(nullptr, 16)) + ")"};
+    if (rxFuncCode != funcCode) return {.data = {}, .exception = "modbus ascii function code inconsistent"};
 
-    return {QByteArray::fromHex(rxData.sliced(5, rxData.size() - 9)), {}};
+    return {.data = QByteArray::fromHex(rxData.sliced(5, rxData.size() - 9)), .exception = {}};
 }

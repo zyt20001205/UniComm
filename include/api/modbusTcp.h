@@ -74,6 +74,8 @@ private:
 
     [[nodiscard]] std::string readRegisters(int funcCode, int startAddr, int quantity) const;
 
+    [[nodiscard]] Result response(int funcCode) const;
+
     [[nodiscard]] Result parser(int funcCode, const QByteArray &rxData) const;
 
     std::string m_portName{};

@@ -1,5 +1,6 @@
 #include "api/modbusRtu.h"
 
+#include <QElapsedTimer>
 #include <sol/error.hpp>
 #include <sol/state_view.hpp>
 
@@ -66,12 +67,9 @@ void ModbusRtu::writeSingleCoil(const int coilAddr, const bool value) const {
     txData += coilValue;
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(8, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(FuncCode::WriteSingleCoil, rxData);
+        return response(FuncCode::WriteSingleCoil);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -95,12 +93,9 @@ void ModbusRtu::writeSingleRegister(const int regAddr, const std::string &data) 
     txData += value;
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(8, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(FuncCode::WriteSingleRegister, rxData);
+        return response(FuncCode::WriteSingleRegister);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -134,12 +129,9 @@ void ModbusRtu::writeMultipleCoils(const int startAddr, const sol::table &values
     txData += coilData;
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(8, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(FuncCode::WriteMultipleCoils, rxData);
+        return response(FuncCode::WriteMultipleCoils);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -168,12 +160,9 @@ void ModbusRtu::writeMultipleRegisters(const int startAddr, const std::string &d
     txData += QByteArray::fromHex(QByteArray::fromStdString(data));
 
     QMetaObject::invokeMethod(m_port, [this, &txData] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(8, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(FuncCode::WriteMultipleRegisters, rxData);
+        return response(FuncCode::WriteMultipleRegisters);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -196,15 +185,11 @@ sol::table ModbusRtu::readBits(const sol::this_state ts, const int funcCode, con
     txData.append(static_cast<qint8>(quantity >> 8 & 0xFF));
     txData.append(static_cast<qint8>(quantity & 0xFF));
     const int byteCount = (quantity + 7) / 8;
-    const int length = byteCount + 5;
 
-    QMetaObject::invokeMethod(m_port, [this, &txData, length, funcCode] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+    QMetaObject::invokeMethod(m_port, [this, &txData, funcCode] -> Result {
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(length, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(funcCode, rxData);
+        return response(funcCode);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -229,15 +214,11 @@ std::string ModbusRtu::readRegisters(const int funcCode, const int startAddr, co
     txData.append(static_cast<qint8>(quantity >> 8 & 0xFF));
     txData.append(static_cast<qint8>(quantity & 0xFF));
     const int byteCount = quantity * 2;
-    const int length = byteCount + 5;
 
-    QMetaObject::invokeMethod(m_port, [this, &txData, length, funcCode] -> Result {
-        if (!m_port->write(txData, "hex", "modbus crc")) return {{}, "write failed"};
+    QMetaObject::invokeMethod(m_port, [this, &txData, funcCode] -> Result {
+        if (!m_port->write(txData, "hex", "modbus crc")) return {.data = {}, .exception = "write failed"};
 
-        auto rxData = m_port->read(length, m_timeout, "hex");
-        if (rxData.isEmpty()) rxData = m_port->read(0, 0, "hex");
-
-        return parser(funcCode, rxData);
+        return response(funcCode);
     }, Qt::BlockingQueuedConnection, &result);
     if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
 
@@ -248,16 +229,53 @@ std::string ModbusRtu::readRegisters(const int funcCode, const int startAddr, co
     return {regData.constData(), static_cast<std::string::size_type>(regData.size())};
 }
 
+ModbusRtu::Result ModbusRtu::response(const int funcCode) const {
+    QElapsedTimer timer{};
+    timer.start();
+    const auto header = m_port->read(2, m_timeout, "hex", true);
+    if (header.size() != 2) return {.data = {}, .exception = "read timeout"};
+
+    const auto rxFuncCode = static_cast<quint8>(header.at(1));
+    int length{};
+    if (rxFuncCode & FuncCode::ExceptionMask) length = 5;
+    else {
+        switch (rxFuncCode) {
+            case FuncCode::ReadCoils:
+            case FuncCode::ReadDiscreteInputs:
+            case FuncCode::ReadHoldingRegisters:
+            case FuncCode::ReadInputRegisters: {
+                const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
+                const auto data = m_port->read(3, remaining, "hex", true);
+                if (data.size() != 3) return {.data = {}, .exception = "read timeout"};
+                length = static_cast<quint8>(data.at(2)) + 5;
+                break;
+            }
+            case FuncCode::WriteSingleCoil:
+            case FuncCode::WriteSingleRegister:
+            case FuncCode::WriteMultipleCoils:
+            case FuncCode::WriteMultipleRegisters:
+                length = 8;
+                break;
+            default:
+                return {.data = {}, .exception = "unsupported modbus rtu response function code"};
+        }
+    }
+
+    if (length > 256) return {.data = {}, .exception = "invalid modbus rtu length"};
+    const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
+    return parser(funcCode, m_port->read(length, remaining, "hex"));
+}
+
 ModbusRtu::Result ModbusRtu::parser(const int funcCode, const QByteArray &rxData) const {
-    if (rxData.isEmpty()) return {{}, "read timeout"};
-    if (rxData.size() < 5) return {{}, "invalid modbus rtu response"};
-    if (rxData.right(2) != uni_cast<ModbusCRC>(rxData.chopped(2)).value) return {{}, "modbus rtu checksum error"};
-    if (static_cast<quint8>(rxData.at(0)) != m_slaveAddr) return {{}, "modbus rtu slave address inconsistent"};
+    if (rxData.isEmpty()) return {.data = {}, .exception = "read timeout"};
+    if (rxData.size() < 5) return {.data = {}, .exception = "invalid modbus rtu response"};
+    if (rxData.right(2) != uni_cast<ModbusCRC>(rxData.chopped(2)).value) return {.data = {}, .exception = "modbus rtu checksum error"};
+    if (static_cast<quint8>(rxData.at(0)) != m_slaveAddr) return {.data = {}, .exception = "modbus rtu slave address inconsistent"};
 
     const auto rxFuncCode = static_cast<quint8>(rxData.at(1));
     if (rxFuncCode == (funcCode | FuncCode::ExceptionMask))
-        return {{}, "modbus exception(" + QString::number(static_cast<quint8>(rxData.at(2))) + ")"};
-    if (rxFuncCode != funcCode) return {{}, "modbus rtu function code inconsistent"};
+        return {.data = {}, .exception = "modbus exception(" + QString::number(static_cast<quint8>(rxData.at(2))) + ")"};
+    if (rxFuncCode != funcCode) return {.data = {}, .exception = "modbus rtu function code inconsistent"};
 
-    return {rxData.sliced(2, rxData.size() - 4), {}};
+    return {.data = rxData.sliced(2, rxData.size() - 4), .exception = {}};
 }

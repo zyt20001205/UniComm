@@ -203,30 +203,25 @@ Mqtt::Result Mqtt::response(const int type) {
 
     while (true) {
         if (m_timeout >= 0 && timer.elapsed() > m_timeout) return {.exception = "read timeout"};
-        const auto timeout = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-        auto rxData = m_port->read(1, timeout, "hex");
-        if (rxData.size() != 1) return {.exception = "read timeout"};
-
         int size{};
-        for (int index = 0; index < 4; ++index) {
+        int headerSize{};
+        for (int index = 1; index <= 4; ++index) {
             const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-            const auto data = m_port->read(1, remaining, "hex");
-            if (data.size() != 1) return {.exception = "read timeout; reconnect required"};
-            rxData += data;
+            const auto header = m_port->read(index + 1, remaining, "hex", true);
+            if (header.size() != index + 1) return {.exception = "read timeout"};
 
-            const auto byte = static_cast<quint8>(data.at(0));
-            size |= (byte & 0x7F) << (index * 7);
-            if (!(byte & 0x80)) break;
-            if (index == 3) return {.exception = "invalid mqtt remaining length; reconnect required"};
+            const auto byte = static_cast<quint8>(header.at(index));
+            size |= (byte & 0x7F) << ((index - 1) * 7);
+            if (!(byte & 0x80)) {
+                headerSize = index + 1;
+                break;
+            }
+            if (index == 4) return {.exception = "invalid mqtt remaining length; reconnect required"};
         }
 
-        if (size > 0) {
-            const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-            const auto body = m_port->read(size, remaining, "hex");
-            if (body.size() != size) return {.exception = "read timeout; reconnect required"};
-            rxData += body;
-        }
-
+        const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
+        const auto rxData = m_port->read(headerSize + size, remaining, "hex");
+        if (rxData.size() != headerSize + size) return {.exception = "read timeout"};
         const auto result = parser(rxData);
         if (!result.exception.isEmpty()) return result;
         if (type != ControlPacketType::Connect && result.type == ControlPacketType::Publish) {
