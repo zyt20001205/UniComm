@@ -33,6 +33,8 @@ public:
 
     [[nodiscard]] int subscribe(const std::string &topicFilter, sol::optional<int> qos);
 
+    void publish(const std::string &topic, const std::string &payload, sol::optional<int> qos, sol::optional<bool> retain) const;
+
 private:
     struct ControlPacketType {
         // https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html

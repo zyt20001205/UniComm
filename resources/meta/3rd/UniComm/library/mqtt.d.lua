@@ -51,3 +51,17 @@ function mqtt:connect(clientId, username, password, keepAlive, cleanSession) end
 ---@param qos? MqttQoS (default: Mqtt.QoS.AtMostOnce) Maximum delivery QoS requested for this subscription.
 ---@return MqttQoS qos Granted maximum delivery QoS.
 function mqtt:subscribe(topicFilter, qos) end
+
+---
+---Publish a message with QoS 0 without waiting for an MQTT acknowledgement.
+---
+---The payload is sent unchanged, including null bytes; it may be empty. No JSON or text encoding is applied.
+---Only `Mqtt.QoS.AtMostOnce` is supported. Other QoS values raise a Lua error before sending.
+---A normal return means the transport write succeeded, not that the broker or receiving application has processed the message.
+---
+---@param topic string Non-empty UTF-8 topic name, up to 65535 bytes. Topic names must not contain `+` or `#` wildcards.
+---@param payload string Raw message payload, which may contain binary data.
+---@param qos? MqttQoS (default: Mqtt.QoS.AtMostOnce) Delivery QoS. Only `AtMostOnce` is supported.
+---@param retain? boolean (default: false) Ask the broker to retain the message for future subscribers. Keep false for command topics.
+---@return nil
+function mqtt:publish(topic, payload, qos, retain) end

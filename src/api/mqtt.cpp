@@ -150,6 +150,31 @@ int Mqtt::subscribe(const std::string &topicFilter, const sol::optional<int> qos
     return grantedQos;
 }
 
+void Mqtt::publish(const std::string &topic, const std::string &payload, const sol::optional<int> qos, const sol::optional<bool> retain) const {
+    if (m_port.isNull()) throw sol::error(m_portName + ": port is no longer available");
+    const auto _qos = qos.value_or(QoS::AtMostOnce);
+    const auto _retain = retain.value_or(false);
+    if (_qos != QoS::AtMostOnce) throw sol::error(m_portName + ": publish only supports qos 0");
+
+    const auto _topic = QByteArray::fromStdString(topic);
+    if (_topic.isEmpty()) throw sol::error(m_portName + ": topic must not be empty");
+    if (_topic.size() > 65535) throw sol::error(m_portName + ": topic exceeds 65535 bytes");
+    if (_topic.contains('\0') || !_topic.isValidUtf8()) throw sol::error(m_portName + ": topic must be valid UTF-8 without null bytes");
+
+    QByteArray data{};
+    data.append(static_cast<char>(_topic.size() >> 8 & 0xFF));
+    data.append(static_cast<char>(_topic.size() & 0xFF));
+    data += _topic;
+    data += QByteArray::fromStdString(payload);
+
+    QString exception{};
+
+    QMetaObject::invokeMethod(m_port, [this, &data, _retain]() -> QString {
+        return request(ControlPacketType::Publish, _retain ? 0x01 : 0, data);
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
+}
+
 // private
 QString Mqtt::request(const int type, const quint8 flags, const QByteArray &data) const {
     if (type < ControlPacketType::Connect || type > ControlPacketType::Disconnect) return "invalid mqtt control packet type";

@@ -249,7 +249,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             sol::meta_function::garbage_collect, [](Mqtt *) {
             },
             "connect", &Mqtt::connect,
-            "subscribe", &Mqtt::subscribe
+            "subscribe", &Mqtt::subscribe,
+            "publish", &Mqtt::publish
         );
         auto mqtt = m_lua.create_table();
         auto qos = m_lua.create_table();

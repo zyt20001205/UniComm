@@ -18,6 +18,14 @@ local topicFilter = "device/SERIAL_NUMBER/report"
 local qos = mqtt:subscribe(topicFilter, Mqtt.QoS.AtMostOnce)
 print("MQTT SUBACK accepted:", topicFilter, "QoS:", qos)
 
+-- QoS 0 publishing on a generic MQTT broker (not a printer command):
+-- mqtt:publish("unicomm/demo", "Hello from UniComm", Mqtt.QoS.AtMostOnce)
+-- Binary and empty payloads are also allowed; retain defaults to false.
+-- mqtt:publish("unicomm/demo/binary", "\0\1\255", Mqtt.QoS.AtMostOnce, false)
+-- mqtt:publish("unicomm/demo/empty", "", Mqtt.QoS.AtMostOnce, false)
+-- For the printer, use device/SERIAL_NUMBER/request with its protocol-specific
+-- request payload. Publishing does not wait for the application reply.
+
 -- An anonymous broker can use mqtt:connect("UniCommTest") instead.
 -- To request a persistent session, pass 60, false as the last two arguments.
 
