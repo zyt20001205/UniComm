@@ -33,6 +33,9 @@ function ftp:login(username, password) end
 ---
 ---Return the current remote working directory.
 ---
+---Quoted paths are unescaped, including doubled quotes inside the path.
+---For an unquoted `257` reply, the complete reply text is treated as the path.
+---
 ---@return string path Current remote directory path.
 function ftp:pwd() end
 

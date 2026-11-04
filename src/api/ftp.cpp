@@ -94,7 +94,11 @@ std::string Ftp::pwd() const {
         const auto result = ctrlResponse();
         if (!result.exception.isEmpty()) return result.exception;
         if (result.code != StatusCode::PathnameCreated) return "unexpected ftp response(" + QString::number(result.code) + ")";
-        if (!result.text.startsWith('"')) return "invalid PWD response";
+        if (!result.text.startsWith('"')) {
+            if (result.text.isEmpty()) return "invalid PWD response";
+            path = result.text;
+            return {};
+        }
 
         bool terminated{};
         for (qsizetype i = 1; i < result.text.size(); ++i) {

@@ -7,6 +7,7 @@ local ftp = Ftp.new("FTP", 30000)
 ftp:login("anonymous", "anonymous@example.com")
 
 -- PWD and other metadata commands use the persistent FTP control connection.
+-- pwd() accepts quoted paths and unquoted replies such as "257 /".
 print("remote working directory", ftp:pwd())
 
 -- Work inside a disposable remote directory so existing files are not modified.
