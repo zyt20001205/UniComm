@@ -55,14 +55,28 @@ void Ftp::login(const std::string &username, const std::string &password) const 
 
         auto result = ctrlResponse();
         if (!result.exception.isEmpty()) return result.exception;
-        if (result.code == StatusCode::UserLoggedIn) return {};
-        if (result.code != StatusCode::UserNameOkay) return "unexpected ftp response(" + QString::number(result.code) + ")";
 
-        if (!m_port->write("PASS " + _password, "utf-8", "crlf")) return "write failed";
+        if (result.code == StatusCode::UserNameOkay) {
+            if (!m_port->write("PASS " + _password, "utf-8", "crlf")) return "write failed";
 
-        result = ctrlResponse();
-        if (!result.exception.isEmpty()) return result.exception;
+            result = ctrlResponse();
+            if (!result.exception.isEmpty()) return result.exception;
+        }
         if (result.code != StatusCode::UserLoggedIn) return "unexpected ftp response(" + QString::number(result.code) + ")";
+
+        if (m_port->type() == PortType::SslClient) {
+            if (!m_port->write("PBSZ 0", "utf-8", "crlf")) return "write failed";
+
+            result = ctrlResponse();
+            if (!result.exception.isEmpty()) return result.exception;
+            if (result.code != StatusCode::CommandOkay) return "unexpected ftp response(" + QString::number(result.code) + ")";
+
+            if (!m_port->write("PROT P", "utf-8", "crlf")) return "write failed";
+
+            result = ctrlResponse();
+            if (!result.exception.isEmpty()) return result.exception;
+            if (result.code != StatusCode::CommandOkay) return "unexpected ftp response(" + QString::number(result.code) + ")";
+        }
 
         return {};
     }, Qt::BlockingQueuedConnection, &exception);

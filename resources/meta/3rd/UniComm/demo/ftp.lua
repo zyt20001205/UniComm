@@ -1,8 +1,9 @@
 -- Configure a TCP client port named "FTP" and use an account with write permission.
 -- SSL client ports are also accepted for implicit TLS; temporary data sockets
--- follow the control port type. PBSZ/PROT negotiation is not sent automatically.
+-- follow the control port type.
 local ftp = Ftp.new("FTP", 30000)
 
+-- SSL login also sends PBSZ 0 and PROT P to enable TLS on data connections.
 ftp:login("anonymous", "anonymous@example.com")
 
 -- PWD and other metadata commands use the persistent FTP control connection.

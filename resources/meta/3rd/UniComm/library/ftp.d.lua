@@ -9,7 +9,7 @@ Ftp = {}
 ---[FTP demo](../demo/ftp.lua)
 ---
 ---SSL client ports establish implicit TLS before the server greeting. Temporary data sockets follow the port type.
----Data-channel protection negotiation (`PBSZ` / `PROT`) is not performed automatically.
+---Call `login` to authenticate and, for SSL ports, enable TLS protection for data connections.
 ---
 ---@param name portName Target TCP or SSL client port name.
 ---@param timeout? integer (default: 30000) Timeout in **milliseconds** for blocking FTP operations.
@@ -20,7 +20,10 @@ function Ftp.new(name, timeout) end
 ftp = {}
 
 ---
----Send USER and PASS commands to authenticate with FTP server.
+---Authenticate with the FTP server, sending PASS only when requested.
+---
+---For SSL client ports, successful authentication is followed by `PBSZ 0` and `PROT P`.
+---Both commands must receive a `200` reply before this method returns normally.
 ---
 ---@param username string FTP username.
 ---@param password password FTP password.
