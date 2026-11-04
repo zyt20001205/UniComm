@@ -250,7 +250,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             },
             "connect", &Mqtt::connect,
             "subscribe", &Mqtt::subscribe,
-            "publish", &Mqtt::publish
+            "publish", &Mqtt::publish,
+            "consume", &Mqtt::consume
         );
         auto mqtt = m_lua.create_table();
         auto qos = m_lua.create_table();

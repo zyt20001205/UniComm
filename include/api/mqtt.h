@@ -4,8 +4,10 @@
 #include <QObject>
 #include <QPointer>
 #include <QQueue>
+#include <sol/object.hpp>
 #include <sol/optional.hpp>
 
+#include <optional>
 #include <string>
 
 class BasePort;
@@ -34,6 +36,8 @@ public:
     [[nodiscard]] int subscribe(const std::string &topicFilter, sol::optional<int> qos);
 
     void publish(const std::string &topic, const std::string &payload, sol::optional<int> qos, sol::optional<bool> retain) const;
+
+    [[nodiscard]] sol::object consume(sol::this_state ts);
 
 private:
     struct ControlPacketType {
@@ -82,7 +86,7 @@ private:
 
     [[nodiscard]] QString request(int type, quint8 flags, const QByteArray &data) const;
 
-    [[nodiscard]] Result response(int type);
+    [[nodiscard]] Result response(std::optional<int> type = std::nullopt);
 
     [[nodiscard]] static Result parser(const QByteArray &rxData);
 

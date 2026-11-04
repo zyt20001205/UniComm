@@ -9,6 +9,8 @@ Mqtt = {}
 ---[MQTT demo](../demo/mqtt.lua)
 ---
 ---The port configuration determines the transport. This step does not send an MQTT CONNECT packet.
+---The configured timeout is shared by CONNECT, SUBSCRIBE and consume calls.
+---`0` makes reads nonblocking; `-1` waits indefinitely. These settings also affect control replies.
 ---
 ---@param name portName Target port name.
 ---@param timeout? integer (default: 30000) Maximum time in **milliseconds** to wait for MQTT responses.
@@ -21,6 +23,10 @@ Mqtt.QoS = {
     AtLeastOnce = 1,
     ExactlyOnce = 2,
 }
+
+---@class (exact) MqttMessage
+---@field topic string MQTT topic name encoded as UTF-8.
+---@field payload string Raw message payload. Binary data and empty strings are preserved.
 
 ---@class mqtt
 mqtt = {}
@@ -65,3 +71,24 @@ function mqtt:subscribe(topicFilter, qos) end
 ---@param retain? boolean (default: false) Ask the broker to retain the message for future subscribers. Keep false for command topics.
 ---@return nil
 function mqtt:publish(topic, payload, qos, retain) end
+
+---
+---Consume the next QoS 0 publication without sending an MQTT request.
+---
+---Publications queued while waiting for a control reply are returned first, in arrival order.
+---Otherwise, read one complete packet from the port. If no complete packet is available
+---before the instance timeout configured by `Mqtt.new`, return nil and leave any incomplete packet buffered.
+---An empty payload is a valid message and does not cause a nil return.
+---
+---Only `Mqtt.QoS.AtMostOnce` is supported. Incoming QoS 1/2 publications, malformed
+---messages and unexpected control packets raise a Lua error. Subscribe with QoS 0.
+---The payload is returned unchanged; decode JSON or other formats explicitly in the caller.
+---
+---This method does not start background receiving or send automatic heartbeats.
+---Do not read from the raw port or run another MQTT operation concurrently on this connection.
+---Transport reads that return no data follow the port's existing error logging behavior
+---and may also result in nil. Blocking reads do not check script stop requests;
+---use a finite timeout when a bounded wait is required.
+---
+---@return MqttMessage|nil message Next publication, or nil when no complete message is available.
+function mqtt:consume() end

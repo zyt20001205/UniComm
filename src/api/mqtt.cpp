@@ -1,7 +1,8 @@
 #include "api/mqtt.h"
 
-#include <QElapsedTimer>
+#include <QDeadlineTimer>
 #include <sol/error.hpp>
+#include <sol/state_view.hpp>
 
 #include "globals.h"
 #include "port/basePort.h"
@@ -175,6 +176,35 @@ void Mqtt::publish(const std::string &topic, const std::string &payload, const s
     if (!exception.isEmpty()) throw sol::error(m_portName + ": " + exception.toStdString());
 }
 
+sol::object Mqtt::consume(const sol::this_state ts) {
+    if (m_port.isNull()) throw sol::error(m_portName + ": port is no longer available");
+
+    Result result{};
+    QMetaObject::invokeMethod(m_port, [&result, this] {
+        if (!m_messages.isEmpty()) result = m_messages.dequeue();
+        else result = response();
+    }, Qt::BlockingQueuedConnection);
+
+    sol::state_view lua(ts);
+    if (result.exception == "read timeout") return sol::make_object(lua, sol::nil);
+    if (!result.exception.isEmpty()) throw sol::error(m_portName + ": " + result.exception.toStdString());
+    if (result.type != ControlPacketType::Publish) throw sol::error(m_portName + ": unexpected mqtt message type(" + std::to_string(result.type) + ")");
+    if ((result.flags >> 1 & 0x03) != QoS::AtMostOnce) throw sol::error(m_portName + ": consume only supports qos 0");
+    if (result.data.size() < 2) throw sol::error(m_portName + ": invalid mqtt publish topic length");
+
+    const int topicLength = static_cast<quint8>(result.data.at(0)) << 8 | static_cast<quint8>(result.data.at(1));
+    if (topicLength == 0 || topicLength > result.data.size() - 2) throw sol::error(m_portName + ": invalid mqtt publish topic length");
+    const auto topic = result.data.sliced(2, topicLength);
+    if (topic.contains('\0') || !topic.isValidUtf8()) throw sol::error(m_portName + ": topic must be valid UTF-8 without null bytes");
+    if (topic.contains('+') || topic.contains('#')) throw sol::error(m_portName + ": mqtt publish topic must not contain wildcards");
+
+    const auto payloadOffset = topicLength + 2;
+    auto message = lua.create_table();
+    message["topic"] = topic.toStdString();
+    message["payload"] = std::string(result.data.constData() + payloadOffset, static_cast<std::string::size_type>(result.data.size() - payloadOffset));
+    return sol::make_object(lua, message);
+}
+
 // private
 QString Mqtt::request(const int type, const quint8 flags, const QByteArray &data) const {
     if (type < ControlPacketType::Connect || type > ControlPacketType::Disconnect) return "invalid mqtt control packet type";
@@ -196,19 +226,16 @@ QString Mqtt::request(const int type, const quint8 flags, const QByteArray &data
     return {};
 }
 
-Mqtt::Result Mqtt::response(const int type) {
+Mqtt::Result Mqtt::response(const std::optional<int> type) {
     if (m_port.isNull()) return {.exception = "port is no longer available"};
-    QElapsedTimer timer{};
-    timer.start();
+    const QDeadlineTimer deadline(m_timeout);
 
     while (true) {
-        if (m_timeout >= 0 && timer.elapsed() > m_timeout) return {.exception = "read timeout"};
         int size{};
         int headerSize{};
         for (int index = 1; index <= 4; ++index) {
-            const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-            const auto header = m_port->read(index + 1, remaining, "hex", true);
-            if (header.size() != index + 1) return {.exception = "read timeout"};
+            const auto header = m_port->read(index + 1, static_cast<int>(deadline.remainingTime()), "hex", true);
+            if (header.isEmpty()) return {.exception = "read timeout"};
 
             const auto byte = static_cast<quint8>(header.at(index));
             size |= (byte & 0x7F) << ((index - 1) * 7);
@@ -219,13 +246,13 @@ Mqtt::Result Mqtt::response(const int type) {
             if (index == 4) return {.exception = "invalid mqtt remaining length; reconnect required"};
         }
 
-        const auto remaining = m_timeout < 0 ? -1 : static_cast<int>(qMax<qint64>(0, m_timeout - timer.elapsed()));
-        const auto rxData = m_port->read(headerSize + size, remaining, "hex");
-        if (rxData.size() != headerSize + size) return {.exception = "read timeout"};
-        const auto result = parser(rxData);
+        const auto rxData = m_port->read(headerSize + size, static_cast<int>(deadline.remainingTime()), "hex");
+        if (rxData.isEmpty()) return {.exception = "read timeout"};
+        auto result = parser(rxData);
         if (!result.exception.isEmpty()) return result;
-        if (type != ControlPacketType::Connect && result.type == ControlPacketType::Publish) {
+        if (type.has_value() && type.value() != ControlPacketType::Connect && result.type == ControlPacketType::Publish) {
             m_messages.enqueue(result);
+            if (deadline.hasExpired()) return {.exception = "read timeout"};
             continue;
         }
         return result;
