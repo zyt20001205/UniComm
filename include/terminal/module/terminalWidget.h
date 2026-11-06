@@ -46,6 +46,8 @@ signals:
 
     void keyPressed(int key, int modifiers, const QString &text);
 
+    void pasteText(const QString &text);
+
     void mousePressed(int row, int col, int button, int modifiers);
 
     void mouseReleased(int row, int col, int button, int modifiers);

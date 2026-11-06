@@ -32,6 +32,8 @@ public:
 
     void keyPressed(int key, int modifiers, const QString &text);
 
+    void textPaste(const QString &text);
+
     void mousePressed(int row, int col, int button, int modifiers);
 
     void mouseReleased(int row, int col, int button, int modifiers);

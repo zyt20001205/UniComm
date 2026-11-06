@@ -37,7 +37,7 @@ void TerminalWidget::propertySet(const QVariantHash &objects) {
 
 void TerminalWidget::paste() {
     const QString text = QGuiApplication::clipboard()->text();
-    if (!text.isEmpty()) emit keyPressed(0, Qt::NoModifier, text);
+    if (!text.isEmpty()) emit pasteText(text);
 }
 
 void TerminalWidget::paint(QPainter *painter) {
@@ -253,7 +253,10 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
                 emit startSelection(row, qBound(0, col, m_cols));
             }
         }
-        else if (event->button() == Qt::MiddleButton) paste();
+        else if (event->button() == Qt::MiddleButton) {
+            const QString text = QGuiApplication::clipboard()->text();
+            if (!text.isEmpty()) emit pasteText(text);
+        }
         else if (event->button() == Qt::RightButton) {
             const int row = qFloor(event->position().y() / m_cellHeight);
             const int col = qFloor(event->position().x() / m_cellWidth);

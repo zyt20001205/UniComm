@@ -114,6 +114,12 @@ void VtermWidget::keyPressed(const int key, const int modifiers, const QString &
     }
 }
 
+void VtermWidget::textPaste(const QString &text) {
+    vterm_keyboard_start_paste(m_vterm);
+    keyPressed(0, Qt::NoModifier, text);
+    vterm_keyboard_end_paste(m_vterm);
+}
+
 void VtermWidget::mousePressed(const int row, const int col, const int button, const int modifiers) {
     const auto &vtermModifier = uni_cast<VTermModifier>(modifiers);
     vterm_mouse_move(m_vterm, row, col, vtermModifier);
