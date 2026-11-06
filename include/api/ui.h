@@ -17,13 +17,15 @@ public:
 
     [[nodiscard]] bool message(const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) const;
 
+    [[nodiscard]] sol::optional<std::string> input(const sol::optional<std::string> &title, const std::string &text, const sol::optional<std::string> &value) const;
+
 signals:
     void close() const;
 
 private:
     friend class ImageViewer;
 
-    [[nodiscard]] QQuickView *init(const QString &title) const;
+    [[nodiscard]] QQuickView *init(const sol::optional<std::string> &title) const;
 };
 
 class ImageViewer final {

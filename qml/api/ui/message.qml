@@ -2,17 +2,22 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Pane {
+Item {
     id: rootItem
     width: 480; height: 220
-    padding: 20
 
     required property string text
     required property list<string> button
     property bool accepted: false
 
+    Rectangle {
+        anchors.fill: parent
+        color: global.back
+    }
+
     ColumnLayout {
         anchors.fill: parent
+        anchors.margins: 20
         spacing: 16
 
         ScrollView {

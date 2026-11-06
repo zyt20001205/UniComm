@@ -27,6 +27,22 @@ ui = {}
 function ui.message(title, text, button) end
 
 ---
+---Displays a single-line input window and waits for the user's choice.
+---
+---Only the calling script waits; the application and other scripts remain usable.
+---Pass nil for title to use the current threadId. Buttons are always OK and Cancel.
+---OK or Enter in the input field returns the text, including an empty string.
+---Cancel, Escape, or closing the window returns nil. No whitespace is trimmed.
+---The result is always text; use tonumber or other Lua functions to convert it.
+---In Run/Agent mode, stopping the script closes its window and terminates the wait.
+---
+---@param title? string (default: current threadId) Window title. Pass nil to use the default.
+---@param text string Plain-text prompt. Newlines are supported.
+---@param value? string (default: "") Initial text shown in the input field.
+---@return string|nil value Confirmed text, or nil if cancelled or closed.
+function ui.input(title, text, value) end
+
+---
 ---Opens an independent image window and returns without waiting for it to close.
 ---
 ---Omit source to open an empty window, then use setData for encoded image bytes or

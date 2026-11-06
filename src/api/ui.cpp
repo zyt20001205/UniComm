@@ -22,11 +22,10 @@ bool UI::message(const sol::optional<std::string> &title, const std::string &tex
     QString exception{};
     bool accepted = false;
     auto *worker = QThread::currentThread();
-    const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
     QStringList buttons{"ok"};
     if (button.has_value()) {
         buttons.clear();
-        for (const auto &[key, value]: button.value()) {
+        for (const auto &value: button.value() | std::views::values) {
             const auto name = QString::fromStdString(value.as<std::string>());
             if (name != "ok" && name != "cancel") throw sol::error("button must be ok or cancel");
             buttons.append(name);
@@ -34,10 +33,10 @@ bool UI::message(const sol::optional<std::string> &title, const std::string &tex
     }
     if (buttons.isEmpty()) throw sol::error("button must not be empty");
 
-    QMetaObject::invokeMethod(qApp, [&accepted, &loop, this, &_title, &text, &buttons, worker]() -> QString {
+    QMetaObject::invokeMethod(qApp, [&accepted, &loop, this, &title, &text, &buttons, worker]() -> QString {
         if (worker->isInterruptionRequested()) return "terminated";
 
-        auto *window = init(_title);
+        auto *window = init(title);
         window->setFlags(Qt::Dialog);
         window->setInitialProperties({{"text", QString::fromStdString(text)}, {"button", buttons}});
         window->setSource(QUrl("qrc:/qml/api/ui/message.qml"));
@@ -62,11 +61,49 @@ bool UI::message(const sol::optional<std::string> &title, const std::string &tex
     return accepted;
 }
 
+sol::optional<std::string> UI::input(const sol::optional<std::string> &title, const std::string &text, const sol::optional<std::string> &value) const {
+    QEventLoop loop{};
+    QString exception{};
+    sol::optional<std::string> result{};
+    auto *worker = QThread::currentThread();
+
+    QMetaObject::invokeMethod(qApp, [&result, &loop, this, &title, &text, &value, worker]() -> QString {
+        if (worker->isInterruptionRequested()) return "terminated";
+
+        auto *window = init(title);
+        window->setFlags(Qt::Dialog);
+        window->setInitialProperties({{"text", QString::fromStdString(text)}, {"value", QString::fromStdString(value.value_or(""))}});
+        window->setSource(QUrl("qrc:/qml/api/ui/input.qml"));
+        if (window->status() == QQuickView::Error) {
+            const auto error = window->errors().first().toString();
+            delete window;
+            return error;
+        }
+
+        connect(window, &QQuickWindow::closing, window, [&result, window] {
+            const auto *root = window->rootObject();
+            if (root->property("accepted").toBool()) result = root->property("value").toString().toStdString();
+        });
+        // Keep an early close queued until the worker enters its event loop.
+        connect(window, &QObject::destroyed, &loop, &QEventLoop::quit, Qt::QueuedConnection);
+        window->show();
+        return {};
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(exception.toStdString());
+
+    loop.exec();
+    if (worker->isInterruptionRequested()) throw sol::error("terminated");
+    return result;
+}
+
 // private
-QQuickView *UI::init(const QString &title) const {
+QQuickView *UI::init(const sol::optional<std::string> &title) const {
     auto *window = new QQuickView(); // NOLINT
-    window->setTitle(title);
+    // This object's thread is the Lua worker, not the GUI thread running init.
+    const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(thread()), 0, 16);
+    window->setTitle(_title);
     window->setTransientParent(g_mainWindow->windowHandle());
+    window->rootContext()->setContextProperty("global", g_globalManager);
     window->setResizeMode(QQuickView::SizeRootObjectToView);
     connect(this, &UI::close, window, &QWindow::close);
     connect(this, &QObject::destroyed, window, &QObject::deleteLater);
@@ -93,15 +130,13 @@ public:
 // public
 ImageViewer::ImageViewer(const sol::optional<std::string> &title, const sol::optional<std::string> &source, const UI *owner) {
     auto *worker = QThread::currentThread();
-    const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
     const auto url = source.has_value() ? uni_cast<QUrl>(LPath(QString::fromStdString(source.value()))) : QUrl{};
     QString exception{};
 
-    QMetaObject::invokeMethod(qApp, [this, &_title, &url, owner, worker]() -> QString {
+    QMetaObject::invokeMethod(qApp, [this, &title, &url, owner, worker]() -> QString {
         if (worker->isInterruptionRequested()) return "terminated";
 
-        auto *window = owner->init(_title);
-        window->rootContext()->setContextProperty("global", g_globalManager);
+        auto *window = owner->init(title);
         auto *provider = new DataProvider(); // NOLINT
         window->engine()->addImageProvider("memory", provider);
         window->resize(800, 600);

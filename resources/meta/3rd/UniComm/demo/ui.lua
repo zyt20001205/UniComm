@@ -17,6 +17,29 @@ end
 
 ---
 
+-- A single-line input. An empty string means OK with no text, not cancellation.
+local name = ui.input(nil, "Enter a name", "UniComm")
+if name == nil then
+    print("Input cancelled")
+else
+    print("Name:", name)
+end
+
+---
+
+-- Input always returns text. Convert numbers in Lua after checking cancellation.
+local value = ui.input("Parameter", "Enter the target temperature", "25")
+if value ~= nil then
+    local temperature = tonumber(value)
+    if temperature == nil then
+        print("Not a number:", value)
+    else
+        print("Temperature:", temperature)
+    end
+end
+
+---
+
 -- Nonblocking image viewer: replace these paths with existing workspace images.
 -- <close> closes the window on scope exit, including Lua errors. It does not wait
 -- for the user to close it. Keep doing your normal script work inside the block.
