@@ -8,7 +8,6 @@
 #include <QSharedPointer>
 #include <QThread>
 #include <QTimer>
-#include <QUuid>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -71,7 +70,7 @@ void ThreadpoolModule::quit() {
 void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QString &threadId, const int startLine, const int startCharacter, const int endLine,
                                    const int endCharacter) {
     auto *worker = new QThread(); // NOLINT
-    threadId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    threadId = QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
     auto output = QSharedPointer<QJsonObject>::create();
     // preload thread with lua session
     QVariantMap luaSession{};
