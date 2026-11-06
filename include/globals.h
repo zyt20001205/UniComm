@@ -323,4 +323,11 @@ struct TerminalCell {
     bool overline{};
 };
 
+struct TerminalSelection {
+    qint64 anchorRow{-1};
+    int anchorCol{};
+    qint64 extentRow{-1};
+    int extentCol{};
+};
+
 #endif //UNICOMM_GLOBALS_H

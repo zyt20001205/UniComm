@@ -9,6 +9,7 @@
 #include <QTimer>
 
 #include "globals.h"
+#include "core/globalManager.h"
 
 TerminalWidget::TerminalWidget(QQuickItem *parent)
     : QQuickPaintedItem(parent),
@@ -53,9 +54,14 @@ void TerminalWidget::paint(QPainter *painter) {
 
     painter->setFont(m_font);
     QFont currentFont = m_font;
+    const QColor selectionForeground(g_globalManager->foreSelectedGet());
+    const QColor selectionBackground(g_globalManager->backSelectedGet());
 
     for (int row = firstRow; row < endRow; ++row) {
         const qreal y = row * m_cellHeight + m_ascent;
+        const bool selectedRow = row >= m_selection.anchorRow && row <= m_selection.extentRow;
+        const int selectionStartCol = row == m_selection.anchorRow ? m_selection.anchorCol : 0;
+        const int selectionEndCol = row == m_selection.extentRow ? m_selection.extentCol : m_cols;
         int col = firstCol;
         while (col < endCol) {
             // get cell
@@ -64,9 +70,12 @@ void TerminalWidget::paint(QPainter *painter) {
                 ++col;
                 continue;
             }
+            const bool selected = selectedRow && selectionStartCol < selectionEndCol && col + cell.width > selectionStartCol && col < selectionEndCol;
+            const auto &foreground = selected ? selectionForeground : cell.foreground;
+            const auto &background = selected ? selectionBackground : cell.background;
             // draw background
             const QRectF rect(col * m_cellWidth, row * m_cellHeight, cell.width * m_cellWidth, m_cellHeight);
-            painter->fillRect(rect, cell.background);
+            painter->fillRect(rect, background);
             // draw cell
             if (!cell.text.isEmpty()) {
                 QFont cellFont = m_font;
@@ -78,30 +87,30 @@ void TerminalWidget::paint(QPainter *painter) {
                     currentFont = cellFont;
                     painter->setFont(currentFont);
                 }
-                painter->setPen(cell.foreground);
+                painter->setPen(foreground);
                 painter->drawText(QPointF(rect.left(), y), cell.text);
                 if (cell.overline) {
                     const qreal thickness = qMax<qreal>(1, m_cellHeight / 18);
-                    painter->fillRect(QRectF(rect.left(), rect.top(), rect.width(), thickness), cell.foreground);
+                    painter->fillRect(QRectF(rect.left(), rect.top(), rect.width(), thickness), foreground);
                 }
             }
             // draw cursor
             if (m_atBottom && m_visible && m_blinkPhase && row == m_position.x() && col == m_position.y()) {
                 switch (m_shape) {
                     case VTERM_PROP_CURSORSHAPE_BLOCK: {
-                        painter->fillRect(rect, cell.foreground);
-                        painter->setPen(cell.background);
+                        painter->fillRect(rect, foreground);
+                        painter->setPen(background);
                         painter->drawText(QPointF(rect.left(), y), cell.text);
                     }
                     break;
                     case VTERM_PROP_CURSORSHAPE_UNDERLINE: {
                         const qreal thickness = qMax<qreal>(1, m_cellHeight / 10);
-                        painter->fillRect(QRectF(rect.left(), rect.bottom() - thickness, rect.width(), thickness), cell.foreground);
+                        painter->fillRect(QRectF(rect.left(), rect.bottom() - thickness, rect.width(), thickness), foreground);
                     }
                     break;
                     case VTERM_PROP_CURSORSHAPE_BAR_LEFT: {
                         const qreal thickness = qMax<qreal>(1, m_cellWidth / 8);
-                        painter->fillRect(QRectF(rect.left(), rect.top(), thickness, rect.height()), cell.foreground);
+                        painter->fillRect(QRectF(rect.left(), rect.top(), thickness, rect.height()), foreground);
                     }
                     break;
                     default: break;
@@ -145,6 +154,16 @@ void TerminalWidget::screenDamageSet(const QRect &rect, const QList<TerminalCell
     ).toAlignedRect().adjusted(-1, 0, 1, 0).intersected(boundingRect().toAlignedRect());
 
     updateRegion(pixelRect);
+}
+
+void TerminalWidget::selectionSet(const int startRow, const int startCol, const int endRow, const int endCol) {
+    if (m_selection.anchorRow == startRow && m_selection.anchorCol == startCol && m_selection.extentRow == endRow && m_selection.extentCol == endCol) return;
+
+    const QRect oldRect = selectionRect();
+    m_selection = {.anchorRow = startRow, .anchorCol = startCol, .extentRow = endRow, .extentCol = endCol};
+    const QRect newRect = selectionRect();
+    if (!oldRect.isEmpty()) updateRegion(oldRect);
+    if (!newRect.isEmpty() && newRect != oldRect) updateRegion(newRect);
 }
 
 void TerminalWidget::cursorPositionSet(const QPoint &position, const QPoint &oldPosition) {
@@ -375,7 +394,8 @@ void TerminalWidget::updateRegion() {
 #ifdef UNICOMM_TERMINAL_DAMAGE_DEBUG
     emit debugDamage(boundingRect());
 #endif
-    update();
+    // Preserve the full repaint when partial updates follow in the same frame.
+    update(boundingRect().toAlignedRect());
 }
 
 void TerminalWidget::updateRegion(const QRect &rect) {
@@ -383,6 +403,16 @@ void TerminalWidget::updateRegion(const QRect &rect) {
     if (!rect.isEmpty()) emit debugDamage(rect);
 #endif
     update(rect);
+}
+
+QRect TerminalWidget::selectionRect() const {
+    if (m_selection.anchorRow < 0) return {};
+    return QRectF(
+        0,
+        m_selection.anchorRow * m_cellHeight,
+        width(),
+        (m_selection.extentRow - m_selection.anchorRow + 1) * m_cellHeight
+    ).toAlignedRect().intersected(boundingRect().toAlignedRect());
 }
 
 QRect TerminalWidget::cursorRect() const {

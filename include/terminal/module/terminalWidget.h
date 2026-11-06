@@ -1,15 +1,13 @@
 #ifndef UNICOMM_TERMINALWIDGET_H
 #define UNICOMM_TERMINALWIDGET_H
 
+#include "globals.h"
 #include "terminal/module/vtermWidget.h"
 
 #include <QList>
 #include <QQuickPaintedItem>
 #include <QRect>
-#include <QUrl>
 #include <QVariant>
-
-struct TerminalCell;
 
 class TerminalWidget final : public QQuickPaintedItem {
     Q_OBJECT
@@ -28,6 +26,8 @@ public:
     void screenSet(int rows, int cols, const QList<TerminalCell> &cells, bool atBottom);
 
     void screenDamageSet(const QRect &rect, const QList<TerminalCell> &cells);
+
+    void selectionSet(int startRow, int startCol, int endRow, int endCol);
 
     void cursorPositionSet(const QPoint &position, const QPoint &oldPosition);
 
@@ -90,6 +90,8 @@ private:
 
     void updateRegion(const QRect &rect);
 
+    [[nodiscard]] QRect selectionRect() const;
+
     [[nodiscard]] QRect cursorRect() const;
 
     [[nodiscard]] QRect cursorRect(const QPoint &position) const;
@@ -98,6 +100,7 @@ private:
     QObject *m_toolTip{};
     QFont m_font{};
     QList<TerminalCell> m_cells{};
+    TerminalSelection m_selection{};
     bool m_selecting{};
     // cursor
     QPoint m_position{};

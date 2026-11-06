@@ -69,6 +69,7 @@ void VtermWidget::resize(const int rows, const int cols) {
     vterm_set_size(m_vterm, m_rows, m_cols);
     vterm_screen_flush_damage(m_screen);
     renderScreen();
+    renderSelection();
     emit scrollChanged();
 }
 
@@ -79,6 +80,7 @@ void VtermWidget::reset(const bool hard) {
     vterm_screen_flush_damage(m_screen);
     m_scrollOffset = 0;
     renderScreen();
+    renderSelection();
     emit scrollChanged();
 }
 
@@ -95,6 +97,7 @@ void VtermWidget::inputWrite(const QByteArray &bytes) {
     const QRect damage = m_pendingDamage;
     m_pendingDamage = {};
     if (!damage.isEmpty()) renderDamage(damage);
+    renderSelection();
     if (scrollbackSize != m_scrollback.size() || scrollOffset != m_scrollOffset || altScreen != m_altScreen) emit scrollChanged();
 }
 
@@ -154,6 +157,7 @@ void VtermWidget::mouseScrolled(const int lines) {
     if (m_scrollOffset == scrollOffset) return;
     m_scrollOffset = scrollOffset;
     renderScreen();
+    renderSelection();
     emit scrollChanged();
 }
 
@@ -165,6 +169,7 @@ void VtermWidget::selectionStart(const int row, const int col) {
     m_selection.anchorCol = col;
     m_selection.extentRow = m_selection.anchorRow;
     m_selection.extentCol = col;
+    renderSelection();
 }
 
 void VtermWidget::selectionUpdate(const int row, const int col) {
@@ -173,6 +178,7 @@ void VtermWidget::selectionUpdate(const int row, const int col) {
     const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
     m_selection.extentRow = firstRow + qBound(0, row, m_rows - 1);
     m_selection.extentCol = qBound(0, col, m_cols);
+    renderSelection();
 }
 
 void VtermWidget::linkGet(const int uri, QUrl &url) const {
@@ -199,6 +205,7 @@ void VtermWidget::scrollPositionSet(const qreal position) {
     if (m_scrollOffset == scrollOffset) return;
     m_scrollOffset = scrollOffset;
     renderScreen();
+    renderSelection();
     emit scrollChanged();
 }
 
@@ -267,6 +274,32 @@ void VtermWidget::renderDamage(const QRect &rect) {
     }
 
     emit setScreenDamage(damage, cells);
+}
+
+void VtermWidget::renderSelection() {
+    if (m_selection.anchorRow >= 0) {
+        qint64 startRow = m_selection.anchorRow;
+        int startCol = m_selection.anchorCol;
+        qint64 endRow = m_selection.extentRow;
+        int endCol = m_selection.extentCol;
+        if (startRow > endRow || (startRow == endRow && startCol > endCol)) {
+            qSwap(startRow, endRow);
+            qSwap(startCol, endCol);
+        }
+
+        const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
+        const qint64 firstSelectedRow = qMax(startRow, firstRow);
+        const qint64 lastSelectedRow = qMin(endRow, firstRow + m_rows - 1);
+        if (firstSelectedRow <= lastSelectedRow) {
+            const int firstCol = firstSelectedRow == startRow ? startCol : 0;
+            const int lastCol = lastSelectedRow == endRow ? endCol : m_cols;
+            if (firstSelectedRow < lastSelectedRow || firstCol < lastCol) {
+                emit setSelection(static_cast<int>(firstSelectedRow - firstRow), firstCol, static_cast<int>(lastSelectedRow - firstRow), lastCol);
+                return;
+            }
+        }
+    }
+    emit setSelection(-1, 0, -1, 0);
 }
 
 int VtermWidget::screenDamage(const VTermRect rect) {

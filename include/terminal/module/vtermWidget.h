@@ -1,6 +1,8 @@
 #ifndef UNICOMM_VTERMWIDGET_H
 #define UNICOMM_VTERMWIDGET_H
 
+#include "globals.h"
+
 #include <QObject>
 #include <QRect>
 #include <QUrl>
@@ -11,8 +13,6 @@ typedef VTerm VTerm;
 typedef VTermState VTermState;
 typedef VTermScreen VTermScreen;
 }
-
-struct TerminalCell;
 
 class VtermWidget final : public QObject {
     Q_OBJECT
@@ -61,6 +61,8 @@ signals:
 
     void setScreenDamage(const QRect &rect, const QList<TerminalCell> &cells);
 
+    void setSelection(int startRow, int startCol, int endRow, int endCol);
+
     void setCursorPosition(const QPoint &position, const QPoint &oldPosition);
 
     void setCursorVisible(bool visible);
@@ -76,16 +78,11 @@ signals:
     void scrollChanged();
 
 private:
-    struct Selection {
-        qint64 anchorRow{-1};
-        int anchorCol{};
-        qint64 extentRow{-1};
-        int extentCol{};
-    };
-
     void renderScreen();
 
     void renderDamage(const QRect &rect);
+
+    void renderSelection();
 
     int screenDamage(VTermRect rect);
 
@@ -116,7 +113,7 @@ private:
     QList<QList<TerminalCell> > m_scrollback{};
     qint64 m_scrollbackFirstRow{};
     int m_scrollOffset{};
-    Selection m_selection{};
+    TerminalSelection m_selection{};
     QRect m_pendingDamage{};
     // osc52
     QByteArray m_selectionBuffer{};
