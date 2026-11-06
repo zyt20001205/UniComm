@@ -6,6 +6,7 @@
 #include <QList>
 #include <QQuickPaintedItem>
 #include <QRect>
+#include <QVariant>
 
 struct TerminalCell;
 
@@ -14,6 +15,8 @@ class TerminalWidget final : public QQuickPaintedItem {
 
 public:
     explicit TerminalWidget(QQuickItem *parent = nullptr);
+
+    void propertySet(const QVariantHash &objects);
 
     void paint(QPainter *painter) override;
 
@@ -67,6 +70,8 @@ protected:
 
     void hoverMoveEvent(QHoverEvent *event) override;
 
+    void hoverLeaveEvent(QHoverEvent *event) override;
+
     void wheelEvent(QWheelEvent *event) override;
 
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
@@ -82,6 +87,7 @@ private:
 
     [[nodiscard]] QRect cursorRect(const QPoint &position) const;
 
+    QObject *m_toolTip{};
     QFont m_font{};
     QList<TerminalCell> m_cells{};
     // cursor

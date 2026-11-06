@@ -28,6 +28,10 @@ TerminalWidget::TerminalWidget(QQuickItem *parent)
     m_blinkTimer->start();
 }
 
+void TerminalWidget::propertySet(const QVariantHash &objects) {
+    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
+}
+
 void TerminalWidget::paint(QPainter *painter) {
     if (m_rows < 1 || m_cols < 1 || m_cells.size() < m_rows * m_cols) return;
 
@@ -227,7 +231,7 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
         const int col = qFloor(event->position().x() / m_cellWidth);
         const int index = row * m_cols + col;
         const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
-        if (link) emit openLink(m_cells[index].uri);
+        if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) emit openLink(m_cells[index].uri);
     }
     else {
         emit mouseReleased(
@@ -254,14 +258,20 @@ void TerminalWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void TerminalWidget::hoverMoveEvent(QHoverEvent *event) {
-    if (m_mode == VTERM_PROP_MOUSE_NONE) {
-        const int row = qFloor(event->position().y() / m_cellHeight);
-        const int col = qFloor(event->position().x() / m_cellWidth);
-        const int index = row * m_cols + col;
-        const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
-        setCursor(link ? Qt::PointingHandCursor : Qt::IBeamCursor);
-    }
+    const int row = qFloor(event->position().y() / m_cellHeight);
+    const int col = qFloor(event->position().x() / m_cellWidth);
+    const int index = row * m_cols + col;
+    const bool link = m_mode == VTERM_PROP_MOUSE_NONE && row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
+    setCursor(link && (event->modifiers() & Qt::ControlModifier) ? Qt::PointingHandCursor : Qt::IBeamCursor);
+    if (link) m_toolTip->setProperty("position", QCursor::pos());
+    m_toolTip->setProperty("text", link ? tr("Ctrl + Click") : QString());
     QQuickPaintedItem::hoverMoveEvent(event);
+}
+
+void TerminalWidget::hoverLeaveEvent(QHoverEvent *event) {
+    setCursor(Qt::IBeamCursor);
+    m_toolTip->setProperty("text", QString());
+    QQuickPaintedItem::hoverLeaveEvent(event);
 }
 
 void TerminalWidget::wheelEvent(QWheelEvent *event) {
@@ -291,6 +301,7 @@ void TerminalWidget::geometryChange(const QRectF &newGeometry, const QRectF &old
     metricsUpdate();
 }
 
+// private
 void TerminalWidget::metricsUpdate() {
     QFontMetricsF metrics(m_font);
     m_cellWidth = qMax<qreal>(1, metrics.horizontalAdvance('M'));

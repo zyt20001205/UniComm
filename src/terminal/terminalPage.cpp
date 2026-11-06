@@ -48,6 +48,7 @@ void TerminalPage::propertySet(const QVariantHash &objects) {
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/terminal/terminalPage.qml"));
     m_root = m_widget->rootObject();
+    m_terminalWidget->propertySet(objects);
 }
 
 void TerminalPage::write(const QByteArray &data) const {
