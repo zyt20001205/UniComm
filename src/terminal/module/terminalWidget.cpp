@@ -3,6 +3,7 @@
 #include "terminal/module/terminalWidget.h"
 
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QInputMethodEvent>
 #include <QPainter>
 #include <QTimer>
@@ -231,7 +232,11 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
         const int col = qFloor(event->position().x() / m_cellWidth);
         const int index = row * m_cols + col;
         const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
-        if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) emit openLink(m_cells[index].uri);
+        if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
+            QUrl url;
+            emit getLink(m_cells[index].uri, url);
+            if (!url.isEmpty()) QDesktopServices::openUrl(url);
+        }
     }
     else {
         emit mouseReleased(
@@ -262,9 +267,20 @@ void TerminalWidget::hoverMoveEvent(QHoverEvent *event) {
     const int col = qFloor(event->position().x() / m_cellWidth);
     const int index = row * m_cols + col;
     const bool link = m_mode == VTERM_PROP_MOUSE_NONE && row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
-    setCursor(link && (event->modifiers() & Qt::ControlModifier) ? Qt::PointingHandCursor : Qt::IBeamCursor);
-    if (link) m_toolTip->setProperty("position", QCursor::pos());
-    m_toolTip->setProperty("text", link ? tr("Ctrl + Click") : QString());
+    const bool control = event->modifiers() & Qt::ControlModifier;
+    setCursor(link && control ? Qt::PointingHandCursor : Qt::IBeamCursor);
+    if (link) {
+        m_toolTip->setProperty("position", QCursor::pos());
+        if (control) {
+            QUrl url;
+            emit getLink(m_cells[index].uri, url);
+            m_toolTip->setProperty("text", url.toString());
+        } else {
+            m_toolTip->setProperty("text", tr("Ctrl + Click"));
+        }
+    } else {
+        m_toolTip->setProperty("text", QString());
+    }
     QQuickPaintedItem::hoverMoveEvent(event);
 }
 

@@ -6,6 +6,7 @@
 #include <QList>
 #include <QQuickPaintedItem>
 #include <QRect>
+#include <QUrl>
 #include <QVariant>
 
 struct TerminalCell;
@@ -53,7 +54,7 @@ signals:
 
     void mouseScrolled(int lines);
 
-    void openLink(int uri);
+    void getLink(int uri, QUrl &url);
 
     void debugDamage(const QRectF &rect);
 

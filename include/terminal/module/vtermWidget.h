@@ -1,10 +1,9 @@
 #ifndef UNICOMM_VTERMWIDGET_H
 #define UNICOMM_VTERMWIDGET_H
 
-#include <QByteArray>
 #include <QObject>
-#include <QPoint>
 #include <QRect>
+#include <QUrl>
 #include <vterm.h>
 
 extern "C" {
@@ -43,7 +42,7 @@ public:
 
     void mouseScrolled(int lines);
 
-    void linkOpen(int uri) const;
+    void linkGet(int uri, QUrl &url) const;
 
     [[nodiscard]] qreal scrollPositionGet() const;
 

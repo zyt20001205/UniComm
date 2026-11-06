@@ -1,7 +1,6 @@
 #include "terminal/module/vtermWidget.h"
 
 #include <QClipboard>
-#include <QDesktopServices>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -156,12 +155,9 @@ void VtermWidget::mouseScrolled(const int lines) {
     emit scrollChanged();
 }
 
-void VtermWidget::linkOpen(const int uri) const {
+void VtermWidget::linkGet(const int uri, QUrl &url) const {
     const char *value = vterm_screen_get_uri(m_screen, uri);
-    if (value) {
-        const auto &url = QUrl(QString::fromUtf8(value));
-        QDesktopServices::openUrl(url);
-    }
+    url = value ? QUrl(QString::fromUtf8(value)) : QUrl{};
 }
 
 qreal VtermWidget::scrollPositionGet() const {
