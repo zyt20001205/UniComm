@@ -45,6 +45,7 @@ private:
     QJsonObject m_config{};
     QQuickView *m_manageWindow{};
     QObject *m_toolTip{};
+    QObject *m_contextMenu{};
 
     TerminalModel *m_terminalModel{};
     QHash<QString, TerminalPage *> m_terminalPageHash{};

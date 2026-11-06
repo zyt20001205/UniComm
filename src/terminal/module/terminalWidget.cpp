@@ -30,7 +30,13 @@ TerminalWidget::TerminalWidget(QQuickItem *parent)
 }
 
 void TerminalWidget::propertySet(const QVariantHash &objects) {
+    m_contextMenu = qvariant_cast<QObject *>(objects["terminalModuleContextMenu"]);
     m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
+}
+
+void TerminalWidget::paste() {
+    const QString text = QGuiApplication::clipboard()->text();
+    if (!text.isEmpty()) emit keyPressed(0, Qt::NoModifier, text);
 }
 
 void TerminalWidget::paint(QPainter *painter) {
@@ -218,9 +224,23 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
             event->modifiers()
         );
     } else {
-        if (event->button() == Qt::MiddleButton) {
-            const QString text = QGuiApplication::clipboard()->text();
-            if (!text.isEmpty()) emit keyPressed(0, Qt::NoModifier, text);
+        if (event->button() == Qt::MiddleButton) paste();
+        else if (event->button() == Qt::RightButton) {
+            const int row = qFloor(event->position().y() / m_cellHeight);
+            const int col = qFloor(event->position().x() / m_cellWidth);
+            const int index = row * m_cols + col;
+            QUrl url;
+            if (row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0) {
+                emit getLink(m_cells[index].uri, url);
+            }
+            m_contextMenu->setProperty("menuSession", QVariantHash({
+                {"terminalWidget", QVariant::fromValue(this)},
+                {"copiable", false},
+                {"pastable", !QGuiApplication::clipboard()->text().isEmpty()},
+                {"url", url}
+            }));
+            m_toolTip->setProperty("text", QString());
+            QMetaObject::invokeMethod(m_contextMenu, "popup");
         }
     }
     event->accept();

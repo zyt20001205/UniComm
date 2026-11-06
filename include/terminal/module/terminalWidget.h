@@ -19,6 +19,8 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
+    Q_INVOKABLE void paste();
+
     void paint(QPainter *painter) override;
 
     void fontSet(const QFont &font);
@@ -88,6 +90,7 @@ private:
 
     [[nodiscard]] QRect cursorRect(const QPoint &position) const;
 
+    QObject *m_contextMenu{};
     QObject *m_toolTip{};
     QFont m_font{};
     QList<TerminalCell> m_cells{};

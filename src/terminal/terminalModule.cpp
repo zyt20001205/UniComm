@@ -27,6 +27,7 @@ TerminalModule::~TerminalModule() {
 
 void TerminalModule::propertySet(const QVariantHash &objects) {
     m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
+    m_contextMenu = qvariant_cast<QObject *>(objects["terminalModuleContextMenu"]);
     const auto &terminalMenu = qvariant_cast<QObject *>(objects["terminalModuleTerminalMenu"]);
     terminalMenu->setProperty("terminalModel", QVariant::fromValue(m_terminalModel));
 
@@ -139,7 +140,10 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
         connect(terminalPage, &TerminalPage::readTerminal, this, [id](const QByteArray &data) { g_threadpool->inputWrite(id, data); });
     }
     terminalPage->setTitle(terminalTitle);
-    terminalPage->propertySet({{"mainWindowToolTip", QVariant::fromValue(m_toolTip)}});
+    terminalPage->propertySet({
+        {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
+        {"terminalModuleContextMenu", QVariant::fromValue(m_contextMenu)}
+    });
 
     m_terminalPageHash.insert(uniqueName, terminalPage);
     connect(terminalPage, &TerminalPage::destroyed, this, [this, uniqueName] { m_terminalPageHash.remove(uniqueName); });
