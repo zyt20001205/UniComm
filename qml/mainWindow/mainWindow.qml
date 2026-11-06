@@ -4630,6 +4630,8 @@ Item {
             enabled: terminalModuleContextMenu.menuSession ? terminalModuleContextMenu.menuSession.copiable : false
             icon.source: "qrc:/icon/copy.svg"
             icon.width: 16; icon.height: 16
+
+            onTriggered: fileModule.copyToClipboard(terminalModuleContextMenu.menuSession.text)
         }
 
         MenuItem {

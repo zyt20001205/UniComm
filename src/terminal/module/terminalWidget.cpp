@@ -262,10 +262,13 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
             if (row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0) {
                 emit getLink(m_cells[index].uri, url);
             }
+            QString text;
+            emit getSelection(text);
             m_contextMenu->setProperty("menuSession", QVariantHash({
                 {"terminalWidget", QVariant::fromValue(this)},
-                {"copiable", false},
+                {"copiable", !text.isEmpty()},
                 {"pastable", !QGuiApplication::clipboard()->text().isEmpty()},
+                {"text", text},
                 {"url", url}
             }));
             m_toolTip->setProperty("text", QString());

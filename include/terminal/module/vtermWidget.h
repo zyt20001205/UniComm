@@ -46,6 +46,8 @@ public:
 
     void selectionUpdate(int row, int col);
 
+    void selectionGet(QString &text) const;
+
     void linkGet(int uri, QUrl &url) const;
 
     [[nodiscard]] qreal scrollPositionGet() const;

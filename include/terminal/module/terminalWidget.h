@@ -60,6 +60,8 @@ signals:
 
     void updateSelection(int row, int col);
 
+    void getSelection(QString &text);
+
     void getLink(int uri, QUrl &url);
 
     void debugDamage(const QRectF &rect);

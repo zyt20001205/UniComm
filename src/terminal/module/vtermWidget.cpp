@@ -181,6 +181,41 @@ void VtermWidget::selectionUpdate(const int row, const int col) {
     renderSelection();
 }
 
+void VtermWidget::selectionGet(QString &text) const {
+    text.clear();
+    if (m_selection.anchorRow < 0) return;
+
+    qint64 startRow = m_selection.anchorRow;
+    int startCol = m_selection.anchorCol;
+    qint64 endRow = m_selection.extentRow;
+    int endCol = m_selection.extentCol;
+    if (startRow > endRow || (startRow == endRow && startCol > endCol)) {
+        qSwap(startRow, endRow);
+        qSwap(startCol, endCol);
+    }
+
+    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow;
+    const qint64 screenFirstRow = m_altScreen ? 0 : firstRow + m_scrollback.size();
+    for (qint64 row = startRow; row <= endRow; ++row) {
+        const int firstCol = row == startRow ? startCol : 0;
+        const int lastCol = row == endRow ? endCol : m_cols;
+        if (firstCol < lastCol) {
+            const auto *line = row < screenFirstRow ? &m_scrollback.at(row - firstRow) : nullptr;
+            for (int col = 0; col < lastCol; ++col) {
+                TerminalCell cell{};
+                if (line) cell = line->value(col);
+                else {
+                    VTermScreenCell source{};
+                    vterm_screen_get_cell(m_screen, VTermPos{.row = static_cast<int>(row - screenFirstRow), .col = col}, &source);
+                    cell = uni_cast<TerminalCell>(m_screen, source);
+                }
+                if (cell.width > 0 && col + cell.width > firstCol) text += cell.text;
+            }
+        }
+        if (row < endRow) text += '\n';
+    }
+}
+
 void VtermWidget::linkGet(const int uri, QUrl &url) const {
     const char *value = vterm_screen_get_uri(m_screen, uri);
     url = value ? QUrl(QString::fromUtf8(value)) : QUrl{};
