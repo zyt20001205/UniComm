@@ -276,7 +276,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_terminalModule->propertySet(terminalObjects);
 
     const QVariantHash threadpoolObjects = {
-        {"mainItem", objects["mainItem"]},
         {"threadpoolModuleErrorDialog", objects["threadpoolModuleErrorDialog"]},
         {"threadpoolModuleThreadMenu", objects["threadpoolModuleThreadMenu"]}
     };

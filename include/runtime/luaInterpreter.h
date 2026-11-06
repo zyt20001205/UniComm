@@ -6,7 +6,6 @@
 #include <QUrl>
 #include <sol/state.hpp>
 
-class QEventLoop;
 class QJsonObject;
 class QStandardItemModel;
 class Data;
@@ -46,8 +45,6 @@ signals:
     void insertCallStack(const QString &threadId, QStandardItemModel *callStackModel);
 
     void appendLog(int type, const QString &prefix, const QString &message);
-
-    void newMessageDialog(const QEventLoop *eventloop, const QString &threadId, const QString &text) const;
 
     void startThread(const QUrl &documentUrl, int mode, QString &threadId, int startLine, int startCharacter, int endLine, int endCharacter);
 

@@ -7,7 +7,6 @@
 #include <QMutex>
 #include <QObject>
 
-class QEventLoop;
 class QThread;
 
 struct lua_State;
@@ -36,14 +35,10 @@ public:
 
     void stdErr(const QByteArray &data) const;
 
-    void message(const std::string &text) const;
-
     static void speak(const std::string &text);
 
 signals:
     void writeTerminal(const QString &id, const QByteArray &data);
-
-    void newMessageDialog(const QEventLoop *eventloop, const QString &text) const;
 
 private:
     struct OutputBuffer {

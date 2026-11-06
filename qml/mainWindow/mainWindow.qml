@@ -161,46 +161,6 @@ Item {
         }
     }
 
-    Component {
-        id: mainWindowMessageComponent
-
-        Dialog {
-            id: mainWindowMessageDialog
-            parent: Overlay.overlay
-            x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-            y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-            width: 600
-            modal: true
-            standardButtons: Dialog.Ok
-            property string text
-            topPadding: 30; bottomPadding: 20
-
-            onOpened: {
-                mainWindow.overlayFlagSet(false, true)
-                widgetCount += 1
-            }
-            onClosed: {
-                widgetCount -= 1
-                destroy()
-            }
-
-            Label {
-                text: mainWindowMessageDialog.text
-            }
-        }
-    }
-
-    function messageDialogNew(eventloop, title, text) {
-        const messageDialog = mainWindowMessageComponent.createObject(mainItem, {
-            "title": title,
-            "text": text
-        });
-        messageDialog.open()
-        messageDialog.closed.connect(() => {
-            eventloop.quit()
-        });
-    }
-
     function operationErrorShow(error) {
         if (!error)
             return
@@ -4960,7 +4920,6 @@ Item {
 
     Component.onCompleted: {
         const objects = {
-            "mainItem": mainItem,
             "mainWindowCloseDialog": mainWindowCloseDialog,
             "mainWindowMessageDialog": mainWindowMessageDialog,
             "mainWindowQuitDialog": mainWindowQuitDialog,

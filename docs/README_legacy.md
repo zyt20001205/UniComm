@@ -419,7 +419,6 @@ flowchart LR
 |    APIS    |                               Status                                | Discription         |
 |:----------:|:-------------------------------------------------------------------:|:--------------------|
 |   print    | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | structured output  |
-| io.message | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | messagebox          |
 |  io.speak  | ![Passing](https://img.shields.io/badge/Status-Passing-brightgreen) | tts                 |
 
 ## String APIS

@@ -29,7 +29,6 @@ ThreadpoolModule::~ThreadpoolModule() {
 }
 
 void ThreadpoolModule::propertySet(const QVariantHash &objects) {
-    m_mainItem = qvariant_cast<QObject *>(objects["mainItem"]);
     m_errorDialog = qvariant_cast<QObject *>(objects["threadpoolModuleErrorDialog"]);
     const QVariantList horizontalHeader = {"", tr("Source"), tr("Spawn Time"), tr("Thread ID")};
 
@@ -94,7 +93,6 @@ void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QStr
     connect(interpreter, &LuaInterpreter::stopThread, this, &ThreadpoolModule::threadStop);
     connect(interpreter, &LuaInterpreter::writeTerminal, this, &ThreadpoolModule::writeTerminal);
     connect(interpreter, &LuaInterpreter::appendLog, this, &ThreadpoolModule::appendLog);
-    connect(interpreter, &LuaInterpreter::newMessageDialog, this, &ThreadpoolModule::messageDialogNew);
     interpreter->moveToThread(worker);
     connect(worker, &QThread::finished, interpreter, &LuaInterpreter::deleteLater);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
@@ -212,10 +210,6 @@ void ThreadpoolModule::threadAppend(const int mode, const QString &name, const Q
         else if (mode == InterpreterMode::Agent) m_agent--;
         emit refreshThread(m_run, m_debug, m_agent);
     });
-}
-
-void ThreadpoolModule::messageDialogNew(const QEventLoop *eventloop, const QString &threadId, const QString &text) const {
-    QMetaObject::invokeMethod(m_mainItem, "messageDialogNew", Q_ARG(QVariant, QVariant::fromValue(eventloop)), Q_ARG(QVariant, threadId), Q_ARG(QVariant, text));
 }
 
 // public

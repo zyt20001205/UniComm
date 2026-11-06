@@ -203,12 +203,6 @@ void IO::print(const sol::variadic_args &args) const {
     stdOut(data);
 }
 
-void IO::message(const std::string &text) const {
-    const auto eventloop = std::make_unique<QEventLoop>();
-    emit newMessageDialog(eventloop.get(), QString::fromStdString(text));
-    eventloop->exec();
-}
-
 void IO::speak(const std::string &text) {
     QTextToSpeech tts;
     if (tts.engine().isEmpty()) {
