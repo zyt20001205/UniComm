@@ -17,12 +17,10 @@ Mqtt = {}
 ---@return mqtt
 function Mqtt.new(name, timeout) end
 
----@enum MqttQoS
-Mqtt.QoS = {
-    AtMostOnce = 0,
-    AtLeastOnce = 1,
-    ExactlyOnce = 2,
-}
+---@alias MqttQoS
+---| 0 # At most once.
+---| 1 # At least once.
+---| 2 # Exactly once.
 
 ---@class (exact) MqttMessage
 ---@field topic string MQTT topic name encoded as UTF-8.
@@ -54,7 +52,7 @@ function mqtt:connect(clientId, username, password, keepAlive, cleanSession) end
 ---Wildcard syntax is checked by the broker; an invalid filter may cause it to close the connection.
 ---
 ---@param topicFilter string Non-empty UTF-8 topic filter, up to 65535 bytes. May contain `+` and `#` wildcards.
----@param qos? MqttQoS (default: Mqtt.QoS.AtMostOnce) Maximum delivery QoS requested for this subscription.
+---@param qos? MqttQoS (default: 0) Maximum delivery QoS requested for this subscription.
 ---@return MqttQoS qos Granted maximum delivery QoS.
 function mqtt:subscribe(topicFilter, qos) end
 
@@ -62,12 +60,12 @@ function mqtt:subscribe(topicFilter, qos) end
 ---Publish a message with QoS 0 without waiting for an MQTT acknowledgement.
 ---
 ---The payload is sent unchanged, including null bytes; it may be empty. No JSON or text encoding is applied.
----Only `Mqtt.QoS.AtMostOnce` is supported. Other QoS values raise a Lua error before sending.
+---Only QoS 0 (at most once) is supported. Other QoS values raise a Lua error before sending.
 ---A normal return means the transport write succeeded, not that the broker or receiving application has processed the message.
 ---
 ---@param topic string Non-empty UTF-8 topic name, up to 65535 bytes. Topic names must not contain `+` or `#` wildcards.
 ---@param payload string Raw message payload, which may contain binary data.
----@param qos? MqttQoS (default: Mqtt.QoS.AtMostOnce) Delivery QoS. Only `AtMostOnce` is supported.
+---@param qos? MqttQoS (default: 0) Delivery QoS. Only 0 (at most once) is supported.
 ---@param retain? boolean (default: false) Ask the broker to retain the message for future subscribers. Keep false for command topics.
 ---@return nil
 function mqtt:publish(topic, payload, qos, retain) end
@@ -89,7 +87,7 @@ function mqtt:disconnect() end
 ---before the instance timeout configured by `Mqtt.new`, return nil and leave any incomplete packet buffered.
 ---An empty payload is a valid message and does not cause a nil return.
 ---
----Only `Mqtt.QoS.AtMostOnce` is supported. Incoming QoS 1/2 publications, malformed
+---Only QoS 0 (at most once) is supported. Incoming QoS 1/2 publications, malformed
 ---messages and unexpected control packets raise a Lua error. Subscribe with QoS 0.
 ---The payload is returned unchanged; decode JSON or other formats explicitly in the caller.
 ---

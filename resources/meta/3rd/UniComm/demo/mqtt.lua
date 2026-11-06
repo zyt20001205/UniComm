@@ -12,17 +12,17 @@ mqtt:connect("UniCommA1", "bblp", "ACCESS_CODE")
 print("MQTT CONNECT accepted")
 
 -- Replace SERIAL_NUMBER with the printer's serial number.
--- Use AtMostOnce (QoS 0): consume() currently supports QoS 0 publications only.
+-- Use QoS 0 (at most once): consume() supports this delivery level only.
 -- subscribe() waits for the matching SUBACK and returns the granted QoS.
 local topicFilter = "device/SERIAL_NUMBER/report"
-local qos = mqtt:subscribe(topicFilter, Mqtt.QoS.AtMostOnce)
+local qos = mqtt:subscribe(topicFilter, 0)
 print("MQTT SUBACK accepted:", topicFilter, "QoS:", qos)
 
 -- QoS 0 publishing on a generic MQTT broker (not a printer command):
--- mqtt:publish("unicomm/demo", "Hello from UniComm", Mqtt.QoS.AtMostOnce)
+-- mqtt:publish("unicomm/demo", "Hello from UniComm", 0)
 -- Binary and empty payloads are also allowed; retain defaults to false.
--- mqtt:publish("unicomm/demo/binary", "\0\1\255", Mqtt.QoS.AtMostOnce, false)
--- mqtt:publish("unicomm/demo/empty", "", Mqtt.QoS.AtMostOnce, false)
+-- mqtt:publish("unicomm/demo/binary", "\0\1\255", 0, false)
+-- mqtt:publish("unicomm/demo/empty", "", 0, false)
 -- For the printer, use device/SERIAL_NUMBER/request with its protocol-specific
 -- request payload. Publishing does not wait for the application reply.
 
