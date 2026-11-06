@@ -56,6 +56,10 @@ signals:
 
     void mouseScrolled(int lines);
 
+    void startSelection(int row, int col);
+
+    void updateSelection(int row, int col);
+
     void getLink(int uri, QUrl &url);
 
     void debugDamage(const QRectF &rect);
@@ -94,6 +98,7 @@ private:
     QObject *m_toolTip{};
     QFont m_font{};
     QList<TerminalCell> m_cells{};
+    bool m_selecting{};
     // cursor
     QPoint m_position{};
     bool m_visible{true};

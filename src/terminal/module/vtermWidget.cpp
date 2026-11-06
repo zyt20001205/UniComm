@@ -62,6 +62,7 @@ VtermWidget::~VtermWidget() {
 }
 
 void VtermWidget::resize(const int rows, const int cols) {
+    m_selection = {};
     m_rows = rows;
     m_cols = cols;
     m_pendingDamage = {};
@@ -72,6 +73,7 @@ void VtermWidget::resize(const int rows, const int cols) {
 }
 
 void VtermWidget::reset(const bool hard) {
+    m_selection = {};
     m_pendingDamage = {};
     vterm_screen_reset(m_screen, hard ? 1 : 0);
     vterm_screen_flush_damage(m_screen);
@@ -153,6 +155,24 @@ void VtermWidget::mouseScrolled(const int lines) {
     m_scrollOffset = scrollOffset;
     renderScreen();
     emit scrollChanged();
+}
+
+void VtermWidget::selectionStart(const int row, const int col) {
+    if (row < 0 || row >= m_rows || col < 0 || col > m_cols) return;
+
+    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
+    m_selection.anchorRow = firstRow + row;
+    m_selection.anchorCol = col;
+    m_selection.extentRow = m_selection.anchorRow;
+    m_selection.extentCol = col;
+}
+
+void VtermWidget::selectionUpdate(const int row, const int col) {
+    if (m_selection.anchorRow < 0) return;
+
+    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
+    m_selection.extentRow = firstRow + qBound(0, row, m_rows - 1);
+    m_selection.extentCol = qBound(0, col, m_cols);
 }
 
 void VtermWidget::linkGet(const int uri, QUrl &url) const {
@@ -279,6 +299,7 @@ int VtermWidget::termPropSet(const VTermProp prop, const VTermValue *value) {
         case VTERM_PROP_CURSORBLINK: emit setCursorBlink(value->boolean);
             break;
         case VTERM_PROP_ALTSCREEN:
+            m_selection = {};
             m_altScreen = value->boolean;
             m_scrollOffset = 0;
             break;
@@ -319,13 +340,19 @@ int VtermWidget::linePush(const int cols, const VTermScreenCell *cells) {
     m_scrollback.append(row);
 
     constexpr int maxScrollbackLines = 10000;
-    if (m_scrollback.size() > maxScrollbackLines) m_scrollback.removeFirst();
+    if (m_scrollback.size() > maxScrollbackLines) {
+        m_scrollback.removeFirst();
+        ++m_scrollbackFirstRow;
+        if (m_selection.anchorRow < m_scrollbackFirstRow || m_selection.extentRow < m_scrollbackFirstRow) m_selection = {};
+    }
     m_scrollOffset = qMin(m_scrollOffset, m_scrollback.size());
 
     return 1;
 }
 
 int VtermWidget::clear() {
+    m_selection = {};
+    m_scrollbackFirstRow += m_scrollback.size();
     m_scrollback.clear();
     if (m_scrollOffset == 0) return 1;
 

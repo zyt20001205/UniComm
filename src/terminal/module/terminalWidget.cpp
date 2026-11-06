@@ -195,6 +195,7 @@ void TerminalWidget::cursorShapeSet(const int shape) {
 void TerminalWidget::cursorModeSet(const int mode) {
     if (m_mode == mode) return;
     m_mode = mode;
+    m_selecting = false;
 }
 
 QVariant TerminalWidget::inputMethodQuery(const Qt::InputMethodQuery query) const {
@@ -216,6 +217,7 @@ void TerminalWidget::inputMethodEvent(QInputMethodEvent *event) {
 
 void TerminalWidget::mousePressEvent(QMouseEvent *event) {
     forceActiveFocus();
+    m_selecting = false;
     if (m_mode >= VTERM_PROP_MOUSE_CLICK) {
         emit mousePressed(
             event->position().y() / m_cellHeight,
@@ -224,7 +226,15 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
             event->modifiers()
         );
     } else {
-        if (event->button() == Qt::MiddleButton) paste();
+        if (event->button() == Qt::LeftButton && !(event->modifiers() & Qt::ControlModifier)) {
+            const int row = qFloor(event->position().y() / m_cellHeight);
+            const int col = qRound(event->position().x() / m_cellWidth);
+            if (m_rows > 0 && m_cols > 0 && row >= 0 && row < m_rows) {
+                m_selecting = true;
+                emit startSelection(row, qBound(0, col, m_cols));
+            }
+        }
+        else if (event->button() == Qt::MiddleButton) paste();
         else if (event->button() == Qt::RightButton) {
             const int row = qFloor(event->position().y() / m_cellHeight);
             const int col = qFloor(event->position().x() / m_cellWidth);
@@ -252,7 +262,10 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
         const int col = qFloor(event->position().x() / m_cellWidth);
         const int index = row * m_cols + col;
         const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
-        if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
+        if (event->button() == Qt::LeftButton && m_selecting) {
+            emit updateSelection(row, qRound(event->position().x() / m_cellWidth));
+        }
+        else if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
             QUrl url;
             emit getLink(m_cells[index].uri, url);
             if (!url.isEmpty()) QDesktopServices::openUrl(url);
@@ -266,6 +279,7 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
             event->modifiers()
         );
     }
+    if (event->button() == Qt::LeftButton) m_selecting = false;
     event->accept();
 }
 
@@ -278,6 +292,9 @@ void TerminalWidget::mouseMoveEvent(QMouseEvent *event) {
             event->button(),
             event->modifiers()
         );
+    }
+    else if (m_mode == VTERM_PROP_MOUSE_NONE && m_selecting && (event->buttons() & Qt::LeftButton)) {
+        emit updateSelection(qFloor(event->position().y() / m_cellHeight), qRound(event->position().x() / m_cellWidth));
     }
     event->accept();
 }

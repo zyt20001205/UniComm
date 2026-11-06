@@ -69,6 +69,8 @@ void TerminalPage::propertyGet(const QVariantMap &objects) {
     connect(m_terminalWidget, &TerminalWidget::mouseMoved, m_vtermWidget, &VtermWidget::mouseMoved);
     connect(m_terminalWidget, &TerminalWidget::mouseWheeled, m_vtermWidget, &VtermWidget::mouseWheeled);
     connect(m_terminalWidget, &TerminalWidget::mouseScrolled, m_vtermWidget, &VtermWidget::mouseScrolled);
+    connect(m_terminalWidget, &TerminalWidget::startSelection, m_vtermWidget, &VtermWidget::selectionStart);
+    connect(m_terminalWidget, &TerminalWidget::updateSelection, m_vtermWidget, &VtermWidget::selectionUpdate);
     connect(m_terminalWidget, &TerminalWidget::getLink, m_vtermWidget, &VtermWidget::linkGet);
     connect(m_terminalWidget, &TerminalWidget::debugDamage, damageOverlay, [damageOverlay](const QRectF &rect) {
         damageOverlay->setPosition(rect.topLeft());

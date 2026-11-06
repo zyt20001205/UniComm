@@ -42,6 +42,10 @@ public:
 
     void mouseScrolled(int lines);
 
+    void selectionStart(int row, int col);
+
+    void selectionUpdate(int row, int col);
+
     void linkGet(int uri, QUrl &url) const;
 
     [[nodiscard]] qreal scrollPositionGet() const;
@@ -72,6 +76,13 @@ signals:
     void scrollChanged();
 
 private:
+    struct Selection {
+        qint64 anchorRow{-1};
+        int anchorCol{};
+        qint64 extentRow{-1};
+        int extentCol{};
+    };
+
     void renderScreen();
 
     void renderDamage(const QRect &rect);
@@ -103,7 +114,9 @@ private:
     bool m_cursorVisible{true};
     bool m_altScreen{false};
     QList<QList<TerminalCell> > m_scrollback{};
+    qint64 m_scrollbackFirstRow{};
     int m_scrollOffset{};
+    Selection m_selection{};
     QRect m_pendingDamage{};
     // osc52
     QByteArray m_selectionBuffer{};
