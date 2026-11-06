@@ -3,8 +3,9 @@ import QtQuick.Controls
 
 Item {
     id: rootItem
-    anchors.fill: parent
     focus: true
+
+    property url source
 
     Rectangle {
         anchors.fill: parent
@@ -31,6 +32,7 @@ Item {
             Image {
                 id: image
                 anchors.fill: parent
+                source: rootItem.source
                 fillMode: Image.PreserveAspectFit
             }
         }
@@ -110,12 +112,5 @@ Item {
         }
 
         onValueModified: imageContainer.scale = value
-    }
-
-    Component.onCompleted: {
-        const objects = {
-            "image": image
-        };
-        imagePage.propertyGet(objects)
     }
 }

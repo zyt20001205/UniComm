@@ -15,11 +15,8 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
-
 private:
     QQuickWidget *m_imageWidget{};
-    QObject *m_image{};
 };
 
 #endif //UNICOMM_IMAGEPAGE_H
