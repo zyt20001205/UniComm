@@ -345,8 +345,19 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     // UI lib
     {
         auto ui = m_lua.create_table();
+        ui.new_usertype<ImageViewer>(
+            "ImageViewer",
+            sol::no_constructor,
+            "__close", [](ImageViewer &viewer, const sol::object &) { viewer.close(); },
+            "setData", &ImageViewer::setData,
+            "setPath", &ImageViewer::setPath,
+            "close", &ImageViewer::close
+        );
         ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
             return m_ui->message(title, text, button);
+        });
+        ui.set_function("image", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &source) {
+            return std::make_unique<ImageViewer>(title, source, m_ui);
         });
         m_lua["ui"] = ui;
     }
@@ -375,6 +386,7 @@ QJsonObject LuaInterpreter::start(const QString &script) {
         sol::script_pass_on_error,
         filePath.toStdString()
     );
+    emit m_ui->close();
     if (!result.valid()) {
         const sol::error err = result;
         m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');

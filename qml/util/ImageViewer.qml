@@ -6,6 +6,7 @@ Item {
     focus: true
 
     property url source
+    property bool cache: true
 
     Rectangle {
         anchors.fill: parent
@@ -33,6 +34,7 @@ Item {
                 id: image
                 anchors.fill: parent
                 source: rootItem.source
+                cache: rootItem.cache
                 fillMode: Image.PreserveAspectFit
             }
         }

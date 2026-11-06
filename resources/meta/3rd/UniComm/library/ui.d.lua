@@ -25,3 +25,53 @@ ui = {}
 ---@param button? MessageButton[] (default: {"ok"}) Non-empty list of buttons to display.
 ---@return boolean accepted True for OK; false for cancellation or closing the window.
 function ui.message(title, text, button) end
+
+---
+---Opens an independent image window and returns without waiting for it to close.
+---
+---Omit source to open an empty window, then use setData for encoded image bytes or
+---setPath for a file. Relative image paths start from the current workspace.
+---Each call creates a separate window.
+---Use `local viewer <close> = ui.image(nil)` to close it automatically
+---when its scope ends, including when a Lua error unwinds that scope.
+---The window also closes when the script ends or its viewer is garbage-collected.
+---A local variable does not keep a completed script running.
+---
+---@param title? string (default: current threadId) Window title. Pass nil to use the default.
+---@param source? string Initial image file path. Omit to create an empty window.
+---@return ImageViewer viewer Image window handle owned by Lua.
+function ui.image(title, source) end
+
+---@class ImageViewer
+---@field private __close fun(self: ImageViewer, error: any)
+local imageViewer = {}
+
+---
+---Displays encoded image bytes directly from memory, without writing a file.
+---
+---Pass raw JPEG, PNG, or other Qt-supported encoded image bytes, not Base64 or
+---unencoded pixel data. Binary strings containing null bytes are preserved.
+---Each update replaces the previous in-memory image. Invalid image data or a
+---closed window raises a Lua error. setData and setPath can be used on the same window.
+---
+---@param data string Raw encoded image bytes, for example an HTTP response body.
+---@return nil
+function imageViewer:setData(data) end
+
+---
+---Loads an image file into this window without waiting for the user to close it.
+---
+---Calling this again with the same path reloads the file, including overwritten
+---camera snapshots. Updating a window that has been closed raises a Lua error.
+---
+---@param path string Image file path, absolute or relative to the current workspace.
+---@return nil
+function imageViewer:setPath(path) end
+
+---
+---Closes this image window. Calling close again is harmless.
+---
+---This is also called automatically for a `<close>` variable when its scope ends.
+---
+---@return nil
+function imageViewer:close() end

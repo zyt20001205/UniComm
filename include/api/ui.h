@@ -2,9 +2,12 @@
 #define UNICOMM_UI_H
 
 #include <QObject>
+#include <QPointer>
 #include <sol/table.hpp>
 
 #include <string>
+
+class QQuickView;
 
 class UI final : public QObject {
     Q_OBJECT
@@ -16,6 +19,32 @@ public:
 
 signals:
     void close() const;
+
+private:
+    friend class ImageViewer;
+
+    [[nodiscard]] QQuickView *init(const QString &title) const;
+};
+
+class ImageViewer final {
+public:
+    ImageViewer(const sol::optional<std::string> &title, const sol::optional<std::string> &source, const UI *owner);
+
+    ~ImageViewer();
+
+    void setData(const std::string &data) const;
+
+    void setPath(const std::string &path) const;
+
+    void close();
+
+private:
+    Q_DISABLE_COPY(ImageViewer)
+
+    class DataProvider;
+
+    QPointer<QQuickView> m_window{};
+    DataProvider *m_provider{}; // Owned by the window's QML engine.
 };
 
 #endif //UNICOMM_UI_H
