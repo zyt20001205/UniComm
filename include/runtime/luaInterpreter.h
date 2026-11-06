@@ -14,6 +14,7 @@ class Key;
 class Mouse;
 class String;
 class Thread;
+class UI;
 
 class LuaInterpreter final : public QObject {
     Q_OBJECT
@@ -22,6 +23,8 @@ public:
     explicit LuaInterpreter(const QVariantMap &luaSession , QObject *parent = nullptr);
 
     [[nodiscard]] QJsonObject start(const QString &script);
+
+    void stop() const;
 
     void inputWrite(const QByteArray &data) const;
 
@@ -67,6 +70,7 @@ private:
     Mouse *m_mouse{};
     String *m_string{};
     Thread *m_thread{};
+    UI *m_ui{};
 };
 
 #endif //UNICOMM_LUAINTERPRETER_H

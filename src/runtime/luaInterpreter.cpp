@@ -22,6 +22,7 @@
 #include "api/smtp.h"
 #include "api/string.h"
 #include "api/thread.h"
+#include "api/ui.h"
 #include "core/globalManager.h"
 #include "document/documentModule.h"
 #include "util/luaUtils.h"
@@ -36,7 +37,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
       m_key(new Key(this)),
       m_mouse(new Mouse(this)),
       m_string(new String(this)),
-      m_thread(new Thread(this)) {
+      m_thread(new Thread(this)),
+      m_ui(new UI(this)) {
     // LuaStandard lib
     {
         m_lua.open_libraries();
@@ -251,11 +253,6 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "consume", &Mqtt::consume
         );
         auto mqtt = m_lua.create_table();
-        auto qos = m_lua.create_table();
-        qos["AtMostOnce"] = Mqtt::QoS::AtMostOnce;
-        qos["AtLeastOnce"] = Mqtt::QoS::AtLeastOnce;
-        qos["ExactlyOnce"] = Mqtt::QoS::ExactlyOnce;
-        mqtt["QoS"] = qos;
         mqtt.set_function("new", [this](const std::string &portName, const sol::optional<int> timeout) {
             auto *obj = new Mqtt(this);
             obj->init(portName, timeout.value_or(30000));
@@ -345,6 +342,14 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         connect(m_thread, &Thread::startThread, this, &LuaInterpreter::startThread);
         connect(m_thread, &Thread::stopThread, this, &LuaInterpreter::stopThread);
     }
+    // UI lib
+    {
+        auto ui = m_lua.create_table();
+        ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
+            return m_ui->message(title, text, button);
+        });
+        m_lua["ui"] = ui;
+    }
 }
 
 QJsonObject LuaInterpreter::start(const QString &script) {
@@ -379,6 +384,10 @@ QJsonObject LuaInterpreter::start(const QString &script) {
     // remove terminate hook
     lua_sethook(L, nullptr, 0, 0);
     return m_io->finish();
+}
+
+void LuaInterpreter::stop() const {
+    emit m_ui->close();
 }
 
 void LuaInterpreter::inputWrite(const QByteArray &data) const {

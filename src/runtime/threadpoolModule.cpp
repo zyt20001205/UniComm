@@ -150,6 +150,7 @@ void ThreadpoolModule::threadStop(const QString &threadId) {
             }
         }
         m_threadHash[threadId]->requestInterruption();
+        QMetaObject::invokeMethod(m_interpreterHash[threadId], &LuaInterpreter::stop, Qt::QueuedConnection);
     }
 }
 
