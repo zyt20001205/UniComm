@@ -48,7 +48,7 @@ signals:
 
     void trackQuit(float secondaryProgress, const QString &secondaryLog) const;
 
-    void refreshThread(int run, int debug);
+    void refreshThread(int run, int debug, int agent);
 
     void openDocument(const QUrl &documentUrl);
 
@@ -74,8 +74,10 @@ private:
     QObject* m_errorDialog{};
     QHash<QString, QThread *> m_threadHash{};
     QHash<QString, LuaInterpreter *> m_interpreterHash{};
+    QString m_agentTerminalId{};
     int m_run = 0;
     int m_debug = 0;
+    int m_agent = 0;
     ThreadpoolModel *m_standardItemModel{};
     QString m_lifetime{};
 

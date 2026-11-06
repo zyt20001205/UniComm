@@ -34,7 +34,7 @@ public:
 
     void selectionChange(const QHash<QString, int> &selection) const;
 
-    void threadRefresh(int run, int debug) const;
+    void threadRefresh(int run, int debug, int agent) const;
 
 signals:
     void gotoDocument(const QUrl &documentUrl);
@@ -46,7 +46,7 @@ private:
     QObject *m_positionButton{};
     QObject *m_eolModeButton{};
     QObject *m_codePageButton{};
-    QObject *m_threadButton{};
+    QObject *m_threadTooltip{};
     int m_taskId{};
     QHash<int, std::function<void()>> m_abortCallbacks{};
     QHash<int, std::function<void()>> m_infoCallbacks{};

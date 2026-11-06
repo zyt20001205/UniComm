@@ -4583,6 +4583,42 @@ Item {
         }
     }
 
+    ToolTip {
+        id: statusModuleThreadToolTip
+        parent: Overlay.overlay
+        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
+        property point position
+        property int runCount: 0
+        property int debugCount: 0
+        property int agentCount: 0
+
+        onOpened: {
+            mainWindow.overlayFlagSet(false, false)
+            widgetCount += 1
+        }
+        onClosed: widgetCount -= 1
+        onAboutToShow: {
+            x = position.x
+            y = position.y
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 6
+
+            Label {
+                text: qsTr("Run: %1").arg(statusModuleThreadToolTip.runCount)
+            }
+
+            Label {
+                text: qsTr("Debug: %1").arg(statusModuleThreadToolTip.debugCount)
+            }
+
+            Label {
+                text: qsTr("Agent: %1").arg(statusModuleThreadToolTip.agentCount)
+            }
+        }
+    }
+
     // structure module
     Menu {
         id: structureModuleRootMenu
@@ -5000,6 +5036,7 @@ Item {
 
             "statusModuleEolModeMenu": statusModuleEolModeMenu,
             "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip,
+            "statusModuleThreadToolTip": statusModuleThreadToolTip,
 
             "structureModuleRootMenu": structureModuleRootMenu,
 

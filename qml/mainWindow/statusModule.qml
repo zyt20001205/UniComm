@@ -163,10 +163,14 @@ Item {
             id: threadButton
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            text: qsTr("Idle")
+            text: qsTr("Threads: %1").arg(threadTooltip.runCount + threadTooltip.debugCount + threadTooltip.agentCount)
             Layout.preferredWidth: threadButtonTextMetrics.width + 8; Layout.preferredHeight: 20
 
-            // onClicked:
+            onClicked: {
+                const globalPos = threadButton.mapToGlobal(threadButton.width - threadTooltip.width, -threadTooltip.height);
+                threadTooltip.position = threadTooltip.parent.mapFromGlobal(globalPos.x, globalPos.y)
+                threadTooltip.open()
+            }
 
             TextMetrics {
                 id: threadButtonTextMetrics
@@ -189,8 +193,7 @@ Item {
         const objects = {
             "positionButton": positionButton,
             "eolModeButton": eolModeButton,
-            "codePageButton": codePageButton,
-            "threadButton": threadButton
+            "codePageButton": codePageButton
         };
         statusModule.propertyGet(objects)
     }

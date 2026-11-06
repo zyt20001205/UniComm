@@ -20,6 +20,7 @@ StatusModule::~StatusModule() {
 }
 
 void StatusModule::propertySet(const QVariantHash &objects) {
+    m_threadTooltip = qvariant_cast<QObject *>(objects["statusModuleThreadToolTip"]);
     auto *backgroundTooltip = qvariant_cast<QObject *>(objects["statusModuleBackgroundToolTip"]);
     backgroundTooltip->setProperty("backgroundModel", QVariant::fromValue<QObject *>(m_backgroundModel));
     rootContext()->setContextProperty("global", g_globalManager);
@@ -27,6 +28,7 @@ void StatusModule::propertySet(const QVariantHash &objects) {
     rootContext()->setContextProperty("statusModule", this);
     rootContext()->setContextProperty("workspaceName", g_workspaceUrl.fileName());
     rootContext()->setContextProperty("eolModeMenu", qvariant_cast<QObject *>(objects["statusModuleEolModeMenu"]));
+    rootContext()->setContextProperty("threadTooltip", m_threadTooltip);
     rootContext()->setContextProperty("backgroundTooltip", backgroundTooltip);
     rootContext()->setContextProperty("backgroundModel", m_backgroundModel);
     setResizeMode(SizeRootObjectToView);
@@ -38,7 +40,6 @@ void StatusModule::propertyGet(const QVariantMap &objects) {
     m_positionButton = qvariant_cast<QObject *>(objects["positionButton"]);
     m_eolModeButton = qvariant_cast<QObject *>(objects["eolModeButton"]);
     m_codePageButton = qvariant_cast<QObject *>(objects["codePageButton"]);
-    m_threadButton = qvariant_cast<QObject *>(objects["threadButton"]);
 }
 
 void StatusModule::backgroundAppend(int &taskId, const std::function<void()> &abort, const std::function<void()> &info) {
@@ -127,12 +128,10 @@ void StatusModule::selectionChange(const QHash<QString, int> &selection) const {
     m_positionButton->setProperty("text", QString("%1%2%3").arg(current, charsText, linesText));
 }
 
-void StatusModule::threadRefresh(const int run, const int debug) const {
-    if (run + debug == 0) {
-        m_threadButton->setProperty("text", tr("Idle"));
-    } else {
-        m_threadButton->setProperty("text", QString(tr("Run: %1 Debug: %2")).arg(QString::number(run), QString::number(debug)));
-    }
+void StatusModule::threadRefresh(const int run, const int debug, const int agent) const {
+    m_threadTooltip->setProperty("runCount", run);
+    m_threadTooltip->setProperty("debugCount", debug);
+    m_threadTooltip->setProperty("agentCount", agent);
 }
 
 // private

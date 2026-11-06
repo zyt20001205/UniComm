@@ -8,6 +8,7 @@
 #include <QSharedPointer>
 #include <QThread>
 #include <QTimer>
+#include <QUuid>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -70,7 +71,7 @@ void ThreadpoolModule::quit() {
 void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QString &threadId, const int startLine, const int startCharacter, const int endLine,
                                    const int endCharacter) {
     auto *worker = new QThread(); // NOLINT
-    threadId = QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
+    threadId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     auto output = QSharedPointer<QJsonObject>::create();
     // preload thread with lua session
     QVariantMap luaSession{};
@@ -114,6 +115,8 @@ void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QStr
         emit startDebug(threadId);
         connect(worker, &QThread::finished, this, [this, threadId] { emit stopDebug(threadId); });
     } else if (mode == InterpreterMode::Agent) {
+        if (!m_agentTerminalId.isEmpty()) emit closeTerminal(m_agentTerminalId);
+        m_agentTerminalId = threadId;
         connect(worker, &QThread::finished, this, [this, threadId, output] {
             if (output->value("output").toString().isEmpty() && output->value("err").toString().isEmpty()) emit closeTerminal(threadId);
             emit finishThread(threadId, *output);
@@ -193,8 +196,9 @@ void ThreadpoolModule::threadAppend(const int mode, const QString &name, const Q
     m_standardItemModel->appendRow({iconItem, nameItem, spawnItem, threadIdItem});
     // refresh status bar
     if (mode == InterpreterMode::Run) m_run++;
-    else m_debug++;
-    emit refreshThread(m_run, m_debug);
+    else if (mode == InterpreterMode::Debug) m_debug++;
+    else if (mode == InterpreterMode::Agent) m_agent++;
+    emit refreshThread(m_run, m_debug, m_agent);
 
     const auto *worker = m_threadHash[threadId];
     connect(worker, &QThread::finished, this, [this, threadId] {
@@ -205,8 +209,9 @@ void ThreadpoolModule::threadAppend(const int mode, const QString &name, const Q
         m_standardItemModel->removeRow(row);
         // refresh status bar
         if (mode == InterpreterMode::Run) m_run--;
-        else m_debug--;
-        emit refreshThread(m_run, m_debug);
+        else if (mode == InterpreterMode::Debug) m_debug--;
+        else if (mode == InterpreterMode::Agent) m_agent--;
+        emit refreshThread(m_run, m_debug, m_agent);
     });
 }
 

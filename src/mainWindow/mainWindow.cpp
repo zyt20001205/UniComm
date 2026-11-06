@@ -254,7 +254,8 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     const QVariantHash statusObjects = {
         {"statusModuleEolModeMenu", objects["statusModuleEolModeMenu"]},
-        {"statusModuleBackgroundToolTip", objects["statusModuleBackgroundToolTip"]}
+        {"statusModuleBackgroundToolTip", objects["statusModuleBackgroundToolTip"]},
+        {"statusModuleThreadToolTip", objects["statusModuleThreadToolTip"]}
     };
     m_statusModule->propertySet(statusObjects);
 
