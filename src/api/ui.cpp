@@ -1,5 +1,6 @@
 #include "api/ui.h"
 
+#include <QFileDialog>
 #include <QMutex>
 #include <QQmlContext>
 #include <QQuickImageProvider>
@@ -96,10 +97,49 @@ sol::optional<std::string> UI::input(const sol::optional<std::string> &title, co
     return result;
 }
 
+sol::optional<std::string> UI::file(const sol::optional<std::string> &title, const sol::optional<std::string> &mode) const {
+    const auto _mode = mode.value_or("open");
+    if (_mode != "open" && _mode != "save") throw sol::error("mode must be open or save");
+
+    QEventLoop loop{};
+    QString exception{};
+    sol::optional<std::string> result{};
+    auto *worker = QThread::currentThread();
+
+    QMetaObject::invokeMethod(qApp, [&result, &loop, this, &title, &_mode, worker]() -> QString {
+        if (worker->isInterruptionRequested()) return "terminated";
+
+        const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(thread()), 0, 16);
+        auto *dialog = new QFileDialog(g_mainWindow, _title, g_workspaceUrl.toLocalFile()); // NOLINT
+        if (_mode == "save") {
+            dialog->setAcceptMode(QFileDialog::AcceptSave);
+            dialog->setFileMode(QFileDialog::AnyFile);
+        } else {
+            dialog->setAcceptMode(QFileDialog::AcceptOpen);
+            dialog->setFileMode(QFileDialog::ExistingFile);
+        }
+
+        connect(this, &UI::close, dialog, &QDialog::reject);
+        connect(this, &QObject::destroyed, dialog, &QObject::deleteLater);
+        connect(dialog, &QDialog::accepted, dialog, [&result, dialog] {
+            result = dialog->selectedFiles().first().toStdString();
+        });
+        connect(dialog, &QDialog::finished, dialog, &QObject::deleteLater);
+        // Keep an early close queued until the worker enters its event loop.
+        connect(dialog, &QObject::destroyed, &loop, &QEventLoop::quit, Qt::QueuedConnection);
+        dialog->open();
+        return {};
+    }, Qt::BlockingQueuedConnection, &exception);
+    if (!exception.isEmpty()) throw sol::error(exception.toStdString());
+
+    loop.exec();
+    if (worker->isInterruptionRequested()) throw sol::error("terminated");
+    return result;
+}
+
 // private
 QQuickView *UI::init(const sol::optional<std::string> &title) const {
     auto *window = new QQuickView(); // NOLINT
-    // This object's thread is the Lua worker, not the GUI thread running init.
     const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(thread()), 0, 16);
     window->setTitle(_title);
     window->setTransientParent(g_mainWindow->windowHandle());

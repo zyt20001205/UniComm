@@ -40,6 +40,30 @@ end
 
 ---
 
+-- Select one existing file. Omitting mode uses "open"; nil uses threadId as title.
+local path = ui.file(nil)
+if path == nil then
+    print("File selection cancelled")
+else
+    print("Selected file:", path)
+    -- Read bytes explicitly when needed:
+    -- local file <close> = assert(io.open(path, "rb"))
+    -- local data = assert(file:read("*a"))
+end
+
+---
+
+-- Select a save path. This does not create or overwrite a file.
+-- Open the returned path with io.open(path, "wb") only when ready to write data.
+local target = ui.file("Choose save path", "save")
+if target == nil then
+    print("Save path selection cancelled")
+else
+    print("Selected save path:", target)
+end
+
+---
+
 -- Nonblocking image viewer: replace these paths with existing workspace images.
 -- <close> closes the window on scope exit, including Lua errors. It does not wait
 -- for the user to close it. Keep doing your normal script work inside the block.

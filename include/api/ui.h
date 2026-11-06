@@ -19,6 +19,8 @@ public:
 
     [[nodiscard]] sol::optional<std::string> input(const sol::optional<std::string> &title, const std::string &text, const sol::optional<std::string> &value) const;
 
+    [[nodiscard]] sol::optional<std::string> file(const sol::optional<std::string> &title, const sol::optional<std::string> &mode) const;
+
 signals:
     void close() const;
 

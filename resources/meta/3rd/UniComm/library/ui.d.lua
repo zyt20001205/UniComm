@@ -11,6 +11,10 @@ ui = {}
 ---| "ok"
 ---| "cancel"
 
+---@alias FileDialogMode
+---| "open" # Select one existing file.
+---| "save" # Choose a file path; the file does not need to exist.
+
 ---
 ---Displays a message window and waits for the user's choice.
 ---
@@ -41,6 +45,24 @@ function ui.message(title, text, button) end
 ---@param value? string (default: "") Initial text shown in the input field.
 ---@return string|nil value Confirmed text, or nil if cancelled or closed.
 function ui.input(title, text, value) end
+
+---
+---Displays a file chooser and waits for the user's choice.
+---
+---Pass nil for title to use the current threadId. The initial directory is the
+---current workspace. The platform's native file dialog is used when available.
+---Open mode selects one existing file. Save mode allows a new file name and keeps
+---the dialog's default overwrite confirmation for an existing target.
+---Returns an absolute file path, or nil on cancellation or closing the dialog.
+---This only selects a path: it does not read, create, or overwrite file contents.
+---Use standard Lua io to read or write the selected path yourself.
+---Only the calling script waits; GUI event processing and other scripts continue.
+---In Run/Agent mode, stopping the script closes the dialog and terminates the wait.
+---
+---@param title? string (default: current threadId) Dialog title. Pass nil to use the default.
+---@param mode? FileDialogMode (default: "open") File selection mode.
+---@return string|nil path Absolute file path, or nil if cancelled or closed.
+function ui.file(title, mode) end
 
 ---
 ---Opens an independent image window and returns without waiting for it to close.

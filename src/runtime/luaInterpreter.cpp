@@ -359,6 +359,9 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         ui.set_function("input", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<std::string> &value) {
             return m_ui->input(title, text, value);
         });
+        ui.set_function("file", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &mode) {
+            return m_ui->file(title, mode);
+        });
         ui.set_function("image", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &source) {
             return std::make_unique<ImageViewer>(title, source, m_ui);
         });
