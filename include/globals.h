@@ -323,6 +323,11 @@ struct TerminalCell {
     bool overline{};
 };
 
+struct TerminalLine {
+    QList<TerminalCell> cells{};
+    bool continuation{};
+};
+
 struct TerminalSelection {
     qint64 anchorRow{-1};
     int anchorCol{};

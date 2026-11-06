@@ -32,8 +32,8 @@ VtermWidget::VtermWidget(const int rows, const int cols, QObject *parent)
     m_callbacks.bell = [](void *user) -> int {
         return static_cast<VtermWidget *>(user)->bell();
     };
-    m_callbacks.sb_pushline = [](const int cols, const VTermScreenCell *cells, void *user) -> int {
-        return static_cast<VtermWidget *>(user)->linePush(cols, cells);
+    m_callbacks.sb_pushline4 = [](const int cols, const VTermScreenCell *cells, const bool continuation, void *user) -> int {
+        return static_cast<VtermWidget *>(user)->linePush(cols, cells, continuation);
     };
     m_callbacks.sb_clear = [](void *user) -> int {
         return static_cast<VtermWidget *>(user)->clear();
@@ -46,6 +46,7 @@ VtermWidget::VtermWidget(const int rows, const int cols, QObject *parent)
     };
 
     vterm_screen_set_callbacks(m_screen, &m_callbacks, this);
+    vterm_screen_callbacks_has_pushline4(m_screen);
     vterm_state_set_selection_callbacks(m_state, &m_selectionCallbacks, this, m_selectionBuffer.data(), static_cast<size_t>(m_selectionBuffer.size()));
     vterm_screen_enable_altscreen(m_screen, 1);
 
@@ -200,25 +201,18 @@ void VtermWidget::selectionGet(QString &text) const {
         qSwap(startCol, endCol);
     }
 
-    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow;
-    const qint64 screenFirstRow = m_altScreen ? 0 : firstRow + m_scrollback.size();
     for (qint64 row = startRow; row <= endRow; ++row) {
+        const auto line = lineGet(row);
+        if (row > startRow && !line.continuation) text += '\n';
         const int firstCol = row == startRow ? startCol : 0;
         const int lastCol = row == endRow ? endCol : m_cols;
         if (firstCol < lastCol) {
-            const auto *line = row < screenFirstRow ? &m_scrollback.at(row - firstRow) : nullptr;
-            for (int col = 0; col < lastCol; ++col) {
-                TerminalCell cell{};
-                if (line) cell = line->value(col);
-                else {
-                    VTermScreenCell source{};
-                    vterm_screen_get_cell(m_screen, VTermPos{.row = static_cast<int>(row - screenFirstRow), .col = col}, &source);
-                    cell = uni_cast<TerminalCell>(m_screen, source);
-                }
+            const int cellCount = qMin(lastCol, line.cells.size());
+            for (int col = 0; col < cellCount; ++col) {
+                const auto &cell = line.cells.at(col);
                 if (cell.width > 0 && col + cell.width > firstCol) text += cell.text;
             }
         }
-        if (row < endRow) text += '\n';
     }
 }
 
@@ -258,36 +252,32 @@ qreal VtermWidget::scrollSizeGet() const {
 }
 
 // private
-void VtermWidget::renderScreen() {
-    QList<TerminalCell> screen{};
-    screen.reserve(m_rows * m_cols);
-    for (int row = 0; row < m_rows; ++row) {
-        for (int col = 0; col < m_cols; ++col) {
-            VTermScreenCell _cell{};
-            vterm_screen_get_cell(m_screen, VTermPos{row, col}, &_cell);
-            screen.append(uni_cast<TerminalCell>(m_screen, _cell));
-        }
-    }
+TerminalLine VtermWidget::lineGet(const qint64 row) const {
+    const qint64 screenFirstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size();
+    if (row < screenFirstRow) return m_scrollback.at(row - m_scrollbackFirstRow);
 
+    const int screenRow = static_cast<int>(row - screenFirstRow);
+    TerminalLine line{};
+    line.continuation = vterm_state_get_lineinfo(m_state, screenRow)->continuation;
+    line.cells.reserve(m_cols);
+    for (int col = 0; col < m_cols; ++col) {
+        VTermScreenCell cell{};
+        vterm_screen_get_cell(m_screen, VTermPos{screenRow, col}, &cell);
+        line.cells.append(uni_cast<TerminalCell>(m_screen, cell));
+    }
+    return line;
+}
+
+void VtermWidget::renderScreen() {
     m_scrollOffset = qBound(0, m_scrollOffset, m_scrollback.size());
-    const int totalRows = m_scrollback.size() + m_rows;
-    const int firstRow = qMax(0, totalRows - m_rows - m_scrollOffset);
+    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
 
     QList<TerminalCell> visible{};
     visible.reserve(m_rows * m_cols);
     for (int row = 0; row < m_rows; ++row) {
-        const int sourceRow = firstRow + row;
-        if (sourceRow < m_scrollback.size()) {
-            const auto &line = m_scrollback[sourceRow];
-            for (int col = 0; col < m_cols; ++col) {
-                if (col < line.size()) visible.append(line[col]);
-                else visible.append(TerminalCell{});
-            }
-        } else {
-            const int screenRow = sourceRow - m_scrollback.size();
-            for (int col = 0; col < m_cols; ++col) {
-                visible.append(screen[screenRow * m_cols + col]);
-            }
+        const auto line = lineGet(firstRow + row);
+        for (int col = 0; col < m_cols; ++col) {
+            visible.append(line.cells.value(col));
         }
     }
 
@@ -403,15 +393,16 @@ int VtermWidget::bell() {
     return 1;
 }
 
-int VtermWidget::linePush(const int cols, const VTermScreenCell *cells) {
-    QList<TerminalCell> row{};
-    row.reserve(cols);
+int VtermWidget::linePush(const int cols, const VTermScreenCell *cells, const bool continuation) {
+    TerminalLine line{};
+    line.cells.reserve(cols);
+    line.continuation = continuation;
     for (int col = 0; col < cols; ++col) {
         const auto &cell = uni_cast<TerminalCell>(m_screen, cells[col]);
-        row.append(cell);
+        line.cells.append(cell);
     }
     if (m_scrollOffset > 0) ++m_scrollOffset;
-    m_scrollback.append(row);
+    m_scrollback.append(line);
 
     constexpr int maxScrollbackLines = 10000;
     if (m_scrollback.size() > maxScrollbackLines) {

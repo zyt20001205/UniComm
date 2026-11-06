@@ -82,6 +82,8 @@ signals:
     void scrollChanged();
 
 private:
+    [[nodiscard]] TerminalLine lineGet(qint64 row) const;
+
     void renderScreen();
 
     void renderDamage(const QRect &rect);
@@ -96,7 +98,7 @@ private:
 
     int bell();
 
-    int linePush(int cols, const VTermScreenCell *cells);
+    int linePush(int cols, const VTermScreenCell *cells, bool continuation);
 
     int clear();
 
@@ -114,7 +116,7 @@ private:
     QPoint m_cursorPosition{};
     bool m_cursorVisible{true};
     bool m_altScreen{false};
-    QList<QList<TerminalCell> > m_scrollback{};
+    QList<TerminalLine> m_scrollback{};
     qint64 m_scrollbackFirstRow{};
     int m_scrollOffset{};
     TerminalSelection m_selection{};
