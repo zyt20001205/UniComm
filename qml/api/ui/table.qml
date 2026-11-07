@@ -124,7 +124,7 @@ Item {
         id: headerCell
         implicitWidth: 120; implicitHeight: 32
         required property string display
-        color: global.backHover
+        color: global.back
 
         function flash() {
             flashAnimation.restart()
