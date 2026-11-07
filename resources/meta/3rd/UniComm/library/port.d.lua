@@ -199,9 +199,11 @@ function port:write(data, peerIp) end
 ---
 ---Reads data from this port's receive buffer.
 ---
----For stream ports, `length` greater than zero waits for exactly that many bytes;
----if the timeout expires first, an empty string is returned. A zero or omitted
----`length` immediately drains all currently buffered data and never waits.
+---For byte-buffered ports, a positive `length` waits for exactly that many bytes.
+---A zero or omitted `length` drains all currently buffered bytes. If the buffer
+---is empty, it waits until any bytes arrive or the timeout expires. An expired
+---timeout returns an empty string if the read cannot be satisfied. The default
+---timeout is zero, so `read()` does not wait.
 ---
 ---On the single-buffer byte ports described by `close`, cached data remains
 ---readable after the transport closes. If the requested length cannot be satisfied,
@@ -224,10 +226,11 @@ function port:read(length, timeout, peerIp) end
 ---
 ---Peeks at data in this port's receive buffer without consuming it.
 ---
----A positive `length` waits for exactly that many bytes. If the timeout expires
----first, an empty string is returned and the buffered data is preserved. A zero
----or omitted `length` immediately returns all currently buffered data and never
----waits. The returned string preserves all bytes, including null bytes.
+---The wait rules are the same as for `read`. A positive `length` waits for exactly
+---that many bytes. A zero or omitted `length` returns all currently buffered bytes,
+---waiting for any bytes only if the buffer is empty. An expired timeout returns
+---an empty string if the peek cannot be satisfied. The default timeout is zero,
+---so `peek()` does not wait. The returned string preserves all bytes, including null bytes.
 ---
 ---On single-buffer byte ports, cached data remains peekable after the transport
 ---closes. An incomplete request returns an empty string immediately without

@@ -260,8 +260,9 @@ QByteArray TcpServer::handleRead(const int length, const int timeout, const QStr
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (buffer->used() < length) {
+    while (buffer->used() < minimum) {
         if (deadline.hasExpired()) break;
         peer->waitForReadyRead(10);
         buffer = m_bufferHash.value(peerIp, nullptr);

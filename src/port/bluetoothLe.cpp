@@ -244,8 +244,9 @@ bool BluetoothLe::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray BluetoothLe::handleRead(const int length, const int timeout, const bool peek) {
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (m_buffer.used() < length) {
+    while (m_buffer.used() < minimum) {
         if (deadline.hasExpired() || !connectedGet()) break;
         waitForData(this);
     }

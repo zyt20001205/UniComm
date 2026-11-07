@@ -122,6 +122,9 @@ assert(port:read(#partial, timeout) == partial, "unsuccessful peeks must preserv
 
 -- port:peek() immediately copies all currently buffered bytes without consuming.
 -- port:read() immediately drains all bytes currently in the receive buffer.
+-- With a timeout, both wait for any bytes only when the receive buffer is empty.
+-- local preview = port:peek(0, timeout) -- Copies all available bytes once any arrive.
+-- local data = port:read(0, timeout)    -- Consumes all available bytes once any arrive.
 
 -- TCP, SSL, and WebSocket servers identify a peer as "address:port".
 -- Build the identifier from peerAddress and peerPort returned by port:info().

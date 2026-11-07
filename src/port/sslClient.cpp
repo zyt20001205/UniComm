@@ -234,8 +234,9 @@ bool SslClient::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray SslClient::handleRead(const int length, const int timeout, const bool peek) {
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (m_buffer.used() < length) {
+    while (m_buffer.used() < minimum) {
         if (m_sslClient == nullptr || m_sslClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         m_sslClient->waitForReadyRead(10);
     }

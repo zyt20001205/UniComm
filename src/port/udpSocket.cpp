@@ -170,8 +170,9 @@ bool UdpSocket::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray UdpSocket::handleRead(const int length, const int timeout, const bool peek) {
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (m_buffer.used() < length) {
+    while (m_buffer.used() < minimum) {
         if (m_udpSocket == nullptr || !m_udpSocket->isOpen() || deadline.hasExpired()) break;
         m_udpSocket->waitForReadyRead(10);
     }

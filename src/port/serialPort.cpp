@@ -196,8 +196,9 @@ bool SerialPort::handleWrite(const QByteArray &f_txData) {
 }
 
 QByteArray SerialPort::handleRead(const int length, const int timeout, const bool peek) {
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (m_buffer.used() < length) {
+    while (m_buffer.used() < minimum) {
         if (m_serialPort == nullptr || !m_serialPort->isOpen() || deadline.hasExpired()) break;
         m_serialPort->waitForReadyRead(10);
     }

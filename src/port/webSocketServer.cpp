@@ -299,8 +299,9 @@ QByteArray WebSocketServer::handleRead(const int length, const int timeout, cons
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
+    const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    while (buffer->used() < length) {
+    while (buffer->used() < minimum) {
         if (deadline.hasExpired()) break;
         waitForMessage(peer);
         buffer = m_bufferHash.value(peerIp, nullptr);
