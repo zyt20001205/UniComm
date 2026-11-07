@@ -62,6 +62,8 @@ signals:
 
     void updateSelection(int row, int col);
 
+    void selectWord(int row, int col);
+
     void getSelection(QString &text);
 
     void getLink(int uri, QUrl &url);
@@ -74,6 +76,8 @@ protected:
     void inputMethodEvent(QInputMethodEvent *event) override;
 
     void mousePressEvent(QMouseEvent *event) override;
+
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
 
     void mouseReleaseEvent(QMouseEvent *event) override;
 

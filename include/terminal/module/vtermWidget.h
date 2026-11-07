@@ -48,6 +48,8 @@ public:
 
     void selectionUpdate(int row, int col);
 
+    void selectionWord(int row, int col);
+
     void selectionGet(QString &text) const;
 
     void linkGet(int uri, QUrl &url) const;

@@ -281,6 +281,20 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
     event->accept();
 }
 
+void TerminalWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+    if (m_mode == VTERM_PROP_MOUSE_NONE && event->button() == Qt::LeftButton && !(event->modifiers() & Qt::ControlModifier)) {
+        const int row = qFloor(event->position().y() / m_cellHeight);
+        const int col = qFloor(event->position().x() / m_cellWidth);
+        if (row >= 0 && row < m_rows && col >= 0 && col < m_cols) {
+            m_selecting = false;
+            emit selectWord(row, col);
+            event->accept();
+            return;
+        }
+    }
+    QQuickPaintedItem::mouseDoubleClickEvent(event);
+}
+
 void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (m_mode == VTERM_PROP_MOUSE_NONE) {
         const int row = qFloor(event->position().y() / m_cellHeight);

@@ -188,6 +188,33 @@ void VtermWidget::selectionUpdate(const int row, const int col) {
     renderSelection();
 }
 
+void VtermWidget::selectionWord(const int row, const int col) {
+    if (row < 0 || row >= m_rows || col < 0 || col >= m_cols) return;
+    // get line
+    const qint64 firstRow = m_altScreen ? 0 : m_scrollbackFirstRow + m_scrollback.size() - m_scrollOffset;
+    const qint64 lineRow = firstRow + row;
+    const auto line = lineGet(lineRow);
+    const auto &cells = line.cells;
+    const int cellCount = qMin(m_cols, cells.size());
+    if (col >= cellCount) return;
+
+    int startCol = 0;
+    int endCol = 0;
+    while (endCol < cellCount) {
+        const auto &cell = cells.at(endCol);
+        const int nextCol = endCol + qMax(1, cell.width);
+        if (cell.text.trimmed().isEmpty()) {
+            if (endCol > col) break;
+            if (nextCol > col) return;
+            startCol = nextCol;
+        }
+        endCol = nextCol;
+    }
+
+    m_selection = {.anchorRow = lineRow, .anchorCol = startCol, .extentRow = lineRow, .extentCol = qMin(endCol, cellCount)};
+    renderSelection();
+}
+
 void VtermWidget::selectionGet(QString &text) const {
     text.clear();
     if (m_selection.anchorRow < 0) return;
