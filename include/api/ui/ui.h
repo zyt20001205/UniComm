@@ -9,6 +9,7 @@
 
 class UiDatabase;
 class UiImage;
+class UiTable;
 
 class Ui final : public QObject {
     Q_OBJECT
@@ -25,6 +26,8 @@ public:
     [[nodiscard]] std::unique_ptr<UiImage> image(const sol::optional<std::string> &title, const sol::optional<std::string> &source);
 
     [[nodiscard]] std::unique_ptr<UiDatabase> database(const sol::optional<std::string> &title, const sol::table &keys);
+
+    [[nodiscard]] std::unique_ptr<UiTable> table(const sol::optional<std::string> &title, const sol::table &keys);
 
     void windowOpened();
 

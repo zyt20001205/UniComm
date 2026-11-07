@@ -24,6 +24,7 @@
 #include "api/thread.h"
 #include "api/ui/database.h"
 #include "api/ui/image.h"
+#include "api/ui/table.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
 #include "document/documentModule.h"
@@ -362,6 +363,14 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "set", &UiDatabase::set,
             "close", &UiDatabase::close
         );
+        ui.new_usertype<UiTable>(
+            "UiTable",
+            sol::no_constructor,
+            "__close", [](UiTable &table, const sol::object &) { table.close(); },
+            "append", &UiTable::append,
+            "export", &UiTable::_export,
+            "close", &UiTable::close
+        );
         ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
             return m_ui->message(title, text, button);
         });
@@ -376,6 +385,9 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         });
         ui.set_function("database", [this](const sol::optional<std::string> &title, const sol::table &keys) {
             return m_ui->database(title, keys);
+        });
+        ui.set_function("table", [this](const sol::optional<std::string> &title, const sol::table &keys) {
+            return m_ui->table(title, keys);
         });
         m_lua["ui"] = ui;
     }

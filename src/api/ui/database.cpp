@@ -15,13 +15,13 @@ UiDatabase::UiDatabase(const sol::optional<std::string> &title, const sol::table
     const auto names = keys.as<sol::as_table_t<std::vector<std::string> > >();
     for (const auto &key: names) {
         const auto name = QString::fromStdString(key);
-        if (m_rows.contains(name)) throw sol::error("duplicate database key: " + key);
-        m_rows.insert(name, static_cast<int>(m_rows.size()));
+        if (m_keys.contains(name)) throw sol::error("duplicate database key: " + key);
+        m_keys.insert(name, static_cast<int>(m_keys.size()));
     }
 }
 
 void UiDatabase::set(const std::string &key, const sol::object &value) const {
-    const int row = m_rows.value(QString::fromStdString(key), -1);
+    const int row = m_keys.value(QString::fromStdString(key), -1);
     if (row == -1) throw sol::error("unknown database key: " + key);
     const auto text = uni_cast<QString>(value);
 
@@ -45,8 +45,8 @@ void UiDatabase::close() {
 
 // private
 void UiDatabase::init(QQuickView &window) {
-    m_model = new QStandardItemModel(static_cast<int>(m_rows.size()), 2, &window); // NOLINT
-    for (auto it = m_rows.cbegin(); it != m_rows.cend(); ++it) {
+    m_model = new QStandardItemModel(static_cast<int>(m_keys.size()), 2, &window); // NOLINT
+    for (auto it = m_keys.cbegin(); it != m_keys.cend(); ++it) {
         m_model->setItem(it.value(), 0, new QStandardItem(it.key())); // NOLINT
         m_model->setItem(it.value(), 1, new QStandardItem(QString{})); // NOLINT
     }

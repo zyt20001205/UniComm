@@ -77,11 +77,11 @@ function ui.file(title, mode) end
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param source? string Initial image file path. Omit to create an empty window.
----@return image viewer Handle for this image window.
+---@return Image viewer Handle for this image window.
 function ui.image(title, source) end
 
----@class image
----@field private __close fun(self: image, error: any)
+---@class Image
+---@field private __close fun(self: Image, error: any)
 local image = {}
 
 ---
@@ -125,12 +125,12 @@ function image:close() end
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param keys string[] Unique keys in display order.
----@return database instance Handle for this database window.
+---@return Database db Handle for this database window.
 function ui.database(title, keys) end
 
----@class database
----@field private __close fun(self: database, error: any)
-local database = {}
+---@class Database
+---@field private __close fun(self: Database, error: any)
+local db = {}
 
 ---
 ---Replaces the displayed value of an existing key.
@@ -141,7 +141,7 @@ local database = {}
 ---@param key string A key declared when opening this window.
 ---@param value boolean|number|string Value to display.
 ---@return nil
-function database:set(key, value) end
+function db:set(key, value) end
 
 ---
 ---Closes this database window. Calling close again is harmless.
@@ -149,4 +149,51 @@ function database:set(key, value) end
 ---This is also called automatically for a `<close>` variable when its scope ends.
 ---
 ---@return nil
-function database:close() end
+function db:close() end
+
+---
+---Opens a read-only data table window and returns without waiting for it to close.
+---
+---Keys are fixed column names in the given order. Duplicate keys raise an error.
+---Each window has its own rows, which are discarded on close unless exported.
+---Garbage-collecting the handle does not close the window. The interpreter waits
+---for its open windows after the script returns normally. Use a `<close>` variable
+---to close this window on scope exit instead.
+---
+---@param title? string (default: current threadId) Window title. Pass nil to use the default.
+---@param keys string[] Unique column names in display order.
+---@return Table tb Handle for this data table window.
+function ui.table(title, keys) end
+
+---@class Table
+---@field private __close fun(self: Table, error: any)
+local tb = {}
+
+---
+---Appends one value to the next row of each supplied column.
+---
+---Each column tracks its next row independently. An omitted key does not advance
+---its column. To keep values aligned by row, supply every column for each sample
+---or pass an empty string for a missing value. Unknown keys raise an error.
+---
+---@param values table<string, boolean|number|string> Values keyed by column name.
+---@return nil
+function tb:append(values) end
+
+---
+---Exports the current table, including its column names, to a UTF-8 CSV file.
+---
+---Relative paths start from the current workspace. Unfilled cells export as empty
+---fields. The toolbar's Export CSV button also saves the table via a file dialog.
+---
+---@param path string CSV output path.
+---@return nil
+function tb:export(path) end
+
+---
+---Closes this data table window. Calling close again is harmless.
+---
+---This is also called automatically for a `<close>` variable when its scope ends.
+---
+---@return nil
+function tb:close() end

@@ -9,6 +9,7 @@
 #include "api/ui/image.h"
 #include "api/ui/input.h"
 #include "api/ui/message.h"
+#include "api/ui/table.h"
 
 // public
 Ui::Ui(QObject *parent)
@@ -77,6 +78,12 @@ std::unique_ptr<UiDatabase> Ui::database(const sol::optional<std::string> &title
     auto database = std::make_unique<UiDatabase>(title, keys, this);
     database->open(false);
     return database;
+}
+
+std::unique_ptr<UiTable> Ui::table(const sol::optional<std::string> &title, const sol::table &keys) {
+    auto table = std::make_unique<UiTable>(title, keys, this);
+    table->open(false);
+    return table;
 }
 
 void Ui::windowOpened() {

@@ -21,7 +21,7 @@ protected:
     void init(QQuickView &window) override;
 
 private:
-    QHash<QString, int> m_rows{};
+    QHash<QString, int> m_keys{};
     QStandardItemModel *m_model{}; // Owned by the window.
 };
 

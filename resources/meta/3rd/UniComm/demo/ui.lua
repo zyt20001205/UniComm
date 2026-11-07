@@ -101,6 +101,18 @@ status:set("Online", true)
 
 ---
 
+-- A read-only data table records history in fixed columns.
+local samples = ui.table("Sensor samples", {"Time", "Temperature", "Humidity"})
+samples:append({Time = "10:20", Temperature = 24.6, Humidity = 53})
+samples:append({Time = "10:21", Temperature = 24.8})
+-- Humidity has its own cursor. This fills its second cell; other columns do not move.
+samples:append({Humidity = 55})
+
+-- Export from the top-right button or save to a workspace-relative path from Lua.
+-- samples:export("samples.csv")
+
+---
+
 -- Run this demo in two interpreters to verify that each gets its own window.
 -- Stop one script while its window is open: only that window should close,
 -- and that script must not reach the print after ui.message.
