@@ -22,7 +22,8 @@
 #include "api/smtp.h"
 #include "api/string.h"
 #include "api/thread.h"
-#include "api/ui.h"
+#include "api/ui/image.h"
+#include "api/ui/ui.h"
 #include "core/globalManager.h"
 #include "document/documentModule.h"
 #include "util/luaUtils.h"
@@ -38,7 +39,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
       m_mouse(new Mouse(this)),
       m_string(new String(this)),
       m_thread(new Thread(this)),
-      m_ui(new UI(this)) {
+      m_ui(new Ui(this)) {
     // LuaStandard lib
     {
         m_lua.open_libraries();
@@ -345,13 +346,13 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     // UI lib
     {
         auto ui = m_lua.create_table();
-        ui.new_usertype<ImageViewer>(
+        ui.new_usertype<UiImage>(
             "ImageViewer",
             sol::no_constructor,
-            "__close", [](ImageViewer &viewer, const sol::object &) { viewer.close(); },
-            "setData", &ImageViewer::setData,
-            "setPath", &ImageViewer::setPath,
-            "close", &ImageViewer::close
+            "__close", [](UiImage &viewer, const sol::object &) { viewer.close(); },
+            "setData", &UiImage::setData,
+            "setPath", &UiImage::setPath,
+            "close", &UiImage::close
         );
         ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
             return m_ui->message(title, text, button);
@@ -363,7 +364,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             return m_ui->file(title, mode);
         });
         ui.set_function("image", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &source) {
-            return std::make_unique<ImageViewer>(title, source, m_ui);
+            return std::make_unique<UiImage>(title, source, m_ui);
         });
         m_lua["ui"] = ui;
     }

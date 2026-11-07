@@ -2,9 +2,9 @@
 
 #include <QColor>
 #include <QDir>
-#include <QResizeEvent>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QVBoxLayout>
 
 #include <atomic>
 #include <functional>
@@ -98,9 +98,15 @@ namespace {
 } // namespace
 
 WebviewWidget::WebviewWidget(QWidget *parent)
-    : QWidget(parent) {
-    setAttribute(Qt::WA_NativeWindow);
-    setAttribute(Qt::WA_DontCreateNativeAncestors);
+    : QWidget(parent),
+      m_host(new QWidget(this)) {
+    // Isolate the native HWND so Qt does not make the surrounding splitter's children native.
+    m_host->setAttribute(Qt::WA_DontCreateNativeAncestors);
+    m_host->setAttribute(Qt::WA_NativeWindow);
+    m_host->installEventFilter(this);
+    auto *layout = new QVBoxLayout(this); // NOLINT
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(m_host);
     setFocusPolicy(Qt::StrongFocus);
 
     const auto hr = OleInitialize(nullptr);
@@ -145,14 +151,14 @@ bool WebviewWidget::isReady() const {
     return m_ready;
 }
 
+bool WebviewWidget::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == m_host && event->type() == QEvent::Resize) resizeWebView();
+    return QWidget::eventFilter(watched, event);
+}
+
 void WebviewWidget::showEvent(QShowEvent *event) {
     QWidget::showEvent(event);
     QTimer::singleShot(0, this, [this] { ensureCreated(); });
-}
-
-void WebviewWidget::resizeEvent(QResizeEvent *event) {
-    QWidget::resizeEvent(event);
-    resizeWebView();
 }
 
 void WebviewWidget::ensureCreated() {
@@ -213,7 +219,7 @@ void WebviewWidget::ensureCreated() {
         });
 
         const auto controllerHr = m_environment->CreateCoreWebView2Controller(
-            reinterpret_cast<HWND>(winId()),
+            reinterpret_cast<HWND>(m_host->winId()),
             controllerHandler);
         controllerHandler->Release();
 
@@ -241,8 +247,7 @@ void WebviewWidget::resizeWebView() const {
     if (!m_controller) return;
 
     RECT bounds{};
-    GetClientRect(reinterpret_cast<HWND>(winId()), &bounds);
-    m_controller->put_Bounds(bounds);
+    if (GetClientRect(reinterpret_cast<HWND>(m_host->winId()), &bounds)) m_controller->put_Bounds(bounds);
 }
 
 void WebviewWidget::closeWebView() {

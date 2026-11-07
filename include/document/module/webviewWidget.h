@@ -27,6 +27,8 @@ public:
 
     [[nodiscard]] bool isReady() const;
 
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 signals:
     void readyChanged(bool ready);
 
@@ -36,8 +38,6 @@ signals:
 
 protected:
     void showEvent(QShowEvent *event) override;
-
-    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void ensureCreated();
@@ -50,6 +50,7 @@ private:
 
     void registerEvents();
 
+    QWidget *m_host{};
     bool m_oleInitialized{};
     bool m_creating{};
     bool m_ready{};

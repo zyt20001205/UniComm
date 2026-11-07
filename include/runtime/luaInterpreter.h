@@ -14,7 +14,7 @@ class Key;
 class Mouse;
 class String;
 class Thread;
-class UI;
+class Ui;
 
 class LuaInterpreter final : public QObject {
     Q_OBJECT
@@ -70,7 +70,7 @@ private:
     Mouse *m_mouse{};
     String *m_string{};
     Thread *m_thread{};
-    UI *m_ui{};
+    Ui *m_ui{};
 };
 
 #endif //UNICOMM_LUAINTERPRETER_H
