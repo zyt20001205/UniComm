@@ -17,6 +17,7 @@ Port.Type = {
     TcpServer = 3,
     SslClient = 4,
     SslServer = 5,
+    UdpSocket = 8,
 }
 
 ---@alias PortLogFormat
@@ -91,6 +92,15 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---@class UdpSocketPortConfig : PortConfig
+---@field localHost string Local IP address to bind.
+---@field localPort integer Local port from 0 to 65535. Use 0 to let the system choose a port.
+---@field remoteHost string Remote hostname or IP address.
+---@field remotePort integer Remote port from 1 to 65535.
+---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
+---@field txSuffix? PortSuffix (default: "null")
+---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+
 ---@alias PortCreateConfig
 ---| SerialPortConfig
 ---| VisionPortConfig
@@ -98,6 +108,7 @@ Port.Type = {
 ---| TcpServerPortConfig
 ---| SslClientPortConfig
 ---| SslServerPortConfig
+---| UdpSocketPortConfig
 
 ---
 ---Returns the names of all configured ports.

@@ -215,6 +215,32 @@ QJsonObject PortModule::portConfigGet(const int portType) {
             }
             break;
         }
+        case PortType::UdpSocket: {
+            portConfig = {
+                {"type", "object"},
+                {"required", QJsonArray{"portName", "localHost", "localPort", "remoteHost", "remotePort"}},
+                {
+                    "defaults", QJsonObject{
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"localHost", QJsonObject{{"type", "string"}}},
+                        {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 0}, {"maximum", 65535}}},
+                        {"remoteHost", QJsonObject{{"type", "string"}}},
+                        {"remotePort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
         default: break;
     }
     return portConfig;
@@ -265,7 +291,18 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
     }
 
-    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer) {
+    if (portType == PortType::UdpSocket) {
+        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+        const auto localPort = portConfig.value("localPort").toInt(-1);
+        if (localPort < 0 || localPort > 65535) return "Port check failed: localPort must be between 0 and 65535.";
+        if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
+
+        const auto remotePort = portConfig.value("remotePort").toInt();
+        if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+    }
+
+    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::UdpSocket) {
         const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
         if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
 

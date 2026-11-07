@@ -65,6 +65,18 @@
 -- })
 -- sslServer:open()
 
+-- UDP socket: localPort = 0 lets the system choose a local port.
+-- local udp = Port.create({
+--     portType = Port.Type.UdpSocket,
+--     portName = "UdpEcho",
+--     localHost = "127.0.0.1",
+--     localPort = 0,
+--     remoteHost = "127.0.0.1",
+--     remotePort = 9000,
+--     logFormat = "utf-8",
+-- })
+-- udp:open()
+
 -- Vision ports configured in the UI can also export and read processed ROIs.
 -- ROI indexes are 1-based and relative paths resolve from the current workspace.
 -- local vision = Port.get("CG345UK")

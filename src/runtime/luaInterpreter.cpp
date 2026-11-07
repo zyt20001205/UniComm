@@ -280,6 +280,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         portType["TcpServer"] = PortType::TcpServer;
         portType["SslClient"] = PortType::SslClient;
         portType["SslServer"] = PortType::SslServer;
+        portType["UdpSocket"] = PortType::UdpSocket;
         port["Type"] = portType;
         port.set_function("list", [](const sol::this_state ts) { return Port::list(ts); });
         port.set_function("create", [this](const sol::table &config) { return Port::create(config, this); });
