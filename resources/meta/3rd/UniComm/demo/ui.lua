@@ -89,6 +89,18 @@ end
 
 ---
 
+-- A read-only database with fixed keys. Each set replaces the current value.
+local status = ui.database("Device status", {"Temperature", "Mode", "Online"})
+status:set("Temperature", 25.2)
+status:set("Mode", "idle")
+status:set("Online", true)
+
+-- Only a changed value highlights its cell. This window stays open at script end.
+-- thread.sleep(700)
+-- status:set("Mode", "running")
+
+---
+
 -- Run this demo in two interpreters to verify that each gets its own window.
 -- Stop one script while its window is open: only that window should close,
 -- and that script must not reach the print after ui.message.

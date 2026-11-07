@@ -5,6 +5,7 @@
 #include <sol/error.hpp>
 
 #include "globals.h"
+#include "api/ui/database.h"
 #include "api/ui/image.h"
 #include "api/ui/input.h"
 #include "api/ui/message.h"
@@ -70,6 +71,12 @@ std::unique_ptr<UiImage> Ui::image(const sol::optional<std::string> &title, cons
     auto image = std::make_unique<UiImage>(title, source, this);
     image->open(false);
     return image;
+}
+
+std::unique_ptr<UiDatabase> Ui::database(const sol::optional<std::string> &title, const sol::table &keys) {
+    auto database = std::make_unique<UiDatabase>(title, keys, this);
+    database->open(false);
+    return database;
 }
 
 void Ui::windowOpened() {

@@ -22,6 +22,7 @@
 #include "api/smtp.h"
 #include "api/string.h"
 #include "api/thread.h"
+#include "api/ui/database.h"
 #include "api/ui/image.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
@@ -354,6 +355,13 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "setPath", &UiImage::setPath,
             "close", &UiImage::close
         );
+        ui.new_usertype<UiDatabase>(
+            "UiDatabase",
+            sol::no_constructor,
+            "__close", [](UiDatabase &database, const sol::object &) { database.close(); },
+            "set", &UiDatabase::set,
+            "close", &UiDatabase::close
+        );
         ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
             return m_ui->message(title, text, button);
         });
@@ -365,6 +373,9 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         });
         ui.set_function("image", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &source) {
             return m_ui->image(title, source);
+        });
+        ui.set_function("database", [this](const sol::optional<std::string> &title, const sol::table &keys) {
+            return m_ui->database(title, keys);
         });
         m_lua["ui"] = ui;
     }

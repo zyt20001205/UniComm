@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+class UiDatabase;
 class UiImage;
 
 class Ui final : public QObject {
@@ -22,6 +23,8 @@ public:
     [[nodiscard]] sol::optional<std::string> file(const sol::optional<std::string> &title, const sol::optional<std::string> &mode) const;
 
     [[nodiscard]] std::unique_ptr<UiImage> image(const sol::optional<std::string> &title, const sol::optional<std::string> &source);
+
+    [[nodiscard]] std::unique_ptr<UiDatabase> database(const sol::optional<std::string> &title, const sol::table &keys);
 
     void windowOpened();
 

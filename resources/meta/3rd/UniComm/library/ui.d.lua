@@ -77,12 +77,12 @@ function ui.file(title, mode) end
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param source? string Initial image file path. Omit to create an empty window.
----@return ImageViewer viewer Handle for this image window.
+---@return image viewer Handle for this image window.
 function ui.image(title, source) end
 
----@class ImageViewer
----@field private __close fun(self: ImageViewer, error: any)
-local imageViewer = {}
+---@class image
+---@field private __close fun(self: image, error: any)
+local image = {}
 
 ---
 ---Displays encoded image bytes directly from memory, without writing a file.
@@ -94,7 +94,7 @@ local imageViewer = {}
 ---
 ---@param data string Raw encoded image bytes, for example an HTTP response body.
 ---@return nil
-function imageViewer:setData(data) end
+function image:setData(data) end
 
 ---
 ---Loads an image file into this window without waiting for the user to close it.
@@ -104,7 +104,7 @@ function imageViewer:setData(data) end
 ---
 ---@param path string Image file path, absolute or relative to the current workspace.
 ---@return nil
-function imageViewer:setPath(path) end
+function image:setPath(path) end
 
 ---
 ---Closes this image window. Calling close again is harmless.
@@ -112,4 +112,41 @@ function imageViewer:setPath(path) end
 ---This is also called automatically for a `<close>` variable when its scope ends.
 ---
 ---@return nil
-function imageViewer:close() end
+function image:close() end
+
+---
+---Opens a read-only database window and returns without waiting for it to close.
+---
+---Keys are fixed in the given order and each value starts empty. Duplicate keys
+---raise an error. Each window has independent data, which is discarded on close.
+---Garbage-collecting the handle does not close the window. The interpreter waits
+---for its open windows after the script returns normally. Use a `<close>` variable
+---to close this window on scope exit instead.
+---
+---@param title? string (default: current threadId) Window title. Pass nil to use the default.
+---@param keys string[] Unique keys in display order.
+---@return database instance Handle for this database window.
+function ui.database(title, keys) end
+
+---@class database
+---@field private __close fun(self: database, error: any)
+local database = {}
+
+---
+---Replaces the displayed value of an existing key.
+---
+---Values are displayed as text. Use an empty string to blank a value. An unknown
+---key or a closed window raises a Lua error.
+---
+---@param key string A key declared when opening this window.
+---@param value boolean|number|string Value to display.
+---@return nil
+function database:set(key, value) end
+
+---
+---Closes this database window. Calling close again is harmless.
+---
+---This is also called automatically for a `<close>` variable when its scope ends.
+---
+---@return nil
+function database:close() end

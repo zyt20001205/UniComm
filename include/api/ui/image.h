@@ -18,10 +18,11 @@ public:
 
     void close();
 
+protected:
+    void init(QQuickView &window) override;
+
 private:
     class DataProvider;
-
-    void init(QQuickView &window) override;
 
     QUrl m_source{};
     DataProvider *m_provider{}; // Owned by the window's QML engine.
