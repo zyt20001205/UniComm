@@ -93,21 +93,21 @@ as the boundary between those concerns:
 
 ## Demos
 
-| Workflow                                                                          | Result                                                                                                                                                                                               |
-|:----------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [From Protocol to Proof](https://www.bilibili.com/video/BV1oybT64Edo/)             | The Agent reads a custom ESP32 protocol, resolves the serial connection with user input, generates reviewable Lua, requests execution permission, runs on real hardware, and exposes the trace and evaluation. |
-| [Modbus telemetry to FTP](https://www.bilibili.com/video/BV1Jxby6NEVr/)           | The Agent creates the required Modbus RTU and FTP ports, collects register samples in a DataTable, exports them to CSV, uploads the file, and verifies the result.                                    |
-| [ESP protocol to Bark notification](https://www.bilibili.com/video/BV1cZbQ64EYA/) | The Agent reads a custom ESP32 protocol, builds a Lua workflow that blinks and verifies the board LED, requests the Bark key, and sends a completion notification.                                   |
+| Workflow                                                                          | Result                                                                                                                                                                                                         |
+|:----------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [From Protocol to Proof](https://www.bilibili.com/video/BV1oybT64Edo/)            | The Agent reads a custom ESP32 protocol, resolves the serial connection with user input, generates reviewable Lua, requests execution permission, runs on real hardware, and exposes the trace and evaluation. |
+| [Modbus telemetry to FTP](https://www.bilibili.com/video/BV1Jxby6NEVr/)           | The Agent creates the required Modbus RTU and FTP ports, collects register samples in a DataTable, exports them to CSV, uploads the file, and verifies the result.                                             |
+| [ESP protocol to Bark notification](https://www.bilibili.com/video/BV1cZbQ64EYA/) | The Agent reads a custom ESP32 protocol, builds a Lua workflow that blinks and verifies the board LED, requests the Bark key, and sends a completion notification.                                             |
 
 ## Capabilities
 
-| Area                   | Highlights                                                                                                                                                   |
-|:-----------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Area                   | Highlights                                                                                                                                                                 |
+|:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Agent                  | Solo and Team strategies, planning, permission gates, user input, steering, context compaction, MCP tools, Lua hooks, workspace changes, execution traces, and evaluation. |
-| Lua runtime            | Embedded execution, language-server support, diagnostics, debugging, multiple threads, and access to UniComm modules.                                        |
-| Connectivity           | Serial, TCP, UDP, SSL, WebSocket, Bluetooth LE, VISA, and video/OCR-oriented port workflows.                                                                 |
-| Protocols and services | Modbus RTU/ASCII/TCP, HTTP, FTP, SMTP, IMAP, and lower-level port I/O.                                                                                       |
-| Data and workspace     | Database, DataTable, plots, files, terminal sessions, Git tools, and document viewers.                                                                       |
+| Lua runtime            | Embedded execution, language-server support, diagnostics, debugging, multiple threads, and access to UniComm modules.                                                      |
+| Connectivity           | Serial, TCP, UDP, SSL, WebSocket, Bluetooth LE, VISA, and video/OCR-oriented port workflows.                                                                               |
+| Protocols and services | Modbus RTU/ASCII/TCP, HTTP, FTP, SMTP, IMAP, and lower-level port I/O.                                                                                                     |
+| Data and workspace     | Script-owned database and table windows, CSV export, files, terminal sessions, Git tools, and document viewers.                                                            |
 
 Some transports and integrations are still experimental in the current pre-1.0 release.
 See the [capability overview](docs/capabilities.md) and

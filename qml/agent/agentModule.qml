@@ -828,10 +828,9 @@ Item {
                                     }
 
                                     Label {
-                                        text: permissionPage.role === "data" ? qsTr("Data") :
-                                                permissionPage.role === "hardware" ? qsTr("Hardware") :
-                                                    permissionPage.role === "software" ? qsTr("Software") :
-                                                        permissionPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
+                                        text: permissionPage.role === "hardware" ? qsTr("Hardware") :
+                                                permissionPage.role === "software" ? qsTr("Software") :
+                                                    permissionPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
                                         color: global.stroke
                                     }
 
@@ -995,10 +994,9 @@ Item {
                                     }
 
                                     Label {
-                                        text: userInputPage.role === "data" ? qsTr("Data") :
-                                                userInputPage.role === "hardware" ? qsTr("Hardware") :
-                                                    userInputPage.role === "software" ? qsTr("Software") :
-                                                        userInputPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
+                                        text: userInputPage.role === "hardware" ? qsTr("Hardware") :
+                                                userInputPage.role === "software" ? qsTr("Software") :
+                                                    userInputPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
                                         color: global.stroke
                                     }
                                 }

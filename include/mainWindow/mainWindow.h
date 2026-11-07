@@ -15,9 +15,6 @@ class Ripgrep;
 
 class AgentModule;
 class BreakpointModule;
-class DatabaseModule;
-class DataplotModule;
-class DatatableModule;
 class DebugModule;
 class DiagnosticsModule;
 class ExplorerModule;
@@ -97,9 +94,6 @@ private:
 
     AgentModule *m_agentModule{};
     BreakpointModule *m_breakpointModule{};
-    DatabaseModule *m_databaseModule{};
-    DataplotModule *m_dataplotModule{};
-    DatatableModule *m_datatableModule{};
     DebugModule *m_debugModule{};
     DiagnosticsModule *m_diagnosticsModule{};
     ExplorerModule *m_explorerModule{};

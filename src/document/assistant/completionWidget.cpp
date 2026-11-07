@@ -14,8 +14,6 @@ CompletionWidget::CompletionWidget(QObject *parent)
     : QObject(parent),
       m_placeholderSet({
           "\"__PLACEHOLDER__PORTNAME__\"",
-          "\"__PLACEHOLDER__DATABASEKEY__\"",
-          "\"__PLACEHOLDER__DATATABLEKEY__\"",
           "\"__PLACEHOLDER__PASSWORD__\""
       }),
       m_completionModel(new QStandardItemModel(this)),
@@ -216,24 +214,6 @@ void CompletionWidget::placeholderExpand(const QString &placeholder) const {
     if (placeholder == "\"__PLACEHOLDER__PORTNAME__\"") {
         for (int i = 0; i < g_portModel->rowCount(); ++i) {
             const QString insertText = "\"" + g_portModel->item(i, 0)->text() + "\"";
-            auto *standardItem = new QStandardItem(insertText); // NOLINT
-            standardItem->setData("qrc:/icon/symbolEnumMember.svg", Qt::DecorationRole);
-            standardItem->setData(insertText, Qt::WhatsThisRole);
-            standardItem->setData(EnumMember, KindRole);
-            m_completionModel->appendRow(standardItem);
-        }
-    } else if (placeholder == "\"__PLACEHOLDER__DATABASEKEY__\"") {
-        for (int i = 0; i < g_databaseStandardItemModel->rowCount(); ++i) {
-            const QString insertText = "\"" + g_databaseStandardItemModel->item(i, 0)->text() + "\"";
-            auto *standardItem = new QStandardItem(insertText); // NOLINT
-            standardItem->setData("qrc:/icon/symbolEnumMember.svg", Qt::DecorationRole);
-            standardItem->setData(insertText, Qt::WhatsThisRole);
-            standardItem->setData(EnumMember, KindRole);
-            m_completionModel->appendRow(standardItem);
-        }
-    } else if (placeholder == "\"__PLACEHOLDER__DATATABLEKEY__\"") {
-        for (int i = 0; i < g_datatableHeaderItemModel->rowCount(); ++i) {
-            const QString insertText = "\"" + g_datatableHeaderItemModel->item(i, 0)->text() + "\"";
             auto *standardItem = new QStandardItem(insertText); // NOLINT
             standardItem->setData("qrc:/icon/symbolEnumMember.svg", Qt::DecorationRole);
             standardItem->setData(insertText, Qt::WhatsThisRole);

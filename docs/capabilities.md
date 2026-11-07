@@ -55,9 +55,8 @@ The Lua-facing declarations and examples live under
 
 ## Data and application modules
 
-- Database storage.
-- DataTable display and export.
-- Data plots.
+- Script-owned database windows for live key/value display.
+- Script-owned data tables with CSV export.
 - Integrated logs and notifications.
 - Terminal sessions based on ConPTY and the UniComm vterm fork.
 - Git status, history, diff, commit, push, merge/rebase, and conflict workflows.

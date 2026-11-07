@@ -15,12 +15,6 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "api_list",
                   "api_get",
                   "demo_get",
-                  "database_list",
-                  "database_create",
-                  "database_delete",
-                  "datatable_list",
-                  "datatable_create",
-                  "datatable_delete",
                   "plan_update",
                   "user_input_request",
                   "diagnostics_get",
@@ -49,8 +43,6 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   // "api_list",
                   // "api_get",
                   // "demo_get",
-                  "database_list",
-                  "datatable_list",
                   "directory_list",
                   "port_list",
                   "subagent_dispatch",
@@ -62,18 +54,6 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   // "line_set",
                   "memory_search",
                   "script_exec"
-              }
-          },
-          {
-              "data",
-              {
-                  "database_list",
-                  "database_create",
-                  "database_delete",
-                  "datatable_list",
-                  "datatable_create",
-                  "datatable_delete",
-                  "user_input_request"
               }
           },
           {

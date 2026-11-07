@@ -6,9 +6,6 @@ GlobalManager *g_globalManager = nullptr;
 AgentModule *g_agent = nullptr;
 AudioService *g_audioService = nullptr;
 Ripgrep *g_ripgrep = nullptr;
-DatabaseModule *g_database = nullptr;
-DatatableModule *g_datatable = nullptr;
-DataplotModule *g_dataplot = nullptr;
 DocumentModule *g_document = nullptr;
 GitModule *g_git = nullptr;
 LogModule *g_log = nullptr;
@@ -48,7 +45,4 @@ QHash<QChar, int> g_gitStatusCode = {
 
 QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints = {};
 PortModel *g_portModel = {};
-QStandardItemModel *g_databaseStandardItemModel = {};
-QStandardItemModel *g_datatableHeaderItemModel = {};
-QStandardItemModel *g_datatableStandardItemModel = {};
 QStandardItemModel *g_watchStandardItemModel = {};

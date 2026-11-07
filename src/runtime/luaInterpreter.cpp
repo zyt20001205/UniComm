@@ -7,7 +7,6 @@
 #include <tuple>
 
 #include "globals.h"
-#include "api/data.h"
 #include "api/ftp.h"
 #include "api/http.h"
 #include "api/imap.h"
@@ -35,7 +34,6 @@
 LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     : QObject(parent),
       m_luaSession(luaSession),
-      m_data(new Data(this)),
       m_io(new IO(luaSession.value("threadId").toString(), luaSession.value("mode").toInt() == InterpreterMode::Agent, this)),
       m_key(new Key(this)),
       m_mouse(new Mouse(this)),
@@ -53,21 +51,6 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         const QString workspacePath = QString("%1/?.lua").arg(m_luaSession["workspaceUrl"].toUrl().toLocalFile());
         const QString newPath = QString("%1;%2").arg(QString::fromStdString(currentPath), workspacePath);
         package["path"] = newPath.toStdString();
-    }
-    // Data lib (static)
-    {
-        auto database = m_lua.create_table();
-        database.set_function("list", [](const sol::this_state ts) { return Data::databaseList(ts); });
-        database.set_function("clear", [] { return Data::databaseClear(); });
-        database.set_function("write", [](const std::string &key, const sol::object &value) { Data::databaseWrite(key, value); });
-        m_lua["database"] = database;
-
-        auto datatable = m_lua.create_table();
-        datatable.set_function("list", [](const sol::this_state ts) { return Data::datatableList(ts); });
-        datatable.set_function("clear", [] { return Data::datatableClear(); });
-        datatable.set_function("write", [](const std::string &key, const sol::object &value) { Data::datatableWrite(key, value); });
-        datatable.set_function("export", [](const sol::optional<std::string> &fileName) { Data::datatableExport(fileName.value_or("")); });
-        m_lua["datatable"] = datatable;
     }
     // Ftp lib (instance)
     {

@@ -33,9 +33,6 @@
 #include "core/fileModule.h"
 #include "core/globalManager.h"
 #include "core/undoModule.h"
-#include "data/databaseModule.h"
-#include "data/dataplotModule.h"
-#include "data/datatableModule.h"
 #include "debug/breakpointModule.h"
 #include "debug/debugModule.h"
 #include "debug/watchModule.h"
@@ -92,9 +89,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("global", g_globalManager);
     m_overlay->rootContext()->setContextProperty("agentModule", m_agentModule);
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
-    m_overlay->rootContext()->setContextProperty("databaseModule", m_databaseModule);
-    // m_overlay->rootContext()->setContextProperty("dataplotModule", m_dataplotModule);
-    m_overlay->rootContext()->setContextProperty("datatableModule", m_datatableModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
     m_overlay->rootContext()->setContextProperty("diagnosticsModule", m_diagnosticsModule);
     m_overlay->rootContext()->setContextProperty("documentModule", m_documentModule);
@@ -113,9 +107,6 @@ void MainWindow::propertySet() {
 
     m_overlay->rootContext()->setContextProperty("agentModuleAction", QVariant::fromValue(m_agentModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("breakpointModuleAction", QVariant::fromValue(m_breakpointModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("databaseModuleAction", QVariant::fromValue(m_databaseModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("dataplotModuleAction", QVariant::fromValue(m_dataplotModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("datatableModuleAction", QVariant::fromValue(m_datatableModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("debugModuleAction", QVariant::fromValue(m_debugModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("diagnosticsModuleAction", QVariant::fromValue(m_diagnosticsModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("explorerModuleAction", QVariant::fromValue(m_explorerModule->toggleAction()));
@@ -149,25 +140,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"breakpointModuleRootMenu", objects["breakpointModuleRootMenu"]}
     };
     m_breakpointModule->propertySet(breakpointObjects);
-
-    const QVariantHash databaseObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)},
-        {"databaseModuleTableMenu", objects["databaseModuleTableMenu"]},
-        {"databaseModuleRootMenu", objects["databaseModuleRootMenu"]}
-    };
-    m_databaseModule->propertySet(databaseObjects);
-
-    const QVariantHash dataplotObjects = {
-        {"dataplotModuleRootMenu", objects["dataplotModuleRootMenu"]}
-    };
-    m_dataplotModule->propertySet(dataplotObjects);
-
-    const QVariantHash datatableObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)},
-        {"datatableModuleTableMenu", objects["datatableModuleTableMenu"]},
-        {"datatableModuleRootMenu", objects["datatableModuleRootMenu"]}
-    };
-    m_datatableModule->propertySet(datatableObjects);
 
     const QVariantHash debugObjects = {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
@@ -381,8 +353,6 @@ void MainWindow::workspaceOpen() {
 void MainWindow::workspaceSave(const QUrl &configUrl) {
     m_agentModule->agentConfigSave();
     BreakpointModule::breakpointConfigSave();
-    DatabaseModule::databaseConfigSave();
-    DatatableModule::datatableConfigSave();
     m_documentModule->documentConfigSave();
     m_logModule->logConfigSave();
     m_portModule->portConfigSave();
@@ -423,9 +393,6 @@ void MainWindow::moduleInit() {
     g_globalManager = new GlobalManager();
 
     m_breakpointModule = new BreakpointModule();
-    m_databaseModule = new DatabaseModule();
-    m_dataplotModule = new DataplotModule();
-    m_datatableModule = new DatatableModule();
     m_debugModule = new DebugModule();
     m_diagnosticsModule = new DiagnosticsModule();
     m_documentModule = new DocumentModule(this);
@@ -446,9 +413,6 @@ void MainWindow::moduleInit() {
 
     m_mainConfig = g_workspaceConfig["mainConfig"].toObject();
     g_agent = m_agentModule;
-    g_database = m_databaseModule;
-    g_dataplot = m_dataplotModule;
-    g_datatable = m_datatableModule;
     g_document = m_documentModule;
     g_git = m_gitModule;
     g_log = m_logModule;
@@ -486,12 +450,6 @@ void MainWindow::moduleInit() {
     connect(m_breakpointModule, &BreakpointModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_breakpointModule, &BreakpointModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_breakpointModule, &BreakpointModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
-
-    connect(m_databaseModule, &DatabaseModule::appendLog, m_logModule, &LogModule::logAppend);
-
-    connect(m_datatableModule, &DatatableModule::appendLog, m_logModule, &LogModule::logAppend);
-    connect(m_datatableModule, &DatatableModule::openFileInExplorer, m_fileModule, &FileModule::fileOpenInExplorer);
-    connect(m_datatableModule, &DatatableModule::openFileInApplication, m_fileModule, &FileModule::fileOpenInApplication);
 
     connect(m_debugModule, &DebugModule::getIndex, m_documentModule, &DocumentModule::indexGet);
     connect(m_debugModule, &DebugModule::addMarker, m_documentModule, &DocumentModule::markerAdd);

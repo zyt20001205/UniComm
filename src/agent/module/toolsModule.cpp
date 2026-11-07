@@ -11,8 +11,6 @@
 #include "agent/module/mcpModule.h"
 #include "agent/module/sqlModule.h"
 #include "agent/runtime/runtimeModule.h"
-#include "data/databaseModule.h"
-#include "data/datatableModule.h"
 #include "document/documentModule.h"
 #include "port/portModule.h"
 #include "runtime/threadpoolModule.h"
@@ -31,8 +29,8 @@ ToolsModule::ToolsModule(McpModule *mcpModule, SqlModule *sqlModule, QObject *pa
       },
       m_mcpModule(mcpModule),
       m_sqlModule(sqlModule),
-      m_writeGroup{"database_create", "datatable_create", "directory_create", "directory_rename", "document_create", "document_rename", "line_set", "port_create"},
-      m_fullAccessGroup{"database_delete", "datatable_delete", "directory_delete", "document_delete", "port_delete", "script_exec"} {
+      m_writeGroup{"directory_create", "directory_rename", "document_create", "document_rename", "line_set", "port_create"},
+      m_fullAccessGroup{"directory_delete", "document_delete", "port_delete", "script_exec"} {
 }
 
 void ToolsModule::initialize() {
@@ -110,144 +108,6 @@ void ToolsModule::initialize() {
                 }
             }
         },
-        // databaseList
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "database_list"},
-                    {"description", "Get the list of all available database keys that can be queried for detailed annotations."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {"properties", QJsonObject{}},
-                            {"required", QJsonArray{}}
-                        }
-                    }
-                }
-            }
-        },
-        // databaseCreate
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "database_create"},
-                    {"description", "Create a database entry with a unique key."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {
-                                "properties", QJsonObject{
-                                    {
-                                        "key", QJsonObject{
-                                            {"type", "string"},
-                                            {"description", "The unique key for the new database entry."}
-                                        }
-                                    }
-                                }
-                            },
-                            {"required", QJsonArray{"key"}}
-                        }
-                    }
-                }
-            }
-        },
-        // databaseDelete
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "database_delete"},
-                    {"description", "Delete an existing database entry by key. Call database_list first to get the available keys."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {
-                                "properties", QJsonObject{
-                                    {
-                                        "key", QJsonObject{
-                                            {"type", "string"},
-                                            {"description", "The database key to delete."}
-                                        }
-                                    }
-                                }
-                            },
-                            {"required", QJsonArray{"key"}}
-                        }
-                    }
-                }
-            }
-        },
-        // datatableList
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "datatable_list"},
-                    {"description", "Get the list of all available data table keys that can be queried for detailed annotations."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {"properties", QJsonObject{}},
-                            {"required", QJsonArray{}}
-                        }
-                    }
-                }
-            }
-        },
-        // datatableCreate
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "datatable_create"},
-                    {"description", "Create a data table column with a unique key."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {
-                                "properties", QJsonObject{
-                                    {
-                                        "key", QJsonObject{
-                                            {"type", "string"},
-                                            {"description", "The unique key for the new data table column."}
-                                        }
-                                    }
-                                }
-                            },
-                            {"required", QJsonArray{"key"}}
-                        }
-                    }
-                }
-            }
-        },
-        // datatableDelete
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "datatable_delete"},
-                    {"description", "Delete an existing data table column by key. Call datatable_list first to get the available keys."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {
-                                "properties", QJsonObject{
-                                    {
-                                        "key", QJsonObject{
-                                            {"type", "string"},
-                                            {"description", "The data table key to delete."}
-                                        }
-                                    }
-                                }
-                            },
-                            {"required", QJsonArray{"key"}}
-                        }
-                    }
-                }
-            }
-        },
         // subagentDispatch
         QJsonObject{
             {"type", "function"},
@@ -272,7 +132,7 @@ void ToolsModule::initialize() {
                                                             {
                                                                 "role", QJsonObject{
                                                                     {"type", "string"},
-                                                                    {"enum", QJsonArray{"data", "hardware", "software", "vision"}},
+                                                                    {"enum", QJsonArray{"hardware", "software", "vision"}},
                                                                     {"description", "The specialized agent role."}
                                                                 }
                                                             },
@@ -1061,18 +921,6 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
     } else if (name == "grep_search") {
         const auto pattern = object.value("pattern").toString();
         chatText = QString("Grep \"%1\"").arg(pattern);
-    } else if (name == "database_list") {
-        chatText = "List available databases";
-    } else if (name == "database_create") {
-        chatText = QString("Create database %1").arg(object.value("key").toString());
-    } else if (name == "database_delete") {
-        chatText = QString("Delete database %1").arg(object.value("key").toString());
-    } else if (name == "datatable_list") {
-        chatText = "List available datatables";
-    } else if (name == "datatable_create") {
-        chatText = QString("Create data table %1").arg(object.value("key").toString());
-    } else if (name == "datatable_delete") {
-        chatText = QString("Delete data table %1").arg(object.value("key").toString());
     } else if (name == "subagent_dispatch") {
         const auto tasks = object.value("tasks").toArray();
         chatText = tasks.size() == 1
@@ -1278,48 +1126,6 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         }
         QTextStream stream(&file);
         return {stream.readAll()};
-    }
-    if (name == "database_list") {
-        const auto keys = g_database->databaseList();
-        QJsonArray array{};
-        for (const auto &key: keys) {
-            array.append(key);
-        }
-        return {QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact))};
-    }
-    if (name == "database_create") {
-        const auto key = object.value("key").toString().trimmed();
-        if (key.isEmpty()) return {"Database create failed: key cannot be empty.", false};
-        const auto error = g_database->databaseInsert(key, {}, g_agent->undoGroupIdGet());
-        if (!error.isEmpty()) return {error, false};
-        return {QString("Database '%1' created.").arg(key)};
-    }
-    if (name == "database_delete") {
-        const auto key = object.value("key").toString().trimmed();
-        const auto error = g_database->databaseRemove(key, g_agent->undoGroupIdGet());
-        if (!error.isEmpty()) return {error, false};
-        return {QString("Database '%1' deleted.").arg(key)};
-    }
-    if (name == "datatable_list") {
-        const auto keys = g_datatable->datatableList();
-        QJsonArray array{};
-        for (const auto &key: keys) {
-            array.append(key);
-        }
-        return {QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact))};
-    }
-    if (name == "datatable_create") {
-        const auto key = object.value("key").toString().trimmed();
-        if (key.isEmpty()) return {"Data table create failed: key cannot be empty.", false};
-        const auto error = g_datatable->datatableInsert(key, {}, g_agent->undoGroupIdGet());
-        if (!error.isEmpty()) return {error, false};
-        return {QString("Data table '%1' created.").arg(key)};
-    }
-    if (name == "datatable_delete") {
-        const auto key = object.value("key").toString().trimmed();
-        const auto error = g_datatable->datatableRemove(key, g_agent->undoGroupIdGet());
-        if (!error.isEmpty()) return {error, false};
-        return {QString("Data table '%1' deleted.").arg(key)};
     }
     if (name == "plan_update") {
         if (object.contains("explanation") && !object.value("explanation").isString()) return {"Plan update failed: explanation must be a string.", false};

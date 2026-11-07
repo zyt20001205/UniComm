@@ -15,7 +15,7 @@ flowchart TB
     tools --> ports["PortModule"]
     tools --> lua["ThreadpoolModule and LuaInterpreter"]
     lua --> ports
-    lua --> data["Database, DataTable, and plots"]
+    lua --> ui["Script-owned UI windows"]
     document --> lsp["Language services"]
     ports --> device["Devices and services"]
 ```
@@ -78,10 +78,11 @@ on top of configured ports.
 
 ## Data and observability
 
-Runtime output can be routed into logs, databases, DataTables, plots, files, and
-notifications. The same workspace also includes terminal, Git, diagnostics,
-debugging, and document inspection modules so that a workflow can be built,
-observed, and repaired without switching applications.
+Lua scripts can display current values in `ui.database` windows and append
+samples to `ui.table` windows with CSV export. The same workspace includes logs,
+terminal sessions, notifications, Git, diagnostics, debugging, and document
+inspection so that a workflow can be built, observed, and repaired without
+switching applications.
 
 ## Trust boundary
 

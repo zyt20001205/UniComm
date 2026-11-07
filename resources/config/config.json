@@ -39,10 +39,6 @@
   },
   "breakpointConfig": {
   },
-  "databaseConfig": [
-  ],
-  "datatableConfig": [
-  ],
   "documentConfig": {
     "fontFamily": "Consolas",
     "fontSize": 12,

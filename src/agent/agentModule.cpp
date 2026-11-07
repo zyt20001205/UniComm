@@ -18,7 +18,6 @@
 #include "agent/model/conversationModel.h"
 #include "agent/provider/baseProvider.h"
 #include "agent/provider/providerModule.h"
-#include "agent/role/dataAgent.h"
 #include "agent/role/generalAgent.h"
 #include "agent/role/hardwareAgent.h"
 #include "agent/role/softwareAgent.h"
@@ -604,7 +603,6 @@ RuntimeModule *AgentModule::subagentDispatch(const QString &role, const QString 
     const auto model = _default.value("model").toString(conversation.model);
 
     BaseAgent *agent{};
-    if (role == "data") agent = new DataAgent();
     if (role == "hardware") agent = new HardwareAgent();
     if (role == "software") agent = new SoftwareAgent();
     if (role == "vision") agent = new VisionAgent();

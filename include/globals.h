@@ -10,9 +10,6 @@ class QStandardItemModel;
 
 class AgentModule;
 class AudioService;
-class DatabaseModule;
-class DatatableModule;
-class DataplotModule;
 class DebugModule;
 class LogModule;
 class PortModule;
@@ -28,9 +25,6 @@ extern GlobalManager *g_globalManager;
 extern AgentModule *g_agent;
 extern AudioService *g_audioService;
 extern Ripgrep *g_ripgrep;
-extern DatabaseModule *g_database;
-extern DatatableModule *g_datatable;
-extern DataplotModule *g_dataplot;
 extern DocumentModule *g_document;
 extern GitModule *g_git;
 extern LogModule *g_log;
@@ -55,9 +49,6 @@ class PortModel;
 
 extern QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints;
 extern PortModel *g_portModel;
-extern QStandardItemModel *g_databaseStandardItemModel;
-extern QStandardItemModel *g_datatableHeaderItemModel;
-extern QStandardItemModel *g_datatableStandardItemModel;
 extern QStandardItemModel *g_watchStandardItemModel;
 
 namespace Theme {

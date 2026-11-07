@@ -8,7 +8,6 @@
 
 class QJsonObject;
 class QStandardItemModel;
-class Data;
 class IO;
 class Key;
 class Mouse;
@@ -64,7 +63,6 @@ private:
 
     sol::state m_lua{};
     QVariantMap m_luaSession{};
-    Data *m_data{};
     IO *m_io{};
     Key *m_key{};
     Mouse *m_mouse{};
