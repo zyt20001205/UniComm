@@ -65,11 +65,12 @@ end
 ---
 
 -- Nonblocking image viewer: replace these paths with existing workspace images.
--- <close> closes the window on scope exit, including Lua errors. It does not wait
--- for the user to close it. Keep doing your normal script work inside the block.
+-- With a regular local, the window stays open after the script returns normally.
+-- The interpreter exits after all of its image windows are closed, without a sleep loop.
+-- Use local viewer <close> = ui.image(nil) instead to close it on scope exit.
 --[[
 do
-    local viewer <close> = ui.image(nil)
+    local viewer = ui.image(nil)
     print("The script continues while the image window is open")
     -- In normal use, pass JPEG/PNG bytes directly from a device or HTTP response.
     -- This example reads an existing image only to supply those bytes; no file is written.
@@ -81,7 +82,7 @@ do
 
     -- After overwriting camera-next.jpg, setPath with the same path reloads it.
     -- viewer:setPath("camera-next.jpg")
-    -- viewer:close() -- Optional early close; automatic close can safely run later.
+    -- viewer:close() -- Optional early close.
     -- Put your acquisition/communication loop here.
 end
 ]]

@@ -364,7 +364,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             return m_ui->file(title, mode);
         });
         ui.set_function("image", [this](const sol::optional<std::string> &title, const sol::optional<std::string> &source) {
-            return std::make_unique<UiImage>(title, source, m_ui);
+            return m_ui->image(title, source);
         });
         m_lua["ui"] = ui;
     }
@@ -393,7 +393,8 @@ QJsonObject LuaInterpreter::start(const QString &script) {
         sol::script_pass_on_error,
         filePath.toStdString()
     );
-    emit m_ui->close();
+    if (result.valid()) m_ui->wait();
+    emit m_ui->exit();
     if (!result.valid()) {
         const sol::error err = result;
         m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');
@@ -406,7 +407,7 @@ QJsonObject LuaInterpreter::start(const QString &script) {
 }
 
 void LuaInterpreter::stop() const {
-    emit m_ui->close();
+    emit m_ui->exit();
 }
 
 void LuaInterpreter::inputWrite(const QByteArray &data) const {

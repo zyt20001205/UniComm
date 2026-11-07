@@ -69,15 +69,15 @@ function ui.file(title, mode) end
 ---
 ---Omit source to open an empty window, then use setData for encoded image bytes or
 ---setPath for a file. Relative image paths start from the current workspace.
----Each call creates a separate window.
----Use `local viewer <close> = ui.image(nil)` to close it automatically
----when its scope ends, including when a Lua error unwinds that scope.
----The window also closes when the script ends or its viewer is garbage-collected.
----A local variable does not keep a completed script running.
+---Each call creates a separate window. Garbage-collecting its handle does not close it.
+---When the script returns normally, the interpreter waits until its remaining
+---image windows are closed. Stopping the script or a Lua error closes them.
+---Use `local viewer <close> = ui.image(nil)` to close a window automatically
+---when its scope ends, or call `viewer:close()` to close it explicitly.
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param source? string Initial image file path. Omit to create an empty window.
----@return ImageViewer viewer Image window handle owned by Lua.
+---@return ImageViewer viewer Handle for this image window.
 function ui.image(title, source) end
 
 ---@class ImageViewer

@@ -1,19 +1,16 @@
 #ifndef UNICOMM_UI_IMAGE_H
 #define UNICOMM_UI_IMAGE_H
 
-#include <QPointer>
+#include <QUrl>
 #include <sol/optional.hpp>
 
 #include <string>
 
-class QQuickView;
-class Ui;
+#include "api/ui/window.h"
 
-class UiImage final {
+class UiImage final : public UiWindow {
 public:
-    UiImage(const sol::optional<std::string> &title, const sol::optional<std::string> &source, const Ui *owner);
-
-    ~UiImage();
+    UiImage(const sol::optional<std::string> &title, const sol::optional<std::string> &source, Ui *owner);
 
     void setData(const std::string &data) const;
 
@@ -22,11 +19,11 @@ public:
     void close();
 
 private:
-    Q_DISABLE_COPY(UiImage)
-
     class DataProvider;
 
-    QPointer<QQuickView> m_window{};
+    void init(QQuickView &window) override;
+
+    QUrl m_source{};
     DataProvider *m_provider{}; // Owned by the window's QML engine.
 };
 
