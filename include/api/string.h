@@ -23,6 +23,8 @@ public:
     [[nodiscard]] static std::string toJson(const sol::table &value);
 
     [[nodiscard]] static sol::table fromJson(sol::this_state ts, const std::string &str);
+
+    [[nodiscard]] static std::string hash(const std::string &data, const std::string &algorithm);
 };
 
 #endif //UNICOMM_STRING_H

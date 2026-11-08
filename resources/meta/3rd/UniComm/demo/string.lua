@@ -34,3 +34,15 @@ local json = string.toJson({
 })
 
 print(json)
+
+---
+
+-- Hashes return raw bytes. Convert to hex only when displaying the digest.
+local md5 = string.hash("abc", "MD5")
+local sha1 = string.hash("abc", "SHA-1")
+local sha256 = string.hash("abc", "SHA-256")
+local sha512 = string.hash("abc", "SHA-512")
+print("MD5:", string.toHex(md5))
+print("SHA-1:", string.toHex(sha1))
+print("SHA-256:", string.toHex(sha256))
+print("SHA-512:", string.toHex(sha512))
