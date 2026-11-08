@@ -927,7 +927,7 @@ Item {
                 }
 
                 Label {
-                    text: documentModuleEditorMenu.menuSession ? documentModuleEditorMenu.menuSession.text ? qsTr("Run Selected") : qsTr("Run") : false
+                    text: qsTr("Run")
                 }
 
                 Item {
@@ -939,13 +939,7 @@ Item {
                 }
             }
 
-            onTriggered: {
-                if (documentModuleEditorMenu.menuSession.text) {
-                    threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, 0, documentModuleEditorMenu.menuSession.startLine, documentModuleEditorMenu.menuSession.startCharacter, documentModuleEditorMenu.menuSession.endLine, documentModuleEditorMenu.menuSession.endCharacter)
-                } else {
-                    threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, 0)
-                }
-            }
+            onTriggered: threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, 0)
         }
 
         MenuItem {
@@ -3941,7 +3935,7 @@ Item {
                 }
 
                 Label {
-                    text: qsTr("Run ") + (menuModuleExecMenu.menuSession ? menuModuleExecMenu.menuSession.text ? "Selected" : menuModuleExecMenu.menuSession.documentName : "")
+                    text: qsTr("Run ") + (menuModuleExecMenu.menuSession ? menuModuleExecMenu.menuSession.documentName : "")
                 }
 
                 Item {
@@ -3961,13 +3955,7 @@ Item {
                 }
             }
 
-            onTriggered: {
-                if (menuModuleExecMenu.menuSession.text) {
-                    threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, 0, menuModuleExecMenu.menuSession.startLine, menuModuleExecMenu.menuSession.startCharacter, menuModuleExecMenu.menuSession.endLine, menuModuleExecMenu.menuSession.endCharacter)
-                } else {
-                    threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, 0)
-                }
-            }
+            onTriggered: threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, 0)
         }
 
         MenuItem {

@@ -47,8 +47,6 @@ public:
     void spellCheckResponse(const QVariantList &typos) const;
 
 signals:
-    void startThread(const QUrl &documentUrl, int mode, int startLine, int startCharacter, int endLine, int endCharacter);
-
     void changeSelection(const QHash<QString, int> &selection);
 
     void insertBreakpoint(const QUrl &documentUrl, int line, const QVariantHash &session);

@@ -47,8 +47,6 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void startThread(const QUrl &documentUrl, int mode, int startLine, int startCharacter, int endLine, int endCharacter);
-
     void insertBreakpoint(const QUrl &documentUrl, int line, const QVariantHash &session);
 
     void removeBreakpoint(const QUrl &documentUrl, int line);
@@ -117,8 +115,6 @@ private:
     void breakpointGet() const;
 
     void breakpointSet(int line) const;
-
-    void regionGet() const;
 
     // private: lsp
     void didOpenNotification();

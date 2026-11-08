@@ -313,7 +313,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             });
             connect(codePage, &CodePage::isFocusedChanged, this, [this, codePage](const bool status) { documentFocus(codePage, status); });
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
-            connect(codePage, &CodePage::startThread, this, &DocumentModule::startThread);
             connect(codePage, &CodePage::changeSelection, this, &DocumentModule::changeSelection);
             connect(codePage, &CodePage::insertBreakpoint, this, &DocumentModule::insertBreakpoint);
             connect(codePage, &CodePage::removeBreakpoint, this, &DocumentModule::removeBreakpoint);

@@ -464,8 +464,6 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::appendLog, m_logModule, &LogModule::logAppend);
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
-    connect(m_documentModule, &DocumentModule::startThread, m_threadpoolModule,
-            qOverload<const QUrl &, const int, const int, const int, const int, const int>(&ThreadpoolModule::threadStart));
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
     connect(m_documentModule, &DocumentModule::focusDocument, m_structureModule, &StructureModule::documentFocus);
     connect(m_documentModule, &DocumentModule::changeSelection, m_statusModule, &StatusModule::selectionChange);
@@ -474,8 +472,7 @@ void MainWindow::moduleInit() {
 
     connect(m_explorerModule, &ExplorerModule::appendLog, m_logModule, &LogModule::logAppend);
     connect(m_explorerModule, &ExplorerModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
-    connect(m_explorerModule, &ExplorerModule::startThread, m_threadpoolModule,
-            qOverload<const QUrl &, const int, const int, const int, const int, const int>(&ThreadpoolModule::threadStart));
+    connect(m_explorerModule, &ExplorerModule::startThread, m_threadpoolModule, &ThreadpoolModule::threadStart);
 
     connect(m_logModule, &LogModule::openFileInExplorer, m_fileModule, &FileModule::fileOpenInExplorer);
     connect(m_logModule, &LogModule::openFileInApplication, m_fileModule, &FileModule::fileOpenInApplication);

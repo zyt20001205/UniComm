@@ -71,12 +71,7 @@ QVariantHash CodeWidget::menuLoad(const QString &name) const {
     } else if (name == "exec") {
         menuSession = {
             {"documentUrl", m_documentUrl},
-            {"documentName", m_documentUrl.fileName()},
-            {"startLine", m_selection["startLine"]},
-            {"startCharacter", m_selection["startCharacter"]},
-            {"endLine", m_selection["endLine"]},
-            {"endCharacter", m_selection["endCharacter"]},
-            {"text", m_scintillaWidget->textGetSelected()}
+            {"documentName", m_documentUrl.fileName()}
         };
     } else if (name == "editor") {
         menuSession = {
@@ -382,7 +377,6 @@ void CodeWidget::selectionChange() {
 void CodeWidget::contentChange() {
     // status refresh
     breakpointGet();
-    regionGet();
     // lsp request
     didChangeNotification();
     documentHighlightRequest();
@@ -553,13 +547,6 @@ void CodeWidget::marginInit() const {
 void CodeWidget::markerInit() const {
     EditorWidget::markerInit();
     m_scintillaWidget->markerDefine(
-        ScintillaMarker::Region,
-        QVariantHash{
-            {"symbol", SC_MARK_ARROW},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->successFore2Get())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->successBack2Get())}
-        });
-    m_scintillaWidget->markerDefine(
         ScintillaMarker::BreakpointEnabled,
         QVariantHash{
             {"symbol", SC_MARK_CIRCLE},
@@ -702,16 +689,7 @@ void CodeWidget::marginClick(const Scintilla::Position position, const int mouse
     const int line = m_scintillaWidget->lineGet(position);
     if (margin == 1) {
         if (mouseButton == Qt::LeftButton) {
-            if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::Region) {
-                for (int current = line; current < m_scintillaWidget->lineCountGet(); ++current) {
-                    const QString text = m_scintillaWidget->textGet(current, 0, current, -1);
-                    if (text.contains("--#endregion")) {
-                        emit startThread(m_documentUrl, InterpreterMode::Run, line + 1, 0, current - 1, -1);
-                        return;
-                    }
-                }
-                qDebug() << "error: --#endregion not found";
-            } else if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointEnabled) {
+            if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointEnabled) {
                 emit removeBreakpoint(m_documentUrl, line + 1);
                 m_scintillaWidget->markerDelete(ScintillaMarker::BreakpointEnabled, line);
             } else if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointDisabled) {
@@ -755,16 +733,6 @@ void CodeWidget::breakpointSet(const int line) const {
     m_breakpointEditDialog->setProperty("documentUrl", m_documentUrl);
     m_breakpointEditDialog->setProperty("line", line);
     QMetaObject::invokeMethod(m_breakpointEditDialog, "open");
-}
-
-void CodeWidget::regionGet() const {
-    m_scintillaWidget->markerDelete(ScintillaMarker::Region);
-    for (int line = 0; line < m_scintillaWidget->lineCountGet(); ++line) {
-        const QString text = m_scintillaWidget->textGet(line, 0, line, -1);
-        if (text.contains("--#region")) {
-            m_scintillaWidget->markerAdd(ScintillaMarker::Region, line);
-        }
-    }
 }
 
 // private: lsp

@@ -197,8 +197,6 @@ signals:
 
     void openWorkspace();
 
-    void startThread(const QUrl &documentUrl, int mode, int startLine, int startCharacter, int endLine, int endCharacter);
-
     void focusDocument(const QUrl &documentUrl, const QVariantHash &session);
 
     void changeSelection(const QHash<QString, int> &selection);

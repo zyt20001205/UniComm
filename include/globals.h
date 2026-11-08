@@ -152,7 +152,6 @@ namespace ScintillaIndicator {
 
 namespace ScintillaMarker {
     enum {
-        Region,
         BreakpointEnabled,
         BreakpointDisabled,
         Navigation,

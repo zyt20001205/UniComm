@@ -59,11 +59,11 @@ void ExplorerModule::indexUpdate() const {
 }
 
 void ExplorerModule::scriptRun(const QUrl &documentUrl) {
-    emit startThread(documentUrl, InterpreterMode::Run, -1, -1, -1, -1);
+    emit startThread(documentUrl, InterpreterMode::Run);
 }
 
 void ExplorerModule::scriptDebug(const QUrl &documentUrl) {
-    emit startThread(documentUrl, InterpreterMode::Debug, -1, -1, -1, -1);
+    emit startThread(documentUrl, InterpreterMode::Debug);
 }
 
 void ExplorerModule::documentOpen(const QUrl &documentUrl) {

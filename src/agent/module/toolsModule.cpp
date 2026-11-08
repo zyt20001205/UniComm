@@ -1062,7 +1062,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QSt
             });
             promise->finish();
         });
-        g_threadpool->threadStart(documentUrl, InterpreterMode::Agent, *threadId);
+        *threadId = g_threadpool->threadStart(documentUrl, InterpreterMode::Agent);
         return future;
     }
     return QtFuture::makeReadyValueFuture(_toolExecute(runtimeId, name, object));

@@ -63,8 +63,6 @@ public:
 signals:
     void appendLog(int type, const QString &prefix, const QString &message);
 
-    void startThread(const QUrl &documentUrl, int mode, QString &threadId);
-
 protected:
     void closeEvent(QCloseEvent *event) override;
 
