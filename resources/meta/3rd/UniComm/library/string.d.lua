@@ -1,7 +1,7 @@
 ---@meta
 
 ---
----Provides binary encodings, JSON conversion, and message digests.
+---Provides binary encodings, JSON conversion, message digests, and encryption.
 ---JSON objects become tables with string keys, while JSON arrays become tables
 ---with one-based integer keys.
 ---JSON null becomes nil and is therefore not retained as a table entry.
@@ -16,6 +16,11 @@ string = {}
 ---| "SHA-1"
 ---| "SHA-256"
 ---| "SHA-512"
+
+---@alias CipherAlgorithm
+---| "AES-128-CBC"
+---| "AES-192-CBC"
+---| "AES-256-CBC"
 
 ---Convert a binary string to its base64 representation.
 ---@param string string The binary string to convert.
@@ -59,3 +64,30 @@ function string.fromJson(string) end
 ---@param algorithm HashAlgorithm Hash algorithm.
 ---@return string digest Raw digest bytes.
 function string.hash(data, algorithm) end
+
+---
+---Encrypts plaintext bytes with AES-CBC and PKCS#7 padding.
+---
+---Pass raw key and IV bytes, not hex or Base64 text. The key must be 16, 24, or
+---32 bytes for AES-128, AES-192, or AES-256, respectively. CBC does not
+---authenticate the ciphertext.
+---
+---@param data string Plaintext bytes.
+---@param key password Raw AES key bytes.
+---@param iv string 16 raw IV bytes.
+---@param algorithm CipherAlgorithm Cipher algorithm.
+---@return string ciphertext Raw ciphertext bytes.
+function string.encrypt(data, key, iv, algorithm) end
+
+---
+---Decrypts ciphertext bytes and removes PKCS#7 padding.
+---
+---Use the same key, IV, and algorithm as for encryption. Invalid input or
+---padding raises a Lua error.
+---
+---@param data string Ciphertext bytes.
+---@param key password Raw AES key bytes.
+---@param iv string 16 raw IV bytes.
+---@param algorithm CipherAlgorithm Cipher algorithm.
+---@return string plaintext Raw plaintext bytes.
+function string.decrypt(data, key, iv, algorithm) end

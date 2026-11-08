@@ -25,6 +25,13 @@ public:
     [[nodiscard]] static sol::table fromJson(sol::this_state ts, const std::string &str);
 
     [[nodiscard]] static std::string hash(const std::string &data, const std::string &algorithm);
+
+    [[nodiscard]] static std::string encrypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm);
+
+    [[nodiscard]] static std::string decrypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm);
+
+private:
+    [[nodiscard]] static std::string crypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm, bool encrypt);
 };
 
 #endif //UNICOMM_STRING_H

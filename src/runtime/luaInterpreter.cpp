@@ -318,6 +318,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         string.set_function("toJson", [](const sol::table &value) { return String::toJson(value); });
         string.set_function("fromJson", [](const sol::this_state ts, const std::string &str) { return String::fromJson(ts, str); });
         string.set_function("hash", [](const std::string &data, const std::string &algorithm) { return String::hash(data, algorithm); });
+        string.set_function("encrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) { return String::encrypt(data, key, iv, algorithm); });
+        string.set_function("decrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) { return String::decrypt(data, key, iv, algorithm); });
         m_lua["string"] = string;
     }
     // Thread lib (static)

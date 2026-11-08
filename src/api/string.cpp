@@ -1,7 +1,11 @@
 #include "api/string.h"
 
 #include <QCryptographicHash>
+#include <openssl/evp.h>
 #include <sol/table_core.hpp>
+
+#include <limits>
+#include <memory>
 
 #include "util/uniCast.h"
 
@@ -52,4 +56,44 @@ std::string String::hash(const std::string &data, const std::string &algorithm) 
     const auto digest = QCryptographicHash::hash(QByteArrayView(data), method);
     if (digest.isEmpty()) throw sol::error("failed to hash using " + algorithm);
     return digest.toStdString();
+}
+
+std::string String::encrypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) {
+    return crypt(data, key, iv, algorithm, true);
+}
+
+std::string String::decrypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) {
+    return crypt(data, key, iv, algorithm, false);
+}
+
+std::string String::crypt(const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm, const bool encrypt) {
+    const EVP_CIPHER *cipher{};
+    if (algorithm == "AES-128-CBC") cipher = EVP_aes_128_cbc();
+    else if (algorithm == "AES-192-CBC") cipher = EVP_aes_192_cbc();
+    else if (algorithm == "AES-256-CBC") cipher = EVP_aes_256_cbc();
+    else throw sol::error("unsupported cipher algorithm: " + algorithm);
+
+    const auto keyLength = static_cast<std::size_t>(EVP_CIPHER_get_key_length(cipher));
+    const auto ivLength = static_cast<std::size_t>(EVP_CIPHER_get_iv_length(cipher));
+    if (key.size() != keyLength) throw sol::error(algorithm + ": key must be " + std::to_string(keyLength) + " bytes");
+    if (iv.size() != ivLength) throw sol::error(algorithm + ": IV must be " + std::to_string(ivLength) + " bytes");
+
+    const auto blockSize = static_cast<std::size_t>(EVP_CIPHER_get_block_size(cipher));
+    if (data.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) - blockSize) throw sol::error(algorithm + ": data is too large");
+
+    const std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> context(EVP_CIPHER_CTX_new(), &EVP_CIPHER_CTX_free);
+    if (!context) throw sol::error(algorithm + ": failed to create cipher context");
+    const auto *keyBytes = reinterpret_cast<const unsigned char *>(key.data());
+    const auto *ivBytes = reinterpret_cast<const unsigned char *>(iv.data());
+    if (EVP_CipherInit_ex2(context.get(), cipher, keyBytes, ivBytes, encrypt, nullptr) != 1) throw sol::error(algorithm + ": failed to initialize cipher");
+
+    std::string result(data.size() + blockSize, '\0');
+    auto *output = reinterpret_cast<unsigned char *>(result.data());
+    const auto *input = reinterpret_cast<const unsigned char *>(data.data());
+    int size{}, finalSize{};
+    if (EVP_CipherUpdate(context.get(), output, &size, input, static_cast<int>(data.size())) != 1 || EVP_CipherFinal_ex(context.get(), output + size, &finalSize) != 1) {
+        throw sol::error(algorithm + (encrypt ? ": encryption failed" : ": decryption failed"));
+    }
+    result.resize(static_cast<std::size_t>(size) + static_cast<std::size_t>(finalSize));
+    return result;
 }

@@ -29,6 +29,8 @@ find_package(Qt6 REQUIRED COMPONENTS
         Widgets
 )
 
+find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(GUI_TYPE WIN32)
 else ()
@@ -234,6 +236,7 @@ target_link_libraries(UniComm PRIVATE
         Qt6::TextToSpeech
         Qt6::WebSockets
         Qt6::Widgets
+        OpenSSL::Crypto
         ${CMARK_LIB}
         ${DRMINGW_LIB}
         ${ICU_LIB}
