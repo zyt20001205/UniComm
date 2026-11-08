@@ -5,7 +5,6 @@
 #include <sol/bytecode.hpp>
 #include <sol/forward.hpp>
 
-#include <optional>
 #include <string>
 
 class QUrl;
@@ -23,7 +22,7 @@ class LuaClosure final {
 public:
     explicit LuaClosure(const sol::object &fn);
 
-    [[nodiscard]] std::optional<std::string> call(sol::state_view lua) const;
+    [[nodiscard]] sol::protected_function_result call(sol::state_view &lua, const std::string &chunkName) const;
 
 private:
     [[nodiscard]] static QCborValue snapshot(const sol::object &value, const std::string &label, int depth = 0);

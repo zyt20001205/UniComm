@@ -400,17 +400,21 @@ QJsonObject LuaInterpreter::start(const std::variant<QString, LuaClosure> &entry
     // frontend
     emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
 
-    std::optional<std::string> exception{};
+    sol::protected_function_result result{};
     if (const auto *script = std::get_if<QString>(&entry)) {
-        const QString filePath = "@" + m_luaSession["documentUrl"].toUrl().toLocalFile();
-        const auto result = m_lua.safe_script(script->toStdString(), sol::script_pass_on_error, filePath.toStdString());
-        if (!result.valid()) exception = result.get<sol::error>().what();
+        const auto chunkName = ("@" + m_luaSession.value("documentUrl").toUrl().toLocalFile()).toStdString();
+        result = m_lua.safe_script(script->toStdString(), sol::script_pass_on_error, chunkName);
     } else {
-        exception = std::get<LuaClosure>(entry).call(m_lua);
+        const auto chunkName = ("=" + m_luaSession.value("threadId").toString()).toStdString();
+        result = std::get<LuaClosure>(entry).call(m_lua, chunkName);
     }
-    if (!exception) m_ui->wait();
+    const bool valid = result.valid();
+    if (valid) m_ui->wait();
     emit m_ui->exit();
-    if (exception) m_io->stdErr(QString::fromStdString(*exception).toUtf8() + '\n');
+    if (!valid) {
+        const sol::error err = result;
+        m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');
+    }
     // frontend
     emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
     // remove terminate hook

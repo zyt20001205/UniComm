@@ -61,20 +61,23 @@ LuaClosure::LuaClosure(const sol::object &fn) {
     }
 }
 
-std::optional<std::string> LuaClosure::call(sol::state_view lua) const {
-    const auto loaded = lua.load_buffer(m_bytecode.data(), m_bytecode.size(), "=(thread)", sol::load_mode::binary);
-    if (!loaded.valid()) return loaded.get<sol::error>().what();
+sol::protected_function_result LuaClosure::call(sol::state_view &lua, const std::string &chunkName) const {
+    auto *L = lua.lua_state();
+    const auto bytecode = m_bytecode.as_string_view();
+    const auto status = static_cast<sol::call_status>(luaL_loadbufferx(L, bytecode.data(), bytecode.size(), chunkName.c_str(), "b"));
+    const int index = lua_gettop(L);
+    // A failed load leaves one error object for the result to own.
+    if (status != sol::call_status::ok) return {L, index, 0, 1, status};
     // Loading sets the first upvalue to globals even when it is not _ENV.
     int slot = 0;
     for (const auto &value: m_captures) {
         if (++slot == m_envSlot) lua.globals().push();
         else restore(lua, value).push();
-        lua_setupvalue(lua.lua_state(), loaded.stack_index(), slot);
+        lua_setupvalue(L, index, slot);
     }
 
-    const auto result = loaded.get<sol::protected_function>()();
-    if (!result.valid()) return result.get<sol::error>().what();
-    return std::nullopt;
+    sol::stack_aligned_protected_function fn(L, index);
+    return fn();
 }
 
 QCborValue LuaClosure::snapshot(const sol::object &value, const std::string &label, const int depth) {
