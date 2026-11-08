@@ -47,7 +47,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         // add workspace to search path
         sol::table package = m_lua["package"];
         const std::string currentPath = package["path"];
-        const QString workspacePath = QString("%1/?.lua").arg(m_luaSession["workspaceUrl"].toUrl().toLocalFile());
+        const QString workspacePath = QString("%1/?.lua;%1/?/init.lua").arg(m_luaSession["workspaceUrl"].toUrl().toLocalFile());
         const QString newPath = QString("%1;%2").arg(QString::fromStdString(currentPath), workspacePath);
         package["path"] = newPath.toStdString();
     }
