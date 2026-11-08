@@ -23,9 +23,7 @@ public:
 
     void quit();
 
-    void threadStart(const QUrl &documentUrl, int mode, QString &threadId, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1);
-
-    Q_INVOKABLE void threadStart(const QUrl &documentUrl, int mode, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1);
+    Q_INVOKABLE QString threadStart(const QUrl &documentUrl, int mode, void *closure = nullptr);
 
     Q_INVOKABLE void threadStop(const QString &threadId);
 

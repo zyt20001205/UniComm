@@ -1,10 +1,10 @@
 #ifndef UNICOMM_LUAINTERPRETER_H
 #define UNICOMM_LUAINTERPRETER_H
 
-#include <QMap>
-#include <QObject>
-#include <QUrl>
 #include <sol/state.hpp>
+#include <variant>
+
+#include "api/thread.h"
 
 class QJsonObject;
 class QStandardItemModel;
@@ -12,7 +12,6 @@ class IO;
 class Key;
 class Mouse;
 class String;
-class Thread;
 class Ui;
 
 class LuaInterpreter final : public QObject {
@@ -21,7 +20,7 @@ class LuaInterpreter final : public QObject {
 public:
     explicit LuaInterpreter(const QVariantMap &luaSession , QObject *parent = nullptr);
 
-    [[nodiscard]] QJsonObject start(const QString &script);
+    [[nodiscard]] QJsonObject start(const std::variant<QString, LuaClosure> &entry);
 
     void stop() const;
 
@@ -48,10 +47,6 @@ signals:
 
     void appendLog(int type, const QString &prefix, const QString &message);
 
-    void startThread(const QUrl &documentUrl, int mode, QString &threadId, int startLine, int startCharacter, int endLine, int endCharacter);
-
-    void stopThread(const QString &threadId);
-
     void setValue(const QString &documentUrl, const QString &expression, const QString &value, const QString &type);
 
     void quitLoop();
@@ -67,7 +62,6 @@ private:
     Key *m_key{};
     Mouse *m_mouse{};
     String *m_string{};
-    Thread *m_thread{};
     Ui *m_ui{};
 };
 

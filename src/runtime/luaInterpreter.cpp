@@ -38,7 +38,6 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
       m_key(new Key(this)),
       m_mouse(new Mouse(this)),
       m_string(new String(this)),
-      m_thread(new Thread(this)),
       m_ui(new Ui(this)) {
     // LuaStandard lib
     {
@@ -318,19 +317,23 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         string.set_function("toJson", [](const sol::table &value) { return String::toJson(value); });
         string.set_function("fromJson", [](const sol::this_state ts, const std::string &str) { return String::fromJson(ts, str); });
         string.set_function("hash", [](const std::string &data, const std::string &algorithm) { return String::hash(data, algorithm); });
-        string.set_function("encrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) { return String::encrypt(data, key, iv, algorithm); });
-        string.set_function("decrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) { return String::decrypt(data, key, iv, algorithm); });
+        string.set_function("encrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) {
+            return String::encrypt(data, key, iv, algorithm);
+        });
+        string.set_function("decrypt", [](const std::string &data, const std::string &key, const std::string &iv, const std::string &algorithm) {
+            return String::decrypt(data, key, iv, algorithm);
+        });
         m_lua["string"] = string;
     }
     // Thread lib (static)
     {
         sol::table thread = m_lua.create_table();
-        thread.set_function("start", [this](const sol::this_state ts, const std::string &documentPath) { return m_thread->start(ts, documentPath); });
-        thread.set_function("stop", [this](const std::string &threadId) { m_thread->stop(threadId); });
+        thread.set_function("start", [this](const sol::object &fn) {
+            return Thread::start(fn, m_luaSession.value("documentUrl").toUrl(), m_luaSession.value("mode").toInt());
+        });
+        thread.set_function("stop", [](const std::string &threadId) { Thread::stop(threadId); });
         thread.set_function("sleep", [](const int ms) { Thread::sleep(ms); });
         m_lua["thread"] = thread;
-        connect(m_thread, &Thread::startThread, this, &LuaInterpreter::startThread);
-        connect(m_thread, &Thread::stopThread, this, &LuaInterpreter::stopThread);
     }
     // UI lib
     {
@@ -380,7 +383,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     }
 }
 
-QJsonObject LuaInterpreter::start(const QString &script) {
+QJsonObject LuaInterpreter::start(const std::variant<QString, LuaClosure> &entry) {
     lua_State *L = m_lua.lua_state();
     m_io->redirect(L);
     // load session
@@ -397,18 +400,17 @@ QJsonObject LuaInterpreter::start(const QString &script) {
     // frontend
     emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
 
-    const QString filePath = "@" + m_luaSession["documentUrl"].toUrl().toLocalFile();
-    const sol::protected_function_result result = m_lua.safe_script(
-        script.toStdString(),
-        sol::script_pass_on_error,
-        filePath.toStdString()
-    );
-    if (result.valid()) m_ui->wait();
-    emit m_ui->exit();
-    if (!result.valid()) {
-        const sol::error err = result;
-        m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');
+    std::optional<std::string> exception{};
+    if (const auto *script = std::get_if<QString>(&entry)) {
+        const QString filePath = "@" + m_luaSession["documentUrl"].toUrl().toLocalFile();
+        const auto result = m_lua.safe_script(script->toStdString(), sol::script_pass_on_error, filePath.toStdString());
+        if (!result.valid()) exception = result.get<sol::error>().what();
+    } else {
+        exception = std::get<LuaClosure>(entry).call(m_lua);
     }
+    if (!exception) m_ui->wait();
+    emit m_ui->exit();
+    if (exception) m_io->stdErr(QString::fromStdString(*exception).toUtf8() + '\n');
     // frontend
     emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
     // remove terminate hook

@@ -40,7 +40,7 @@ signals:
 
     void openDocument(const QUrl &documentUrl);
 
-    void startThread(const QUrl &documentUrl, int mode, void *context = nullptr);
+    void startThread(const QUrl &documentUrl, int mode, void *closure = nullptr);
 
 private:
     void processFinished(int exitcode);

@@ -66,10 +66,12 @@ void ThreadpoolModule::quit() {
     }
 }
 
-void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QString &threadId, const int startLine, const int startCharacter, const int endLine,
-                                   const int endCharacter) {
+QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, void *closure) {
+    std::variant<QString, LuaClosure> entry{};
+    if (closure) entry = std::move(*static_cast<LuaClosure *>(closure));
+    else entry = g_document->textGet(documentUrl);
     auto *worker = new QThread(); // NOLINT
-    threadId = QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
+    const auto threadId = QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
     auto output = QSharedPointer<QJsonObject>::create();
     // preload thread with lua session
     QVariantMap luaSession{};
@@ -88,18 +90,13 @@ void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QStr
     connect(interpreter, &LuaInterpreter::addMarker, this, &ThreadpoolModule::addMarker);
     connect(interpreter, &LuaInterpreter::deleteMarker, this, &ThreadpoolModule::deleteMarker);
     connect(interpreter, &LuaInterpreter::insertCallStack, this, &ThreadpoolModule::insertCallStack);
-    connect(interpreter, &LuaInterpreter::startThread, this,
-            qOverload<const QUrl &, const int, QString &, const int, const int, const int, const int>(&ThreadpoolModule::threadStart), Qt::BlockingQueuedConnection);
-    connect(interpreter, &LuaInterpreter::stopThread, this, &ThreadpoolModule::threadStop);
     connect(interpreter, &LuaInterpreter::writeTerminal, this, &ThreadpoolModule::writeTerminal);
     connect(interpreter, &LuaInterpreter::appendLog, this, &ThreadpoolModule::appendLog);
     interpreter->moveToThread(worker);
     connect(worker, &QThread::finished, interpreter, &LuaInterpreter::deleteLater);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
-    // load thread with script
-    const auto script = g_document->textGet(documentUrl, startLine, startCharacter, endLine, endCharacter);
-    connect(worker, &QThread::started, [interpreter, script, output] {
-        *output = interpreter->start(script);
+    connect(worker, &QThread::started, [output, interpreter, entry = std::move(entry)] {
+        *output = interpreter->start(entry);
         QThread::currentThread()->quit();
     });
     m_threadHash.insert(threadId, worker);
@@ -121,11 +118,7 @@ void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, QStr
     }
     emit openTerminal(threadId, TerminalPage::Backend::Lua);
     worker->start();
-}
-
-void ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, const int startLine, const int startCharacter, const int endLine, const int endCharacter) {
-    QString threadId{};
-    threadStart(documentUrl, mode, threadId, startLine, startCharacter, endLine, endCharacter);
+    return threadId;
 }
 
 void ThreadpoolModule::threadStop(const QString &threadId) {

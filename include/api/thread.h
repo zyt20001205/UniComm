@@ -1,30 +1,39 @@
 #ifndef UNICOMM_THREAD_H
 #define UNICOMM_THREAD_H
 
-#include <QObject>
+#include <QCborArray>
+#include <sol/bytecode.hpp>
+#include <sol/forward.hpp>
 
-namespace sol {
-    struct this_state;
-}
+#include <optional>
+#include <string>
 
-class Thread final : public QObject {
-    Q_OBJECT
+class QUrl;
 
+class Thread final {
 public:
-    explicit Thread(QObject *parent = nullptr);
+    [[nodiscard]] static std::string start(const sol::object &fn, const QUrl &documentUrl, int mode);
 
-    ~Thread() override = default;
-
-    [[nodiscard]] std::string start(sol::this_state ts, const std::string &documentPath);
-
-    void stop(const std::string &threadId);
+    static void stop(const std::string &threadId);
 
     static void sleep(int ms);
+};
 
-signals:
-    void startThread(const QUrl &documentUrl, int mode, QString &threadId, int startLine, int startCharacter, int endLine, int endCharacter);
+class LuaClosure final {
+public:
+    explicit LuaClosure(const sol::object &fn);
 
-    void stopThread(const QString &threadId);
+    [[nodiscard]] std::optional<std::string> call(sol::state_view lua) const;
+
+private:
+    [[nodiscard]] static QCborValue snapshot(const sol::object &value, const std::string &label, int depth = 0);
+
+    [[nodiscard]] static sol::object restore(sol::state_view lua, const QCborValue &value);
+
+    static constexpr int MAX_DEPTH = 100;
+    sol::bytecode m_bytecode{};
+    QCborArray m_captures{};
+    int m_envSlot = 0;
 };
 
 #endif //UNICOMM_THREAD_H
