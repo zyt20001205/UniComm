@@ -18,7 +18,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "port/module/bluetoothDiscovery.h"
+// #include "port/module/bluetoothDiscovery.h"
 #include "port/module/deviceDiscovery.h"
 
 // public
@@ -33,12 +33,13 @@ PortSetting::PortSetting(QWidget *parent)
       m_bluetoothServiceStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothTxCharacteristicStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothRxCharacteristicStandardItemModel(new QStandardItemModel(this)),
-      m_bluetoothThread(new QThread(this)),
-      m_bluetoothDiscovery(new BluetoothDiscovery()),
+      // m_bluetoothThread(new QThread(this)),
+      // m_bluetoothDiscovery(new BluetoothDiscovery()),
       m_mediaCaptureSession(new QMediaCaptureSession(this)),
       m_roiModel(new RoiModel(this)),
       m_pipelineModel(new PipelineModel(this)),
       m_imageProvider(new ImageProvider()) {
+    /*
     m_bluetoothDiscovery->moveToThread(m_bluetoothThread);
     connect(m_bluetoothThread, &QThread::finished, m_bluetoothDiscovery, &QObject::deleteLater);
     connect(m_bluetoothDiscovery, &BluetoothDiscovery::adaptersUpdated, this, &PortSetting::bluetoothAdaptersUpdate);
@@ -47,11 +48,12 @@ PortSetting::PortSetting(QWidget *parent)
     connect(m_bluetoothDiscovery, &BluetoothDiscovery::statusUpdated, this, &PortSetting::bluetoothStatusUpdate);
     connect(m_bluetoothDiscovery, &BluetoothDiscovery::busyChanged, this, &PortSetting::bluetoothBusyUpdate);
     m_bluetoothThread->start();
+    */
 }
 
 PortSetting::~PortSetting() {
-    m_bluetoothThread->quit();
-    m_bluetoothThread->wait();
+    // m_bluetoothThread->quit();
+    // m_bluetoothThread->wait();
     delete m_window;
 }
 
@@ -605,7 +607,7 @@ void PortSetting::bluetoothScan(const QString &adapterAddress) {
     m_bluetoothServiceStandardItemModel->clear();
     m_bluetoothTxCharacteristicStandardItemModel->clear();
     m_bluetoothRxCharacteristicStandardItemModel->clear();
-    QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress] { m_bluetoothDiscovery->scan(adapterAddress); }, Qt::QueuedConnection);
+    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress] { m_bluetoothDiscovery->scan(adapterAddress); }, Qt::QueuedConnection);
 }
 
 void PortSetting::bluetoothDiscover(const QString &adapterAddress, const QString &peripheralAddress) {
@@ -617,7 +619,7 @@ void PortSetting::bluetoothDiscover(const QString &adapterAddress, const QString
     m_bluetoothServiceStandardItemModel->clear();
     m_bluetoothTxCharacteristicStandardItemModel->clear();
     m_bluetoothRxCharacteristicStandardItemModel->clear();
-    QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress, peripheralAddress] { m_bluetoothDiscovery->discover(adapterAddress, peripheralAddress); }, Qt::QueuedConnection);
+    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress, peripheralAddress] { m_bluetoothDiscovery->discover(adapterAddress, peripheralAddress); }, Qt::QueuedConnection);
 }
 
 void PortSetting::bluetoothServiceSelect(const QString &serviceUuid) {
@@ -833,7 +835,7 @@ void PortSetting::visionRefresh() const {
 }
 
 void PortSetting::bluetoothAdapterRefresh() const {
-    QMetaObject::invokeMethod(m_bluetoothDiscovery, [this] { m_bluetoothDiscovery->adaptersRefresh(); }, Qt::QueuedConnection);
+    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this] { m_bluetoothDiscovery->adaptersRefresh(); }, Qt::QueuedConnection);
 }
 
 void PortSetting::bluetoothAdaptersUpdate(const QVariantList &adapters) {

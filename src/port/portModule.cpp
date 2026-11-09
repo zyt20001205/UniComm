@@ -14,7 +14,7 @@
 #include "core/globalManager.h"
 #include "core/undoModule.h"
 #include "port/basePort.h"
-#include "port/bluetoothLe.h"
+// #include "port/bluetoothLe.h"
 #include "port/module/deviceDiscovery.h"
 #include "port/portSetting.h"
 #include "port/serialPort.h"
@@ -249,7 +249,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
 QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldPortName) const {
     const auto portType = portConfig.value("portType").toInt(-1);
     const auto portName = portConfig.value("portName").toString();
-    if (portType < PortType::SerialPort || portType > PortType::BluetoothLe) return QString("Unsupported port type: %1.").arg(portType);
+    if (portType < PortType::SerialPort || portType > PortType::UdpSocket) return QString("Unsupported port type: %1.").arg(portType);
     if (portName.trimmed().isEmpty()) return "Port check failed: portName is empty.";
     if (portName != oldPortName && m_portHash.contains(portName)) return QString("Port check failed: '%1' already exists.").arg(portName);
 
@@ -532,10 +532,12 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
             port = new UdpSocket(portConfig);
             break;
         }
+        /*
         case PortType::BluetoothLe: {
             port = new BluetoothLe(portConfig);
             break;
         }
+        */
         default: break;
     }
     connect(port, &BasePort::appendLog, this, &PortModule::appendLog);

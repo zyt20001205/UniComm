@@ -304,6 +304,10 @@ void MainWindow::quit() {
 void MainWindow::terminate() {
     g_terminating = true;
     KDDockWidgets::DockRegistry::self()->clear();
+    delete m_portModule;
+    m_portModule = nullptr;
+    g_port = nullptr;
+    g_portModel = nullptr;
     close();
 }
 
