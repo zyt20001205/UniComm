@@ -1,17 +1,17 @@
-#ifndef UNICOMM_LSPMANAGER_H
-#define UNICOMM_LSPMANAGER_H
+#ifndef UNICOMM_LSPSERVICE_H
+#define UNICOMM_LSPSERVICE_H
 
 #include <QStringList>
 
 #include "languageServer.h"
 
-class LSPManager final : public QObject {
+class LspService final : public QObject {
     Q_OBJECT
 
 public:
-    explicit LSPManager(QObject *parent = nullptr);
+    explicit LspService(QObject *parent = nullptr);
 
-    ~LSPManager() override;
+    ~LspService() override;
 
     void shutdown();
 
@@ -69,4 +69,4 @@ private:
     QHash<QString, LanguageServerSession> m_session{};
 };
 
-#endif //UNICOMM_LSPMANAGER_H
+#endif //UNICOMM_LSPSERVICE_H

@@ -904,6 +904,18 @@ QJsonArray ToolsModule::toolsGet(const QSet<QString> &names, const bool includeM
     return tools;
 }
 
+QJsonArray ToolsModule::schemasGet(const QSet<QString> &names) const {
+    QJsonArray schemas{};
+    for (const auto &tool: m_tools) {
+        auto function = tool.toObject().value("function").toObject();
+        if (!names.contains(function.value("name").toString())) continue;
+        function["inputSchema"] = function.take("parameters");
+        function["annotations"] = QJsonObject{{"readOnlyHint", true}};
+        schemas.append(function);
+    }
+    return schemas;
+}
+
 QPair<bool, QString> ToolsModule::toolCall(const int mode, const QString &name, const QString &arguments) const {
     return {permissionGet(mode, name), toolTextGet(name, arguments)};
 }
@@ -1065,30 +1077,10 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QSt
         *threadId = g_threadpool->threadStart(documentUrl, InterpreterMode::Agent);
         return future;
     }
-    return QtFuture::makeReadyValueFuture(_toolExecute(runtimeId, name, object));
+    return QtFuture::makeReadyValueFuture(toolExecute(name, object, runtimeId));
 }
 
-// private
-QJsonObject ToolsModule::argumentsGet(const QString &arguments) {
-    auto object = QJsonDocument::fromJson(arguments.toUtf8()).object();
-    if (object.size() == 1 && object.value("arguments").isObject()) return object.value("arguments").toObject();
-    return object;
-}
-
-bool ToolsModule::permissionGet(const int mode, const QString &name) const {
-    if (m_mcpModule->toolContains(name)) {
-        return mode != RuntimeModule::AgentMode::Chat && (m_mcpModule->toolReadOnly(name) || mode == RuntimeModule::AgentMode::FullAccess);
-    }
-    switch (mode) {
-        case RuntimeModule::AgentMode::Chat: return false;
-        case RuntimeModule::AgentMode::Read: return !m_writeGroup.contains(name) && !m_fullAccessGroup.contains(name);
-        case RuntimeModule::AgentMode::Write: return !m_fullAccessGroup.contains(name);
-        case RuntimeModule::AgentMode::FullAccess: return true;
-        default: return false;
-    }
-}
-
-ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &name, const QJsonObject &object) const {
+ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &object, const QString &runtimeId) const {
     const QDir uniCommDir(QDir(QCoreApplication::applicationDirPath()).filePath("lua-language-server/meta/3rd/UniComm"));
     const QDir apiDir(uniCommDir.filePath("library"));
     const QDir demoDir(uniCommDir.filePath("demo"));
@@ -1129,6 +1121,7 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         return {stream.readAll()};
     }
     if (name == "plan_update") {
+        if (runtimeId.isEmpty()) return {"Plan update requires an agent runtime.", false};
         if (object.contains("explanation") && !object.value("explanation").isString()) return {"Plan update failed: explanation must be a string.", false};
         if (!object.value("plan").isArray()) return {"Plan update failed: plan must be an array.", false};
 
@@ -1162,12 +1155,9 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         return {QString("Plan updated: %1/%2 steps completed.").arg(completedCount).arg(normalizedSteps.size())};
     }
     if (name == "port_list") {
-        const auto keys = g_port->portList();
-        QJsonArray array{};
-        for (const auto &key: keys) {
-            array.append(key);
-        }
-        return {QString::fromUtf8(QJsonDocument(array).toJson(QJsonDocument::Compact))};
+        QJsonArray ports{};
+        for (const auto &portName: g_port->portList()) ports.append(portName);
+        return {QString::fromUtf8(QJsonDocument(ports).toJson(QJsonDocument::Compact))};
     }
     if (name == "port_config_get") {
         const auto portType = m_portTypes.value(object.value("port_type").toString(), -1);
@@ -1331,4 +1321,24 @@ ToolResult ToolsModule::_toolExecute(const QString &runtimeId, const QString &na
         return {QString::fromUtf8(json.toJson(QJsonDocument::Compact))};
     }
     return {"Unknown tool.", false};
+}
+
+// private
+QJsonObject ToolsModule::argumentsGet(const QString &arguments) {
+    auto object = QJsonDocument::fromJson(arguments.toUtf8()).object();
+    if (object.size() == 1 && object.value("arguments").isObject()) return object.value("arguments").toObject();
+    return object;
+}
+
+bool ToolsModule::permissionGet(const int mode, const QString &name) const {
+    if (m_mcpModule->toolContains(name)) {
+        return mode != RuntimeModule::AgentMode::Chat && (m_mcpModule->toolReadOnly(name) || mode == RuntimeModule::AgentMode::FullAccess);
+    }
+    switch (mode) {
+        case RuntimeModule::AgentMode::Chat: return false;
+        case RuntimeModule::AgentMode::Read: return !m_writeGroup.contains(name) && !m_fullAccessGroup.contains(name);
+        case RuntimeModule::AgentMode::Write: return !m_fullAccessGroup.contains(name);
+        case RuntimeModule::AgentMode::FullAccess: return true;
+        default: return false;
+    }
 }

@@ -741,7 +741,7 @@ void CodeWidget::didOpenNotification() {
     QString languageId{};
     if (suffix == "md") languageId = "markdown";
     else languageId = suffix;
-    // did open notification to lsp manager
+    // did open notification to lsp service
     const QJsonObject didOpenParams{
         {
             "textDocument", QJsonObject{
@@ -756,7 +756,7 @@ void CodeWidget::didOpenNotification() {
 }
 
 void CodeWidget::didChangeNotification() {
-    // did change notification to lsp manager
+    // did change notification to lsp service
     const auto content = m_scintillaWidget->textGet();
     const QJsonObject didChangeParams{
         {
@@ -777,7 +777,7 @@ void CodeWidget::didChangeNotification() {
 }
 
 void CodeWidget::didSaveNotification() {
-    // did save notification to lsp manager
+    // did save notification to lsp service
     const QJsonObject didSaveParams{
         {
             "textDocument", QJsonObject{
@@ -789,7 +789,7 @@ void CodeWidget::didSaveNotification() {
 }
 
 void CodeWidget::didCloseNotification() {
-    // did close notification to lsp manager
+    // did close notification to lsp service
     const QJsonObject didCloseParams{
         {
             "textDocument", QJsonObject{

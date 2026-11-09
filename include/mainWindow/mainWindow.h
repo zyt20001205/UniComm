@@ -9,7 +9,7 @@ class QShortcut;
 
 class ConfigManager;
 class GlobalManager;
-class LSPManager;
+class ServiceModule;
 class AudioService;
 class Ripgrep;
 
@@ -88,7 +88,7 @@ private:
     QObject *m_quitDialog{};
 
     ConfigManager *m_configManager{};
-    LSPManager *m_lspManager{};
+    ServiceModule *m_serviceModule{};
 
     AgentModule *m_agentModule{};
     BreakpointModule *m_breakpointModule{};

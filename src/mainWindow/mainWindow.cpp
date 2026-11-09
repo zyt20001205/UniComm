@@ -47,7 +47,8 @@
 #include "service/audio.h"
 #include "service/ripgrep.h"
 #include "service/git/gitModule.h"
-#include "service/lsp/lspManager.h"
+#include "service/lsp/lspService.h"
+#include "service/serviceModule.h"
 #include "terminal/logModule.h"
 #include "terminal/terminalModule.h"
 
@@ -296,7 +297,7 @@ void MainWindow::quit() {
     current++;
     m_quitDialog->setProperty("primaryLog", tr("Waiting for lua language server module..."));
     m_quitDialog->setProperty("primaryProgress", static_cast<float>(current) / total);
-    m_lspManager->shutdown();
+    m_serviceModule->lspServiceGet()->shutdown();
 
     terminate();
 }
@@ -391,7 +392,7 @@ void MainWindow::moduleInit() {
 
     g_networkAccessManager = new QNetworkAccessManager(qApp);
     m_configManager = new ConfigManager(this);
-    m_lspManager = new LSPManager(this);
+    m_serviceModule = new ServiceModule(this);
     g_audioService = new AudioService(this);
     g_ripgrep = new Ripgrep(this);
     g_globalManager = new GlobalManager();
@@ -430,26 +431,27 @@ void MainWindow::moduleInit() {
 
     connect(m_configManager, &ConfigManager::appendLog, m_logModule, &LogModule::logAppend);
 
-    connect(m_lspManager, &LSPManager::notificationDiagnostics, m_documentModule, &DocumentModule::diagnosticsNotification);
-    connect(m_lspManager, &LSPManager::notificationDiagnostics, m_diagnosticsModule, &DiagnosticsModule::diagnosticsNotification);
-    connect(m_lspManager, &LSPManager::responseCodeAction, m_documentModule, &DocumentModule::responseCodeAction);
-    connect(m_lspManager, &LSPManager::responseCompletion, m_documentModule, &DocumentModule::completionResponse);
-    connect(m_lspManager, &LSPManager::responseDefinition, m_documentModule, &DocumentModule::definitionResponse);
-    connect(m_lspManager, &LSPManager::responseDocumentHighlight, m_documentModule, &DocumentModule::documentHighlightResponse);
-    connect(m_lspManager, &LSPManager::responseDocumentSymbol, m_documentModule, &DocumentModule::documentSymbolResponse);
-    connect(m_lspManager, &LSPManager::responseDocumentSymbol, m_structureModule, &StructureModule::documentSymbolResponse);
-    connect(m_lspManager, &LSPManager::responseFoldingRange, m_documentModule, &DocumentModule::foldingRangeResponse);
-    connect(m_lspManager, &LSPManager::responseFormatting, m_documentModule, &DocumentModule::formattingResponse);
-    connect(m_lspManager, &LSPManager::responseHover, m_documentModule, &DocumentModule::hoverResponse);
-    connect(m_lspManager, &LSPManager::responseImplementation, m_documentModule, &DocumentModule::implementationResponse);
-    connect(m_lspManager, &LSPManager::responseOnTypeFormatting, m_documentModule, &DocumentModule::onTypeFormattingResponse);
-    connect(m_lspManager, &LSPManager::responsePrepareRename, m_documentModule, &DocumentModule::prepareRenameResponse);
-    connect(m_lspManager, &LSPManager::responseRangeFormatting, m_documentModule, &DocumentModule::rangeFormattingResponse);
-    connect(m_lspManager, &LSPManager::responseReferences, m_documentModule, &DocumentModule::referencesResponse);
-    connect(m_lspManager, &LSPManager::responseRename, m_documentModule, &DocumentModule::renameResponse);
-    connect(m_lspManager, &LSPManager::responseSemanticTokens, m_documentModule, &DocumentModule::semanticTokensResponse);
-    connect(m_lspManager, &LSPManager::responseSignatureHelp, m_documentModule, &DocumentModule::signatureHelpResponse);
-    connect(m_lspManager, &LSPManager::responseTypeDefinition, m_documentModule, &DocumentModule::typeDefinitionResponse);
+    auto *lspService = m_serviceModule->lspServiceGet();
+    connect(lspService, &LspService::notificationDiagnostics, m_documentModule, &DocumentModule::diagnosticsNotification);
+    connect(lspService, &LspService::notificationDiagnostics, m_diagnosticsModule, &DiagnosticsModule::diagnosticsNotification);
+    connect(lspService, &LspService::responseCodeAction, m_documentModule, &DocumentModule::responseCodeAction);
+    connect(lspService, &LspService::responseCompletion, m_documentModule, &DocumentModule::completionResponse);
+    connect(lspService, &LspService::responseDefinition, m_documentModule, &DocumentModule::definitionResponse);
+    connect(lspService, &LspService::responseDocumentHighlight, m_documentModule, &DocumentModule::documentHighlightResponse);
+    connect(lspService, &LspService::responseDocumentSymbol, m_documentModule, &DocumentModule::documentSymbolResponse);
+    connect(lspService, &LspService::responseDocumentSymbol, m_structureModule, &StructureModule::documentSymbolResponse);
+    connect(lspService, &LspService::responseFoldingRange, m_documentModule, &DocumentModule::foldingRangeResponse);
+    connect(lspService, &LspService::responseFormatting, m_documentModule, &DocumentModule::formattingResponse);
+    connect(lspService, &LspService::responseHover, m_documentModule, &DocumentModule::hoverResponse);
+    connect(lspService, &LspService::responseImplementation, m_documentModule, &DocumentModule::implementationResponse);
+    connect(lspService, &LspService::responseOnTypeFormatting, m_documentModule, &DocumentModule::onTypeFormattingResponse);
+    connect(lspService, &LspService::responsePrepareRename, m_documentModule, &DocumentModule::prepareRenameResponse);
+    connect(lspService, &LspService::responseRangeFormatting, m_documentModule, &DocumentModule::rangeFormattingResponse);
+    connect(lspService, &LspService::responseReferences, m_documentModule, &DocumentModule::referencesResponse);
+    connect(lspService, &LspService::responseRename, m_documentModule, &DocumentModule::renameResponse);
+    connect(lspService, &LspService::responseSemanticTokens, m_documentModule, &DocumentModule::semanticTokensResponse);
+    connect(lspService, &LspService::responseSignatureHelp, m_documentModule, &DocumentModule::signatureHelpResponse);
+    connect(lspService, &LspService::responseTypeDefinition, m_documentModule, &DocumentModule::typeDefinitionResponse);
 
     connect(m_breakpointModule, &BreakpointModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_breakpointModule, &BreakpointModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
@@ -462,8 +464,8 @@ void MainWindow::moduleInit() {
     connect(m_diagnosticsModule, &DiagnosticsModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_diagnosticsModule, &DiagnosticsModule::fillIndicator, m_documentModule, &DocumentModule::indicatorFill);
 
-    connect(m_documentModule, &DocumentModule::requestJson, m_lspManager, &LSPManager::jsonRequest);
-    connect(m_documentModule, &DocumentModule::notificationJson, m_lspManager, &LSPManager::jsonNotification);
+    connect(m_documentModule, &DocumentModule::requestJson, lspService, &LspService::jsonRequest);
+    connect(m_documentModule, &DocumentModule::notificationJson, lspService, &LspService::jsonNotification);
     connect(m_documentModule, &DocumentModule::requestSpellCheck, m_nuspellModule, &NuspellModule::spellCheckRequest);
     connect(m_documentModule, &DocumentModule::appendLog, m_logModule, &LogModule::logAppend);
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);

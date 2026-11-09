@@ -1,4 +1,4 @@
-#include "service/lsp/lspManager.h"
+#include "service/lsp/lspService.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -10,7 +10,7 @@
 #include "service/lsp/languageServer.h"
 
 // public
-LSPManager::LSPManager(QObject *parent)
+LspService::LspService(QObject *parent)
     : QObject(parent) {
     const QDir rootDir(QCoreApplication::applicationDirPath());
     serverAdd("lua",
@@ -18,18 +18,18 @@ LSPManager::LSPManager(QObject *parent)
         {"--configpath", rootDir.absoluteFilePath("lua-language-server/meta/3rd/UniComm/.luarc.json")});
 }
 
-LSPManager::~LSPManager() {
+LspService::~LspService() {
     const auto timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
-    qDebug() << QString("[%1] lsp manager destructed").arg(timestamp);
+    qDebug() << QString("[%1] lsp service destructed").arg(timestamp);
 }
 
-void LSPManager::shutdown() {
+void LspService::shutdown() {
     for (const auto &session: m_session) {
         session.server->shutdown();
     }
 }
 
-void LSPManager::jsonRequest(const QString &method, const QJsonObject &params) {
+void LspService::jsonRequest(const QString &method, const QJsonObject &params) {
     const QJsonObject textDocument = params["textDocument"].toObject();
     const QUrl url(textDocument["uri"].toString());
     const QString suffix = QFileInfo(url.toLocalFile()).suffix().toLower();
@@ -38,7 +38,7 @@ void LSPManager::jsonRequest(const QString &method, const QJsonObject &params) {
     if (it != m_session.end()) it.value().server->jsonRequest(method, params);
 }
 
-void LSPManager::jsonNotification(const QString &method, const QJsonObject &params) const {
+void LspService::jsonNotification(const QString &method, const QJsonObject &params) const {
     // workspace notification
     if (method.startsWith("workspace/")) {
         for (const auto &session: m_session) {
@@ -55,26 +55,26 @@ void LSPManager::jsonNotification(const QString &method, const QJsonObject &para
 }
 
 // private
-void LSPManager::serverAdd(const QString &suffix, const QString &process, const QStringList &arguments) {
+void LspService::serverAdd(const QString &suffix, const QString &process, const QStringList &arguments) {
     auto *server = new LanguageServer(process, arguments, this);
-    connect(server, &LanguageServer::notificationDiagnostics, this, &LSPManager::notificationDiagnostics);
-    connect(server, &LanguageServer::responseCodeAction, this, &LSPManager::responseCodeAction);
-    connect(server, &LanguageServer::responseCompletion, this, &LSPManager::responseCompletion);
-    connect(server, &LanguageServer::responseDefinition, this, &LSPManager::responseDefinition);
-    connect(server, &LanguageServer::responseDocumentHighlight, this, &LSPManager::responseDocumentHighlight);
-    connect(server, &LanguageServer::responseDocumentSymbol, this, &LSPManager::responseDocumentSymbol);
-    connect(server, &LanguageServer::responseFoldingRange, this, &LSPManager::responseFoldingRange);
-    connect(server, &LanguageServer::responseFormatting, this, &LSPManager::responseFormatting);
-    connect(server, &LanguageServer::responseHover, this, &LSPManager::responseHover);
-    connect(server, &LanguageServer::responseImplementation, this, &LSPManager::responseImplementation);
-    connect(server, &LanguageServer::responseOnTypeFormatting, this, &LSPManager::responseOnTypeFormatting);
-    connect(server, &LanguageServer::responsePrepareRename, this, &LSPManager::responsePrepareRename);
-    connect(server, &LanguageServer::responseRangeFormatting, this, &LSPManager::responseRangeFormatting);
-    connect(server, &LanguageServer::responseReferences, this, &LSPManager::responseReferences);
-    connect(server, &LanguageServer::responseRename, this, &LSPManager::responseRename);
-    connect(server, &LanguageServer::responseSemanticTokens, this, &LSPManager::responseSemanticTokens);
-    connect(server, &LanguageServer::responseSignatureHelp, this, &LSPManager::responseSignatureHelp);
-    connect(server, &LanguageServer::responseTypeDefinition, this, &LSPManager::responseTypeDefinition);
+    connect(server, &LanguageServer::notificationDiagnostics, this, &LspService::notificationDiagnostics);
+    connect(server, &LanguageServer::responseCodeAction, this, &LspService::responseCodeAction);
+    connect(server, &LanguageServer::responseCompletion, this, &LspService::responseCompletion);
+    connect(server, &LanguageServer::responseDefinition, this, &LspService::responseDefinition);
+    connect(server, &LanguageServer::responseDocumentHighlight, this, &LspService::responseDocumentHighlight);
+    connect(server, &LanguageServer::responseDocumentSymbol, this, &LspService::responseDocumentSymbol);
+    connect(server, &LanguageServer::responseFoldingRange, this, &LspService::responseFoldingRange);
+    connect(server, &LanguageServer::responseFormatting, this, &LspService::responseFormatting);
+    connect(server, &LanguageServer::responseHover, this, &LspService::responseHover);
+    connect(server, &LanguageServer::responseImplementation, this, &LspService::responseImplementation);
+    connect(server, &LanguageServer::responseOnTypeFormatting, this, &LspService::responseOnTypeFormatting);
+    connect(server, &LanguageServer::responsePrepareRename, this, &LspService::responsePrepareRename);
+    connect(server, &LanguageServer::responseRangeFormatting, this, &LspService::responseRangeFormatting);
+    connect(server, &LanguageServer::responseReferences, this, &LspService::responseReferences);
+    connect(server, &LanguageServer::responseRename, this, &LspService::responseRename);
+    connect(server, &LanguageServer::responseSemanticTokens, this, &LspService::responseSemanticTokens);
+    connect(server, &LanguageServer::responseSignatureHelp, this, &LspService::responseSignatureHelp);
+    connect(server, &LanguageServer::responseTypeDefinition, this, &LspService::responseTypeDefinition);
     connect(server, &LanguageServer::initialized, this, [this, suffix, server](const QJsonObject &params) {
         LanguageServerSession session{};
         session.server = server;

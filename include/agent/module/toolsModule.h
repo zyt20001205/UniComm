@@ -30,18 +30,20 @@ public:
 
     [[nodiscard]] QJsonArray toolsGet(const QSet<QString> &names, bool includeMcp) const;
 
+    [[nodiscard]] QJsonArray schemasGet(const QSet<QString> &names) const;
+
     [[nodiscard]] QPair<bool, QString> toolCall(int mode, const QString &name, const QString &arguments) const;
 
     [[nodiscard]] QString toolTextGet(const QString &name, const QString &arguments) const;
 
     [[nodiscard]] QFuture<ToolResult> toolExecute(const QString &runtimeId, const QString &runtimeRole, const QString &name, const QString &arguments);
 
+    [[nodiscard]] ToolResult toolExecute(const QString &name, const QJsonObject &object, const QString &runtimeId = {}) const;
+
 private:
     [[nodiscard]] static QJsonObject argumentsGet(const QString &arguments);
 
     [[nodiscard]] bool permissionGet(int mode, const QString &name) const;
-
-    [[nodiscard]] ToolResult _toolExecute(const QString &runtimeId, const QString &name, const QJsonObject &object) const;
 
     QHash<QString, int> m_portTypes{};
     QJsonArray m_tools{};
