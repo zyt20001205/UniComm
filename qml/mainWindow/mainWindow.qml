@@ -3558,6 +3558,14 @@ Item {
             onTriggered: gitModuleAction.toggle()
         }
 
+        MenuItem {
+            text: qsTr("Services")
+            checkable: true
+            checked: serviceModuleAction ? serviceModuleAction.checked : false
+
+            onTriggered: serviceModuleAction.toggle()
+        }
+
         Menu {
             id: terminalModuleTerminalMenu
             title: qsTr("Terminal")

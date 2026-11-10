@@ -908,9 +908,11 @@ QJsonArray ToolsModule::schemasGet(const QSet<QString> &names) const {
     QJsonArray schemas{};
     for (const auto &tool: m_tools) {
         auto function = tool.toObject().value("function").toObject();
-        if (!names.contains(function.value("name").toString())) continue;
+        const auto name = function.value("name").toString();
+        if (!names.contains(name)) continue;
         function["inputSchema"] = function.take("parameters");
-        function["annotations"] = QJsonObject{{"readOnlyHint", true}};
+        const auto readOnly = !m_writeGroup.contains(name) && !m_fullAccessGroup.contains(name);
+        function["annotations"] = QJsonObject{{"readOnlyHint", readOnly}};
         schemas.append(function);
     }
     return schemas;
@@ -1170,13 +1172,15 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         auto config = object.value("config").toObject();
         config["portType"] = portType;
         const auto portName = config.value("portName").toString().trimmed();
-        const auto error = g_port->portInsert(-1, config, g_agent->undoGroupIdGet());
+        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_agent->undoGroupIdGet();
+        const auto error = g_port->portInsert(-1, config, undoGroupId);
         if (!error.isEmpty()) return {error, false};
         return {QString("Port '%1' created.").arg(portName)};
     }
     if (name == "port_delete") {
         const auto portName = object.value("port_name").toString().trimmed();
-        const auto error = g_port->portRemove(portName, g_agent->undoGroupIdGet());
+        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_agent->undoGroupIdGet();
+        const auto error = g_port->portRemove(portName, undoGroupId);
         if (!error.isEmpty()) return {error, false};
         return {QString("Port '%1' deleted.").arg(portName)};
     }

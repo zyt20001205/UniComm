@@ -3,7 +3,9 @@
 
 #include <QHttpServer>
 
-class McpService final : public QObject {
+#include "service/baseService.h"
+
+class McpService final : public BaseService {
 public:
     explicit McpService(QObject *parent = nullptr);
 

@@ -117,6 +117,7 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("watchModuleAction", QVariant::fromValue(m_watchModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("logModuleAction", QVariant::fromValue(m_logModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("gitModuleAction", QVariant::fromValue(m_gitModule->toggleAction()));
+    m_overlay->rootContext()->setContextProperty("serviceModuleAction", QVariant::fromValue(m_serviceModule->toggleAction()));
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
@@ -224,6 +225,11 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"portModuleRootMenu", objects["portModuleRootMenu"]}
     };
     m_portModule->propertySet(portObjects);
+
+    const QVariantHash serviceObjects = {
+        {"mainWindowToolTip", objects["mainWindowToolTip"]}
+    };
+    m_serviceModule->propertySet(serviceObjects);
 
     const QVariantHash statusObjects = {
         {"statusModuleEolModeMenu", objects["statusModuleEolModeMenu"]},
@@ -392,7 +398,7 @@ void MainWindow::moduleInit() {
 
     g_networkAccessManager = new QNetworkAccessManager(qApp);
     m_configManager = new ConfigManager(this);
-    m_serviceModule = new ServiceModule(this);
+    m_serviceModule = new ServiceModule();
     g_audioService = new AudioService(this);
     g_ripgrep = new Ripgrep(this);
     g_globalManager = new GlobalManager();
@@ -607,10 +613,12 @@ void MainWindow::layoutInit() {
     statusBar->addWidget(m_statusModule, 1);
 
     bool restored = false;
+    bool serviceRestored = false;
     if (!m_mainConfig["state"].toString().isEmpty()) {
         const QByteArray layoutData = QByteArray::fromBase64(m_mainConfig["state"].toString().toLatin1());
         KDDockWidgets::LayoutSaver layoutSaver;
         restored = layoutSaver.restoreLayout(layoutData);
+        serviceRestored = restored && layoutSaver.restoredDockWidgets().contains(m_serviceModule->dockWidget());
     }
     if (!restored) {
         showMaximized();
@@ -628,6 +636,8 @@ void MainWindow::layoutInit() {
         m_logModule->addDockWidgetAsTab(m_diagnosticsModule, KDDockWidgets::InitialVisibilityOption::PreserveCurrentTab);
         addDockWidget(m_threadpoolModule, KDDockWidgets::Location_OnRight, m_logModule, KDDockWidgets::InitialOption(KDDockWidgets::Size(800, 0)));
     }
+    if (!serviceRestored && m_logModule->isOpen())
+        m_logModule->addDockWidgetAsTab(m_serviceModule, KDDockWidgets::InitialVisibilityOption::StartHidden);
     // logging
     QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     qDebug() << QString("[%1] %2").arg(timestamp, "layout initialized");

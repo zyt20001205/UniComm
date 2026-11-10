@@ -12,36 +12,47 @@
 #include "agent/module/toolsModule.h"
 
 McpService::McpService(QObject *parent)
-    : QObject(parent) {
+    : BaseService("MCP", parent) {
     QHttpServerConfiguration configuration{};
     configuration.setMaximumBodySize(64 * 1024);
     m_httpServer.setConfiguration(configuration);
     if (!m_httpServer.route("/mcp", this, [this](const QHttpServerRequest &request) {
         return requestHandle(request);
     })) {
-        qDebug() << "MCP server: Could not register the MCP endpoint.";
+        const auto error = tr("Could not register the MCP endpoint.");
+        detailSet(error.toHtmlEscaped());
+        qDebug().noquote() << "MCP server:" << error;
         return;
     }
 
     constexpr quint16 port = 32167;
     auto *listener = new QTcpServer(&m_httpServer);
     if (!listener->listen(QHostAddress::LocalHost, port)) {
-        qDebug("MCP server: %s", qPrintable(listener->errorString()));
+        const auto error = listener->errorString();
+        detailSet(error.toHtmlEscaped());
+        qDebug("MCP server: %s", qPrintable(error));
         return;
     }
     if (!m_httpServer.bind(listener)) {
         listener->close();
-        qDebug() << "MCP server: Could not bind the MCP endpoint.";
+        const auto error = tr("Could not bind the MCP endpoint.");
+        detailSet(error.toHtmlEscaped());
+        qDebug().noquote() << "MCP server:" << error;
         return;
     }
-    qDebug().noquote() << QString("MCP server listening on http://127.0.0.1:%1/mcp").arg(port);
+    const auto endpoint = QString("http://127.0.0.1:%1/mcp").arg(port);
+    detailSet(QString("<b>%1</b><br>%2").arg(tr("Endpoint"), endpoint));
+    qDebug().noquote() << "MCP server listening on" << endpoint;
 }
 
 QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request) const {
     using Status = QHttpServerResponse::StatusCode;
     constexpr auto ModernVersion = "2026-07-28";
     constexpr auto LegacyVersion = "2025-11-25";
-    const QSet<QString> names{"port_list"};
+    const QSet<QString> names{
+        "api_list", "api_get", "demo_get",
+        "port_list", "port_config_get", "port_create", "port_delete"
+    };
 
     const auto& headers = request.headers();
     const auto port = QByteArray::number(request.localPort());
@@ -82,6 +93,7 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
     const auto modern = headers.value("MCP-Protocol-Version") == ModernVersion || method == "server/discover";
     const auto serverInfo = QJsonObject{{"name", "UniComm"}, {"version", QCoreApplication::applicationVersion()}};
     const auto capabilities = QJsonObject{{"tools", QJsonObject{}}};
+    QString detail{};
     QJsonObject result{};
     if (method == "initialize") {
         result = {
@@ -99,6 +111,7 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
         result = {{"tools", g_agent->runtimeServicesGet().toolsModule->schemasGet(names)}};
     } else if (method == "tools/call") {
         const auto name = params.value("name").toString();
+        detail = name;
         if (!names.contains(name))
             return QHttpServerResponse(QJsonObject{
                 {"jsonrpc", "2.0"}, {"id", id},
@@ -116,5 +129,6 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
         }, modern ? Status::NotFound : Status::Ok);
     }
     if (modern) result["resultType"] = "complete";
+    eventAppend(method, detail);
     return QHttpServerResponse(QJsonObject{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}});
 }
