@@ -37,7 +37,6 @@ void LspService::initialize() {
     connect(this, &LspService::initialized, &loop, &QEventLoop::quit);
     loop.exec();
     jsonNotification("initialized", QJsonObject{});
-    detailSet(QString("<b>%1</b><br>%2").arg(tr("Executable"), m_process->program().toHtmlEscaped()));
 }
 
 void LspService::shutdown() {
@@ -70,7 +69,6 @@ void LspService::jsonRequest(const QString &method, const QJsonObject &params) {
     const QByteArray header = "Content-Length: " + QByteArray::number(data.size()) + "\r\n\r\n";
     m_process->write(header);
     m_process->write(data);
-    eventAppend(method, {});
     // qDebug() << msg;
 }
 
@@ -188,9 +186,18 @@ void LspService::parser() {
             const auto documentUrl = m_urls[id];
             m_methods.remove(id);
             m_urls.remove(id);
+            eventAppend(method, json);
             if (method == "initialize") {
                 // initialize response
                 // qDebug() << json;
+                const auto serverInfo = json["result"].toObject().value("serverInfo").toObject();
+                QString detail{};
+                if (const auto name = serverInfo.value("name").toString(); !name.isEmpty()) {
+                    detail = QString("<b>%1</b> %2").arg(tr("Server:"), name.toHtmlEscaped());
+                    if (const auto version = serverInfo.value("version").toString(); !version.isEmpty())
+                        detail += QString("<br><b>%1</b> %2").arg(tr("Version:"), version.toHtmlEscaped());
+                }
+                detailSet(detail);
                 emit initialized(json);
             } else if (method == "shutdown") {
                 // shutdown response

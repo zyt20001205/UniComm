@@ -1,5 +1,6 @@
 #include "service/baseService.h"
 
+#include <QJsonDocument>
 #include <QStandardItemModel>
 #include <QTime>
 
@@ -34,13 +35,19 @@ void BaseService::detailSet(const QString &detail) {
     emit changeDetail();
 }
 
-void BaseService::eventAppend(const QString &event, const QString &detail) const {
+void BaseService::eventAppend(const QString &event, const QJsonObject &response) const {
     constexpr int eventLimit = 200;
+    constexpr qsizetype toolTipLimit = 512;
     if (m_eventModel->rowCount() == eventLimit) m_eventModel->removeRow(eventLimit - 1);
+    const QJsonDocument document(response);
+    const auto detail = QString::fromUtf8(document.toJson(QJsonDocument::Compact));
+    auto *detailItem = new QStandardItem(detail);
+    if (detail.size() <= toolTipLimit)
+        detailItem->setToolTip(QString::fromUtf8(document.toJson(QJsonDocument::Indented)));
     m_eventModel->insertRow(0, {
         new QStandardItem(QTime::currentTime().toString("HH:mm:ss.zzz")),
         new QStandardItem(event),
-        new QStandardItem(detail)
+        detailItem
     });
 }
 

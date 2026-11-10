@@ -42,7 +42,6 @@ McpService::McpService(QObject *parent)
     }
     const auto endpoint = QString("http://127.0.0.1:%1/mcp").arg(port);
     detailSet(QString("<b>%1</b><br>%2").arg(tr("Endpoint"), endpoint));
-    qDebug().noquote() << "MCP server listening on" << endpoint;
 }
 
 QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request) const {
@@ -93,7 +92,7 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
     const auto modern = headers.value("MCP-Protocol-Version") == ModernVersion || method == "server/discover";
     const auto serverInfo = QJsonObject{{"name", "UniComm"}, {"version", QCoreApplication::applicationVersion()}};
     const auto capabilities = QJsonObject{{"tools", QJsonObject{}}};
-    QString detail{};
+    QString event{method};
     QJsonObject result{};
     if (method == "initialize") {
         result = {
@@ -111,12 +110,12 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
         result = {{"tools", g_agent->runtimeServicesGet().toolsModule->schemasGet(names)}};
     } else if (method == "tools/call") {
         const auto name = params.value("name").toString();
-        detail = name;
         if (!names.contains(name))
             return QHttpServerResponse(QJsonObject{
                 {"jsonrpc", "2.0"}, {"id", id},
                 {"error", QJsonObject{{"code", -32602}, {"message", "Unknown tool."}}}
             });
+        event += " · " + name;
         const auto tool = g_agent->runtimeServicesGet().toolsModule->toolExecute(name, params.value("arguments").toObject());
         result = {
             {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", tool.content}}}},
@@ -129,6 +128,7 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
         }, modern ? Status::NotFound : Status::Ok);
     }
     if (modern) result["resultType"] = "complete";
-    eventAppend(method, detail);
-    return QHttpServerResponse(QJsonObject{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}});
+    const QJsonObject response{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}};
+    eventAppend(event, response);
+    return {response};
 }

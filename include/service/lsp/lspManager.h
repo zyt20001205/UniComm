@@ -1,34 +1,27 @@
-#ifndef UNICOMM_LANGUAGESERVER_H
-#define UNICOMM_LANGUAGESERVER_H
+#ifndef UNICOMM_LSPMANAGER_H
+#define UNICOMM_LSPMANAGER_H
 
-#include <QJsonObject>
-#include <QJsonValue>
-#include <QObject>
-#include <QUrl>
+#include <QStringList>
 
-class QProcess;
+#include "lspService.h"
 
-class LanguageServer : public QObject {
+class LspManager final : public QObject {
     Q_OBJECT
 
 public:
-    explicit LanguageServer(const QString &program, const QStringList &arguments, QObject *parent = nullptr);
+    explicit LspManager(QObject *parent = nullptr);
 
-    ~LanguageServer() override;
-
-    void initialize();
+    ~LspManager() override;
 
     void shutdown();
+
+    [[nodiscard]] QList<LspService *> serversGet() const;
 
     void jsonRequest(const QString &method, const QJsonObject &params);
 
     void jsonNotification(const QString &method, const QJsonObject &params) const;
 
 signals:
-    void initialized(const QJsonObject &params);
-
-    void shutdowned();
-
     void notificationDiagnostics(const QUrl &documentUrl, const QJsonArray &diagnostics);
 
     void responseCodeAction(const QUrl &documentUrl, const QJsonArray &result);
@@ -66,17 +59,16 @@ signals:
     void responseTypeDefinition(const QUrl &documentUrl, const QJsonArray &ranges);
 
 private:
-    void jsonResponse(const QJsonValue &id, const QJsonValue &result) const;
+    struct Session {
+        LspService *server{};
+        QSet<QChar> completionTrigger{};
+        QSet<QChar> formattingTrigger{};
+        QSet<QChar> signatureHelpTrigger{};
+    };
 
-    void jsonError(const QJsonValue &id, int code, const QString &message) const;
+    void serverAdd(const QString &suffix, const QString &name, const QString &process, const QStringList &arguments = {});
 
-    void parser();
-
-    QProcess *m_process{};
-    QByteArray m_buffer{};
-    int m_id{0};
-    QHash<int, QString> m_methods{};
-    QHash<int, QUrl> m_urls{};
+    QHash<QString, Session> m_session{};
 };
 
-#endif //UNICOMM_LANGUAGESERVER_H
+#endif //UNICOMM_LSPMANAGER_H

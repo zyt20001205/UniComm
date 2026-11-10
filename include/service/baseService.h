@@ -4,6 +4,7 @@
 #include <QAbstractItemModel>
 #include <QObject>
 
+class QJsonObject;
 class QStandardItemModel;
 
 class BaseService : public QObject {
@@ -32,7 +33,7 @@ protected:
 
     void detailSet(const QString &detail);
 
-    void eventAppend(const QString &event, const QString &detail) const;
+    void eventAppend(const QString &event, const QJsonObject &response) const;
 
 private:
     [[nodiscard]] QAbstractItemModel *eventModelGet() const;

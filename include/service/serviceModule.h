@@ -3,7 +3,8 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
-class LspService;
+class LspManager;
+class McpService;
 class QQuickWidget;
 
 class ServiceModule final : public KDDockWidgets::QtWidgets::DockWidget {
@@ -15,13 +16,13 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
-    [[nodiscard]] LspService *lspServiceGet() const;
+    [[nodiscard]] LspManager *lspManagerGet() const;
 
     [[nodiscard]] QVariantList servicesGet() const;
 
 private:
-    LspService *m_lspService{};
-    const QVariantList m_services;
+    LspManager *m_lspManager{};
+    McpService *m_mcpService{};
     QQuickWidget *m_widget{};
 };
 

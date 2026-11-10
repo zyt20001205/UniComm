@@ -164,11 +164,13 @@ Item {
                 delegate: Item {
                     id: eventCell
                     required property var display
+                    required property var toolTip
                     implicitWidth: 120; implicitHeight: 32
 
                     Label {
                         anchors.fill: parent
                         text: eventCell.display ?? ""
+                        textFormat: Text.PlainText
                         color: global.fore
                         leftPadding: 6; rightPadding: 6
                         verticalAlignment: Text.AlignVCenter
@@ -179,6 +181,21 @@ Item {
                         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                         height: 1
                         color: global.stroke
+                    }
+
+                    HoverHandler {
+                        enabled: !!eventCell.toolTip
+
+                        onHoveredChanged: {
+                            if (!hovered) {
+                                mainToolTip.text = ""
+                            }
+                        }
+
+                        onPointChanged: {
+                            mainToolTip.position = parent.mapToGlobal(point.position)
+                            mainToolTip.text = eventCell.toolTip || ""
+                        }
                     }
                 }
             }
