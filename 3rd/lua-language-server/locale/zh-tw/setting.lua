@@ -32,6 +32,81 @@ config.runtime.unicodeName        =
 "允許在名字中使用 Unicode 字元。"
 config.runtime.nonstandardSymbol  =
 "支援非標準的符號。請務必確認你的執行環境支援這些符號。"
+config.runtime.nonstandardSymbol['?.'] =
+"安全導覽（欄位/方法：`a?.b` / `obj?.:method()` / `obj:method?.()`）。"
+config.runtime.nonstandardSymbol['?.('] =
+"安全導覽呼叫（`f?.()` / `f?.\"str\"` / `f?.{...}` / `f?.[[...]]`）。"
+config.runtime.nonstandardSymbol['?.['] =
+"安全導覽索引（`t?.[key]`）。"
+config.runtime.nonstandardSymbol['?('] =
+"無點號可選鏈呼叫（`f?()` 等價於 `f?.()`；與三元（`ternary`）解析衝突，不建議同時啟用）。"
+config.runtime.nonstandardSymbol['?['] =
+"無點號可選鏈索引（`t?[1]` 等價於 `t?.[1]`；與三元（`ternary`）解析衝突，不建議同時啟用）。"
+config.runtime.nonstandardSymbol['??'] =
+"空值合併（`a ?? b`，僅當左側為 nil 時取右側）。"
+config.runtime.nonstandardSymbol['ternary'] =
+"三元運算（`cond ? x : y`，右結合；x 部分禁止方法呼叫）。"
+config.runtime.nonstandardSymbol['?:'] =
+"無點號安全方法（`obj?:get()` 等價於 `obj?.:get()`）。"
+config.runtime.nonstandardSymbol['~>>'] =
+"算術右移（`a ~>> b`，LuaJIT 特有；普通 `>>` 為邏輯右移）。"
+config.runtime.nonstandardSymbol['~>>='] =
+"算術右移複合指定（`a ~>>= b`）。"
+config.runtime.nonstandardSymbol['..='] =
+"字串連接複合指定（`a ..= b`）。"
+config.runtime.nonstandardSymbol['~='] =
+"互斥或複合指定：僅陳述式上下文（如 `a ~= b` 單獨成行）生效；表達式中仍是不等於比較。"
+config.runtime.nonstandardSymbol['const'] =
+"`const` 宣告（區塊級區域常數，不可重新賦值/重複宣告）。"
+config.runtime.nonstandardSymbol['->'] =
+"短函式箭頭（`x -> expr` / `|x| -> expr` / `|| -> expr` / `-> do ... end`）。"
+config.runtime.nonstandardSymbol['number_underscore'] =
+"數字字面量底線（如 `1_000`、`0x1_2`、`0b1_0`）。"
+config.runtime.nonstandardSymbol['//'] =
+"行註解（C 風格）。"
+config.runtime.nonstandardSymbol['/**/'] =
+"區塊註解（C 風格）。"
+config.runtime.nonstandardSymbol['`'] =
+"反引號字串字面量。"
+config.runtime.nonstandardSymbol['+='] =
+"加法複合指定。"
+config.runtime.nonstandardSymbol['-='] =
+"減法複合指定。"
+config.runtime.nonstandardSymbol['*='] =
+"乘法複合指定。"
+config.runtime.nonstandardSymbol['/='] =
+"除法複合指定。"
+config.runtime.nonstandardSymbol['%='] =
+"取模複合指定。"
+config.runtime.nonstandardSymbol['^='] =
+"冪複合指定。"
+config.runtime.nonstandardSymbol['//='] =
+"地板除複合指定。"
+config.runtime.nonstandardSymbol['|='] =
+"按位或複合指定。"
+config.runtime.nonstandardSymbol['&='] =
+"按位與複合指定。"
+config.runtime.nonstandardSymbol['<<='] =
+"左移複合指定。"
+config.runtime.nonstandardSymbol['>>='] =
+"右移複合指定。"
+config.runtime.nonstandardSymbol['||'] =
+"邏輯或（等價於 or）。"
+config.runtime.nonstandardSymbol['&&'] =
+"邏輯與（等價於 and）。"
+config.runtime.nonstandardSymbol['!'] =
+"邏輯非（等價於 not）。"
+config.runtime.nonstandardSymbol['!='] =
+"不等於（等價於 ~=）。"
+config.runtime.nonstandardSymbol['continue'] =
+"`continue` 陳述式。"
+config.runtime.nonstandardSymbol['|lambda|'] =
+"管道參數短函式（`|x| expr`）。"
+config.runtime.enableLuaJITExtensions =
+[[
+啟用 LuaJIT 擴充語法（需將 `Lua.runtime.version` 設定為 `LuaJIT`）。
+各項擴充語法也可以單獨透過 `Lua.runtime.nonstandardSymbol` 啟用。
+]]
 config.runtime.plugin             =
 "延伸模組路徑，請查閱[文件](https://luals.github.io/wiki/plugins)瞭解用法。"
 config.runtime.pluginArgs         =
@@ -132,6 +207,8 @@ config.workspace.preloadFileSize  =
 "預先載入時跳過大小大於該值（KB）的檔案。"
 config.workspace.library          =
 "除了目前工作區以外，還會從哪些目錄中載入檔案。這些目錄中的檔案將被視作外部提供的程式碼庫，部分操作（如重新命名欄位）不會修改這些檔案。"
+config.workspace.dofileRoots      =
+"除了目前工作區以外，`dofile` 會把這些目錄視為可能的根目錄。這些目錄中的檔案會被立即載入。"
 config.workspace.checkThirdParty  =
 [[
 自動偵測與適應第三方庫，目前支援的庫為：
@@ -183,6 +260,8 @@ config.completion.maxSuggestCount        =
 "自動完成時最多分析的欄位數量。若物件欄位超過此上限，必須提供更精確的輸入才會顯示建議。"
 config.completion.showParams             =
 "在建議列表中顯示函式的參數資訊，函式擁有多個定義時會分開顯示。"
+config.completion.requireFunction        =
+"觸發自動 `require` 時插入的函式名稱。"
 config.completion.requireSeparator       =
 "`require` 時使用的分隔符。"
 config.completion.postfix                =
@@ -461,6 +540,66 @@ config.diagnostics['unreachable-code']      =
 '無法到達的程式碼'
 config.diagnostics['global-element']       =
 '對全域元素的警告'
+config.diagnostics['action-after-return'] =
+'`return` 陳述式之後的程式碼'
+config.diagnostics['ambiguous-syntax'] =
+'存在歧義的語法'
+config.diagnostics['args-after-dots'] =
+'`...` 之後的參數'
+config.diagnostics['assign-const-global'] =
+'對 const 全域變數賦值'
+config.diagnostics['block-after-else'] =
+'`else` 之後的程式碼區塊'
+config.diagnostics['break-outside'] =
+'在迴圈外使用 `break`'
+config.diagnostics['circle-doc-class'] =
+'`@class` 繼承出現循環'
+config.diagnostics['declare-const'] =
+'重複宣告 const 常數'
+config.diagnostics['env-is-global'] =
+'`_ENV` 作為全域變數使用'
+config.diagnostics['exp-in-action'] =
+'表達式出現在陳述式位置'
+config.diagnostics['global-close-attribute'] =
+'全域變數使用 close 屬性'
+config.diagnostics['index-in-func-name'] =
+'函式名稱中包含索引'
+config.diagnostics['inject-field'] =
+'向物件注入欄位'
+config.diagnostics['jump-local-scope'] =
+'跳入區域變數作用域'
+config.diagnostics['keyword'] =
+'關鍵字使用不當'
+config.diagnostics['local-limit'] =
+'區域變數數量超過限制'
+config.diagnostics['lua-doc-miss-sign'] =
+'LuaDoc 註解缺少符號'
+config.diagnostics['malformed-number'] =
+'格式錯誤的數字字面量'
+config.diagnostics['missing-fields'] =
+'缺少欄位'
+config.diagnostics['multi-close'] =
+'多重 close 操作'
+config.diagnostics['need-paren'] =
+'需要括號'
+config.diagnostics['nesting-long-mark'] =
+'巢狀的長註解標記'
+config.diagnostics['no-visible-label'] =
+'不可見的標籤'
+config.diagnostics['redefined-label'] =
+'重複定義的標籤'
+config.diagnostics['set-const'] =
+'對 const 常數賦值'
+config.diagnostics['unicode-name'] =
+'Unicode 名稱使用'
+config.diagnostics['unknown-attribute'] =
+'未知的屬性'
+config.diagnostics['unknown-symbol'] =
+'未知的符號'
+config.diagnostics['unsupport-named-vararg'] =
+'不支援的命名變參'
+config.diagnostics['variable-not-declared'] =
+'使用未宣告的變數'
 config.typeFormat.config                    =
 '寫Lua程式碼時的格式化組態'
 config.typeFormat.config.auto_complete_end  =

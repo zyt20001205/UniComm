@@ -1,17 +1,23 @@
 #ifndef UNICOMM_LSPSERVICE_H
 #define UNICOMM_LSPSERVICE_H
 
-#include <QStringList>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QUrl>
 
-#include "languageServer.h"
+#include "service/baseService.h"
 
-class LspService final : public QObject {
+class QProcess;
+
+class LspService final : public BaseService {
     Q_OBJECT
 
 public:
-    explicit LspService(QObject *parent = nullptr);
+    explicit LspService(const QString &name, const QString &program, const QStringList &arguments, QObject *parent = nullptr);
 
     ~LspService() override;
+
+    void initialize();
 
     void shutdown();
 
@@ -20,6 +26,10 @@ public:
     void jsonNotification(const QString &method, const QJsonObject &params) const;
 
 signals:
+    void initialized(const QJsonObject &params);
+
+    void shutdowned();
+
     void notificationDiagnostics(const QUrl &documentUrl, const QJsonArray &diagnostics);
 
     void responseCodeAction(const QUrl &documentUrl, const QJsonArray &result);
@@ -57,16 +67,17 @@ signals:
     void responseTypeDefinition(const QUrl &documentUrl, const QJsonArray &ranges);
 
 private:
-    struct LanguageServerSession {
-        LanguageServer *server{};
-        QSet<QChar> completionTrigger{};
-        QSet<QChar> formattingTrigger{};
-        QSet<QChar> signatureHelpTrigger{};
-    };
+    void jsonResponse(const QJsonValue &id, const QJsonValue &result) const;
 
-    void serverAdd(const QString &suffix, const QString &process, const QStringList &arguments = {});
+    void jsonError(const QJsonValue &id, int code, const QString &message) const;
 
-    QHash<QString, LanguageServerSession> m_session{};
+    void parser();
+
+    QProcess *m_process{};
+    QByteArray m_buffer{};
+    int m_id{0};
+    QHash<int, QString> m_methods{};
+    QHash<int, QUrl> m_urls{};
 };
 
 #endif //UNICOMM_LSPSERVICE_H

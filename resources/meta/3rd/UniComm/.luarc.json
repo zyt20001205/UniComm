@@ -4,9 +4,6 @@
     "requireSeparator": "/"
   },
   "runtime": {
-    "special" : {
-      "thread.start": "require"
-    },
     "version" : "Lua 5.5"
   },
   "semantic": {

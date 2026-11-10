@@ -23,55 +23,55 @@ function os.clock() end
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.year"])
 ---
----@field year  integer|string
+---@field year  integer
 ---
 ---1-12
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.month"])
 ---
----@field month integer|string
+---@field month integer
 ---
 ---1-31
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.day"])
 ---
----@field day   integer|string
+---@field day   integer
 ---
 ---0-23
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.hour"])
 ---
----@field hour  integer|string
+---@field hour  integer
 ---
 ---0-59
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.min"])
 ---
----@field min   integer|string
+---@field min   integer
 ---
 ---0-61
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.sec"])
 ---
----@field sec   integer|string
+---@field sec   integer
 ---
 ---星期几，1-7，星期天为 1
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.wday"])
 ---
----@field wday  integer|string
+---@field wday  integer
 ---
 ---当年的第几天，1-366
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.yday"])
 ---
----@field yday  integer|string
+---@field yday  integer
 ---
 ---夏令时标记，一个布尔量
 ---
 ---[查看文档](command:extension.lua.doc?["en-us/51/manual.html/pdf-osdate.isdst"])
 ---
----@field isdst boolean
+---@field isdst boolean?
 
 ---
 ---返回一个包含日期及时刻的字符串或表。 格式化方法取决于所给字符串 `format`。

@@ -32,6 +32,81 @@ config.runtime.unicodeName        =
 "Allows Unicode characters in name."
 config.runtime.nonstandardSymbol  =
 "Supports non-standard symbols. Make sure that your runtime environment supports these symbols."
+config.runtime.nonstandardSymbol['?.'] =
+"Safe navigation (field/method: `a?.b` / `obj?.:method()` / `obj:method?.()`)."
+config.runtime.nonstandardSymbol['?.('] =
+"Safe navigation call (`f?.()` / `f?.\"str\"` / `f?.{...}` / `f?.[[...]]`)."
+config.runtime.nonstandardSymbol['?.['] =
+"Safe navigation index (`t?.[key]`)."
+config.runtime.nonstandardSymbol['?('] =
+"No-dot optional call (`f?()` equals `f?.()`; conflicts with ternary (`ternary`) parsing, not recommended together)."
+config.runtime.nonstandardSymbol['?['] =
+"No-dot optional index (`t?[1]` equals `t?.[1]`; conflicts with ternary (`ternary`) parsing, not recommended together)."
+config.runtime.nonstandardSymbol['??'] =
+"Nil-coalescing (`a ?? b`; takes the right side only when the left side is nil)."
+config.runtime.nonstandardSymbol['ternary'] =
+"Ternary operator (`cond ? x : y`, right-associative; method calls forbidden in the `x` part)."
+config.runtime.nonstandardSymbol['?:'] =
+"No-dot safe method (`obj?:get()` equals `obj?.:get()`)."
+config.runtime.nonstandardSymbol['~>>'] =
+"Arithmetic right shift (`a ~>> b`, LuaJIT-specific; plain `>>` is logical)."
+config.runtime.nonstandardSymbol['~>>='] =
+"Arithmetic right shift compound assignment (`a ~>>= b`)."
+config.runtime.nonstandardSymbol['..='] =
+"String concatenation compound assignment (`a ..= b`)."
+config.runtime.nonstandardSymbol['~='] =
+"Bitwise-xor compound assignment: only in statement context (e.g. `a ~= b` on its own line); in expressions it remains the not-equal operator."
+config.runtime.nonstandardSymbol['const'] =
+"`const` declaration (block-scoped local constant, cannot be reassigned or redeclared)."
+config.runtime.nonstandardSymbol['->'] =
+"Short function arrow (`x -> expr` / `|x| -> expr` / `|| -> expr` / `-> do ... end`)."
+config.runtime.nonstandardSymbol['number_underscore'] =
+"Underscores in number literals (e.g. `1_000`, `0x1_2`, `0b1_0`)."
+config.runtime.nonstandardSymbol['//'] =
+"Line comment (C style)."
+config.runtime.nonstandardSymbol['/**/'] =
+"Block comment (C style)."
+config.runtime.nonstandardSymbol['`'] =
+"Backtick string literal."
+config.runtime.nonstandardSymbol['+='] =
+"Add compound assignment."
+config.runtime.nonstandardSymbol['-='] =
+"Subtract compound assignment."
+config.runtime.nonstandardSymbol['*='] =
+"Multiply compound assignment."
+config.runtime.nonstandardSymbol['/='] =
+"Divide compound assignment."
+config.runtime.nonstandardSymbol['%='] =
+"Modulo compound assignment."
+config.runtime.nonstandardSymbol['^='] =
+"Power compound assignment."
+config.runtime.nonstandardSymbol['//='] =
+"Floor-divide compound assignment."
+config.runtime.nonstandardSymbol['|='] =
+"Bitwise-or compound assignment."
+config.runtime.nonstandardSymbol['&='] =
+"Bitwise-and compound assignment."
+config.runtime.nonstandardSymbol['<<='] =
+"Left shift compound assignment."
+config.runtime.nonstandardSymbol['>>='] =
+"Right shift compound assignment."
+config.runtime.nonstandardSymbol['||'] =
+"Logical or (equivalent to `or`)."
+config.runtime.nonstandardSymbol['&&'] =
+"Logical and (equivalent to `and`)."
+config.runtime.nonstandardSymbol['!'] =
+"Logical not (equivalent to `not`)."
+config.runtime.nonstandardSymbol['!='] =
+"Not equal (equivalent to `~=`)."
+config.runtime.nonstandardSymbol['continue'] =
+"`continue` statement."
+config.runtime.nonstandardSymbol['|lambda|'] =
+"Pipe-parameter short function (`|x| expr`)."
+config.runtime.enableLuaJITExtensions =
+[[
+Enable LuaJIT extension syntax (requires `Lua.runtime.version` to be set to `LuaJIT`).
+Each extension can also be enabled individually via `Lua.runtime.nonstandardSymbol`.
+]]
 config.runtime.plugin             =
 "Plugin path. Please read [wiki](https://luals.github.io/wiki/plugins) to learn more."
 config.runtime.pluginArgs         =
@@ -133,6 +208,8 @@ config.workspace.preloadFileSize  =
 "Skip files larger than this value (KB) when preloading."
 config.workspace.library          =
 "In addition to the current workspace, which directories will load files from. The files in these directories will be treated as externally provided code libraries, and some features (such as renaming fields) will not modify these files."
+config.workspace.dofileRoots      =
+"In addition to the current workspace, which directories `dofile` will treat as a possible root. The files in these directories will be loaded immediately."
 config.workspace.checkThirdParty  =
 [[
 Automatic detection and adaptation of third-party libraries, currently supported libraries are:
@@ -184,6 +261,8 @@ config.completion.maxSuggestCount        =
 "Maximum number of fields to analyze for completions. When an object has more fields than this limit, completions will require more specific input to appear."
 config.completion.showParams             =
 "Display parameters in completion list. When the function has multiple definitions, they will be displayed separately."
+config.completion.requireFunction        =
+"The function to insert when an auto-require is triggered."
 config.completion.requireSeparator       =
 "The separator used when `require`."
 config.completion.postfix                =
@@ -463,6 +542,66 @@ config.diagnostics['unreachable-code']      =
 'Enable diagnostics for unreachable code.'
 config.diagnostics['global-element']       =
 'Enable diagnostics to warn about global elements.'
+config.diagnostics['action-after-return'] =
+'Code after a `return` statement'
+config.diagnostics['ambiguous-syntax'] =
+'Ambiguous syntax'
+config.diagnostics['args-after-dots'] =
+'Arguments after `...`'
+config.diagnostics['assign-const-global'] =
+'Assigning to a const global variable'
+config.diagnostics['block-after-else'] =
+'Block after `else`'
+config.diagnostics['break-outside'] =
+'Using `break` outside a loop'
+config.diagnostics['circle-doc-class'] =
+'Circular `@class` inheritance'
+config.diagnostics['declare-const'] =
+'Redeclaring a const constant'
+config.diagnostics['env-is-global'] =
+'`_ENV` used as a global variable'
+config.diagnostics['exp-in-action'] =
+'Expression used in statement position'
+config.diagnostics['global-close-attribute'] =
+'Close attribute on a global variable'
+config.diagnostics['index-in-func-name'] =
+'Index in a function name'
+config.diagnostics['inject-field'] =
+'Injecting a field into an object'
+config.diagnostics['jump-local-scope'] =
+'Jumping into a local variable scope'
+config.diagnostics['keyword'] =
+'Improper use of a keyword'
+config.diagnostics['local-limit'] =
+'Too many local variables'
+config.diagnostics['lua-doc-miss-sign'] =
+'LuaDoc comment missing a sign'
+config.diagnostics['malformed-number'] =
+'Malformed number literal'
+config.diagnostics['missing-fields'] =
+'Missing fields'
+config.diagnostics['multi-close'] =
+'Multiple close operations'
+config.diagnostics['need-paren'] =
+'Parentheses required'
+config.diagnostics['nesting-long-mark'] =
+'Nested long comment markers'
+config.diagnostics['no-visible-label'] =
+'Invisible label'
+config.diagnostics['redefined-label'] =
+'Redefined label'
+config.diagnostics['set-const'] =
+'Assigning to a const constant'
+config.diagnostics['unicode-name'] =
+'Unicode name'
+config.diagnostics['unknown-attribute'] =
+'Unknown attribute'
+config.diagnostics['unknown-symbol'] =
+'Unknown symbol'
+config.diagnostics['unsupport-named-vararg'] =
+'Unsupported named vararg'
+config.diagnostics['variable-not-declared'] =
+'Using an undeclared variable'
 config.typeFormat.config                    =
 'Configures the formatting behavior while typing Lua code.'
 config.typeFormat.config.auto_complete_end  =

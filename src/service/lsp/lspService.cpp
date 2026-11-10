@@ -1,101 +1,309 @@
 #include "service/lsp/lspService.h"
 
-#include <QCoreApplication>
-#include <QDir>
-#include <QFileInfo>
 #include <QJsonArray>
-#include <QJsonObject>
-#include <QUrl>
+#include <QProcess>
 
-#include "service/lsp/languageServer.h"
+#include "globals.h"
+#include "util/uniCast.h"
 
 // public
-LspService::LspService(QObject *parent)
-    : QObject(parent) {
-    const QDir rootDir(QCoreApplication::applicationDirPath());
-    serverAdd("lua",
-        rootDir.absoluteFilePath("lua-language-server/bin/lua-language-server.exe"),
-        {"--configpath", rootDir.absoluteFilePath("lua-language-server/meta/3rd/UniComm/.luarc.json")});
+LspService::LspService(const QString &name, const QString &program, const QStringList &arguments, QObject *parent)
+    : BaseService(name, parent),
+      m_process(new QProcess(this)) {
+    m_process->setProgram(program);
+    m_process->setArguments(arguments);
+    connect(m_process, &QProcess::readyRead, this, &LspService::parser);
 }
 
 LspService::~LspService() {
-    const auto timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
-    qDebug() << QString("[%1] lsp service destructed").arg(timestamp);
+}
+
+void LspService::initialize() {
+    m_process->start();
+    if (!m_process->waitForStarted()) {
+        detailSet(m_process->errorString().toHtmlEscaped());
+        qDebug() << "failed to start language server";
+        return;
+    }
+    const QString rootUriStr = g_workspaceUrl.toString();
+    const QJsonObject initializeParams{
+        {"processId", QCoreApplication::applicationPid()},
+        {"rootUri", rootUriStr},
+        {"capabilities", QJsonObject{}}
+    };
+    jsonRequest("initialize", initializeParams);
+    // wait for lsp initialized notification
+    QEventLoop loop{};
+    connect(this, &LspService::initialized, &loop, &QEventLoop::quit);
+    loop.exec();
+    jsonNotification("initialized", QJsonObject{});
+    detailSet(QString("<b>%1</b><br>%2").arg(tr("Executable"), m_process->program().toHtmlEscaped()));
 }
 
 void LspService::shutdown() {
-    for (const auto &session: m_session) {
-        session.server->shutdown();
-    }
+    QEventLoop loop{};
+    if (m_process->state() == QProcess::NotRunning) return;
+    // wait for lsp exit notification
+    connect(this, &LspService::shutdowned, &loop, &QEventLoop::quit);
+    jsonRequest("shutdown", QJsonObject{});
+    loop.exec();
+    // wait for process exit
+    connect(m_process, &QProcess::finished, this, [&loop] { loop.quit(); });
+    jsonNotification("exit", QJsonObject{});
+    loop.exec();
 }
 
 void LspService::jsonRequest(const QString &method, const QJsonObject &params) {
     const QJsonObject textDocument = params["textDocument"].toObject();
-    const QUrl url(textDocument["uri"].toString());
-    const QString suffix = QFileInfo(url.toLocalFile()).suffix().toLower();
-
-    const auto it = m_session.find(suffix);
-    if (it != m_session.end()) it.value().server->jsonRequest(method, params);
+    const auto url = QUrl(textDocument["uri"].toString());
+    m_methods.insert(m_id, method);
+    m_urls.insert(m_id, url);
+    const QJsonObject msg = {
+        {"jsonrpc", "2.0"},
+        {"id", m_id},
+        {"method", method},
+        {"params", params}
+    };
+    // qDebug() << m_methods;
+    m_id++;
+    const QByteArray data = QJsonDocument(msg).toJson(QJsonDocument::Compact);
+    const QByteArray header = "Content-Length: " + QByteArray::number(data.size()) + "\r\n\r\n";
+    m_process->write(header);
+    m_process->write(data);
+    eventAppend(method, {});
+    // qDebug() << msg;
 }
 
 void LspService::jsonNotification(const QString &method, const QJsonObject &params) const {
-    // workspace notification
-    if (method.startsWith("workspace/")) {
-        for (const auto &session: m_session) {
-            session.server->jsonNotification(method, params);
-        }
-        return;
-    }
-    // file notification
-    const QJsonObject textDocument = params["textDocument"].toObject();
-    const QUrl url(textDocument["uri"].toString());
-    const QString suffix = QFileInfo(url.toLocalFile()).suffix().toLower();
-    const auto it = m_session.find(suffix);
-    if (it != m_session.end()) it.value().server->jsonNotification(method, params);
+    const QJsonObject msg = {
+        {"jsonrpc", "2.0"},
+        {"method", method},
+        {"params", params}
+    };
+    const QByteArray data = QJsonDocument(msg).toJson(QJsonDocument::Compact);
+    const QByteArray header = "Content-Length: " + QByteArray::number(data.size()) + "\r\n\r\n";
+    m_process->write(header);
+    m_process->write(data);
+    // qDebug() << msg;
 }
 
 // private
-void LspService::serverAdd(const QString &suffix, const QString &process, const QStringList &arguments) {
-    auto *server = new LanguageServer(process, arguments, this);
-    connect(server, &LanguageServer::notificationDiagnostics, this, &LspService::notificationDiagnostics);
-    connect(server, &LanguageServer::responseCodeAction, this, &LspService::responseCodeAction);
-    connect(server, &LanguageServer::responseCompletion, this, &LspService::responseCompletion);
-    connect(server, &LanguageServer::responseDefinition, this, &LspService::responseDefinition);
-    connect(server, &LanguageServer::responseDocumentHighlight, this, &LspService::responseDocumentHighlight);
-    connect(server, &LanguageServer::responseDocumentSymbol, this, &LspService::responseDocumentSymbol);
-    connect(server, &LanguageServer::responseFoldingRange, this, &LspService::responseFoldingRange);
-    connect(server, &LanguageServer::responseFormatting, this, &LspService::responseFormatting);
-    connect(server, &LanguageServer::responseHover, this, &LspService::responseHover);
-    connect(server, &LanguageServer::responseImplementation, this, &LspService::responseImplementation);
-    connect(server, &LanguageServer::responseOnTypeFormatting, this, &LspService::responseOnTypeFormatting);
-    connect(server, &LanguageServer::responsePrepareRename, this, &LspService::responsePrepareRename);
-    connect(server, &LanguageServer::responseRangeFormatting, this, &LspService::responseRangeFormatting);
-    connect(server, &LanguageServer::responseReferences, this, &LspService::responseReferences);
-    connect(server, &LanguageServer::responseRename, this, &LspService::responseRename);
-    connect(server, &LanguageServer::responseSemanticTokens, this, &LspService::responseSemanticTokens);
-    connect(server, &LanguageServer::responseSignatureHelp, this, &LspService::responseSignatureHelp);
-    connect(server, &LanguageServer::responseTypeDefinition, this, &LspService::responseTypeDefinition);
-    connect(server, &LanguageServer::initialized, this, [this, suffix, server](const QJsonObject &params) {
-        LanguageServerSession session{};
-        session.server = server;
-        const auto result = params["result"].toObject();
-        const auto capabilities = result["capabilities"].toObject();
-        // completion trigger
-        for (const auto &value: capabilities["completionProvider"].toObject()["triggerCharacters"].toArray()) {
-            const auto trigger = value.toString();
-            if (!trigger.isEmpty()) session.completionTrigger.insert(trigger.front());
-        }
-        // format trigger
+void LspService::jsonResponse(const QJsonValue &id, const QJsonValue &result) const {
+    const QJsonObject msg = {
+        {"jsonrpc", "2.0"},
+        {"id", id},
+        {"result", result}
+    };
+    const QByteArray data = QJsonDocument(msg).toJson(QJsonDocument::Compact);
+    const QByteArray header = "Content-Length: " + QByteArray::number(data.size()) + "\r\n\r\n";
+    m_process->write(header);
+    m_process->write(data);
+}
+
+void LspService::jsonError(const QJsonValue &id, const int code, const QString &message) const {
+    const QJsonObject msg = {
+        {"jsonrpc", "2.0"},
+        {"id", id},
         {
-            const auto trigger = capabilities["documentOnTypeFormattingProvider"].toObject()["firstTriggerCharacter"].toString();
-            if (!trigger.isEmpty()) session.formattingTrigger.insert(trigger.front());
+            "error", QJsonObject{
+                {"code", code},
+                {"message", message}
+            }
         }
-        // signature help trigger
-        for (const auto &value: capabilities["signatureHelpProvider"].toObject()["triggerCharacters"].toArray()) {
-            const auto trigger = value.toString();
-            if (!trigger.isEmpty()) session.signatureHelpTrigger.insert(trigger.front());
+    };
+    const QByteArray data = QJsonDocument(msg).toJson(QJsonDocument::Compact);
+    const QByteArray header = "Content-Length: " + QByteArray::number(data.size()) + "\r\n\r\n";
+    m_process->write(header);
+    m_process->write(data);
+}
+
+void LspService::parser() {
+    // append to buffer
+    m_buffer.append(m_process->readAllStandardOutput());
+    while (true) {
+        // extract header to get pack length
+        const long long headerStartIndex = m_buffer.indexOf("Content-Length: ") + 16;
+        const long long headerEndIndex = m_buffer.indexOf("\r\n\r\n");
+        if (headerEndIndex == -1) break;
+        const auto lengthBytes = m_buffer.mid(headerStartIndex, headerEndIndex - headerStartIndex);
+        const auto length = lengthBytes.toInt();
+        if (m_buffer.size() < headerEndIndex + 4 + length) break;
+        const auto dataBytes = m_buffer.mid(headerEndIndex + 4, lengthBytes.toInt());
+        const auto json = QJsonDocument::fromJson(dataBytes).object();
+        // qDebug() << json;
+        m_buffer.remove(0, headerEndIndex + 4 + length);
+        if (json.contains("method")) {
+            const auto method = json["method"].toString();
+            const auto params = json["params"].toObject();
+            // lsp request
+            if (json.contains("id")) {
+                const auto id = json["id"];
+                if (method == "workspace/applyEdit") {
+                    jsonResponse(id, QJsonObject{
+                                     {"applied", false},
+                                     {"failureReason", "Workspace edits are not supported."}
+                                 });
+                } else if (method == "window/workDoneProgress/create") {
+                    jsonResponse(id, QJsonValue(QJsonValue::Null));
+                } else {
+                    jsonError(id, -32601, "Method not found");
+                }
+            }
+            // lsp notification
+            else {
+                if (method == "textDocument/publishDiagnostics") {
+                    // publish diagnostics notification
+                    const auto diagnostics = params["diagnostics"].toArray();
+                    const LUrl uri = params["uri"].toString();
+                    const auto documentUrl = uni_cast<QUrl>(uri);
+                    emit notificationDiagnostics(documentUrl, diagnostics);
+                } else if (method == "$/hello") {
+                    // hello notification
+                    // qDebug() << json;
+                } else if (method == "$/progress") {
+                    // progress notification
+                    // qDebug() << json;
+                    // const auto params = json["params"].toObject();
+                    // const auto token = params["token"].toInt();
+                    // const auto value = params["value"].toObject();
+                    // if (token == 2) {
+                    //     const int percentage = value["percentage"].toInt(100);
+                    //     m_progressDialog->setProperty("create2", percentage / 100.0);
+                    // } else if (token == 3) {
+                    //     const int percentage = value["percentage"].toInt(100);
+                    //     m_progressDialog->setProperty("create3", percentage / 100.0);
+                    // }
+                } else if (method == "window/logMessage") {
+                    // log message notification
+                    // qDebug() << json;
+                } else {
+                    qDebug() << "unknown lsp pack";
+                    qDebug() << json;
+                }
+            }
+        } else if (json.contains("id")) {
+            // lsp response
+            const auto id = json["id"].toInt();
+            const auto method = m_methods[id];
+            const auto documentUrl = m_urls[id];
+            m_methods.remove(id);
+            m_urls.remove(id);
+            if (method == "initialize") {
+                // initialize response
+                // qDebug() << json;
+                emit initialized(json);
+            } else if (method == "shutdown") {
+                // shutdown response
+                // qDebug() << json;
+                emit shutdowned();
+            } else if (method == "textDocument/codeAction") {
+                // code action response
+                // if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseCodeAction(documentUrl, result);
+            } else if (method == "textDocument/completion") {
+                // completion response
+                if (!json["result"].isObject()) return; // null result
+                const auto result = json["result"].toObject();
+                const auto items = result["items"].toArray();
+                emit responseCompletion(documentUrl, items);
+            } else if (method == "textDocument/definition") {
+                // definition response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseDefinition(documentUrl, result);
+            } else if (method == "textDocument/documentHighlight") {
+                // document highlight response
+                // if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseDocumentHighlight(documentUrl, result);
+            } else if (method == "textDocument/documentSymbol") {
+                // document symbol response
+                // if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseDocumentSymbol(documentUrl, result);
+            } else if (method == "textDocument/foldingRange") {
+                // folding range response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseFoldingRange(documentUrl, result);
+            } else if (method == "textDocument/formatting") {
+                // formatting response
+                if (!json["result"].isArray()) {
+                    emit responseFormatting(documentUrl, QString());
+                } else {
+                    const auto result = json["result"].toArray();
+                    const auto newText = result[0]["newText"].toString();
+                    emit responseFormatting(documentUrl, newText);
+                }
+            } else if (method == "textDocument/hover") {
+                // hover response
+                if (!json["result"].isObject()) {
+                    // null result
+                    emit responseHover(documentUrl, QString());
+                } else {
+                    const auto result = json["result"].toObject();
+                    const auto contents = result["contents"].toObject();
+                    const auto value = contents["value"].toString();
+                    emit responseHover(documentUrl, value);
+                }
+            } else if (method == "textDocument/implementation") {
+                // implementation response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseImplementation(documentUrl, result);
+            } else if (method == "textDocument/onTypeFormatting") {
+                // on type formatting response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                const auto newText = result[0].toObject();
+                emit responseOnTypeFormatting(documentUrl, newText);
+            } else if (method == "textDocument/prepareRename") {
+                if (!json["result"].isObject()) return; // null result
+                const auto result = json["result"].toObject();
+                const auto oldName = result["placeholder"].toString();
+                emit responsePrepareRename(documentUrl, oldName);
+            } else if (method == "textDocument/rangeFormatting") {
+                // range formatting response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                const auto newText = result[0]["newText"].toString();
+                emit responseRangeFormatting(documentUrl, newText);
+            } else if (method == "textDocument/references") {
+                // references response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseReferences(documentUrl, result);
+            } else if (method == "textDocument/rename") {
+                // rename response
+                if (!json["result"].isObject()) return; // null result
+                const auto workspaceEdit = json["result"].toObject();
+                emit responseRename(documentUrl, workspaceEdit);
+            } else if (method == "textDocument/semanticTokens/full") {
+                // semanticTokens response
+                if (!json["result"].isObject()) return; // null result
+                const auto result = json["result"].toObject();
+                const auto data = result["data"].toArray();
+                emit responseSemanticTokens(documentUrl, data);
+            } else if (method == "textDocument/signatureHelp") {
+                // signatureHelp response
+                if (!json["result"].isObject()) return; // null result
+                const auto result = json["result"].toObject();
+                const auto signatures = result["signatures"].toArray();
+                emit responseSignatureHelp(documentUrl, signatures);
+            } else if (method == "textDocument/typeDefinition") {
+                // typeDefinition response
+                if (!json["result"].isArray()) return; // null result
+                const auto result = json["result"].toArray();
+                emit responseTypeDefinition(documentUrl, result);
+            } else {
+                qDebug() << "unknown lsp pack";
+                qDebug() << json;
+            }
+        } else {
+            qDebug() << "unknown lsp pack";
+            qDebug() << json;
         }
-        m_session.insert(suffix.toLower(), session);
-    });
-    server->initialize();
+        if (m_buffer.size() == 0) break;
+    }
 }

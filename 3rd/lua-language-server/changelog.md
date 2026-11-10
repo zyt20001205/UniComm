@@ -3,6 +3,38 @@
 ## Unreleased
 <!-- Add all new changes here. They will be moved under a version at release -->
 
+## 3.19.2
+`2026-10-13`
+* `NEW` Setting `Lua.completion.requireFunction` to choose what the auto-require completion inserts (e.g. `import` instead of `require`)
+* `FIX` Support 6-digit hex color codes (with and without `#`) in `textDocument/documentColor`, and correct the `alpha` of `#RRGGBB` colors to the LSP range `0..1`
+* `FIX` Resolve unbound class generic parameters to `any` instead of leaving the parameter as the field type [#3442](https://github.com/LuaLS/lua-language-server/pull/3442)
+* `FIX` LuaJIT nil-coalescing `??` now strips the optional `?` from the left-hand type (e.g. `integer? ?? 2` infers `integer`) [#3459](https://github.com/LuaLS/lua-language-server/issues/3459)
+* `FIX` Literal string `"async"` in LuaDoc types (e.g. `---@field mode "async" | "sync"`) is no longer mis-parsed as the `async fun` prefix [#3402](https://github.com/LuaLS/lua-language-server/issues/3402)
+* `FIX` A `.gitignore` line containing only whitespace no longer ignores the entire workspace [#3458](https://github.com/LuaLS/lua-language-server/issues/3458)
+* `FIX` `need-check-nil` diagnostic is no longer reported on safe navigation access (e.g. `x?.field`, `f?.()`, `t?.[key]`), since the optional access itself already handles the nil check. Note that a non-safe access chained after a safe one (e.g. `x.upper()?.field`) still reports, because the safe access only protects its own result.
+* `FIX` Prevent hover and enum completion responses from containing invalid UTF-8 when escaped string literals decode to arbitrary bytes (e.g. `"\xC2"`).
+* `FIX` Fields accessed on a value typed as a constrained generic (e.g. `---@generic T: SomeClass` with `---@param self T`) are now looked up on the constraint, so existing fields no longer report `undefined-field` (unknown fields still do) [#2640](https://github.com/LuaLS/lua-language-server/discussions/2640)
+
+## 3.19.1
+`2026-08-14`
+* `NEW` LuaJIT 3.0 extension syntax can now also be enabled individually via `Lua.runtime.nonstandardSymbol` (`?.`, `??`, `ternary`, `~>>`, `~>>=`, `..=`, `~=`, `const`, `->`, `number_underscore`), independent of `Lua.runtime.version` and without the `Lua.runtime.enableLuaJITExtensions` master switch. Note that `~=` enables the bitwise-xor compound assignment only in statement context (e.g. `a ~= b` on its own line).
+* `NEW` Add no-dot optional chaining `f?()` and `t?[1]` (equivalent to `f?.()` / `t?.[1]`) as new `Lua.runtime.nonstandardSymbol` entries (`?(` and `?[`), and the no-dot safe method `obj?:get()` (equivalent to `obj?.:get()`, entry `?:`). Note: enabling `?(` / `?[` together with the ternary (`ternary`) may conflict during parsing.
+* `NEW` Support type inference for `dofile` and add a new `Lua.workspace.dofileRoots` setting to configure where it reads from [#3432](https://github.com/LuaLS/lua-language-server/pull/3432)
+
+## 3.19.0
+`2026-08-08`
+* `NEW` Support LuaJIT 3.0 extension syntax when `Lua.runtime.version` is `LuaJIT` and the new `Lua.runtime.enableLuaJITExtensions` setting is enabled: ternary conditional `?:`, safe navigation `?.` (including method forms `obj?.:method`, `obj:method?.`), nil-coalescing `??`, arithmetic shift `~>>` with `~>>=` compound assignment, `..=` concatenation assignment, `const` declarations, short function expressions (`x -> expr`, `|x| -> expr`, `-> do ... end`), and number underscores (`1_000`) [#3434](https://github.com/LuaLS/lua-language-server/issues/3434)
+* `NEW` `@operator` declarations on generic classes now resolve class type parameters through the instantiated type: with `---@class Box<T>` and `---@operator call(): T?`, calling a `Box<string>` instance infers `string?`
+* `NEW` Support type inference for `@field` and `@type` function declarations in method overrides [#3367](https://github.com/LuaLS/lua-language-server/issues/3367)
+* `FIX` Fix invalid LSP responses in files containing string literals with escaped bytes.
+* `FIX` Fix method-level generic return type being overwritten by receiver class generic resolution [#3438](https://github.com/LuaLS/lua-language-server/discussions/3438)
+* `FIX` Generic type parameters used in `@operator` annotations are now recognized as generics (and highlighted as such) instead of being treated as undefined type names
+* `FIX` Infer `pcall`/`xpcall` second result from their own declaration when the called function returns nothing [#3440](https://github.com/LuaLS/lua-language-server/pull/3440)
+* `FIX` Recognize a class inheriting a generic class as a child of that generic's own parent [#3441](https://github.com/LuaLS/lua-language-server/pull/3441)
+* `FIX` Deduplicate documentation bindings for parameters
+* `FIX` Correct `math.type` meta return annotation to use `nil` instead of the string literal `'nil'`
+* `FIX` Fix initial `nameStyle.config` not getting loaded in the appropriate workspace.
+
 ## 3.18.2
 * `CHG` `duplicate-set-field` diagnostic now supports linked suppression: when any occurrence of a duplicate field is suppressed with `---@diagnostic disable` or `---@diagnostic disable-next-line`, all warnings for that field name will be suppressed
 * `REVERT` Reverted commit 1dd194da537df432f97295ea167dfef19acd7a4e which fix for type inference in and/or idioms. The circular dependency guard introduced issues with type narrowing in if-blocks where variables are reassigned (e.g., `if x then x = 0 end` would lose type information from the if-block in subsequent code). This needs a more refined solution to balance fixing circular dependencies without breaking type narrowing.

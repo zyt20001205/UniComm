@@ -225,7 +225,28 @@ local template = {
                                                 '||', '&&', '!', '!=',
                                                 'continue',
                                                 '|lambda|',
+                                                -- LuaJIT 3.0 扩展语法，可单独启用（不要求 Lua.runtime.version == 'LuaJIT'，
+                                                -- 也无需开启 Lua.runtime.enableLuaJITExtensions）
+                                                '?.',   -- 安全导航（字段/方法：a?.b / obj?.:method() / obj:method?.()）
+                                                '?.(',  -- 安全导航调用（f?.() / f?."str" / f?.{...} / f?.[[...]]）
+                                                '?.[',  -- 安全导航索引（t?.[key]）
+                                                '??',   -- 空值合并（a ?? b）
+                                                'ternary', -- 三元运算（cond ? x : y，右结合；x 部分禁止方法调用；符号为 ?:）
+                                                '~>>',  -- 算术右移（a ~>> b，LuaJIT 特有，普通 >> 为逻辑右移）
+                                                '~>>=', -- 算术右移复合赋值（a ~>>= b）
+                                                '..=',  -- 字符串连接复合赋值（a ..= b）
+                                                '~=',   -- 注意：仅语句上下文（如 `a ~= b` 单独成行）时是异或复合赋值（a = a ~ b）；
+                                                        -- 表达式上下文中 `a ~= b` 仍是不等于比较，不受此选项影响
+                                                'const',-- const 声明（块级局部常量，不可重新赋值/重复声明）
+                                                '->',   -- 短函数箭头（x -> expr / |x| -> expr / || -> expr / -> do ... end）
+                                                'number_underscore', -- 数字字面量下划线（如 1_000、0x1_2、0b1_0）
+                                                -- 无点号可选链（非 LuaJIT 语法，本项目独立扩展）：? 直接后跟 ( / [ / :（f?() / t?[1] / obj?:get()），相对 ?. 省略点号
+                                                -- 警告：?(' 与 ?[' 与三元（ternary）解析冲突（如 `a ? (x) : c` 会被当作 `a?(x)`），不建议同时启用
+                                                '?(',   -- f?() 无点号可选链调用
+                                                '?[',   -- t?[1] 无点号可选链索引
+                                                '?:',   -- 无点号安全方法（obj?:get()，等价于 obj?.:get()）
                                             }),
+    ['Lua.runtime.enableLuaJITExtensions']  = Type.Boolean >> false,
     ['Lua.runtime.plugin']                  = Type.Or(Type.String, Type.Array(Type.String)) ,
     ['Lua.runtime.pluginArgs']              = Type.Or(Type.Array(Type.String), Type.Hash(Type.String, Type.String)),
     ['Lua.runtime.fileEncoding']            = Type.String >> 'utf8' << {
@@ -321,6 +342,7 @@ local template = {
     ['Lua.workspace.maxPreload']            = Type.Integer >> 5000,
     ['Lua.workspace.preloadFileSize']       = Type.Integer >> 500,
     ['Lua.workspace.library']               = Type.Array(Type.String),
+    ['Lua.workspace.dofileRoots']           = Type.Array(Type.String),
     ['Lua.workspace.checkThirdParty']       = Type.Or(Type.String >> 'Ask' << {
                                                 'Ask',
                                                 'Apply',
@@ -349,6 +371,7 @@ local template = {
     ['Lua.completion.autoRequire']          = Type.Boolean >> true,
     ['Lua.completion.maxSuggestCount']      = Type.Integer >> 100,
     ['Lua.completion.showParams']           = Type.Boolean >> true,
+    ['Lua.completion.requireFunction']      = Type.String  >> 'require',
     ['Lua.completion.requireSeparator']     = Type.String  >> '.',
     ['Lua.completion.postfix']              = Type.String  >> '@',
     ['Lua.signatureHelp.enable']            = Type.Boolean >> true,

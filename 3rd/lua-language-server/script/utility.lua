@@ -469,7 +469,27 @@ local esc = {
     ['\n'] = '\\\n',
 }
 
+function m.escapeInvalidUtf8(str)
+    if utf8Len(str) then
+        return str
+    end
+    local result = {}
+    local start = 1
+    while true do
+        local _, invalid = utf8Len(str, start)
+        if not invalid then
+            result[#result+1] = str:sub(start)
+            break
+        end
+        result[#result+1] = str:sub(start, invalid - 1)
+        result[#result+1] = ('\\%03d'):format(stringByte(str, invalid))
+        start = invalid + 1
+    end
+    return tableConcat(result)
+end
+
 function m.viewString(str, quo)
+    str = m.escapeInvalidUtf8(str)
     if not quo then
         if str:find('[\r\n]') then
             quo = '[['

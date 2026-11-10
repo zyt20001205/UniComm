@@ -32,6 +32,81 @@ config.runtime.unicodeName        =
 "名前に Unicode 文字を使用できるようにします。"
 config.runtime.nonstandardSymbol  =
 "非標準の記号をサポートします。ランタイム環境がこれらの記号をサポートしていることを確認してください。"
+config.runtime.nonstandardSymbol['?.'] =
+"安全ナビゲーション（フィールド/メソッド：`a?.b` / `obj?.:method()` / `obj:method?.()`）。"
+config.runtime.nonstandardSymbol['?.('] =
+"安全ナビゲーション呼び出し（`f?.()` / `f?.\"str\"` / `f?.{...}` / `f?.[[...]]`）。"
+config.runtime.nonstandardSymbol['?.['] =
+"安全ナビゲーションインデックス（`t?.[key]`）。"
+config.runtime.nonstandardSymbol['?('] =
+"ドットなしオプショナル呼び出し（`f?()` は `f?.()` と同等。三項（`ternary`）の解析と競合するため併用非推奨）。"
+config.runtime.nonstandardSymbol['?['] =
+"ドットなしオプショナルインデックス（`t?[1]` は `t?.[1]` と同等。三項（`ternary`）の解析と競合するため併用非推奨）。"
+config.runtime.nonstandardSymbol['??'] =
+"nil 合体（`a ?? b`。左辺が nil の場合のみ右辺を返す）。"
+config.runtime.nonstandardSymbol['ternary'] =
+"三項演算子（`cond ? x : y`、右結合。`x` 部分ではメソッド呼び出し禁止）。"
+config.runtime.nonstandardSymbol['?:'] =
+"ドットなし安全メソッド（`obj?:get()` は `obj?.:get()` と同等）。"
+config.runtime.nonstandardSymbol['~>>'] =
+"算術右シフト（`a ~>> b`。LuaJIT 固有。通常の `>>` は論理右シフト）。"
+config.runtime.nonstandardSymbol['~>>='] =
+"算術右シフト複合代入（`a ~>>= b`）。"
+config.runtime.nonstandardSymbol['..='] =
+"文字列連結複合代入（`a ..= b`）。"
+config.runtime.nonstandardSymbol['~='] =
+"XOR 複合代入：文コンテキスト（例：`a ~= b` が単独の行）でのみ有効。式の中では「等しくない」のまま。"
+config.runtime.nonstandardSymbol['const'] =
+"`const` 宣言（ブロックスコープのローカル定数。再代入・再宣言不可）。"
+config.runtime.nonstandardSymbol['->'] =
+"短い関数の矢印（`x -> expr` / `|x| -> expr` / `|| -> expr` / `-> do ... end`）。"
+config.runtime.nonstandardSymbol['number_underscore'] =
+"数値リテラルのアンダースコア（例：`1_000`、`0x1_2`、`0b1_0`）。"
+config.runtime.nonstandardSymbol['//'] =
+"行コメント（C スタイル）。"
+config.runtime.nonstandardSymbol['/**/'] =
+"ブロックコメント（C スタイル）。"
+config.runtime.nonstandardSymbol['`'] =
+"バッククォート文字列リテラル。"
+config.runtime.nonstandardSymbol['+='] =
+"加算複合代入。"
+config.runtime.nonstandardSymbol['-='] =
+"減算複合代入。"
+config.runtime.nonstandardSymbol['*='] =
+"乗算複合代入。"
+config.runtime.nonstandardSymbol['/='] =
+"除算複合代入。"
+config.runtime.nonstandardSymbol['%='] =
+"剰余複合代入。"
+config.runtime.nonstandardSymbol['^='] =
+"べき乗複合代入。"
+config.runtime.nonstandardSymbol['//='] =
+"床除算複合代入。"
+config.runtime.nonstandardSymbol['|='] =
+"ビット単位 OR 複合代入。"
+config.runtime.nonstandardSymbol['&='] =
+"ビット単位 AND 複合代入。"
+config.runtime.nonstandardSymbol['<<='] =
+"左シフト複合代入。"
+config.runtime.nonstandardSymbol['>>='] =
+"右シフト複合代入。"
+config.runtime.nonstandardSymbol['||'] =
+"論理 OR（`or` と同等）。"
+config.runtime.nonstandardSymbol['&&'] =
+"論理 AND（`and` と同等）。"
+config.runtime.nonstandardSymbol['!'] =
+"論理 NOT（`not` と同等）。"
+config.runtime.nonstandardSymbol['!='] =
+"等しくない（`~=` と同等）。"
+config.runtime.nonstandardSymbol['continue'] =
+"`continue` 文。"
+config.runtime.nonstandardSymbol['|lambda|'] =
+"パイプ引数の短い関数（`|x| expr`）。"
+config.runtime.enableLuaJITExtensions =
+[[
+LuaJIT 拡張構文を有効にします（`Lua.runtime.version` を `LuaJIT` に設定する必要があります）。
+各拡張構文は `Lua.runtime.nonstandardSymbol` で個別に有効化することもできます。
+]]
 config.runtime.plugin             =
 "プラグインのパス。詳細は [wiki](https://luals.github.io/wiki/plugins) を参照してください。"
 config.runtime.pluginArgs         =
@@ -133,6 +208,8 @@ config.workspace.preloadFileSize  =
 "プリロード時にこの値（KB）より大きいファイルをスキップします。"
 config.workspace.library          =
 "現在のワークスペースに加えて、どのディレクトリからファイルをロードするか。これらのディレクトリ内のファイルは外部提供のコードライブラリとして扱われ、一部の機能（フィールド名の変更など）はこれらのファイルを変更しません。"
+config.workspace.dofileRoots      =
+"現在のワークスペースに加えて、`dofile` がルートとして扱う可能性のあるディレクトリ。これらのディレクトリ内のファイルは即座にロードされます。"
 config.workspace.checkThirdParty  =
 [[
 サードパーティライブラリの自動検出と適応。現在サポートされているライブラリ：
@@ -184,6 +261,8 @@ config.completion.maxSuggestCount        =
 "補完用に分析するフィールドの最大数。オブジェクトがこの制限より多くのフィールドを持つ場合、補完が表示されるにはより具体的な入力が必要になります。"
 config.completion.showParams             =
 "補完リストにパラメータを表示します。関数に複数の定義がある場合、個別に表示されます。"
+config.completion.requireFunction        =
+"自動`require`時に挿入される関数。"
 config.completion.requireSeparator       =
 "`require`時に使用される区切り文字。"
 config.completion.postfix                =
@@ -462,6 +541,66 @@ config.diagnostics['unreachable-code']      =
 '到達不能コードの診断を有効にします。'
 config.diagnostics['global-element']       =
 'グローバル要素に関する警告診断を有効にします。'
+config.diagnostics['action-after-return'] =
+'`return` 文の後のコード'
+config.diagnostics['ambiguous-syntax'] =
+'曖昧な構文'
+config.diagnostics['args-after-dots'] =
+'`...` の後の引数'
+config.diagnostics['assign-const-global'] =
+'const グローバル変数への代入'
+config.diagnostics['block-after-else'] =
+'`else` の後のブロック'
+config.diagnostics['break-outside'] =
+'ループの外で `break` を使用'
+config.diagnostics['circle-doc-class'] =
+'`@class` 継承の循環'
+config.diagnostics['declare-const'] =
+'const 定数の再宣言'
+config.diagnostics['env-is-global'] =
+'`_ENV` をグローバル変数として使用'
+config.diagnostics['exp-in-action'] =
+'文の位置に式が出現'
+config.diagnostics['global-close-attribute'] =
+'グローバル変数への close 属性'
+config.diagnostics['index-in-func-name'] =
+'関数名にインデックスが含まれる'
+config.diagnostics['inject-field'] =
+'オブジェクトへのフィールド注入'
+config.diagnostics['jump-local-scope'] =
+'ローカル変数のスコープにジャンプ'
+config.diagnostics['keyword'] =
+'キーワードの不適切な使用'
+config.diagnostics['local-limit'] =
+'ローカル変数の数が上限を超える'
+config.diagnostics['lua-doc-miss-sign'] =
+'LuaDoc コメントに記号が不足'
+config.diagnostics['malformed-number'] =
+'不正な数値リテラル'
+config.diagnostics['missing-fields'] =
+'フィールドが不足'
+config.diagnostics['multi-close'] =
+'多重 close 操作'
+config.diagnostics['need-paren'] =
+'括弧が必要'
+config.diagnostics['nesting-long-mark'] =
+'ネストした長いコメントマーカー'
+config.diagnostics['no-visible-label'] =
+'見えないラベル'
+config.diagnostics['redefined-label'] =
+'再定義されたラベル'
+config.diagnostics['set-const'] =
+'const 定数への代入'
+config.diagnostics['unicode-name'] =
+'Unicode 名'
+config.diagnostics['unknown-attribute'] =
+'不明な属性'
+config.diagnostics['unknown-symbol'] =
+'不明な記号'
+config.diagnostics['unsupport-named-vararg'] =
+'サポートされない名前付き可変引数'
+config.diagnostics['variable-not-declared'] =
+'未宣言の変数の使用'
 config.typeFormat.config                    =
 'Luaコード入力中のフォーマット動作を設定します。'
 config.typeFormat.config.auto_complete_end  =
