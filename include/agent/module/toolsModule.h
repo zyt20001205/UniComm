@@ -36,7 +36,7 @@ public:
 
     [[nodiscard]] QString toolTextGet(const QString &name, const QString &arguments) const;
 
-    [[nodiscard]] QFuture<ToolResult> toolExecute(const QString &runtimeId, const QString &runtimeRole, const QString &name, const QString &arguments);
+    [[nodiscard]] QFuture<ToolResult> toolExecute(const QString &name, const QString &arguments, const QString &runtimeId = {}, const QString &runtimeRole = {});
 
     [[nodiscard]] ToolResult toolExecute(const QString &name, const QJsonObject &object, const QString &runtimeId = {}) const;
 

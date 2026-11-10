@@ -11,6 +11,7 @@
 #include "agent/agentModule.h"
 #include "agent/module/toolsModule.h"
 
+// public
 McpService::McpService(QObject *parent)
     : BaseService("MCP", parent) {
     QHttpServerConfiguration configuration{};
@@ -44,49 +45,40 @@ McpService::McpService(QObject *parent)
     detailSet(QString("<b>%1</b><br>%2").arg(tr("Endpoint"), endpoint));
 }
 
-QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request) const {
-    using Status = QHttpServerResponse::StatusCode;
+// private
+QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest &request) {
     constexpr auto ModernVersion = "2026-07-28";
     constexpr auto LegacyVersion = "2025-11-25";
     const QSet<QString> names{
         "api_list", "api_get", "demo_get",
-        "port_list", "port_config_get", "port_create", "port_delete"
+        "port_list", "port_config_get", "port_create", "port_delete",
+        "diagnostics_get", "script_exec"
     };
-
-    const auto& headers = request.headers();
+    const auto &headers = request.headers();
     const auto port = QByteArray::number(request.localPort());
     const auto host = headers.value("Host").toByteArray().toLower();
     if (headers.contains("Origin") || (host != "127.0.0.1:" + port && host != "localhost:" + port))
-        return {Status::Forbidden};
+        return QtFuture::makeReadyValueFuture(QHttpServerResponse(QHttpServerResponse::StatusCode::Forbidden));
     if (request.method() != QHttpServerRequest::Method::Post) {
         QHttpHeaders responseHeaders{};
         responseHeaders.append("Allow", "POST");
-        QHttpServerResponse response(Status::MethodNotAllowed);
+        QHttpServerResponse response(QHttpServerResponse::StatusCode::MethodNotAllowed);
         response.setHeaders(responseHeaders);
-        return response;
+        return QtFuture::makeReadyValueFuture(std::move(response));
     }
     QJsonParseError parseError{};
     const auto document = QJsonDocument::fromJson(request.body(), &parseError);
     if (parseError.error != QJsonParseError::NoError)
-        return QHttpServerResponse(QJsonObject{
-            {"jsonrpc", "2.0"}, {"id", QJsonValue{}},
-            {"error", QJsonObject{{"code", -32700}, {"message", "Parse error."}}}
-        }, Status::BadRequest);
+        return QtFuture::makeReadyValueFuture(responseError({}, -32700, "Parse error.", QHttpServerResponse::StatusCode::BadRequest));
 
     const auto message = document.object();
     const auto id = message.value("id");
     const auto method = message.value("method").toString();
     if (message.value("jsonrpc") != "2.0" || method.isEmpty())
-        return QHttpServerResponse(QJsonObject{
-            {"jsonrpc", "2.0"}, {"id", QJsonValue{}},
-            {"error", QJsonObject{{"code", -32600}, {"message", "Invalid request."}}}
-        }, Status::BadRequest);
-    if (id.isUndefined()) return {Status::Accepted};
+        return QtFuture::makeReadyValueFuture(responseError({}, -32600, "Invalid request.", QHttpServerResponse::StatusCode::BadRequest));
+    if (id.isUndefined()) return QtFuture::makeReadyValueFuture(QHttpServerResponse(QHttpServerResponse::StatusCode::Accepted));
     if ((method == "tools/list" || method == "tools/call") && (g_terminating || !g_agent))
-        return QHttpServerResponse(QJsonObject{
-            {"jsonrpc", "2.0"}, {"id", id},
-            {"error", QJsonObject{{"code", -32603}, {"message", "Agent tools are unavailable."}}}
-        }, Status::ServiceUnavailable);
+        return QtFuture::makeReadyValueFuture(responseError(id, -32603, "Agent tools are unavailable.", QHttpServerResponse::StatusCode::ServiceUnavailable));
 
     const auto params = message.value("params").toObject();
     const auto modern = headers.value("MCP-Protocol-Version") == ModernVersion || method == "server/discover";
@@ -111,24 +103,35 @@ QHttpServerResponse McpService::requestHandle(const QHttpServerRequest &request)
     } else if (method == "tools/call") {
         const auto name = params.value("name").toString();
         if (!names.contains(name))
-            return QHttpServerResponse(QJsonObject{
-                {"jsonrpc", "2.0"}, {"id", id},
-                {"error", QJsonObject{{"code", -32602}, {"message", "Unknown tool."}}}
-            });
+            return QtFuture::makeReadyValueFuture(responseError(id, -32602, "Unknown tool."));
         event += " · " + name;
-        const auto tool = g_agent->runtimeServicesGet().toolsModule->toolExecute(name, params.value("arguments").toObject());
-        result = {
-            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", tool.content}}}},
-            {"isError", !tool.success}
-        };
+        const auto arguments = QJsonDocument(params.value("arguments").toObject()).toJson(QJsonDocument::Compact);
+        auto *tools = g_agent->runtimeServicesGet().toolsModule;
+        return tools->toolExecute(name, QString::fromUtf8(arguments)).then(this, [this, id, event, modern](const ToolResult &tool) {
+            return responseResult(id, event, {
+                                      {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", tool.content}}}},
+                                      {"isError", !tool.success}
+                                  }, modern);
+        });
     } else if (method != "ping") {
-        return QHttpServerResponse(QJsonObject{
-            {"jsonrpc", "2.0"}, {"id", id},
-            {"error", QJsonObject{{"code", -32601}, {"message", "Method not found."}}}
-        }, modern ? Status::NotFound : Status::Ok);
+        return QtFuture::makeReadyValueFuture(responseError(
+            id, -32601, "Method not found.", modern ? QHttpServerResponse::StatusCode::NotFound : QHttpServerResponse::StatusCode::Ok
+        ));
     }
+    return QtFuture::makeReadyValueFuture(responseResult(id, event, result, modern));
+}
+
+QHttpServerResponse McpService::responseResult(const QJsonValue &id, const QString &event, QJsonObject result, const bool modern) const {
     if (modern) result["resultType"] = "complete";
     const QJsonObject response{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}};
     eventAppend(event, response);
     return {response};
+}
+
+QHttpServerResponse McpService::responseError(const QJsonValue &id, const int code, const QString &message, const QHttpServerResponse::StatusCode status) {
+    return QHttpServerResponse(
+        QJsonObject{
+            {"jsonrpc", "2.0"}, {"id", id},
+            {"error", QJsonObject{{"code", code}, {"message", message}}}
+        }, status);
 }

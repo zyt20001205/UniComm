@@ -1003,7 +1003,7 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
     return chatText.isEmpty() ? name : chatText;
 }
 
-QFuture<ToolResult> ToolsModule::toolExecute(const QString &runtimeId, const QString &runtimeRole, const QString &name, const QString &arguments) {
+QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString &arguments, const QString &runtimeId, const QString &runtimeRole) {
     if (m_mcpModule->toolContains(name)) return m_mcpModule->toolExecute(name, arguments);
     const auto object = argumentsGet(arguments);
     if (name == "vision_analyze") {

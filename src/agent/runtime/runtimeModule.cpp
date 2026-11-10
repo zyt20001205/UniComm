@@ -289,7 +289,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             if (m_turn.conversationId.isEmpty()) emit setActivity(m_toolsModule->toolTextGet(toolCall.name, toolCall.arguments));
             const auto turnId = m_turn.id;
             m_turn.messages[toolCall.messageIndex].timing.startedAt = QDateTime::currentMSecsSinceEpoch();
-            auto future = m_toolsModule->toolExecute(m_id, m_agent->roleGet(), toolCall.name, toolCall.arguments);
+            auto future = m_toolsModule->toolExecute(toolCall.name, toolCall.arguments, m_id, m_agent->roleGet());
             future.then(this, [this, turnId, toolCall](const ToolResult &result) {
                 if (m_state != AgentState::ToolExec || m_turn.id != turnId) return;
                 if (m_turn.toolCalls.at(m_turn.toolIndex).id != toolCall.id) return;
