@@ -1,6 +1,7 @@
 #ifndef UNICOMM_SSLSERVER_H
 #define UNICOMM_SSLSERVER_H
 
+#include <QAbstractSocket>
 #include <QJsonObject>
 
 #include "basePort.h"
@@ -50,9 +51,7 @@ private:
 
     void handleServerError();
 
-    void handleConnected(QSslSocket *sslServerPeer);
-
-    void handleDisconnected(QSslSocket *sslServerPeer);
+    void handleStateChanged(QSslSocket *sslServerPeer, QAbstractSocket::SocketState state);
 
     void handleReadyRead(QSslSocket *sslServerPeer);
 

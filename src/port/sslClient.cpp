@@ -59,57 +59,43 @@ QVariantHash SslClient::info() {
 }
 
 bool SslClient::open() {
-    // status check
     if (m_sslClient == nullptr) {
         m_sslClient = new QSslSocket(this);
         // TODO: This is not safe!!! test only
         m_sslClient->setPeerVerifyMode(QSslSocket::VerifyNone);
-        connect(m_sslClient, &QSslSocket::connected, this, &SslClient::handleConnected);
-        connect(m_sslClient, &QSslSocket::encrypted, this, &SslClient::handleEncrypted);
-        connect(m_sslClient, &QSslSocket::disconnected, this, &SslClient::handleDisconnected);
+        connect(m_sslClient, &QSslSocket::stateChanged, this, &SslClient::handleStateChanged);
+        connect(m_sslClient, &QSslSocket::encrypted, this, [this] { handleStateChanged(m_sslClient->state()); });
         connect(m_sslClient, &QSslSocket::readyRead, this, &SslClient::handleReadyRead);
         connect(m_sslClient, &QSslSocket::errorOccurred, this, &SslClient::handleError);
     }
-    if (m_sslClient->state() != QAbstractSocket::UnconnectedState) return true;
-    // open port
-    m_buffer.clear();
-    m_sslClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    m_sslClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("connecting to %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-    m_sslClient->connectToHostEncrypted(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
-    if (!m_sslClient->waitForEncrypted()) {
-        handleError();
+    if (m_sslClient->state() == QAbstractSocket::ConnectedState && m_sslClient->isEncrypted()) return true;
+    if (m_sslClient->state() == QAbstractSocket::ClosingState) m_sslClient->abort();
+    if (m_sslClient->state() == QAbstractSocket::UnconnectedState) {
+        m_buffer.clear();
+        m_sslClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+        m_sslClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+        m_sslClient->connectToHostEncrypted(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
+    }
+    if (!m_sslClient->isEncrypted() && !m_sslClient->waitForEncrypted()) {
+        m_sslClient->abort();
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
-    emit refreshPort(m_portConfig["portName"].toString(), true);
     return true;
 }
 
 void SslClient::close() {
-    // status check
     if (m_sslClient == nullptr) return;
-    // port close
     switch (m_sslClient->state()) {
-        case QAbstractSocket::ConnectedState: {
-            emit appendLog(LogLevel::Info,
-                           QString("[%1]").arg(m_portConfig["portName"].toString()),
-                           QString("disconnecting from %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
+        case QAbstractSocket::ConnectedState:
             m_sslClient->disconnectFromHost();
-        }
-        break;
+            break;
         case QAbstractSocket::ConnectingState:
-        case QAbstractSocket::HostLookupState: {
-            emit appendLog(LogLevel::Info,
-                           QString("[%1]").arg(m_portConfig["portName"].toString()),
-                           QString("connection to %1:%2 cancelled").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
+        case QAbstractSocket::HostLookupState:
             m_sslClient->abort();
-        }
-        break;
+            break;
         default: break;
     }
-    emit refreshPort(m_portConfig["portName"].toString(), false);
 }
 
 void SslClient::clear() {
@@ -141,25 +127,33 @@ QByteArray SslClient::readUntil(const QByteArray &text, const int timeout, const
 }
 
 // private
-void SslClient::handleConnected() {
-    m_sslClientLocalHost = m_sslClient->localAddress().toString();
-    m_sslClientLocalPort = m_sslClient->localPort();
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("connected to %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-}
-
-void SslClient::handleEncrypted() {
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("encrypted connection established with %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-}
-
-void SslClient::handleDisconnected() {
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("disconnected from %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
+void SslClient::handleStateChanged(const QAbstractSocket::SocketState state) {
+    const auto remote = QString("%1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt()));
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState:
+            message = QString("unconnected: %1").arg(remote);
+            break;
+        case QAbstractSocket::HostLookupState:
+            message = QString("looking up host for %1").arg(remote);
+            break;
+        case QAbstractSocket::ConnectingState:
+            message = QString("connecting to %1").arg(remote);
+            break;
+        case QAbstractSocket::ConnectedState:
+            m_sslClientLocalHost = m_sslClient->localAddress().toString();
+            m_sslClientLocalPort = m_sslClient->localPort();
+            message = m_sslClient->isEncrypted()
+                          ? QString("encrypted connection established with %1").arg(remote)
+                          : QString("connected to %1").arg(remote);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(remote);
+            break;
+        default: break;
+    }
+    emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState && m_sslClient->isEncrypted());
+    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void SslClient::handleReadyRead() {
@@ -180,13 +174,12 @@ void SslClient::handleError() {
     if (m_sslClient->isOpen()) {
         m_sslClient->close();
     }
-    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_sslClient->errorString()));
 }
 
 bool SslClient::handleWrite(const QByteArray &f_txData) {
     // check port status
-    if (m_sslClient == nullptr || !m_sslClient->isOpen()) {
+    if (m_sslClient == nullptr || m_sslClient->state() != QAbstractSocket::ConnectedState || !m_sslClient->isEncrypted()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }

@@ -59,55 +59,39 @@ QVariantHash TcpClient::info() {
 }
 
 bool TcpClient::open() {
-    // status check
     if (m_tcpClient == nullptr) {
         m_tcpClient = new QTcpSocket(this);
-        connect(m_tcpClient, &QTcpSocket::connected, this, &TcpClient::handleConnected);
-        connect(m_tcpClient, &QTcpSocket::disconnected, this, &TcpClient::handleDisconnected);
+        connect(m_tcpClient, &QTcpSocket::stateChanged, this, &TcpClient::handleStateChanged);
         connect(m_tcpClient, &QTcpSocket::readyRead, this, &TcpClient::handleReadyRead);
         connect(m_tcpClient, &QTcpSocket::errorOccurred, this, &TcpClient::handleError);
     }
-    if (m_tcpClient->state() != QAbstractSocket::UnconnectedState) return true;
-    // port open
-    m_buffer.clear();
-    m_tcpClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    m_tcpClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("connecting to %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-    m_tcpClient->connectToHost(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
+    if (m_tcpClient->state() == QAbstractSocket::ConnectedState) return true;
+    if (m_tcpClient->state() == QAbstractSocket::ClosingState) m_tcpClient->abort();
+    if (m_tcpClient->state() == QAbstractSocket::UnconnectedState) {
+        m_buffer.clear();
+        m_tcpClient->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+        m_tcpClient->setSocketOption(QAbstractSocket::KeepAliveOption, 1);
+        m_tcpClient->connectToHost(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
+    }
     if (!m_tcpClient->waitForConnected()) {
-        handleError();
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
-    emit refreshPort(m_portConfig["portName"].toString(), true);
     return true;
 }
 
 void TcpClient::close() {
-    // status check
     if (m_tcpClient == nullptr) return;
-    // port close
     switch (m_tcpClient->state()) {
-        case QAbstractSocket::ConnectedState: {
-            emit appendLog(LogLevel::Info,
-                           QString("[%1]").arg(m_portConfig["portName"].toString()),
-                           QString("disconnecting from %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
+        case QAbstractSocket::ConnectedState:
             m_tcpClient->disconnectFromHost();
-        }
-        break;
-        case QAbstractSocket::ConnectingState:
-        case QAbstractSocket::HostLookupState: {
-            emit appendLog(LogLevel::Info,
-                           QString("[%1]").arg(m_portConfig["portName"].toString()),
-                           QString("connection to %1:%2 cancelled").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-            m_tcpClient->abort();
-        }
-        break;
-        default:
             break;
+        case QAbstractSocket::ConnectingState:
+        case QAbstractSocket::HostLookupState:
+            m_tcpClient->abort();
+            break;
+        default: break;
     }
-    emit refreshPort(m_portConfig["portName"].toString(), false);
 }
 
 void TcpClient::clear() {
@@ -139,19 +123,31 @@ QByteArray TcpClient::readUntil(const QByteArray &text, const int timeout, const
 }
 
 // private
-void TcpClient::handleConnected() {
-    m_tcpClientLocalHost = m_tcpClient->localAddress().toString();
-    m_tcpClientLocalPort = m_tcpClient->localPort();
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("connected to %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
-}
-
-void TcpClient::handleDisconnected() {
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info,
-                   QString("[%1]").arg(m_portConfig["portName"].toString()),
-                   QString("disconnected from %1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())));
+void TcpClient::handleStateChanged(const QAbstractSocket::SocketState state) {
+    const auto remote = QString("%1:%2").arg(m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt()));
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState:
+            message = QString("unconnected: %1").arg(remote);
+            break;
+        case QAbstractSocket::HostLookupState:
+            message = QString("looking up host for %1").arg(remote);
+            break;
+        case QAbstractSocket::ConnectingState:
+            message = QString("connecting to %1").arg(remote);
+            break;
+        case QAbstractSocket::ConnectedState:
+            m_tcpClientLocalHost = m_tcpClient->localAddress().toString();
+            m_tcpClientLocalPort = m_tcpClient->localPort();
+            message = QString("connected to %1").arg(remote);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(remote);
+            break;
+        default: break;
+    }
+    emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState);
+    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void TcpClient::handleReadyRead() {
@@ -168,13 +164,12 @@ void TcpClient::handleError() {
     if (m_tcpClient->isOpen()) {
         m_tcpClient->close();
     }
-    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_tcpClient->errorString()));
 }
 
 bool TcpClient::handleWrite(const QByteArray &f_txData) {
     // check port status
-    if (m_tcpClient == nullptr || !m_tcpClient->isOpen()) {
+    if (m_tcpClient == nullptr || m_tcpClient->state() != QAbstractSocket::ConnectedState) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }

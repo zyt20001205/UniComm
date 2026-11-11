@@ -1,6 +1,7 @@
 #ifndef UNICOMM_TCPSERVER_H
 #define UNICOMM_TCPSERVER_H
 
+#include <QAbstractSocket>
 #include <QJsonObject>
 
 #include "basePort.h"
@@ -48,9 +49,7 @@ private:
 
     void handleServerError();
 
-    void handleConnected(QTcpSocket *tcpServerPeer);
-
-    void handleDisconnected(QTcpSocket *tcpServerPeer);
+    void handleStateChanged(QTcpSocket *tcpServerPeer, QAbstractSocket::SocketState state);
 
     void handleReadyRead(QTcpSocket *tcpServerPeer);
 

@@ -1,6 +1,5 @@
 #include "port/sslServer.h"
 
-#include <QDeadlineTimer>
 #include <QFile>
 #include <QScopedValueRollback>
 #include <QSslKey>
@@ -73,7 +72,8 @@ void SslServer::close() {
     if (m_sslServer == nullptr) return;
 
     m_sslServer->close();
-    for (auto *peer: m_peerHash) {
+    const auto peers = m_peerHash.values();
+    for (auto *peer: peers) {
         if (peer == nullptr) continue;
         peer->disconnectFromHost();
         if (peer->state() != QAbstractSocket::UnconnectedState) peer->waitForDisconnected(1000);
@@ -183,10 +183,12 @@ void SslServer::handleNewConnection() {
     while (m_sslServer->hasPendingConnections()) {
         auto *peer = qobject_cast<QSslSocket *>(m_sslServer->nextPendingConnection());
         if (peer == nullptr) continue;
-        handleConnected(peer);
+        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
+        peer->setProperty("peerIp", peerIp);
         connect(peer, &QSslSocket::readyRead, this, [this, peer] { handleReadyRead(peer); });
-        connect(peer, &QSslSocket::disconnected, this, [this, peer] { handleDisconnected(peer); });
+        connect(peer, &QSslSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
         connect(peer, &QSslSocket::errorOccurred, this, [this, peer] { handleError(peer); });
+        handleStateChanged(peer, peer->state());
     }
 }
 
@@ -197,23 +199,37 @@ void SslServer::handleServerError() {
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_sslServer->errorString());
 }
 
-void SslServer::handleConnected(QSslSocket *sslServerPeer) {
-    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
-    m_peerHash.insert(peerIp, sslServerPeer);
-    m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts encrypted connection from %1").arg(peerIp));
-}
-
-void SslServer::handleDisconnected(QSslSocket *sslServerPeer) {
-    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
-    m_peerHash.remove(peerIp);
-    sslServerPeer->deleteLater();
-    delete m_bufferHash.take(peerIp);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
+void SslServer::handleStateChanged(QSslSocket *sslServerPeer, const QAbstractSocket::SocketState state) {
+    const QString peerIp = sslServerPeer->property("peerIp").toString();
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState: {
+            const auto peer = m_peerHash.constFind(peerIp);
+            if (peer == m_peerHash.constEnd() || peer.value() != sslServerPeer) {
+                sslServerPeer->deleteLater();
+                return;
+            }
+            m_peerHash.remove(peerIp);
+            delete m_bufferHash.take(peerIp);
+            sslServerPeer->deleteLater();
+            message = QString("lost connection from %1").arg(peerIp);
+        }
+        break;
+        case QAbstractSocket::ConnectedState:
+            m_peerHash.insert(peerIp, sslServerPeer);
+            m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
+            message = QString("accepts encrypted connection from %1").arg(peerIp);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(peerIp);
+            break;
+        default: return;
+    }
+    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
-    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
+    const QString peerIp = sslServerPeer->property("peerIp").toString();
     const auto rxData = sslServerPeer->readAll();
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;
@@ -227,7 +243,8 @@ void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
 
 void SslServer::handleError(const QSslSocket *sslServerPeer) {
     if (sslServerPeer == nullptr || sslServerPeer->error() == QAbstractSocket::SocketTimeoutError) return;
-    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
+    const auto cachedPeerIp = sslServerPeer->property("peerIp").toString();
+    const QString peerIp = cachedPeerIp.isEmpty() ? sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort()) : cachedPeerIp;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), QString("error: %1").arg(sslServerPeer->errorString()));
 }
 
@@ -311,7 +328,7 @@ void SslServer::handleLog(const int type, const QByteArray &data, const QSslSock
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
+    const QString peerIp = sslServerPeer->property("peerIp").toString();
     if (type == LogLevel::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);
     } else {

@@ -1,6 +1,5 @@
 #include "port/tcpServer.h"
 
-#include <QDeadlineTimer>
 #include <QScopedValueRollback>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -72,7 +71,8 @@ void TcpServer::close() {
     if (m_tcpServer == nullptr) return;
     // port close
     m_tcpServer->close();
-    for (QTcpSocket *tcpServerPeer: m_peerHash) {
+    const auto peers = m_peerHash.values();
+    for (QTcpSocket *tcpServerPeer: peers) {
         if (tcpServerPeer) {
             tcpServerPeer->disconnectFromHost();
             if (tcpServerPeer->state() != QAbstractSocket::UnconnectedState) {
@@ -155,10 +155,13 @@ QByteArray TcpServer::readUntil(const QByteArray &text, const int timeout, const
 void TcpServer::handleNewConnection() {
     while (m_tcpServer->hasPendingConnections()) {
         QTcpSocket *tcpServerPeer = m_tcpServer->nextPendingConnection();
-        handleConnected(tcpServerPeer);
+        if (tcpServerPeer == nullptr) continue;
+        const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
+        tcpServerPeer->setProperty("peerIp", peerIp);
         connect(tcpServerPeer, &QTcpSocket::readyRead, this, [this, tcpServerPeer] { handleReadyRead(tcpServerPeer); });
-        connect(tcpServerPeer, &QTcpSocket::disconnected, this, [this, tcpServerPeer] { handleDisconnected(tcpServerPeer); });
+        connect(tcpServerPeer, &QTcpSocket::stateChanged, this, [this, tcpServerPeer](QAbstractSocket::SocketState state) { handleStateChanged(tcpServerPeer, state); });
         connect(tcpServerPeer, &QTcpSocket::errorOccurred, this, [this, tcpServerPeer] { handleError(tcpServerPeer); });
+        handleStateChanged(tcpServerPeer, tcpServerPeer->state());
     }
 }
 
@@ -171,24 +174,37 @@ void TcpServer::handleServerError() {
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_tcpServer->errorString()));
 }
 
-void TcpServer::handleConnected(QTcpSocket *tcpServerPeer) {
-    const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
-    m_peerHash.insert(peerIp, tcpServerPeer);
-    m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts connection from %1").arg(peerIp));
-}
-
-void TcpServer::handleDisconnected(QTcpSocket *tcpServerPeer) {
-    const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
-    m_peerHash.remove(peerIp);
-    tcpServerPeer->deleteLater();
-    delete m_bufferHash[peerIp];
-    m_bufferHash.remove(peerIp);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
+void TcpServer::handleStateChanged(QTcpSocket *tcpServerPeer, const QAbstractSocket::SocketState state) {
+    const QString peerIp = tcpServerPeer->property("peerIp").toString();
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState: {
+            const auto peer = m_peerHash.constFind(peerIp);
+            if (peer == m_peerHash.constEnd() || peer.value() != tcpServerPeer) {
+                tcpServerPeer->deleteLater();
+                return;
+            }
+            m_peerHash.remove(peerIp);
+            delete m_bufferHash.take(peerIp);
+            tcpServerPeer->deleteLater();
+            message = QString("lost connection from %1").arg(peerIp);
+        }
+        break;
+        case QAbstractSocket::ConnectedState:
+            m_peerHash.insert(peerIp, tcpServerPeer);
+            m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
+            message = QString("accepts connection from %1").arg(peerIp);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(peerIp);
+            break;
+        default: return;
+    }
+    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void TcpServer::handleReadyRead(QTcpSocket *tcpServerPeer) {
-    const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
+    const QString peerIp = tcpServerPeer->property("peerIp").toString();
     const auto rxData = tcpServerPeer->readAll();
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;
@@ -205,7 +221,7 @@ void TcpServer::handleError(const QTcpSocket *tcpServerPeer) {
     // if (tcpServerPeer->isOpen()) {
     //     tcpServerPeer->close();
     // }
-    const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
+    const QString peerIp = tcpServerPeer->property("peerIp").toString();
     emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), QString("error: %1").arg(tcpServerPeer->errorString()));
 }
 
@@ -293,7 +309,7 @@ void TcpServer::handleLog(const int type, const QByteArray &data, const QTcpSock
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
+    const QString peerIp = tcpServerPeer->property("peerIp").toString();
     if (type == LogLevel::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);
     } else {

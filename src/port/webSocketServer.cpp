@@ -1,13 +1,8 @@
 #include "port/webSocketServer.h"
 
-#include <QDeadlineTimer>
-#include <QEventLoop>
 #include <QFile>
 #include <QScopedValueRollback>
-#include <QSslCertificate>
-#include <QSslConfiguration>
 #include <QSslKey>
-#include <QSslSocket>
 #include <QTimer>
 #include <QWebSocket>
 #include <QWebSocketServer>
@@ -202,11 +197,13 @@ void WebSocketServer::handleNewConnection() {
         auto *peer = m_webSocketServer->nextPendingConnection();
         if (peer == nullptr) continue;
         peer->setParent(this);
+        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
+        peer->setProperty("peerIp", peerIp);
         connect(peer, &QWebSocket::binaryMessageReceived, this, [this, peer](const QByteArray &message) { handleMessage(peer, message); });
         connect(peer, &QWebSocket::textMessageReceived, this, [this, peer](const QString &message) { handleMessage(peer, message.toUtf8()); });
-        connect(peer, &QWebSocket::disconnected, this, [this, peer] { handleDisconnected(peer); });
+        connect(peer, &QWebSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
         connect(peer, &QWebSocket::errorOccurred, this, [this, peer] { handleError(peer); });
-        handleConnected(peer);
+        handleStateChanged(peer, peer->state());
     }
 }
 
@@ -214,24 +211,34 @@ void WebSocketServer::handleServerError() {
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketServer->errorString());
 }
 
-void WebSocketServer::handleConnected(QWebSocket *webSocketServerPeer) {
-    const QString peerIp = webSocketServerPeer->peerAddress().toString() + ":" + QString::number(webSocketServerPeer->peerPort());
-    webSocketServerPeer->setProperty("peerIp", peerIp);
-    m_peerHash.insert(peerIp, webSocketServerPeer);
-    m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts connection from %1").arg(peerIp));
-}
-
-void WebSocketServer::handleDisconnected(QWebSocket *webSocketServerPeer) {
+void WebSocketServer::handleStateChanged(QWebSocket *webSocketServerPeer, const QAbstractSocket::SocketState state) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
-    const auto peer = m_peerHash.constFind(peerIp);
-    if (peer == m_peerHash.constEnd() || peer.value() != webSocketServerPeer) return;
-    QString message = QString("lost connection from %1 (close code %2)").arg(peerIp).arg(static_cast<int>(webSocketServerPeer->closeCode()));
-    const auto closeReason = webSocketServerPeer->closeReason();
-    if (!closeReason.isEmpty()) message += ": " + closeReason;
-    m_peerHash.remove(peerIp);
-    webSocketServerPeer->deleteLater();
-    delete m_bufferHash.take(peerIp);
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState: {
+            const auto peer = m_peerHash.constFind(peerIp);
+            if (peer == m_peerHash.constEnd() || peer.value() != webSocketServerPeer) {
+                webSocketServerPeer->deleteLater();
+                return;
+            }
+            message = QString("lost connection from %1 (close code %2)").arg(peerIp).arg(static_cast<int>(webSocketServerPeer->closeCode()));
+            const auto reason = webSocketServerPeer->closeReason();
+            if (!reason.isEmpty()) message += ": " + reason;
+            m_peerHash.remove(peerIp);
+            delete m_bufferHash.take(peerIp);
+            webSocketServerPeer->deleteLater();
+        }
+        break;
+        case QAbstractSocket::ConnectedState:
+            m_peerHash.insert(peerIp, webSocketServerPeer);
+            m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
+            message = QString("accepts connection from %1").arg(peerIp);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(peerIp);
+            break;
+        default: return;
+    }
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 

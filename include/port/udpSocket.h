@@ -1,6 +1,7 @@
 #ifndef UNICOMM_UDPSOCKET_H
 #define UNICOMM_UDPSOCKET_H
 
+#include <QAbstractSocket>
 #include <QJsonObject>
 
 #include "basePort.h"
@@ -35,6 +36,8 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
 private:
+    void handleStateChanged(QAbstractSocket::SocketState state);
+
     void handleReadyRead();
 
     void handleError();

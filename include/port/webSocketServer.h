@@ -1,6 +1,7 @@
 #ifndef UNICOMM_WEBSOCKETSERVER_H
 #define UNICOMM_WEBSOCKETSERVER_H
 
+#include <QAbstractSocket>
 #include <QJsonObject>
 
 #include "basePort.h"
@@ -50,9 +51,7 @@ private:
 
     void handleServerError();
 
-    void handleConnected(QWebSocket *webSocketServerPeer);
-
-    void handleDisconnected(QWebSocket *webSocketServerPeer);
+    void handleStateChanged(QWebSocket *webSocketServerPeer, QAbstractSocket::SocketState state);
 
     void handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message);
 
