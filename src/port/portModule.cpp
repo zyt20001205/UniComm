@@ -8,7 +8,6 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QThread>
-#include <QTimer>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -452,26 +451,11 @@ void PortModule::portToggle(const int index) {
     }
 }
 
-void PortModule::portMonitor(const int index, const bool enabled) {
-    const QString portName = g_portModel->item(index, 0)->text();
-    auto *port = m_portHash[portName];
-    QMetaObject::invokeMethod(port, [port, enabled] {
-        port->monitor(enabled);
-    }, Qt::QueuedConnection);
-}
-
-void PortModule::portRefresh(const QString &portName, const QVariantHash &session) {
+void PortModule::portRefresh(const QString &portName, const bool active) {
     const auto indexes = g_portModel->match(g_portModel->index(0, 0), Qt::DisplayRole, portName, 1, Qt::MatchExactly);
     if (indexes.isEmpty()) return;
     auto *item = g_portModel->itemFromIndex(indexes.constFirst());
-    if (session.contains("active")) item->setData(session.value("active"), PortModel::ActiveRole);
-    if (session.contains("capacity")) item->setData(session.value("capacity"), PortModel::CapacityRole);
-    if (session.contains("used")) item->setData(session.value("used"), PortModel::UsedRole);
-    if (session.contains("lifetime")) item->setData(session.value("lifetime"), PortModel::LifetimeRole);
-    if (session.contains("readCount")) item->setData(session.value("readCount"), PortModel::ReadCountRole);
-    if (session.contains("readBytes")) item->setData(session.value("readBytes"), PortModel::ReadBytesRole);
-    if (session.contains("writeCount")) item->setData(session.value("writeCount"), PortModel::WriteCountRole);
-    if (session.contains("writeBytes")) item->setData(session.value("writeBytes"), PortModel::WriteBytesRole);
+    item->setData(active, PortModel::ActiveRole);
 }
 
 // private
@@ -486,13 +470,6 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
     const auto portName = portConfig.value("portName").toString();
     auto *item = new QStandardItem(portName); // NOLINT
     item->setData(false, PortModel::ActiveRole);
-    item->setData(0, PortModel::CapacityRole);
-    item->setData(0, PortModel::UsedRole);
-    item->setData(0, PortModel::LifetimeRole);
-    item->setData(0, PortModel::ReadCountRole);
-    item->setData(0, PortModel::ReadBytesRole);
-    item->setData(0, PortModel::WriteCountRole);
-    item->setData(0, PortModel::WriteBytesRole);
     g_portModel->insertRow(index, item);
     BasePort *port{};
     switch (portConfig["portType"].toInt()) {
@@ -577,12 +554,5 @@ PortModel::PortModel(QObject *parent)
 QHash<int, QByteArray> PortModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[ActiveRole] = "active";
-    roles[CapacityRole] = "capacity";
-    roles[UsedRole] = "used";
-    roles[LifetimeRole] = "lifetime";
-    roles[ReadCountRole] = "readCount";
-    roles[ReadBytesRole] = "readBytes";
-    roles[WriteCountRole] = "writeCount";
-    roles[WriteBytesRole] = "writeBytes";
     return roles;
 }

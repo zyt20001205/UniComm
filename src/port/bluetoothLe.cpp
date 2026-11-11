@@ -57,19 +57,12 @@ QVariantHash BluetoothLe::info() {
 }
 
 bool BluetoothLe::open() {
-    if (m_monitorTimer == nullptr) {
-        m_monitorTimer = new QTimer(this);
-        m_monitorTimer->setInterval(16);
-        m_monitorTimer->setSingleShot(false);
-        connect(m_monitorTimer, &QTimer::timeout, this, &BluetoothLe::handleUpdate);
-    }
     if (connectedGet()) return true;
 
     m_closing = false;
     m_subscribed = false;
     m_mtu = 0;
     m_buffer.clear();
-    m_buffer.resetStatistics();
     const auto portName = m_portConfig["portName"].toString();
     const auto adapterAddress = m_portConfig["adapterAddress"].toString();
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
@@ -117,13 +110,7 @@ bool BluetoothLe::open() {
         else m_peripheral.notify(serviceUuid, rxCharacteristicUuid, callback);
         m_subscribed = true;
 
-        m_activeTimer.start();
-        const QVariantHash session{
-            {"active", true},
-            {"capacity", m_portConfig["bufferSize"].toInt()},
-            {"lifetime", uni_cast<QLifetime>(qint64{}).value}
-        };
-        emit refreshPort(portName, session);
+        emit refreshPort(portName, true);
         emit connected();
         emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), QString("connected to %1 [%2]").arg(m_peripheralName, peripheralAddress));
         return true;
@@ -150,23 +137,12 @@ void BluetoothLe::close() {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
     }
     m_subscribed = false;
-    if (m_monitorTimer) m_monitorTimer->stop();
-    emit refreshPort(m_portConfig["portName"].toString(), QVariantHash{{"active", false}});
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     if (connected) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
 }
 
 void BluetoothLe::clear() {
     m_buffer.clear();
-}
-
-void BluetoothLe::monitor(const bool enabled) {
-    if (m_monitorTimer == nullptr || !connectedGet()) return;
-    if (enabled) {
-        handleUpdate();
-        m_monitorTimer->start();
-    } else {
-        m_monitorTimer->stop();
-    }
 }
 
 bool BluetoothLe::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
@@ -202,9 +178,8 @@ bool BluetoothLe::connectedGet() {
 }
 
 void BluetoothLe::handleDisconnected() {
-    if (m_monitorTimer) m_monitorTimer->stop();
     m_subscribed = false;
-    emit refreshPort(m_portConfig["portName"].toString(), QVariantHash{{"active", false}});
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit disconnected();
     if (!m_closing) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
 }
@@ -263,19 +238,6 @@ QByteArray BluetoothLe::handleReadUntil(const QByteArray &text, const int timeou
         data = m_buffer.readUntil(text, peek);
     }
     return data;
-}
-
-void BluetoothLe::handleUpdate() {
-    const auto statistics = m_buffer.statistics();
-    const QVariantHash session{
-        {"used", statistics.used},
-        {"lifetime", uni_cast<QLifetime>(m_activeTimer.elapsed()).value},
-        {"readCount", statistics.readCount},
-        {"readBytes", statistics.readBytes},
-        {"writeCount", statistics.writeCount},
-        {"writeBytes", statistics.writeBytes}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
 }
 
 void BluetoothLe::handleLog(const int type, const QByteArray &data) {

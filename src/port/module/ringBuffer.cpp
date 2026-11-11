@@ -20,8 +20,6 @@ qsizetype RingBuffer::write(const QByteArray &data) {
 
         m_writePos = (m_writePos + length) % m_capacity;
         m_used += length;
-        ++m_writeCount;
-        m_writeBytes += static_cast<quint64>(length);
     }
     return length;
 }
@@ -48,19 +46,6 @@ qsizetype RingBuffer::distance(const QByteArray &text) {
     return distanceLocked(text);
 }
 
-RingBuffer::Statistics RingBuffer::statistics() {
-    QMutexLocker locker(&m_mutex);
-    return {m_used, m_readCount, m_readBytes, m_writeCount, m_writeBytes};
-}
-
-void RingBuffer::resetStatistics() {
-    QMutexLocker locker(&m_mutex);
-    m_readCount = 0;
-    m_readBytes = 0;
-    m_writeCount = 0;
-    m_writeBytes = 0;
-}
-
 void RingBuffer::clear() {
     QMutexLocker locker(&m_mutex);
     m_buffer.fill(0);
@@ -84,8 +69,6 @@ QByteArray RingBuffer::readLocked(qsizetype length, const bool peek) {
     if (!peek) {
         m_readPos = (m_readPos + length) % m_capacity;
         m_used -= length;
-        ++m_readCount;
-        m_readBytes += static_cast<quint64>(length);
     }
     return data;
 }

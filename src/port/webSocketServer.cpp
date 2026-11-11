@@ -1,5 +1,6 @@
 #include "port/webSocketServer.h"
 
+#include <QDeadlineTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QScopedValueRollback>
@@ -82,8 +83,7 @@ bool WebSocketServer::open() {
     if (m_portConfig["secure"].toBool() && !configureSsl()) return false;
 
     if (m_webSocketServer->listen(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
-        const QVariantHash session{{"active", true}};
-        emit refreshPort(m_portConfig["portName"].toString(), session);
+        emit refreshPort(m_portConfig["portName"].toString(), true);
         emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("started on %1:%2").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt())));
         return true;
     }
@@ -105,8 +105,7 @@ void WebSocketServer::close() {
         peer->close();
         peer->deleteLater();
     }
-    const QVariantHash session{{"active", false}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
@@ -118,11 +117,6 @@ void WebSocketServer::disconnectPeer(const QString &peerIp) {
 
 void WebSocketServer::clear() {
     for (auto *buffer: m_bufferHash) buffer->clear();
-}
-
-void WebSocketServer::monitor(const bool enabled) {
-    Q_UNUSED(enabled);
-    // TODO: Aggregate statistics across active and disconnected peer buffers.
 }
 
 bool WebSocketServer::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {

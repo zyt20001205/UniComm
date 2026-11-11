@@ -31,8 +31,6 @@ public:
 
     void clear() override;
 
-    void monitor(bool enabled) override;
-
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
     [[nodiscard]] bool write(const QByteArray &txData, int messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix);

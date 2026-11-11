@@ -4,7 +4,6 @@
 #include <QScopedValueRollback>
 #include <QSerialPort>
 #include <QThread>
-#include <QTimer>
 
 #include "globals.h"
 #include "util/uniCast.h"
@@ -72,29 +71,16 @@ bool SerialPort::open() {
         connect(m_serialPort, &QSerialPort::readyRead, this, &SerialPort::handleReadyRead);
         connect(m_serialPort, &QSerialPort::errorOccurred, this, &SerialPort::handleError);
     }
-    if (m_monitorTimer == nullptr) {
-        m_monitorTimer = new QTimer(this);
-        m_monitorTimer->setInterval(16);
-        m_monitorTimer->setSingleShot(false);
-        connect(m_monitorTimer, &QTimer::timeout, this, &SerialPort::handleUpdate);
-    }
     if (m_serialPort->isOpen()) return true;
     // port open
     m_buffer.clear();
-    m_buffer.resetStatistics();
     m_serialPort->setPortName(m_portConfig["portName"].toString());
     m_serialPort->setBaudRate(m_portConfig["baudRate"].toInt());
     m_serialPort->setDataBits(static_cast<QSerialPort::DataBits>(m_portConfig["dataBits"].toInt()));
     m_serialPort->setParity(static_cast<QSerialPort::Parity>(m_portConfig["parity"].toInt()));
     m_serialPort->setStopBits(static_cast<QSerialPort::StopBits>(m_portConfig["stopBits"].toInt()));
     if (m_serialPort->open(QSerialPort::ReadWrite)) {
-        m_activeTimer.start();
-        const auto &session = QVariantHash{
-            {"active", true},
-            {"capacity", m_portConfig["bufferSize"].toInt()},
-            {"lifetime", uni_cast<QLifetime>(qint64{}).value}
-        };
-        emit refreshPort(m_portConfig["portName"].toString(), session);
+        emit refreshPort(m_portConfig["portName"].toString(), true);
         emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
         return true;
     }
@@ -107,26 +93,12 @@ void SerialPort::close() {
     if (m_serialPort == nullptr) return;
     // port close
     m_serialPort->close();
-    if (m_monitorTimer) m_monitorTimer->stop();
-    const auto &session = QVariantHash{
-        {"active", false}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
 void SerialPort::clear() {
     m_buffer.clear();
-}
-
-void SerialPort::monitor(const bool enabled) {
-    if (m_monitorTimer == nullptr || m_serialPort == nullptr || !m_serialPort->isOpen()) return;
-    if (enabled) {
-        handleUpdate();
-        m_monitorTimer->start();
-    } else {
-        m_monitorTimer->stop();
-    }
 }
 
 bool SerialPort::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
@@ -168,11 +140,7 @@ void SerialPort::handleError() {
     if (m_serialPort->isOpen()) {
         m_serialPort->close();
     }
-    if (m_monitorTimer) m_monitorTimer->stop();
-    const auto &session = QVariantHash{
-        {"active", false}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_serialPort->errorString()));
 }
 
@@ -207,19 +175,6 @@ QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout
         data = m_buffer.readUntil(text, peek);
     }
     return data;
-}
-
-void SerialPort::handleUpdate() {
-    const auto statistics = m_buffer.statistics();
-    const auto &session = QVariantHash{
-        {"used", statistics.used},
-        {"lifetime", uni_cast<QLifetime>(m_activeTimer.elapsed()).value},
-        {"readCount", statistics.readCount},
-        {"readBytes", statistics.readBytes},
-        {"writeCount", statistics.writeCount},
-        {"writeBytes", statistics.writeBytes}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
 }
 
 void SerialPort::handleLog(const int type, const QByteArray &data) {

@@ -59,8 +59,7 @@ bool Vision::open() {
         }
     }
     if (!m_screenCapture && !m_cameraCapture) {
-        const QVariantHash session{{"active", false}};
-        emit refreshPort(m_portConfig["portName"].toString(), session);
+        emit refreshPort(m_portConfig["portName"].toString(), false);
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
@@ -84,13 +83,11 @@ bool Vision::open() {
     if (!frameReady) {
         if (m_screenCapture) m_screenCapture->stop();
         else m_cameraCapture->stop();
-        const QVariantHash session{{"active", false}};
-        emit refreshPort(m_portConfig["portName"].toString(), session);
+        emit refreshPort(m_portConfig["portName"].toString(), false);
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
-    const QVariantHash session{{"active", true}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), true);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
     return true;
 }
@@ -100,8 +97,7 @@ void Vision::close() {
     if (m_screenCapture) m_screenCapture->stop();
     else if (m_cameraCapture) m_cameraCapture->stop();
     clear();
-    const QVariantHash session{{"active", false}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 

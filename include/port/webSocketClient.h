@@ -1,14 +1,13 @@
 #ifndef UNICOMM_WEBSOCKETCLIENT_H
 #define UNICOMM_WEBSOCKETCLIENT_H
 
-#include <QElapsedTimer>
 #include <QJsonObject>
+#include <QWebSocket>
 
 #include "basePort.h"
 #include "port/module/ringBuffer.h"
 
-class QTimer;
-class QWebSocket;
+class UWebSocket;
 
 class WebSocketClient final : public BasePort {
     Q_OBJECT
@@ -29,8 +28,6 @@ public:
     void close() override;
 
     void clear() override;
-
-    void monitor(bool enabled) override;
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
@@ -62,17 +59,24 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
-    void handleUpdate();
-
     void handleLog(int type, const QByteArray &data);
 
-    QWebSocket *m_webSocketClient{};
+    UWebSocket *m_webSocketClient{};
     QJsonObject m_portConfig{};
     QString m_localHost{};
     int m_localPort{};
     RingBuffer m_buffer;
-    QTimer *m_monitorTimer{};
-    QElapsedTimer m_activeTimer{};
+};
+
+class UWebSocket final : public QWebSocket {
+    Q_OBJECT
+
+public:
+    using QWebSocket::QWebSocket;
+
+    [[nodiscard]] bool waitForConnected(int msecs = 30000);
+
+    bool waitForReadyRead(int msecs = 30000);
 };
 
 #endif //UNICOMM_WEBSOCKETCLIENT_H

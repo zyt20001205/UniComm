@@ -569,18 +569,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 }
 
 template<>
-QLifetime uni_cast<QLifetime, qint64>(const qint64 &s, const int depth) {
-    Q_UNUSED(depth);
-    const qint64 totalSeconds = s / 1000;
-    const qint64 days = totalSeconds / 86400;
-    const int millisecondsOfDay = static_cast<int>(totalSeconds % 86400 * 1000);
-    const auto time = QTime::fromMSecsSinceStartOfDay(millisecondsOfDay);
-    return QStringLiteral("%1d %2")
-            .arg(days)
-            .arg(time.toString(QStringLiteral("hh'h' mm'm' ss's'")));
-}
-
-template<>
 QDuration uni_cast<QDuration, qint64>(const qint64 &s, const int depth) {
     Q_UNUSED(depth);
     if (s >= 60000) return QStringLiteral("%1m %2s").arg(s / 60000).arg(s % 60000 / 1000);

@@ -44,9 +44,7 @@ public:
 
     Q_INVOKABLE void portToggle(int index);
 
-    Q_INVOKABLE void portMonitor(int index, bool enabled);
-
-    static void portRefresh(const QString &portName, const QVariantHash &session);
+    static void portRefresh(const QString &portName, bool active);
 
     QHash<QString, BasePort *> m_portHash{};
 signals:
@@ -76,14 +74,7 @@ public:
     explicit PortModel(QObject *parent = nullptr);
 
     enum Role {
-        ActiveRole = Qt::UserRole + 1,
-        CapacityRole,
-        UsedRole,
-        LifetimeRole,
-        ReadCountRole,
-        ReadBytesRole,
-        WriteCountRole,
-        WriteBytesRole
+        ActiveRole = Qt::UserRole + 1
     };
 
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;

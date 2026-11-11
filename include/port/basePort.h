@@ -23,9 +23,6 @@ public:
 
     virtual void clear() = 0;
 
-    virtual void monitor(bool enabled) {
-    }
-
     [[nodiscard]] virtual bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
         return false;
     }
@@ -41,7 +38,7 @@ public:
 signals:
     void appendLog(int type, const QString &prefix, const QString &message);
 
-    void refreshPort(const QString &portName, const QVariantHash &session);
+    void refreshPort(const QString &portName, bool active);
 
 private:
     QThread *m_thread{};

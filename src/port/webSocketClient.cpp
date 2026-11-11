@@ -1,6 +1,6 @@
 #include "port/webSocketClient.h"
 
-#include <QEventLoop>
+#include <QDeadlineTimer>
 #include <QScopedValueRollback>
 #include <QTimer>
 #include <QUrl>
@@ -8,20 +8,6 @@
 
 #include "globals.h"
 #include "util/uniCast.h"
-
-namespace {
-void waitForMessage(QWebSocket *socket) {
-    QEventLoop eventLoop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    QObject::connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::binaryMessageReceived, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::textMessageReceived, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
-    timer.start(10);
-    eventLoop.exec();
-}
-}
 
 // public
 WebSocketClient::WebSocketClient(const QJsonObject &portConfig, QObject *parent)
@@ -77,61 +63,25 @@ QVariantHash WebSocketClient::info() {
 
 bool WebSocketClient::open() {
     if (m_webSocketClient == nullptr) {
-        m_webSocketClient = new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
+        m_webSocketClient = new UWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
         connect(m_webSocketClient, &QWebSocket::connected, this, &WebSocketClient::handleConnected);
         connect(m_webSocketClient, &QWebSocket::disconnected, this, &WebSocketClient::handleDisconnected);
         connect(m_webSocketClient, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &message) { handleMessage(message); });
         connect(m_webSocketClient, &QWebSocket::textMessageReceived, this, [this](const QString &message) { handleMessage(message.toUtf8()); });
         connect(m_webSocketClient, &QWebSocket::errorOccurred, this, &WebSocketClient::handleError);
     }
-    if (m_monitorTimer == nullptr) {
-        m_monitorTimer = new QTimer(this);
-        m_monitorTimer->setInterval(16);
-        m_monitorTimer->setSingleShot(false);
-        connect(m_monitorTimer, &QTimer::timeout, this, &WebSocketClient::handleUpdate);
-    }
     if (m_webSocketClient->state() != QAbstractSocket::UnconnectedState) return true;
 
     m_buffer.clear();
-    m_buffer.resetStatistics();
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("connecting to %1").arg(m_portConfig["url"].toString()));
 
-    QEventLoop eventLoop;
-    QTimer timer;
-    bool finished = false;
-    bool timedOut = false;
-    timer.setSingleShot(true);
-    connect(&timer, &QTimer::timeout, &eventLoop, [&] {
-        timedOut = true;
-        eventLoop.quit();
-    });
-    connect(m_webSocketClient, &QWebSocket::connected, &eventLoop, [&] {
-        finished = true;
-        eventLoop.quit();
-    });
-    connect(m_webSocketClient, &QWebSocket::errorOccurred, &eventLoop, [&] {
-        finished = true;
-        eventLoop.quit();
-    });
-
     m_webSocketClient->open(QUrl(m_portConfig["url"].toString()));
-    timer.start(30000);
-    if (!finished) eventLoop.exec();
-    if (m_webSocketClient->state() != QAbstractSocket::ConnectedState) {
-        if (timedOut) {
-            m_webSocketClient->abort();
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "connection timed out");
-        }
+    if (!m_webSocketClient->waitForConnected()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
 
-    m_activeTimer.start();
-    const QVariantHash session{
-        {"active", true},
-        {"capacity", m_portConfig["bufferSize"].toInt()},
-        {"lifetime", uni_cast<QLifetime>(qint64{}).value}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), true);
     return true;
 }
 
@@ -151,25 +101,11 @@ void WebSocketClient::close() {
         default:
             break;
     }
-    if (m_monitorTimer) m_monitorTimer->stop();
-    const QVariantHash session{{"active", false}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
 }
 
 void WebSocketClient::clear() {
     m_buffer.clear();
-}
-
-void WebSocketClient::monitor(const bool enabled) {
-    if (m_monitorTimer == nullptr || m_webSocketClient == nullptr
-        || m_webSocketClient->state() != QAbstractSocket::ConnectedState)
-        return;
-    if (enabled) {
-        handleUpdate();
-        m_monitorTimer->start();
-    } else {
-        m_monitorTimer->stop();
-    }
 }
 
 bool WebSocketClient::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
@@ -208,9 +144,7 @@ void WebSocketClient::handleConnected() {
 }
 
 void WebSocketClient::handleDisconnected() {
-    if (m_monitorTimer) m_monitorTimer->stop();
-    const QVariantHash session{{"active", false}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit disconnected();
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["url"].toString()));
 }
@@ -227,9 +161,7 @@ void WebSocketClient::handleMessage(const QByteArray &message) {
 
 void WebSocketClient::handleError() {
     if (m_webSocketClient->error() == QAbstractSocket::SocketTimeoutError) return;
-    if (m_monitorTimer) m_monitorTimer->stop();
-    const QVariantHash session{{"active", false}};
-    emit refreshPort(m_portConfig["portName"].toString(), session);
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
 }
 
@@ -262,7 +194,7 @@ QByteArray WebSocketClient::handleRead(const int length, const int timeout, cons
     const QDeadlineTimer deadline(timeout);
     while (m_buffer.used() < minimum) {
         if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
-        waitForMessage(m_webSocketClient);
+        m_webSocketClient->waitForReadyRead(10);
     }
     return m_buffer.read(length, peek);
 }
@@ -273,23 +205,10 @@ QByteArray WebSocketClient::handleReadUntil(const QByteArray &text, const int ti
     QByteArray data = m_buffer.readUntil(text, peek);
     while (data.isEmpty()) {
         if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
-        waitForMessage(m_webSocketClient);
+        m_webSocketClient->waitForReadyRead(10);
         data = m_buffer.readUntil(text, peek);
     }
     return data;
-}
-
-void WebSocketClient::handleUpdate() {
-    const auto statistics = m_buffer.statistics();
-    const QVariantHash session{
-        {"used", statistics.used},
-        {"lifetime", uni_cast<QLifetime>(m_activeTimer.elapsed()).value},
-        {"readCount", statistics.readCount},
-        {"readBytes", statistics.readBytes},
-        {"writeCount", statistics.writeCount},
-        {"writeBytes", statistics.writeBytes}
-    };
-    emit refreshPort(m_portConfig["portName"].toString(), session);
 }
 
 void WebSocketClient::handleLog(const int type, const QByteArray &data) {
@@ -307,4 +226,47 @@ void WebSocketClient::handleLog(const int type, const QByteArray &data) {
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3]").arg(m_localHost, QString::number(m_localPort), m_portConfig["url"].toString()), message);
     }
+}
+
+// public
+bool UWebSocket::waitForConnected(const int msecs) {
+    if (state() == QAbstractSocket::ConnectedState) return true;
+    if (state() == QAbstractSocket::UnconnectedState) return false;
+
+    QEventLoop eventLoop{};
+    QTimer timer{};
+    timer.setSingleShot(true);
+    connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+    connect(this, &QWebSocket::connected, &eventLoop, &QEventLoop::quit);
+    connect(this, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
+    connect(this, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
+    if (msecs >= 0) timer.start(msecs);
+    eventLoop.exec();
+    if (state() == QAbstractSocket::ConnectedState) return true;
+    if (!timer.isActive()) abort();
+    return false;
+}
+
+bool UWebSocket::waitForReadyRead(const int msecs) {
+    if (state() != QAbstractSocket::ConnectedState) return false;
+
+    QEventLoop eventLoop{};
+    QTimer timer{};
+    bool ready = false;
+    timer.setSingleShot(true);
+    connect(this, &QWebSocket::binaryMessageReceived, &eventLoop, [&] {
+        ready = true;
+        eventLoop.quit();
+    });
+    connect(this, &QWebSocket::textMessageReceived, &eventLoop, [&] {
+        ready = true;
+        eventLoop.quit();
+    });
+    connect(this, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
+    connect(this, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+
+    if (msecs >= 0) timer.start(msecs);
+    eventLoop.exec();
+    return ready;
 }

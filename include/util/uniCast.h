@@ -122,12 +122,6 @@ struct QFullHtmlString {
     operator QString() const { return value; }
 };
 
-struct QLifetime {
-    QString value;
-    QLifetime(QString s) : value(std::move(s)) {}
-    operator QString() const { return value; }
-};
-
 struct QDuration {
     QString value;
     QDuration(QString s) : value(std::move(s)) {}
@@ -154,9 +148,6 @@ template<>
 
 template<>
 [[nodiscard]] QFullHtmlString uni_cast<QFullHtmlString, QString>(const QString &s, int depth);
-
-template<>
-[[nodiscard]] QLifetime uni_cast<QLifetime, qint64>(const qint64 &s, int depth);
 
 template<>
 [[nodiscard]] QDuration uni_cast<QDuration, qint64>(const qint64 &s, int depth);

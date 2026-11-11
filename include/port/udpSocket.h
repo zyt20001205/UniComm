@@ -1,14 +1,12 @@
 #ifndef UNICOMM_UDPSOCKET_H
 #define UNICOMM_UDPSOCKET_H
 
-#include <QElapsedTimer>
 #include <QJsonObject>
 
 #include "basePort.h"
 #include "port/module/ringBuffer.h"
 
 class QUdpSocket;
-class QTimer;
 
 class UdpSocket final : public BasePort {
     Q_OBJECT
@@ -29,8 +27,6 @@ public:
     void close() override;
 
     void clear() override;
-
-    void monitor(bool enabled) override;
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
@@ -58,15 +54,11 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
-    void handleUpdate();
-
     void handleLog(int type, const QByteArray &data);
 
     QUdpSocket *m_udpSocket{};
     QJsonObject m_portConfig{};
     RingBuffer m_buffer;
-    QTimer *m_monitorTimer{};
-    QElapsedTimer m_activeTimer{};
 };
 
 #endif //UNICOMM_UDPSOCKET_H

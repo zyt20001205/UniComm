@@ -1,14 +1,12 @@
 #ifndef UNICOMM_SSLCLIENT_H
 #define UNICOMM_SSLCLIENT_H
 
-#include <QElapsedTimer>
 #include <QJsonObject>
 
 #include "basePort.h"
 #include "port/module/ringBuffer.h"
 
 class QSslSocket;
-class QTimer;
 
 class SslClient final : public BasePort {
     Q_OBJECT
@@ -29,8 +27,6 @@ public:
     void close() override;
 
     void clear() override;
-
-    void monitor(bool enabled) override;
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
@@ -64,8 +60,6 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
-    void handleUpdate();
-
     void handleLog(int type, const QByteArray &data);
 
     QSslSocket *m_sslClient{};
@@ -73,8 +67,6 @@ private:
     QString m_sslClientLocalHost{};
     int m_sslClientLocalPort{};
     RingBuffer m_buffer;
-    QTimer *m_monitorTimer{};
-    QElapsedTimer m_activeTimer{};
 };
 
 #endif //UNICOMM_SSLCLIENT_H
