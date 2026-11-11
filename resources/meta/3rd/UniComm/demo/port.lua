@@ -11,18 +11,6 @@
 -- })
 -- serial:open()
 
--- Vision input from an available screen or camera. When no ROI is configured,
--- the complete source frame is processed as ROI 1.
--- local vision = Port.create({
---     portType = Port.Type.Vision,
---     portName = "CG345UK",
--- })
--- vision:open()
--- vision:write([[raw "capture/raw.png"]])
--- local results = vision:read(0, 20000)
--- print(results[1])
--- vision:close()
-
 -- TCP client:
 -- local tcp = Port.create({
 --     portType = Port.Type.TcpClient,
@@ -76,6 +64,7 @@
 --     logFormat = "utf-8",
 -- })
 -- udp:open()
+-- print(udp:info().localPort) -- Actual local port selected by the system.
 
 -- Vision ports configured in the UI can also export and read processed ROIs.
 -- ROI indexes are 1-based and relative paths resolve from the current workspace.

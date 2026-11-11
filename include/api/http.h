@@ -20,17 +20,11 @@ public:
 
     void init(const std::string &portName, int timeout);
 
-    [[nodiscard]] sol::object del(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header, const sol::optional<std::string> &body) const;
+    [[nodiscard]] sol::object request(sol::this_state ts, const std::string &method, const std::string &target, const sol::optional<sol::table> &header,
+                                      const sol::optional<std::string> &body) const;
 
-    [[nodiscard]] sol::object get(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header) const;
-
-    [[nodiscard]] sol::object head(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header) const;
-
-    [[nodiscard]] sol::object patch(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header, const sol::optional<std::string> &body) const;
-
-    [[nodiscard]] sol::object post(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header, const sol::optional<std::string> &body) const;
-
-    [[nodiscard]] sol::object put(sol::this_state ts, const std::string &target, const sol::optional<sol::table> &header, const sol::optional<std::string> &body) const;
+    [[nodiscard]] sol::object stream(sol::this_state ts, const std::string &method, const std::string &target, const sol::protected_function &fn,
+                                     const sol::optional<sol::table> &header, const sol::optional<std::string> &body) const;
 
 private:
     struct StatusCode {
@@ -117,8 +111,8 @@ private:
         QString exception{};
     };
 
-    [[nodiscard]] sol::object request(sol::this_state ts, const QByteArray &method, const std::string &target, const sol::optional<sol::table> &header,
-                                      const sol::optional<std::string> &body) const;
+    [[nodiscard]] sol::object exchange(sol::this_state ts, const std::string &method, const std::string &target, const sol::optional<sol::table> &header,
+                                       const sol::optional<std::string> &body, const sol::protected_function *fn) const;
 
     [[nodiscard]] static Result parser(const QByteArray &rxData);
 

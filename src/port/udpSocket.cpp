@@ -30,7 +30,7 @@ QJsonObject UdpSocket::config() {
 QVariantHash UdpSocket::info() {
     const QString status = m_udpSocket && m_udpSocket->state() == QAbstractSocket::ConnectedState ? "connected" : "disconnected";
     const auto localHost = m_portConfig["localHost"].toString();
-    const auto localPort = QString::number(m_portConfig["localPort"].toInt());
+    const auto localPort = QString::number(m_udpSocket ? m_udpSocket->localPort() : 0);
     const auto remoteHost = m_portConfig["remoteHost"].toString();
     const auto remotePort = QString::number(m_portConfig["remotePort"].toInt());
     const auto bufferSize = QString::number(m_portConfig["bufferSize"].toInt());
@@ -81,7 +81,7 @@ bool UdpSocket::open() {
                    QString("[%1]").arg(m_portConfig["portName"].toString()),
                    QString("opened: %1:%2->%3:%4")
                    .arg(m_portConfig["localHost"].toString(),
-                        QString::number(m_portConfig["localPort"].toInt()),
+                        QString::number(m_udpSocket->localPort()),
                         m_portConfig["remoteHost"].toString(),
                         QString::number(m_portConfig["remotePort"].toInt())));
     return true;
@@ -215,8 +215,8 @@ void UdpSocket::handleLog(const int type, const QByteArray &data) {
     else message = QString::fromUtf8(data);
 
     if (type == LogLevel::Transmit) {
-        emit appendLog(type, QString("[%1:%2 -&gt; %3:%4]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
+        emit appendLog(type, QString("[%1:%2 -&gt; %3:%4]").arg(m_portConfig["localHost"].toString(), QString::number(m_udpSocket->localPort()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
     } else {
-        emit appendLog(type, QString("[%1:%2 &lt;- %3:%4] ").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
+        emit appendLog(type, QString("[%1:%2 &lt;- %3:%4] ").arg(m_portConfig["localHost"].toString(), QString::number(m_udpSocket->localPort()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
     }
 }

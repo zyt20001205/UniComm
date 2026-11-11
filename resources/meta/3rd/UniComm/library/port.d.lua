@@ -12,7 +12,6 @@ Port = {}
 ---@enum PortType
 Port.Type = {
     SerialPort = 0,
-    Vision = 1,
     TcpClient = 2,
     TcpServer = 3,
     SslClient = 4,
@@ -59,9 +58,6 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
----@class VisionPortConfig : PortConfig
----@field portName string Exact name of an available screen or camera. Without configured ROIs, the complete source frame is processed as one ROI.
-
 ---@class TcpClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
@@ -94,7 +90,7 @@ Port.Type = {
 
 ---@class UdpSocketPortConfig : PortConfig
 ---@field localHost string Local IP address to bind.
----@field localPort integer Local port from 0 to 65535. Use 0 to let the system choose a port.
+---@field localPort integer Local port from 0 to 65535. Use 0 to let the system choose a port; `port:info().localPort` reports the actual port after opening.
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
@@ -103,7 +99,6 @@ Port.Type = {
 
 ---@alias PortCreateConfig
 ---| SerialPortConfig
----| VisionPortConfig
 ---| TcpClientPortConfig
 ---| TcpServerPortConfig
 ---| SslClientPortConfig
