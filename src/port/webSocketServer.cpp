@@ -25,6 +25,7 @@ void waitForMessage(QWebSocket *socket) {
     QObject::connect(socket, &QWebSocket::binaryMessageReceived, &eventLoop, &QEventLoop::quit);
     QObject::connect(socket, &QWebSocket::textMessageReceived, &eventLoop, &QEventLoop::quit);
     QObject::connect(socket, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
+    QObject::connect(socket, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
     timer.start(10);
     eventLoop.exec();
 }
@@ -60,6 +61,7 @@ QVariantHash WebSocketServer::info() {
         const auto *peer = m_peerHash.value(peerIp);
         auto *buffer = m_bufferHash.value(peerIp);
         infoHash.insert("peer" + QString::number(index++), QVariantHash{
+            {"peerIp", peerIp},
             {"peerAddress", peer->peerAddress().toString()},
             {"peerPort", peer->peerPort()},
             {"used", QString::number(buffer->used())},
@@ -199,11 +201,12 @@ void WebSocketServer::handleNewConnection() {
     while (m_webSocketServer->hasPendingConnections()) {
         auto *peer = m_webSocketServer->nextPendingConnection();
         if (peer == nullptr) continue;
-        handleConnected(peer);
+        peer->setParent(this);
         connect(peer, &QWebSocket::binaryMessageReceived, this, [this, peer](const QByteArray &message) { handleMessage(peer, message); });
         connect(peer, &QWebSocket::textMessageReceived, this, [this, peer](const QString &message) { handleMessage(peer, message.toUtf8()); });
         connect(peer, &QWebSocket::disconnected, this, [this, peer] { handleDisconnected(peer); });
         connect(peer, &QWebSocket::errorOccurred, this, [this, peer] { handleError(peer); });
+        handleConnected(peer);
     }
 }
 
@@ -216,17 +219,20 @@ void WebSocketServer::handleConnected(QWebSocket *webSocketServerPeer) {
     webSocketServerPeer->setProperty("peerIp", peerIp);
     m_peerHash.insert(peerIp, webSocketServerPeer);
     m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit connected(peerIp);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts connection from %1").arg(peerIp));
 }
 
 void WebSocketServer::handleDisconnected(QWebSocket *webSocketServerPeer) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
+    const auto peer = m_peerHash.constFind(peerIp);
+    if (peer == m_peerHash.constEnd() || peer.value() != webSocketServerPeer) return;
+    QString message = QString("lost connection from %1 (close code %2)").arg(peerIp).arg(static_cast<int>(webSocketServerPeer->closeCode()));
+    const auto closeReason = webSocketServerPeer->closeReason();
+    if (!closeReason.isEmpty()) message += ": " + closeReason;
     m_peerHash.remove(peerIp);
     webSocketServerPeer->deleteLater();
     delete m_bufferHash.take(peerIp);
-    emit disconnected(peerIp);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
+    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void WebSocketServer::handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message) {
@@ -235,10 +241,9 @@ void WebSocketServer::handleMessage(const QWebSocket *webSocketServerPeer, const
     if (buffer == nullptr) return;
     if (buffer->write(message) != message.size()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
-        close();
+        disconnectPeer(peerIp);
         return;
     }
-    emit readyRead(peerIp);
     handleLog(LogLevel::Receive, message, webSocketServerPeer);
 }
 
@@ -248,10 +253,6 @@ void WebSocketServer::handleError(const QWebSocket *webSocketServerPeer) {
 }
 
 bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageType, const QString &peerIp) {
-    if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return false;
-    }
     if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
         return false;
@@ -260,8 +261,12 @@ bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageT
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
         return false;
     }
+    if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        return false;
+    }
     const auto send = [this, &f_txData, messageType](QWebSocket *peer) {
-        if (!peer->isValid()) return false;
+        if (peer->state() != QAbstractSocket::ConnectedState) return false;
         const auto written = messageType == WebSocketMessageType::Text
                                  ? peer->sendTextMessage(QString::fromUtf8(f_txData))
                                  : peer->sendBinaryMessage(f_txData);
@@ -299,7 +304,7 @@ QByteArray WebSocketServer::handleRead(const int length, const int timeout, cons
     const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
     while (buffer->used() < minimum) {
-        if (deadline.hasExpired()) break;
+        if (peer->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         waitForMessage(peer);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);
@@ -323,7 +328,7 @@ QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int ti
     const QDeadlineTimer deadline(timeout);
     QByteArray data = buffer->readUntil(text, peek);
     while (data.isEmpty()) {
-        if (deadline.hasExpired()) break;
+        if (peer->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
         waitForMessage(peer);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);

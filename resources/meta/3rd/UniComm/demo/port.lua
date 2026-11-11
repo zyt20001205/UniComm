@@ -53,14 +53,34 @@
 -- })
 -- sslServer:open()
 
--- WebSocket client configured in the UI. Type is selected on each write:
--- 1 = UTF-8 text, 2 = binary. Omitting it defaults to binary.
--- local ws = Port.get("WebSocket Client")
+-- WebSocket client: use a complete ws:// or wss:// URL.
+-- Type is selected on each write: 1 = UTF-8 text, 2 = binary (default).
+-- See websocket.lua for a complete local client/server test without public echo.
+-- local ws = Port.create({
+--     portType = Port.Type.WebSocketClient,
+--     portName = "WebSocket Client",
+--     url = "ws://127.0.0.1:8080/",
+--     logFormat = "utf-8",
+-- })
 -- ws:open()
 -- ws:write("Hello from UniComm", 1)
 -- ws:write(string.fromHex("00 FF 80"), 2)
 -- ws:write("Binary by default")
 -- ws:close()
+
+-- WebSocket server: secure defaults to false. For wss, set secure = true
+-- and provide certificate and privateKey PEM file paths.
+-- local wsServer = Port.create({
+--     portType = Port.Type.WebSocketServer,
+--     portName = "WebSocket Server",
+--     localHost = "127.0.0.1",
+--     localPort = 8080,
+--     logFormat = "utf-8",
+-- })
+-- wsServer:open()
+-- After clients connect, omitting peerIp broadcasts to every connected peer.
+-- wsServer:write("Hello from UniComm", 1)
+-- wsServer:write(string.fromHex("00 FF 80"), 2)
 
 -- UDP socket: localPort = 0 lets the system choose a local port.
 -- local udp = Port.create({

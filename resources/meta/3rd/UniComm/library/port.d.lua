@@ -16,6 +16,8 @@ Port.Type = {
     TcpServer = 3,
     SslClient = 4,
     SslServer = 5,
+    WebSocketClient = 6,
+    WebSocketServer = 7,
     UdpSocket = 8,
 }
 
@@ -92,6 +94,22 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---@class WebSocketClientPortConfig : PortConfig
+---@field url string Complete ws:// or wss:// URL, including any required path and query.
+---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
+---@field txSuffix? PortSuffix (default: "null")
+---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+
+---@class WebSocketServerPortConfig : PortConfig
+---@field localHost string Local IP address on which the server listens.
+---@field localPort integer Local listening port from 1 to 65535.
+---@field secure? boolean (default: false) Accept wss:// connections instead of ws://.
+---@field certificate? string Local path to the PEM certificate. Required when secure is true.
+---@field privateKey? string Local path to the PEM private key. Required when secure is true.
+---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
+---@field txSuffix? PortSuffix (default: "null")
+---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+
 ---@class UdpSocketPortConfig : PortConfig
 ---@field localHost string Local IP address to bind.
 ---@field localPort integer Local port from 0 to 65535. Use 0 to let the system choose a port; `port:info().localPort` reports the actual port after opening.
@@ -107,6 +125,8 @@ Port.Type = {
 ---| TcpServerPortConfig
 ---| SslClientPortConfig
 ---| SslServerPortConfig
+---| WebSocketClientPortConfig
+---| WebSocketServerPortConfig
 ---| UdpSocketPortConfig
 
 ---
@@ -151,14 +171,16 @@ port = {}
 ---
 ---Available fields depend on the port type and may include status, addresses,
 ---buffer usage, and connected server peers.
+---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
+---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
 ---@return table<string, any> information
 function port:info() end
 
 ---
 ---Opens or starts this port.
 ---
----Single-buffer byte ports clear old receive data and reset statistics before a
----fresh open. Calling open again on an already active port does not clear data.
+---Single-buffer byte ports clear old receive data before a fresh open.
+---Calling open again on an already active port does not clear data.
 ---
 ---A Vision port waits up to 30 seconds for its first valid frame.
 ---
@@ -195,9 +217,13 @@ function port:clear() end
 ---message, and the type can change on every call. To target a WebSocket server
 ---peer, pass an explicit type followed by its `address:port` identifier as the
 ---third argument. Omitting `peerIp` broadcasts; clients ignore it.
+---Strings such as "text" are not message types; use the integer 1 or 2.
+---A successful write queues data locally; it does not confirm peer receipt.
 ---
 ---Received WebSocket text is encoded as UTF-8 and binary is preserved as bytes.
 ---Both enter the same receive buffer; message boundaries and types are discarded.
+---
+---[WebSocket loopback demo](../demo/websocket.lua)
 ---
 ---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
@@ -212,7 +238,7 @@ function port:clear() end
 ---
 ---@param data string Data to write, or a Vision export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: Port, data: string, messageType: WebSocketMessageType, peerIp?: string)
+---@overload fun(self: port, data: string, messageType: WebSocketMessageType, peerIp?: string)
 ---@return nil
 function port:write(data, peerIp) end
 
@@ -262,7 +288,7 @@ function port:read(length, timeout, peerIp) end
 ---support peeking and raise a Lua error.
 ---
 ---Peeking does not reserve data for a later read. Avoid independent consumers
----on the same connection. Reading statistics are not increased by peeking.
+---on the same connection.
 ---
 ---@param length? integer (default: 0) Number of bytes to peek at.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
@@ -306,7 +332,7 @@ function port:readUntil(text, timeout, peerIp) end
 ---read. Other byte-buffered port types ignore `peerIp`. Vision ports do not
 ---support peeking and raise a Lua error.
 ---
----Peeking does not reserve data for a later read or increase reading statistics.
+---Peeking does not reserve data for a later read.
 ---Avoid independent consumers on the same connection.
 ---
 ---@param text? string (default: "\r\n") Delimiter to peek through.

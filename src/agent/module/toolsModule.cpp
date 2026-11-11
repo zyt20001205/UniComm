@@ -26,6 +26,8 @@ ToolsModule::ToolsModule(McpModule *mcpModule, SqlModule *sqlModule, QObject *pa
           {"tcp_server", PortType::TcpServer},
           {"ssl_client", PortType::SslClient},
           {"ssl_server", PortType::SslServer},
+          {"websocket_client", PortType::WebSocketClient},
+          {"websocket_server", PortType::WebSocketServer},
           {"udp_socket", PortType::UdpSocket}
       },
       m_mcpModule(mcpModule),
@@ -346,7 +348,7 @@ void ToolsModule::initialize() {
                                     {
                                         "port_type", QJsonObject{
                                             {"type", "string"},
-                                            {"enum", QJsonArray{"serial_port", "vision", "tcp_client", "tcp_server", "ssl_client", "ssl_server", "udp_socket"}},
+                                            {"enum", QJsonArray{"serial_port", "vision", "tcp_client", "tcp_server", "ssl_client", "ssl_server", "websocket_client", "websocket_server", "udp_socket"}},
                                             {"description", "The type of port to configure."}
                                         }
                                     }
@@ -373,7 +375,7 @@ void ToolsModule::initialize() {
                                     {
                                         "port_type", QJsonObject{
                                             {"type", "string"},
-                                            {"enum", QJsonArray{"serial_port", "vision", "tcp_client", "tcp_server", "ssl_client", "ssl_server", "udp_socket"}},
+                                            {"enum", QJsonArray{"serial_port", "vision", "tcp_client", "tcp_server", "ssl_client", "ssl_server", "websocket_client", "websocket_server", "udp_socket"}},
                                             {"description", "The type of port to create."}
                                         }
                                     },

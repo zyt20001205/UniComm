@@ -56,6 +56,8 @@ QVariantHash WebSocketClient::info() {
         {"localPort", QString::number(m_localPort)},
         {"remoteHost", url.host()},
         {"remotePort", QString::number(url.port(url.scheme() == "wss" ? 443 : 80))},
+        {"closeCode", m_webSocketClient ? static_cast<int>(m_webSocketClient->closeCode()) : 0},
+        {"closeReason", m_webSocketClient ? m_webSocketClient->closeReason() : QString()},
         {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
         {"bufferUsed", QString::number(m_buffer.used())}
     };
@@ -64,24 +66,22 @@ QVariantHash WebSocketClient::info() {
 bool WebSocketClient::open() {
     if (m_webSocketClient == nullptr) {
         m_webSocketClient = new UWebSocket(QString(), QWebSocketProtocol::VersionLatest, this);
-        connect(m_webSocketClient, &QWebSocket::connected, this, &WebSocketClient::handleConnected);
-        connect(m_webSocketClient, &QWebSocket::disconnected, this, &WebSocketClient::handleDisconnected);
+        connect(m_webSocketClient, &QWebSocket::stateChanged, this, &WebSocketClient::handleStateChanged);
         connect(m_webSocketClient, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &message) { handleMessage(message); });
         connect(m_webSocketClient, &QWebSocket::textMessageReceived, this, [this](const QString &message) { handleMessage(message.toUtf8()); });
         connect(m_webSocketClient, &QWebSocket::errorOccurred, this, &WebSocketClient::handleError);
     }
-    if (m_webSocketClient->state() != QAbstractSocket::UnconnectedState) return true;
-
-    m_buffer.clear();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("connecting to %1").arg(m_portConfig["url"].toString()));
-
-    m_webSocketClient->open(QUrl(m_portConfig["url"].toString()));
+    if (m_webSocketClient->state() == QAbstractSocket::ConnectedState) return true;
+    if (m_webSocketClient->state() == QAbstractSocket::ClosingState) m_webSocketClient->abort();
+    if (m_webSocketClient->state() == QAbstractSocket::UnconnectedState) {
+        m_buffer.clear();
+        m_webSocketClient->open(QUrl(m_portConfig["url"].toString()));
+    }
     if (!m_webSocketClient->waitForConnected()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
 
-    emit refreshPort(m_portConfig["portName"].toString(), true);
     return true;
 }
 
@@ -90,18 +90,15 @@ void WebSocketClient::close() {
 
     switch (m_webSocketClient->state()) {
         case QAbstractSocket::ConnectedState:
-            emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnecting from %1").arg(m_portConfig["url"].toString()));
             m_webSocketClient->close();
             break;
         case QAbstractSocket::ConnectingState:
         case QAbstractSocket::HostLookupState:
-            emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("connection to %1 cancelled").arg(m_portConfig["url"].toString()));
             m_webSocketClient->abort();
             break;
         default:
             break;
     }
-    emit refreshPort(m_portConfig["portName"].toString(), false);
 }
 
 void WebSocketClient::clear() {
@@ -136,17 +133,34 @@ QByteArray WebSocketClient::readUntil(const QByteArray &text, const int timeout,
 }
 
 // private
-void WebSocketClient::handleConnected() {
-    m_localHost = m_webSocketClient->localAddress().toString();
-    m_localPort = m_webSocketClient->localPort();
-    emit connected();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("connected to %1").arg(m_portConfig["url"].toString()));
-}
-
-void WebSocketClient::handleDisconnected() {
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit disconnected();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["url"].toString()));
+void WebSocketClient::handleStateChanged(const QAbstractSocket::SocketState state) {
+    const auto url = m_portConfig["url"].toString();
+    QString message{};
+    switch (state) {
+        case QAbstractSocket::UnconnectedState: {
+            message = QString("unconnected: %1 (close code %2)").arg(url).arg(static_cast<int>(m_webSocketClient->closeCode()));
+            const auto reason = m_webSocketClient->closeReason();
+            if (!reason.isEmpty()) message += ": " + reason;
+        }
+        break;
+        case QAbstractSocket::HostLookupState:
+            message = QString("looking up host for %1").arg(url);
+            break;
+        case QAbstractSocket::ConnectingState:
+            message = QString("connecting to %1").arg(url);
+            break;
+        case QAbstractSocket::ConnectedState:
+            m_localHost = m_webSocketClient->localAddress().toString();
+            m_localPort = m_webSocketClient->localPort();
+            message = QString("connected to %1").arg(url);
+            break;
+        case QAbstractSocket::ClosingState:
+            message = QString("disconnecting from %1").arg(url);
+            break;
+        default: break;
+    }
+    emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState);
+    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void WebSocketClient::handleMessage(const QByteArray &message) {
@@ -155,27 +169,25 @@ void WebSocketClient::handleMessage(const QByteArray &message) {
         close();
         return;
     }
-    emit readyRead();
     handleLog(LogLevel::Receive, message);
 }
 
 void WebSocketClient::handleError() {
     if (m_webSocketClient->error() == QAbstractSocket::SocketTimeoutError) return;
-    emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
 }
 
 bool WebSocketClient::handleWrite(const QByteArray &f_txData, const int messageType) {
-    if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return false;
-    }
     if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
         return false;
     }
     if (messageType == WebSocketMessageType::Text && !f_txData.isValidUtf8()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
+        return false;
+    }
+    if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     const auto written = messageType == WebSocketMessageType::Text
@@ -243,7 +255,7 @@ bool UWebSocket::waitForConnected(const int msecs) {
     if (msecs >= 0) timer.start(msecs);
     eventLoop.exec();
     if (state() == QAbstractSocket::ConnectedState) return true;
-    if (!timer.isActive()) abort();
+    abort();
     return false;
 }
 

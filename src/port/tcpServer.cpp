@@ -175,7 +175,6 @@ void TcpServer::handleConnected(QTcpSocket *tcpServerPeer) {
     const QString peerIp = tcpServerPeer->peerAddress().toString() + ":" + QString::number(tcpServerPeer->peerPort());
     m_peerHash.insert(peerIp, tcpServerPeer);
     m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit connected(peerIp);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts connection from %1").arg(peerIp));
 }
 
@@ -185,7 +184,6 @@ void TcpServer::handleDisconnected(QTcpSocket *tcpServerPeer) {
     tcpServerPeer->deleteLater();
     delete m_bufferHash[peerIp];
     m_bufferHash.remove(peerIp);
-    emit disconnected(peerIp);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
 }
 
@@ -199,7 +197,6 @@ void TcpServer::handleReadyRead(QTcpSocket *tcpServerPeer) {
         close();
         return;
     }
-    emit readyRead(peerIp);
     handleLog(LogLevel::Receive, rxData, tcpServerPeer);
 }
 

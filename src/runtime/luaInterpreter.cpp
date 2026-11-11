@@ -254,8 +254,9 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "close", &Port::close,
             "clear", &Port::clear,
             "write", sol::overload(
-                [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> &peerIp) { port.write(data, messageType, peerIp.value_or("")); },
-                [](const Port &port, const std::string &data, const sol::optional<std::string> &peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
+                // References prevent this sol2 version from detecting optional arity.
+                [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> peerIp) { port.write(data, messageType, peerIp.value_or("")); },
+                [](const Port &port, const std::string &data, const sol::optional<std::string> peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
             ),
             "read", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
                 return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), false);
@@ -279,6 +280,8 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         portType["TcpServer"] = PortType::TcpServer;
         portType["SslClient"] = PortType::SslClient;
         portType["SslServer"] = PortType::SslServer;
+        portType["WebSocketClient"] = PortType::WebSocketClient;
+        portType["WebSocketServer"] = PortType::WebSocketServer;
         portType["UdpSocket"] = PortType::UdpSocket;
         port["Type"] = portType;
         port.set_function("list", [](const sol::this_state ts) { return Port::list(ts); });

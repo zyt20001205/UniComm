@@ -8,6 +8,7 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QThread>
+#include <QUrl>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -214,6 +215,59 @@ QJsonObject PortModule::portConfigGet(const int portType) {
             }
             break;
         }
+        case PortType::WebSocketClient: {
+            portConfig = {
+                {"type", "object"},
+                {"required", QJsonArray{"portName", "url"}},
+                {
+                    "defaults", QJsonObject{
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"url", QJsonObject{{"type", "string"}, {"description", "Complete ws:// or wss:// URL, including any required path and query."}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
+        case PortType::WebSocketServer: {
+            portConfig = {
+                {"type", "object"},
+                {"required", QJsonArray{"portName", "localHost", "localPort"}},
+                {
+                    "defaults", QJsonObject{
+                        {"secure", false},
+                        {"certificate", ""},
+                        {"privateKey", ""},
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"localHost", QJsonObject{{"type", "string"}}},
+                        {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Accept wss:// connections instead of ws://."}}},
+                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Local path to the PEM certificate. Required when secure is true."}}},
+                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Local path to the PEM private key. Required when secure is true."}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
         case PortType::UdpSocket: {
             portConfig = {
                 {"type", "object"},
@@ -290,6 +344,24 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
     }
 
+    if (portType == PortType::WebSocketClient) {
+        const QUrl url(portConfig.value("url").toString());
+        if (!url.isValid() || url.host().isEmpty() || (url.scheme() != "ws" && url.scheme() != "wss"))
+            return "Port check failed: url must be a valid ws:// or wss:// URL.";
+    }
+
+    if (portType == PortType::WebSocketServer) {
+        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+        const auto localPort = portConfig.value("localPort").toInt();
+        if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
+        if (!portConfig.value("secure").isBool()) return "Port check failed: secure must be a boolean.";
+        if (portConfig.value("secure").toBool()) {
+            if (portConfig.value("certificate").toString().trimmed().isEmpty()) return "Port check failed: certificate is empty.";
+            if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
+        }
+    }
+
     if (portType == PortType::UdpSocket) {
         if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
 
@@ -301,7 +373,7 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
     }
 
-    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::UdpSocket) {
+    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket) {
         const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
         if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
 

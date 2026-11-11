@@ -43,13 +43,6 @@ public:
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
-signals:
-    void connected(const QString &peerIp);
-
-    void disconnected(const QString &peerIp);
-
-    void readyRead(const QString &peerIp);
-
 private:
     [[nodiscard]] bool configureSsl();
 

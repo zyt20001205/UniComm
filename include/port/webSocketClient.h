@@ -37,17 +37,8 @@ public:
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
-signals:
-    void connected();
-
-    void disconnected();
-
-    void readyRead();
-
 private:
-    void handleConnected();
-
-    void handleDisconnected();
+    void handleStateChanged(QAbstractSocket::SocketState state);
 
     void handleMessage(const QByteArray &message);
 

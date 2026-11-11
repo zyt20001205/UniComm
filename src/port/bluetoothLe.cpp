@@ -111,7 +111,6 @@ bool BluetoothLe::open() {
         m_subscribed = true;
 
         emit refreshPort(portName, true);
-        emit connected();
         emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), QString("connected to %1 [%2]").arg(m_peripheralName, peripheralAddress));
         return true;
     } catch (const std::exception &exception) {

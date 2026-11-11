@@ -35,20 +35,13 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, int messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix);
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) override;
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek) override;
 
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) override;
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
-
-signals:
-    void connected(const QString &peerIp);
-
-    void disconnected(const QString &peerIp);
-
-    void readyRead(const QString &peerIp);
 
 private:
     [[nodiscard]] bool configureSsl();

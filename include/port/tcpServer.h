@@ -43,19 +43,6 @@ public:
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
-signals:
-    void newConnection();
-
-    void acceptError(const QString &error);
-
-    void connected(const QString &peerIp);
-
-    void disconnected(const QString &peerIp);
-
-    void readyRead(const QString &peerIp);
-
-    void errorOccurred(const QString &error);
-
 private:
     void handleNewConnection();
 

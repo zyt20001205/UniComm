@@ -35,8 +35,6 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
 signals:
-    void connected();
-
     void disconnected();
 
     void readyRead();

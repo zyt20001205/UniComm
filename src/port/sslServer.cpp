@@ -201,7 +201,6 @@ void SslServer::handleConnected(QSslSocket *sslServerPeer) {
     const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
     m_peerHash.insert(peerIp, sslServerPeer);
     m_bufferHash.insert(peerIp, new RingBuffer(m_portConfig["bufferSize"].toInt()));
-    emit connected(peerIp);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("accepts encrypted connection from %1").arg(peerIp));
 }
 
@@ -210,7 +209,6 @@ void SslServer::handleDisconnected(QSslSocket *sslServerPeer) {
     m_peerHash.remove(peerIp);
     sslServerPeer->deleteLater();
     delete m_bufferHash.take(peerIp);
-    emit disconnected(peerIp);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
 }
 
@@ -224,7 +222,6 @@ void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
         close();
         return;
     }
-    emit readyRead(peerIp);
     handleLog(LogLevel::Receive, rxData, sslServerPeer);
 }
 
