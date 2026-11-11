@@ -54,7 +54,7 @@ bool SslServer::open() {
         m_sslServer = new QSslServer(this);
         connect(m_sslServer, &QTcpServer::pendingConnectionAvailable, this, &SslServer::handleNewConnection);
         connect(m_sslServer, &QTcpServer::acceptError, this, &SslServer::handleServerError);
-        connect(m_sslServer, &QSslServer::errorOccurred, this, [this](QSslSocket *socket) { handleError(socket); });
+        connect(m_sslServer, &QSslServer::errorOccurred, this, [this](const QSslSocket *socket) { handleError(socket); });
     }
     if (m_sslServer->isListening()) return true;
     if (!configureSsl()) return false;
