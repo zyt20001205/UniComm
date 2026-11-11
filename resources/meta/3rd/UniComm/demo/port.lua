@@ -53,6 +53,15 @@
 -- })
 -- sslServer:open()
 
+-- WebSocket client configured in the UI. Type is selected on each write:
+-- 1 = UTF-8 text, 2 = binary. Omitting it defaults to binary.
+-- local ws = Port.get("WebSocket Client")
+-- ws:open()
+-- ws:write("Hello from UniComm", 1)
+-- ws:write(string.fromHex("00 FF 80"), 2)
+-- ws:write("Binary by default")
+-- ws:close()
+
 -- UDP socket: localPort = 0 lets the system choose a local port.
 -- local udp = Port.create({
 --     portType = Port.Type.UdpSocket,
@@ -135,7 +144,10 @@ assert(port:read(#partial, timeout) == partial, "unsuccessful peeks must preserv
 -- local information = server:info()
 -- local peer = information.peer1
 -- local peerIp = peer.peerAddress .. ":" .. peer.peerPort
--- server:write("Hello", peerIp)
+-- server:write("Hello", peerIp)       -- TCP/SSL server.
+-- server:write("Hello", 1, peerIp)    -- WebSocket server: text to one peer.
+-- server:write("Hello", 1)            -- WebSocket server: text broadcast.
+-- server:write(string.fromHex("00 FF"), 2, peerIp) -- WebSocket binary to one peer.
 -- local preview = server:peek(5, timeout, peerIp)
 -- local data = server:read(5, timeout, peerIp)
 

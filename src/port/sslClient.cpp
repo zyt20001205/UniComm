@@ -48,23 +48,15 @@ QVariantHash SslClient::info() {
             default: status = "unknown";
         }
     }
-    const auto localHost = m_sslClientLocalHost;
-    const auto localPort = QString::number(m_sslClientLocalPort);
-    const auto remoteHost = m_portConfig["remoteHost"].toString();
-    const auto remotePort = QString::number(m_portConfig["remotePort"].toInt());
-    const auto bufferSize = QString::number(m_portConfig["bufferSize"].toInt());
-    const auto bufferUsed = QString::number(m_buffer.used());
-
-    const QVariantHash infoHash = {
+    return {
         {"status", status},
-        {"localHost", localHost},
-        {"localPort", localPort},
-        {"remoteHost", remoteHost},
-        {"remotePort", remotePort},
-        {"bufferSize", bufferSize},
-        {"bufferUsed", bufferUsed}
+        {"localHost", m_sslClientLocalHost},
+        {"localPort", QString::number(m_sslClientLocalPort)},
+        {"remoteHost", m_portConfig["remoteHost"].toString()},
+        {"remotePort", QString::number(m_portConfig["remotePort"].toInt())},
+        {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
+        {"bufferUsed", QString::number(m_buffer.used())}
     };
-    return infoHash;
 }
 
 bool SslClient::open() {

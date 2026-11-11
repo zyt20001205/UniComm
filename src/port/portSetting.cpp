@@ -112,7 +112,6 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     // web socket client
     m_webSocketClientNameTextField = qvariant_cast<QObject *>(objects["webSocketClientNameTextField"]);
     m_webSocketClientUrlTextField = qvariant_cast<QObject *>(objects["webSocketClientUrlTextField"]);
-    m_webSocketClientMessageTypeComboBox = qvariant_cast<QObject *>(objects["webSocketClientMessageTypeComboBox"]);
     // web socket server
     m_webSocketServerNameTextField = qvariant_cast<QObject *>(objects["webSocketServerNameTextField"]);
     m_webSocketServerLocalHostComboBox = qvariant_cast<QObject *>(objects["webSocketServerLocalHostComboBox"]);
@@ -120,7 +119,6 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_webSocketServerSecureSwitch = qvariant_cast<QObject *>(objects["webSocketServerSecureSwitch"]);
     m_webSocketServerCertificateTextField = qvariant_cast<QObject *>(objects["webSocketServerCertificateTextField"]);
     m_webSocketServerPrivateKeyTextField = qvariant_cast<QObject *>(objects["webSocketServerPrivateKeyTextField"]);
-    m_webSocketServerMessageTypeComboBox = qvariant_cast<QObject *>(objects["webSocketServerMessageTypeComboBox"]);
     // udp socket
     m_udpSocketNameTextField = qvariant_cast<QObject *>(objects["udpSocketNameTextField"]);
     m_udpSocketLocalHostComboBox = qvariant_cast<QObject *>(objects["udpSocketLocalHostComboBox"]);
@@ -203,7 +201,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         // web socket client
         m_webSocketClientNameTextField->setProperty("text", "");
         m_webSocketClientUrlTextField->setProperty("text", "");
-        m_webSocketClientMessageTypeComboBox->setProperty("currentValue", "binary");
         // web socket server
         m_webSocketServerNameTextField->setProperty("text", "");
         if (m_webSocketServerLocalHostComboBox->property("count").toInt()) {
@@ -213,7 +210,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_webSocketServerSecureSwitch->setProperty("checked", false);
         m_webSocketServerCertificateTextField->setProperty("text", "");
         m_webSocketServerPrivateKeyTextField->setProperty("text", "");
-        m_webSocketServerMessageTypeComboBox->setProperty("currentValue", "binary");
         // udp socket
         m_udpSocketNameTextField->setProperty("text", "");
         if (m_udpSocketLocalHostComboBox->property("count").toInt()) {
@@ -317,7 +313,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
             case PortType::WebSocketClient: {
                 m_webSocketClientNameTextField->setProperty("text", portConfig["portName"].toString());
                 m_webSocketClientUrlTextField->setProperty("text", portConfig["url"].toString());
-                m_webSocketClientMessageTypeComboBox->setProperty("currentValue", portConfig["messageType"].toString());
                 m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
                 m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
@@ -330,7 +325,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_webSocketServerSecureSwitch->setProperty("checked", portConfig["secure"].toBool());
                 m_webSocketServerCertificateTextField->setProperty("text", portConfig["certificate"].toString());
                 m_webSocketServerPrivateKeyTextField->setProperty("text", portConfig["privateKey"].toString());
-                m_webSocketServerMessageTypeComboBox->setProperty("currentValue", portConfig["messageType"].toString());
                 m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
                 m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
@@ -523,7 +517,6 @@ void PortSetting::portSettingExport() {
                 {"portType", portType},
                 {"portName", m_webSocketClientNameTextField->property("text").toString()},
                 {"url", m_webSocketClientUrlTextField->property("text").toString()},
-                {"messageType", m_webSocketClientMessageTypeComboBox->property("currentValue").toString()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
                 {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
@@ -539,7 +532,6 @@ void PortSetting::portSettingExport() {
                 {"secure", m_webSocketServerSecureSwitch->property("checked").toBool()},
                 {"certificate", m_webSocketServerCertificateTextField->property("text").toString()},
                 {"privateKey", m_webSocketServerPrivateKeyTextField->property("text").toString()},
-                {"messageType", m_webSocketServerMessageTypeComboBox->property("currentValue").toString()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
                 {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}

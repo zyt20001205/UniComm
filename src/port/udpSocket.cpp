@@ -28,24 +28,15 @@ QJsonObject UdpSocket::config() {
 }
 
 QVariantHash UdpSocket::info() {
-    const QString status = m_udpSocket && m_udpSocket->state() == QAbstractSocket::ConnectedState ? "connected" : "disconnected";
-    const auto localHost = m_portConfig["localHost"].toString();
-    const auto localPort = QString::number(m_udpSocket ? m_udpSocket->localPort() : 0);
-    const auto remoteHost = m_portConfig["remoteHost"].toString();
-    const auto remotePort = QString::number(m_portConfig["remotePort"].toInt());
-    const auto bufferSize = QString::number(m_portConfig["bufferSize"].toInt());
-    const auto bufferUsed = QString::number(m_buffer.used());
-
-    const QVariantHash infoHash = {
-        {"status", status},
-        {"localHost", localHost},
-        {"localPort", localPort},
-        {"remoteHost", remoteHost},
-        {"remotePort", remotePort},
-        {"bufferSize", bufferSize},
-        {"bufferUsed", bufferUsed}
+    return {
+        {"status", m_udpSocket && m_udpSocket->state() == QAbstractSocket::ConnectedState ? "connected" : "disconnected"},
+        {"localHost", m_portConfig["localHost"].toString()},
+        {"localPort", QString::number(m_udpSocket ? m_udpSocket->localPort() : 0)},
+        {"remoteHost", m_portConfig["remoteHost"].toString()},
+        {"remotePort", QString::number(m_portConfig["remotePort"].toInt())},
+        {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
+        {"bufferUsed", QString::number(m_buffer.used())}
     };
-    return infoHash;
 }
 
 bool UdpSocket::open() {

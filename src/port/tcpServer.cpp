@@ -27,25 +27,21 @@ QJsonObject TcpServer::config() {
 }
 
 QVariantHash TcpServer::info() {
-    const QString status = m_tcpServer && m_tcpServer->isListening() ? "opened" : "closed";
-    const auto localHost = m_portConfig["localHost"].toString();
-    const auto localPort = QString::number(m_portConfig["localPort"].toInt());
     QVariantHash infoHash = {
-        {"status", status},
-        {"localHost", localHost},
-        {"localPort", localPort}
+        {"status", m_tcpServer && m_tcpServer->isListening() ? "opened" : "closed"},
+        {"localHost", m_portConfig["localHost"].toString()},
+        {"localPort", QString::number(m_portConfig["localPort"].toInt())}
     };
-    const int capacity = m_portConfig["bufferSize"].toInt();
     int index = 1;
-    QVariantHash peerInfoHash{};
     for (const auto &peerIp: m_peerHash.keys()) {
         const auto *peer = m_peerHash.value(peerIp);
-        peerInfoHash["peerAddress"] = peer->peerAddress().toString();
-        peerInfoHash["peerPort"] = peer->peerPort();
         auto *buffer = m_bufferHash.value(peerIp);
-        peerInfoHash["used"] = QString::number(buffer->used());
-        peerInfoHash["capacity"] = QString::number(capacity);
-        infoHash.insert("peer" + QString::number(index++), peerInfoHash);
+        infoHash.insert("peer" + QString::number(index++), QVariantHash{
+            {"peerAddress", peer->peerAddress().toString()},
+            {"peerPort", peer->peerPort()},
+            {"used", QString::number(buffer->used())},
+            {"capacity", QString::number(m_portConfig["bufferSize"].toInt())}
+        });
     }
     return infoHash;
 }

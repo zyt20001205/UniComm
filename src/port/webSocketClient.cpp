@@ -173,6 +173,10 @@ void WebSocketClient::monitor(const bool enabled) {
 }
 
 bool WebSocketClient::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
+    return write(txData, WebSocketMessageType::Binary, logFormat, txSuffix);
+}
+
+bool WebSocketClient::write(const QByteArray &txData, const int messageType, const QString &logFormat, const QString &txSuffix) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
@@ -180,7 +184,7 @@ bool WebSocketClient::write(const QByteArray &txData, const QString &logFormat, 
     if (m_portConfig["txSuffix"].toString() == "crlf") f_txData += "\r\n";
     else if (m_portConfig["txSuffix"].toString() == "modbus crc") f_txData += uni_cast<ModbusCRC>(f_txData).value;
     else if (m_portConfig["txSuffix"].toString() == "modbus lrc") f_txData += uni_cast<ModbusLRC>(f_txData).value;
-    return handleWrite(f_txData);
+    return handleWrite(f_txData, messageType);
 }
 
 QByteArray WebSocketClient::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
@@ -229,15 +233,26 @@ void WebSocketClient::handleError() {
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
 }
 
-bool WebSocketClient::handleWrite(const QByteArray &f_txData) {
+bool WebSocketClient::handleWrite(const QByteArray &f_txData, const int messageType) {
     if (m_webSocketClient == nullptr || !m_webSocketClient->isValid()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
-    if (m_portConfig["messageType"].toString() == "text")
-        m_webSocketClient->sendTextMessage(QString::fromUtf8(f_txData));
-    else
-        m_webSocketClient->sendBinaryMessage(f_txData);
+    if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
+        return false;
+    }
+    if (messageType == WebSocketMessageType::Text && !f_txData.isValidUtf8()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
+        return false;
+    }
+    const auto written = messageType == WebSocketMessageType::Text
+                             ? m_webSocketClient->sendTextMessage(QString::fromUtf8(f_txData))
+                             : m_webSocketClient->sendBinaryMessage(f_txData);
+    if (written != f_txData.size()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "write failed");
+        return false;
+    }
     handleLog(LogLevel::Transmit, f_txData);
     return true;
 }

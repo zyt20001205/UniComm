@@ -35,7 +35,7 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] bool write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix);
+    [[nodiscard]] bool write(const QByteArray &txData, int messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix);
 
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) override;
 
@@ -67,7 +67,7 @@ private:
 
     void handleError(const QWebSocket *webSocketServerPeer);
 
-    [[nodiscard]] bool handleWrite(const QByteArray &f_txData, const QString &peerIp = QString());
+    [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType, const QString &peerIp);
 
     [[nodiscard]] QByteArray handleRead(int length, int timeout, const QString &peerIp, bool peek);
 

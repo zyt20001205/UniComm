@@ -48,25 +48,22 @@ QJsonObject WebSocketServer::config() {
 }
 
 QVariantHash WebSocketServer::info() {
-    const QString status = m_webSocketServer && m_webSocketServer->isListening() ? "opened" : "closed";
     QVariantHash infoHash = {
-        {"status", status},
+        {"status", m_webSocketServer && m_webSocketServer->isListening() ? "opened" : "closed"},
         {"localHost", m_portConfig["localHost"].toString()},
         {"localPort", QString::number(m_portConfig["localPort"].toInt())},
         {"secure", m_portConfig["secure"].toBool()}
     };
-    const int capacity = m_portConfig["bufferSize"].toInt();
     int index = 1;
     for (const auto &peerIp: m_peerHash.keys()) {
         const auto *peer = m_peerHash.value(peerIp);
         auto *buffer = m_bufferHash.value(peerIp);
-        const QVariantHash peerInfoHash = {
+        infoHash.insert("peer" + QString::number(index++), QVariantHash{
             {"peerAddress", peer->peerAddress().toString()},
             {"peerPort", peer->peerPort()},
             {"used", QString::number(buffer->used())},
-            {"capacity", QString::number(capacity)}
-        };
-        infoHash.insert("peer" + QString::number(index++), peerInfoHash);
+            {"capacity", QString::number(m_portConfig["bufferSize"].toInt())}
+        });
     }
     return infoHash;
 }
@@ -129,17 +126,10 @@ void WebSocketServer::monitor(const bool enabled) {
 }
 
 bool WebSocketServer::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
-    QScopedValueRollback configRollback(m_portConfig);
-    if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
-    QByteArray f_txData = txData;
-    if (m_portConfig["txSuffix"].toString() == "crlf") f_txData += "\r\n";
-    else if (m_portConfig["txSuffix"].toString() == "modbus crc") f_txData += uni_cast<ModbusCRC>(f_txData).value;
-    else if (m_portConfig["txSuffix"].toString() == "modbus lrc") f_txData += uni_cast<ModbusLRC>(f_txData).value;
-    return handleWrite(f_txData);
+    return write(txData, WebSocketMessageType::Binary, "", logFormat, txSuffix);
 }
 
-bool WebSocketServer::write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix) {
+bool WebSocketServer::write(const QByteArray &txData, const int messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
@@ -147,7 +137,7 @@ bool WebSocketServer::write(const QByteArray &txData, const QString &peerIp, con
     if (m_portConfig["txSuffix"].toString() == "crlf") f_txData += "\r\n";
     else if (m_portConfig["txSuffix"].toString() == "modbus crc") f_txData += uni_cast<ModbusCRC>(f_txData).value;
     else if (m_portConfig["txSuffix"].toString() == "modbus lrc") f_txData += uni_cast<ModbusLRC>(f_txData).value;
-    return handleWrite(f_txData, peerIp);
+    return handleWrite(f_txData, messageType, peerIp);
 }
 
 QByteArray WebSocketServer::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
@@ -263,29 +253,42 @@ void WebSocketServer::handleError(const QWebSocket *webSocketServerPeer) {
     emit appendLog(LogLevel::Error, QString("[%1]").arg(webSocketServerPeer->property("peerIp").toString()), QString("error: %1").arg(webSocketServerPeer->errorString()));
 }
 
-bool WebSocketServer::handleWrite(const QByteArray &f_txData, const QString &peerIp) {
+bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageType, const QString &peerIp) {
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
-    const auto send = [this, &f_txData](QWebSocket *peer) {
-        if (m_portConfig["messageType"].toString() == "text")
-            peer->sendTextMessage(QString::fromUtf8(f_txData));
-        else
-            peer->sendBinaryMessage(f_txData);
-        handleLog(LogLevel::Transmit, f_txData, peer);
-    };
-    if (peerIp.isEmpty()) {
-        for (auto *peer: m_peerHash) send(peer);
-    } else {
-        const auto peer = m_peerHash.constFind(peerIp);
-        if (peer == m_peerHash.constEnd()) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+    if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
+        return false;
+    }
+    if (messageType == WebSocketMessageType::Text && !f_txData.isValidUtf8()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
+        return false;
+    }
+    const auto send = [this, &f_txData, messageType](QWebSocket *peer) {
+        if (!peer->isValid()) return false;
+        const auto written = messageType == WebSocketMessageType::Text
+                                 ? peer->sendTextMessage(QString::fromUtf8(f_txData))
+                                 : peer->sendBinaryMessage(f_txData);
+        if (written != f_txData.size()) {
+            emit appendLog(LogLevel::Error, QString("[%1]").arg(peer->property("peerIp").toString()), "write failed");
             return false;
         }
-        send(peer.value());
+        handleLog(LogLevel::Transmit, f_txData, peer);
+        return true;
+    };
+    if (peerIp.isEmpty()) {
+        bool status = true;
+        for (auto *peer: m_peerHash) if (!send(peer)) status = false;
+        return status;
     }
-    return true;
+    const auto peer = m_peerHash.constFind(peerIp);
+    if (peer == m_peerHash.constEnd()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        return false;
+    }
+    return send(peer.value());
 }
 
 QByteArray WebSocketServer::handleRead(const int length, const int timeout, const QString &peerIp, const bool peek) {

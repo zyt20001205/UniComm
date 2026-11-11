@@ -532,28 +532,6 @@ Item {
                             placeholderText: "ws://127.0.0.1:8080"
                             Layout.fillWidth: true
                         }
-
-                        Label {
-                            text: qsTr("Message Type")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: webSocketClientMessageTypeComboBox
-                            font.pointSize: 12
-                            model: ListModel {
-                                ListElement {
-                                    text: qsTr("Binary"); value: "binary"
-                                }
-                                ListElement {
-                                    text: qsTr("Text"); value: "text"
-                                }
-                            }
-                            textRole: "text"
-                            valueRole: "value"
-                            Layout.fillWidth: true
-                        }
                     }
 
                     // web socket server
@@ -642,28 +620,6 @@ Item {
                             enabled: webSocketServerSecureSwitch.checked
                             font.pointSize: 12
                             placeholderText: qsTr("PEM private key path")
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Message Type")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: webSocketServerMessageTypeComboBox
-                            font.pointSize: 12
-                            model: ListModel {
-                                ListElement {
-                                    text: qsTr("Binary"); value: "binary"
-                                }
-                                ListElement {
-                                    text: qsTr("Text"); value: "text"
-                                }
-                            }
-                            textRole: "text"
-                            valueRole: "value"
                             Layout.fillWidth: true
                         }
                     }
@@ -2831,7 +2787,6 @@ Item {
             // web socket client
             "webSocketClientNameTextField": webSocketClientNameTextField,
             "webSocketClientUrlTextField": webSocketClientUrlTextField,
-            "webSocketClientMessageTypeComboBox": webSocketClientMessageTypeComboBox,
             // web socket server
             "webSocketServerNameTextField": webSocketServerNameTextField,
             "webSocketServerLocalHostComboBox": webSocketServerLocalHostComboBox,
@@ -2839,7 +2794,6 @@ Item {
             "webSocketServerSecureSwitch": webSocketServerSecureSwitch,
             "webSocketServerCertificateTextField": webSocketServerCertificateTextField,
             "webSocketServerPrivateKeyTextField": webSocketServerPrivateKeyTextField,
-            "webSocketServerMessageTypeComboBox": webSocketServerMessageTypeComboBox,
             // udp socket
             "udpSocketNameTextField": udpSocketNameTextField,
             "udpSocketLocalHostComboBox": udpSocketLocalHostComboBox,

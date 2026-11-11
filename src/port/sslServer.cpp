@@ -30,24 +30,21 @@ QJsonObject SslServer::config() {
 }
 
 QVariantHash SslServer::info() {
-    const QString status = m_sslServer && m_sslServer->isListening() ? "opened" : "closed";
     QVariantHash infoHash = {
-        {"status", status},
+        {"status", m_sslServer && m_sslServer->isListening() ? "opened" : "closed"},
         {"localHost", m_portConfig["localHost"].toString()},
         {"localPort", QString::number(m_portConfig["localPort"].toInt())}
     };
-    const int capacity = m_portConfig["bufferSize"].toInt();
     int index = 1;
     for (const auto &peerIp: m_peerHash.keys()) {
         const auto *peer = m_peerHash.value(peerIp);
         auto *buffer = m_bufferHash.value(peerIp);
-        const QVariantHash peerInfoHash = {
+        infoHash.insert("peer" + QString::number(index++), QVariantHash{
             {"peerAddress", peer->peerAddress().toString()},
             {"peerPort", peer->peerPort()},
             {"used", QString::number(buffer->used())},
-            {"capacity", QString::number(capacity)}
-        };
-        infoHash.insert("peer" + QString::number(index++), peerInfoHash);
+            {"capacity", QString::number(m_portConfig["bufferSize"].toInt())}
+        });
     }
     return infoHash;
 }

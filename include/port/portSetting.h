@@ -140,7 +140,6 @@ private:
     // web socket client
     QObject *m_webSocketClientNameTextField{};
     QObject *m_webSocketClientUrlTextField{};
-    QObject *m_webSocketClientMessageTypeComboBox{};
     // web socket server
     QObject *m_webSocketServerNameTextField{};
     QObject *m_webSocketServerLocalHostComboBox{};
@@ -148,7 +147,6 @@ private:
     QObject *m_webSocketServerSecureSwitch{};
     QObject *m_webSocketServerCertificateTextField{};
     QObject *m_webSocketServerPrivateKeyTextField{};
-    QObject *m_webSocketServerMessageTypeComboBox{};
     // udp socket
     QObject *m_udpSocketNameTextField{};
     QObject *m_udpSocketLocalHostComboBox{};

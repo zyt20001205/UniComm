@@ -29,10 +29,6 @@ QJsonObject SerialPort::config() {
 }
 
 QVariantHash SerialPort::info() {
-    const QString status = m_serialPort && m_serialPort->isOpen() ? "opened" : "closed";
-    const auto portName = m_portConfig["portName"].toString();
-    const auto baudRate = QString::number(m_portConfig["baudRate"].toInt());
-    const auto dataBits = QString::number(m_portConfig["dataBits"].toInt());
     QString parity{};
     switch (m_portConfig["parity"].toInt()) {
         case 0: parity = "no";
@@ -57,20 +53,16 @@ QVariantHash SerialPort::info() {
             break;
         default: stopBits = "?";
     }
-    const auto bufferSize = QString::number(m_portConfig["bufferSize"].toInt());
-    const auto bufferUsed = QString::number(m_buffer.used());
-
-    QVariantHash infoHash = {
-        {"status", status},
-        {"portName", portName},
-        {"baudRate", baudRate},
-        {"dataBits", dataBits},
+    return {
+        {"status", m_serialPort && m_serialPort->isOpen() ? "opened" : "closed"},
+        {"portName", m_portConfig["portName"].toString()},
+        {"baudRate", QString::number(m_portConfig["baudRate"].toInt())},
+        {"dataBits", QString::number(m_portConfig["dataBits"].toInt())},
         {"parity", parity},
         {"stopBits", stopBits},
-        {"bufferSize", bufferSize},
-        {"bufferUsed", bufferUsed}
+        {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
+        {"bufferUsed", QString::number(m_buffer.used())}
     };
-    return infoHash;
 }
 
 bool SerialPort::open() {

@@ -253,7 +253,10 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "open", &Port::open,
             "close", &Port::close,
             "clear", &Port::clear,
-            "write", [](const Port &port, const std::string &data, const sol::optional<std::string> &peerIp) { port.write(data, peerIp.value_or("")); },
+            "write", sol::overload(
+                [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> &peerIp) { port.write(data, messageType, peerIp.value_or("")); },
+                [](const Port &port, const std::string &data, const sol::optional<std::string> &peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
+            ),
             "read", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
                 return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), false);
             },

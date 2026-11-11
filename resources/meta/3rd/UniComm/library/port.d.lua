@@ -31,6 +31,10 @@ Port.Type = {
 ---| "modbus crc"
 ---| "modbus lrc"
 
+---@alias WebSocketMessageType
+---| 1 # Text message. Data must be valid UTF-8 after applying the configured suffix.
+---| 2 # Binary message. All byte values are preserved.
+
 ---@class PortConfig
 ---@field portType PortType Port type selected from `Port.Type`.
 ---@field portName string Unique name used to retrieve the configured port with `Port.get`.
@@ -183,8 +187,17 @@ function port:clear() end
 ---
 ---Writes binary-safe data to this port.
 ---
----For TCP, SSL, and WebSocket server ports, omitting `peerIp` broadcasts to all
----connected peers. Other port types ignore `peerIp`.
+---TCP and SSL servers use `write(data, peerIp?)`. Omitting `peerIp` broadcasts
+---to all connected peers. Other non-WebSocket port types ignore `peerIp`.
+---
+---WebSocket clients and servers use `write(data, messageType?, peerIp?)`.
+---`messageType` is an integer: 1=text, 2=binary (default). Each write sends one
+---message, and the type can change on every call. To target a WebSocket server
+---peer, pass an explicit type followed by its `address:port` identifier as the
+---third argument. Omitting `peerIp` broadcasts; clients ignore it.
+---
+---Received WebSocket text is encoded as UTF-8 and binary is preserved as bytes.
+---Both enter the same receive buffer; message boundaries and types are discarded.
 ---
 ---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
@@ -199,6 +212,7 @@ function port:clear() end
 ---
 ---@param data string Data to write, or a Vision export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
+---@overload fun(self: Port, data: string, messageType: WebSocketMessageType, peerIp?: string)
 ---@return nil
 function port:write(data, peerIp) end
 

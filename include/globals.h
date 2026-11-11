@@ -93,6 +93,13 @@ namespace PortType {
     };
 }
 
+namespace WebSocketMessageType {
+    enum {
+        Text = 1,
+        Binary = 2
+    };
+}
+
 namespace ImagePipeline {
     enum {
         Scale,

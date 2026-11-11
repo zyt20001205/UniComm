@@ -34,6 +34,8 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
+    [[nodiscard]] bool write(const QByteArray &txData, int messageType, const QString &logFormat, const QString &txSuffix);
+
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek) override;
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
@@ -54,7 +56,7 @@ private:
 
     void handleError();
 
-    [[nodiscard]] bool handleWrite(const QByteArray &f_txData);
+    [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType);
 
     [[nodiscard]] QByteArray handleRead(int length, int timeout, bool peek);
 

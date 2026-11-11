@@ -11,6 +11,7 @@
 #include "port/sslServer.h"
 #include "port/tcpServer.h"
 #include "port/vision.h"
+#include "port/webSocketClient.h"
 #include "port/webSocketServer.h"
 #include "util/uniCast.h"
 
@@ -93,14 +94,14 @@ void Port::clear() const {
     }, Qt::BlockingQueuedConnection);
 }
 
-void Port::write(const std::string &data, const std::string &peerIp) const {
+void Port::write(const std::string &data, const int messageType, const std::string &peerIp) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     bool status = false;
     auto *port = m_port.data();
     const QByteArray txData(data.data(), static_cast<qsizetype>(data.size()));
     const auto peer = QString::fromStdString(peerIp);
 
-    QMetaObject::invokeMethod(port, [&status, port, &txData, &peer] {
+    QMetaObject::invokeMethod(port, [&status, port, &txData, &peer, messageType] {
         switch (port->type()) {
             case PortType::TcpServer:
                 status = static_cast<TcpServer *>(port)->write(txData, peer, "", "");
@@ -108,8 +109,11 @@ void Port::write(const std::string &data, const std::string &peerIp) const {
             case PortType::SslServer:
                 status = static_cast<SslServer *>(port)->write(txData, peer, "", "");
                 break;
+            case PortType::WebSocketClient:
+                status = static_cast<WebSocketClient *>(port)->write(txData, messageType, "", "");
+                break;
             case PortType::WebSocketServer:
-                status = static_cast<WebSocketServer *>(port)->write(txData, peer, "", "");
+                status = static_cast<WebSocketServer *>(port)->write(txData, messageType, peer, "", "");
                 break;
             default:
                 status = port->write(txData, "", "");

@@ -33,7 +33,7 @@ public:
 
     void clear() const;
 
-    void write(const std::string &data, const std::string &peerIp) const;
+    void write(const std::string &data, int messageType, const std::string &peerIp) const;
 
     [[nodiscard]] sol::object read(sol::this_state ts, int length, int timeout, const std::string &peerIp, bool peek = false) const;
 
