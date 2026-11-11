@@ -9,6 +9,7 @@
 #include "api/ui/image.h"
 #include "api/ui/input.h"
 #include "api/ui/message.h"
+#include "api/ui/plot.h"
 #include "api/ui/table.h"
 
 // public
@@ -84,6 +85,12 @@ std::unique_ptr<UiTable> Ui::table(const sol::optional<std::string> &title, cons
     auto table = std::make_unique<UiTable>(title, keys, this);
     table->open(false);
     return table;
+}
+
+std::unique_ptr<UiPlot> Ui::plot(const sol::optional<std::string> &title, const sol::table &keys) {
+    auto plot = std::make_unique<UiPlot>(title, keys, this);
+    plot->open(false);
+    return plot;
 }
 
 void Ui::windowOpened() {

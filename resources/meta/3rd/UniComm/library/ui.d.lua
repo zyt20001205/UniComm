@@ -197,3 +197,42 @@ function tb:export(path) end
 ---
 ---@return nil
 function tb:close() end
+
+---
+---Opens a line plot window and returns without waiting for it to close.
+---
+---Keys are fixed, unique series names in legend order. All series share numeric X/Y axes.
+---Drag to box-zoom, use the wheel to zoom, or hold Alt while dragging to pan.
+---Manual navigation pauses automatic fitting; middle-click fits all data and resumes it.
+---The interpreter waits for open windows after a normal script return. Use a `<close>`
+---variable to close this window on scope exit instead. Stopping or an error closes it.
+---
+---@param title? string (default: current threadId) Window title. Pass nil to use the default.
+---@param keys string[] Unique series names in display order.
+---@return Plot plot Handle for this plot window.
+function ui.plot(title, keys) end
+
+---@class Plot
+---@field private __close fun(self: Plot, error: any)
+local plot = {}
+
+---
+---Appends one point at X to each supplied series.
+---
+---X is supplied by Lua, for example a sample index or elapsed seconds. Points connect
+---in append order without sorting. Omitted keys get no point, not zero or a line break.
+---Unknown keys or a closed window raise an error. History is retained until close;
+---there is no point limit or automatic removal of old points.
+---
+---@param x number X coordinate shared by the supplied points.
+---@param values table<string, number> Y coordinates keyed by series name.
+---@return nil
+function plot:append(x, values) end
+
+---
+---Closes this plot window. Calling close again is harmless.
+---
+---This is also called automatically for a `<close>` variable when its scope ends.
+---
+---@return nil
+function plot:close() end

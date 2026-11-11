@@ -9,6 +9,7 @@
 
 class UiDatabase;
 class UiImage;
+class UiPlot;
 class UiTable;
 
 class Ui final : public QObject {
@@ -28,6 +29,8 @@ public:
     [[nodiscard]] std::unique_ptr<UiDatabase> database(const sol::optional<std::string> &title, const sol::table &keys);
 
     [[nodiscard]] std::unique_ptr<UiTable> table(const sol::optional<std::string> &title, const sol::table &keys);
+
+    [[nodiscard]] std::unique_ptr<UiPlot> plot(const sol::optional<std::string> &title, const sol::table &keys);
 
     void windowOpened();
 

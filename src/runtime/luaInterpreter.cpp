@@ -23,6 +23,7 @@
 #include "api/thread.h"
 #include "api/ui/database.h"
 #include "api/ui/image.h"
+#include "api/ui/plot.h"
 #include "api/ui/table.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
@@ -335,7 +336,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     {
         auto ui = m_lua.create_table();
         ui.new_usertype<UiImage>(
-            "ImageViewer",
+            "Image",
             sol::no_constructor,
             "__close", [](UiImage &viewer, const sol::object &) { viewer.close(); },
             "setData", &UiImage::setData,
@@ -343,19 +344,26 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "close", &UiImage::close
         );
         ui.new_usertype<UiDatabase>(
-            "UiDatabase",
+            "Database",
             sol::no_constructor,
             "__close", [](UiDatabase &database, const sol::object &) { database.close(); },
             "set", &UiDatabase::set,
             "close", &UiDatabase::close
         );
         ui.new_usertype<UiTable>(
-            "UiTable",
+            "Table",
             sol::no_constructor,
             "__close", [](UiTable &table, const sol::object &) { table.close(); },
             "append", &UiTable::append,
             "export", &UiTable::_export,
             "close", &UiTable::close
+        );
+        ui.new_usertype<UiPlot>(
+            "Plot",
+            sol::no_constructor,
+            "__close", [](UiPlot &plot, const sol::object &) { plot.close(); },
+            "append", &UiPlot::append,
+            "close", &UiPlot::close
         );
         ui.set_function("message", [this](const sol::optional<std::string> &title, const std::string &text, const sol::optional<sol::table> &button) {
             return m_ui->message(title, text, button);
@@ -374,6 +382,9 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         });
         ui.set_function("table", [this](const sol::optional<std::string> &title, const sol::table &keys) {
             return m_ui->table(title, keys);
+        });
+        ui.set_function("plot", [this](const sol::optional<std::string> &title, const sol::table &keys) {
+            return m_ui->plot(title, keys);
         });
         m_lua["ui"] = ui;
     }
