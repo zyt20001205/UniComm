@@ -444,13 +444,13 @@ void Ftp::quit() const {
 
 // private
 Ftp::CtrlResult Ftp::ctrlResponse() const {
-    QByteArray rxData = m_port->readUntil("\r\n", m_timeout, "utf-8");
+    QByteArray rxData = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
     if (rxData.isEmpty()) return {.exception = "read timeout"};
 
     if (rxData.size() >= 6 && rxData.at(3) == '-') {
         const auto terminator = rxData.first(3) + ' ';
         while (true) {
-            const auto line = m_port->readUntil("\r\n", m_timeout, "utf-8");
+            const auto line = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
             if (line.isEmpty()) return {.exception = "read timeout"};
             rxData += line;
             if (line.startsWith(terminator)) break;

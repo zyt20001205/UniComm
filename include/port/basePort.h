@@ -30,23 +30,11 @@ public:
         return false;
     }
 
-    [[nodiscard]] virtual bool write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix) {
-        return false;
-    }
-
-    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) {
+    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &logFormat, bool peek) {
         return {};
     }
 
-    [[nodiscard]] virtual QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) {
-        return {};
-    }
-
-    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) {
-        return {};
-    }
-
-    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) {
+    [[nodiscard]] virtual QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) {
         return {};
     }
 

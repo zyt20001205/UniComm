@@ -33,7 +33,7 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] QVariantList result(int timeout);
+    [[nodiscard]] QVariantList read(int timeout);
 
 private:
     [[nodiscard]] QImage snapshot(int timeout) const;

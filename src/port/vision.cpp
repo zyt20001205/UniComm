@@ -180,7 +180,7 @@ bool Vision::write(const QByteArray &txData, const QString &logFormat, const QSt
     return imageSave(image, arguments.value(2, defaultPath));
 }
 
-QVariantList Vision::result(const int timeout) {
+QVariantList Vision::read(const int timeout) {
     bool status = false;
     if (m_screenCapture) status = m_screenCapture->isActive();
     else if (m_cameraCapture) status = m_cameraCapture->isActive();

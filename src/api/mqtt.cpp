@@ -258,7 +258,7 @@ Mqtt::Result Mqtt::response(const std::optional<int> type) {
             if (index == 4) return {.exception = "invalid mqtt remaining length; reconnect required"};
         }
 
-        const auto rxData = m_port->read(headerSize + size, static_cast<int>(deadline.remainingTime()), "hex");
+        const auto rxData = m_port->read(headerSize + size, static_cast<int>(deadline.remainingTime()), "hex", false);
         if (rxData.isEmpty()) return {.exception = "read timeout"};
         auto result = parser(rxData);
         if (!result.exception.isEmpty()) return result;

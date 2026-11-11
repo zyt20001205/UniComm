@@ -250,7 +250,7 @@ void Smtp::quit() const {
 // private
 Smtp::Result Smtp::response() const {
     while (true) {
-        const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+        const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8", false));
         if (!result.exception.isEmpty() || result.code != 0) return result;
     }
 }

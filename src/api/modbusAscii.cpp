@@ -217,7 +217,7 @@ std::string ModbusAscii::readRegisters(const int funcCode, const int startAddr, 
 }
 
 ModbusAscii::Result ModbusAscii::response(const int funcCode) const {
-    return parser(funcCode, m_port->readUntil("\r\n", m_timeout, "ascii"));
+    return parser(funcCode, m_port->readUntil("\r\n", m_timeout, "ascii", false));
 }
 
 ModbusAscii::Result ModbusAscii::parser(const int funcCode, const QByteArray &rxData) const {

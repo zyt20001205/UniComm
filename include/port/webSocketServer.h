@@ -35,15 +35,15 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] bool write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix) override;
+    [[nodiscard]] bool write(const QByteArray &txData, const QString &peerIp, const QString &logFormat, const QString &txSuffix);
 
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) override;
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek = false) override;
 
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false) override;
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 signals:
     void connected(const QString &peerIp);
@@ -63,7 +63,7 @@ private:
 
     void handleDisconnected(QWebSocket *webSocketServerPeer);
 
-    void handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message);
+    void handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message);
 
     void handleError(const QWebSocket *webSocketServerPeer);
 

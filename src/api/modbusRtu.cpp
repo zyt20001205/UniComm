@@ -260,7 +260,7 @@ ModbusRtu::Result ModbusRtu::response(const int funcCode) const {
     }
 
     if (length > 256) return {.data = {}, .exception = "invalid modbus rtu length"};
-    return parser(funcCode, m_port->read(length, static_cast<int>(deadline.remainingTime()), "hex"));
+    return parser(funcCode, m_port->read(length, static_cast<int>(deadline.remainingTime()), "hex", false));
 }
 
 ModbusRtu::Result ModbusRtu::parser(const int funcCode, const QByteArray &rxData) const {

@@ -245,7 +245,7 @@ void WebSocketServer::handleDisconnected(QWebSocket *webSocketServerPeer) {
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("lost connection from %1").arg(peerIp));
 }
 
-void WebSocketServer::handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message) {
+void WebSocketServer::handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;

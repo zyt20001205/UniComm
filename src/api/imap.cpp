@@ -29,7 +29,7 @@ void Imap::init(const std::string &portName, const int timeout) {
     QMetaObject::invokeMethod(m_port, [this]() -> QString {
         if (!m_port->open()) return "open failed";
 
-        const auto rxData = m_port->readUntil("\r\n", m_timeout, "utf-8");
+        const auto rxData = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
         const auto result = parser(rxData);
         if (!result.exception.isEmpty()) return result.exception;
         const auto untagged = std::get_if<Untagged>(&result.value);
@@ -59,7 +59,7 @@ void Imap::login(const std::string &username, const std::string &password) {
         if (!m_port->write(txData, "utf-8", "crlf")) return "write failed";
 
         while (true) {
-            const auto rxData = m_port->readUntil("\r\n", m_timeout, "utf-8");
+            const auto rxData = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
             const auto result = parser(rxData);
             if (!result.exception.isEmpty()) return result.exception;
 
@@ -96,7 +96,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
         if (!m_port->write(selectTag + " SELECT INBOX", "utf-8", "crlf")) return "write failed";
 
         while (true) {
-            const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+            const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8", false));
             if (!result.exception.isEmpty()) return result.exception;
 
             const auto tagged = std::get_if<Tagged>(&result.value);
@@ -114,7 +114,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
             if (!m_port->write(idleTag + " IDLE", "utf-8", "crlf")) return "write failed";
 
             while (true) {
-                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8", false));
                 if (!result.exception.isEmpty()) return result.exception;
                 if (std::get_if<Continuation>(&result.value)) break;
 
@@ -136,7 +136,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
                     break;
                 }
 
-                const auto result = parser(m_port->readUntil("\r\n", static_cast<int>(deadline.remainingTime()), "utf-8"));
+                const auto result = parser(m_port->readUntil("\r\n", static_cast<int>(deadline.remainingTime()), "utf-8", false));
                 if (!result.exception.isEmpty()) {
                     waitException = result.exception;
                     break;
@@ -164,7 +164,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
             if (!m_port->write("DONE", "utf-8", "crlf")) return "write failed";
 
             while (true) {
-                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8", false));
                 if (!result.exception.isEmpty()) return result.exception;
 
                 const auto tagged = std::get_if<Tagged>(&result.value);
@@ -208,7 +208,7 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
 
                 const auto length = header.size() + qMax(0, size);
                 if (length > std::numeric_limits<int>::max()) return "imap fetch response too large";
-                rxData = m_port->read(static_cast<int>(length), static_cast<int>(fetchDeadline.remainingTime()), "utf-8");
+                rxData = m_port->read(static_cast<int>(length), static_cast<int>(fetchDeadline.remainingTime()), "utf-8", false);
                 if (rxData.isEmpty()) return "read timeout";
                 if (size >= 0) {
                     rxData.remove(0, header.size());
@@ -223,10 +223,10 @@ sol::object Imap::receive(const sol::this_state ts, const sol::optional<std::str
                 if (fetchDeadline.hasExpired()) return "read timeout";
             }
 
-            if (m_port->readUntil("\r\n", m_timeout, "utf-8").isEmpty()) return "read timeout";
+            if (m_port->readUntil("\r\n", m_timeout, "utf-8", false).isEmpty()) return "read timeout";
 
             while (true) {
-                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8"));
+                const auto result = parser(m_port->readUntil("\r\n", m_timeout, "utf-8", false));
                 if (!result.exception.isEmpty()) return result.exception;
 
                 const auto tagged = std::get_if<Tagged>(&result.value);

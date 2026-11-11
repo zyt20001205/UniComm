@@ -88,7 +88,7 @@ sol::object Http::exchange(const sol::this_state ts, const std::string &method, 
 
         // skip interim responses
         while (true) {
-            const auto rxHeader = m_port->readUntil("\r\n\r\n", m_timeout, "utf-8");
+            const auto rxHeader = m_port->readUntil("\r\n\r\n", m_timeout, "utf-8", false);
             if (rxHeader.isEmpty()) return "read timeout";
             result = parser(rxHeader);
             if (!result.exception.isEmpty()) return result.exception;
@@ -135,7 +135,7 @@ sol::object Http::exchange(const sol::this_state ts, const std::string &method, 
         QMetaObject::invokeMethod(m_port, [&data, &remaining, &done, this, chunked]() -> QString {
             // read chunk size
             if (chunked && remaining == 0) {
-                auto sizeLine = m_port->readUntil("\r\n", m_timeout, "utf-8");
+                auto sizeLine = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
                 if (sizeLine.isEmpty()) return "read timeout";
                 sizeLine.chop(2);
                 const auto semicolon = sizeLine.indexOf(';');
@@ -147,7 +147,7 @@ sol::object Http::exchange(const sol::this_state ts, const std::string &method, 
                 // zero chunk: discard trailers
                 if (remaining == 0) {
                     while (true) {
-                        const auto trailer = m_port->readUntil("\r\n", m_timeout, "utf-8");
+                        const auto trailer = m_port->readUntil("\r\n", m_timeout, "utf-8", false);
                         if (trailer.isEmpty()) return "read timeout";
                         if (trailer == "\r\n") break;
                     }
@@ -171,11 +171,11 @@ sol::object Http::exchange(const sol::this_state ts, const std::string &method, 
             // read available bytes, up to 64 KiB
             int length = qMin(info.value("bufferUsed").toInt(), 64 * 1024);
             if (remaining >= 0) length = static_cast<int>(qMin<qint64>(length, remaining));
-            data = m_port->read(length, 0, "utf-8");
+            data = m_port->read(length, 0, "utf-8", false);
             if (remaining >= 0) remaining -= data.size();
             if (remaining == 0) {
                 if (chunked) {
-                    if (m_port->read(2, m_timeout, "utf-8") != "\r\n") return "invalid HTTP chunk delimiter";
+                    if (m_port->read(2, m_timeout, "utf-8", false) != "\r\n") return "invalid HTTP chunk delimiter";
                 } else done = true;
             }
             return {};

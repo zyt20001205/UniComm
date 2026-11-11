@@ -286,7 +286,7 @@ ModbusTcp::Result ModbusTcp::response(const int funcCode) const {
     // Length includes the Unit Identifier and PDU, but not the first six bytes.
     const int length = static_cast<quint8>(header.at(4)) << 8 | static_cast<quint8>(header.at(5));
     if (length < 2 || length > 254) return {.data = {}, .exception = "invalid modbus tcp length"};
-    return parser(funcCode, m_port->read(prefixSize + length, static_cast<int>(deadline.remainingTime()), "hex"));
+    return parser(funcCode, m_port->read(prefixSize + length, static_cast<int>(deadline.remainingTime()), "hex", false));
 }
 
 ModbusTcp::Result ModbusTcp::parser(const int funcCode, const QByteArray &rxData) const {
