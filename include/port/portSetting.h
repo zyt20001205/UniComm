@@ -6,6 +6,7 @@
 #include <QPixmap>
 #include <QQuickImageProvider>
 #include <QStandardItemModel>
+#include <QStringList>
 
 #include "port/module/imageProcess.h"
 
@@ -24,6 +25,9 @@ class PipelineModel;
 
 class PortSetting final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QStringList serialPorts READ serialPortsGet NOTIFY serialPortsChanged)
+    Q_PROPERTY(QStringList localHosts READ localHostsGet NOTIFY localHostsChanged)
+    Q_PROPERTY(QStringList visionSources READ visionSourcesGet NOTIFY visionSourcesChanged)
 
 public:
     explicit PortSetting(QWidget *parent = nullptr);
@@ -63,16 +67,28 @@ public:
     Q_INVOKABLE void pipelineSwap(int src, int dst) const;
 
 signals:
+    void serialPortsChanged();
+
+    void localHostsChanged();
+
+    void visionSourcesChanged();
+
     void insertPort(int index, const QJsonObject &portConfig, const QString &undoGroupId);
 
     void editPort(const QString &oldPortName, const QJsonObject &portConfig);
 
 private:
-    void serialPortRefresh() const;
+    [[nodiscard]] QStringList serialPortsGet() const;
 
-    void localHostRefresh() const;
+    [[nodiscard]] QStringList localHostsGet() const;
 
-    void visionRefresh() const;
+    [[nodiscard]] QStringList visionSourcesGet() const;
+
+    void serialPortRefresh();
+
+    void localHostRefresh();
+
+    void visionRefresh();
 
     void bluetoothAdapterRefresh() const;
 
@@ -89,9 +105,9 @@ private:
     void processRefresh(const QJsonObject &portConfig) const;
 
     QQuickView *m_window{};
-    QStandardItemModel *m_serialPortStandardItemModel{};
-    QStandardItemModel *m_localHostStandardItemModel{};
-    QStandardItemModel *m_visionStandardItemModel{};
+    QStringList m_serialPorts{};
+    QStringList m_localHosts{};
+    QStringList m_visionSources{};
     QStandardItemModel *m_bluetoothAdapterStandardItemModel{};
     QStandardItemModel *m_bluetoothPeripheralStandardItemModel{};
     QStandardItemModel *m_bluetoothServiceStandardItemModel{};

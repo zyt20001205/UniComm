@@ -159,9 +159,7 @@ Item {
                         ComboBox {
                             id: serialPortNameComboBox
                             font.pointSize: 12
-                            model: serialPortStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            model: portSetting.serialPorts
                             Layout.fillWidth: true
                         }
 
@@ -279,9 +277,7 @@ Item {
                         ComboBox {
                             id: visionNameComboBox
                             font.pointSize: 12
-                            model: visionStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            model: portSetting.visionSources
                             Layout.fillWidth: true
                         }
                     }
@@ -359,9 +355,8 @@ Item {
                         ComboBox {
                             id: tcpServerLocalHostComboBox
                             font.pointSize: 12
-                            model: localHostStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            editable: true
+                            model: portSetting.localHosts
                             Layout.fillWidth: true
                         }
 
@@ -454,9 +449,8 @@ Item {
                         ComboBox {
                             id: sslServerLocalHostComboBox
                             font.pointSize: 12
-                            model: localHostStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            editable: true
+                            model: portSetting.localHosts
                             Layout.fillWidth: true
                         }
 
@@ -561,9 +555,8 @@ Item {
                         ComboBox {
                             id: webSocketServerLocalHostComboBox
                             font.pointSize: 12
-                            model: localHostStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            editable: true
+                            model: portSetting.localHosts
                             Layout.fillWidth: true
                         }
 
@@ -611,9 +604,7 @@ Item {
                         ComboBox {
                             id: udpSocketLocalHostComboBox
                             font.pointSize: 12
-                            model: localHostStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
+                            model: portSetting.localHosts
                             Layout.fillWidth: true
                         }
 
@@ -2141,7 +2132,7 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
-                                if (!tcpServerLocalHostComboBox.currentText) {
+                                if (!tcpServerLocalHostComboBox.editText) {
                                     portNameValidator.text = qsTr("Invalid Local Host")
                                     portNameValidatorTimer.start()
                                     return
@@ -2173,7 +2164,7 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
-                                if (!sslServerLocalHostComboBox.currentText) {
+                                if (!sslServerLocalHostComboBox.editText) {
                                     portNameValidator.text = qsTr("Invalid Local Host")
                                     portNameValidatorTimer.start()
                                     return
@@ -2199,7 +2190,7 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
-                                if (!webSocketServerLocalHostComboBox.currentText) {
+                                if (!webSocketServerLocalHostComboBox.editText) {
                                     portNameValidator.text = qsTr("Invalid Local Host")
                                     portNameValidatorTimer.start()
                                     return

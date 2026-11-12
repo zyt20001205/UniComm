@@ -25,9 +25,6 @@
 PortSetting::PortSetting(QWidget *parent)
     : QObject(parent),
       m_window(new QQuickView()),
-      m_serialPortStandardItemModel(new QStandardItemModel(this)),
-      m_localHostStandardItemModel(new QStandardItemModel(this)),
-      m_visionStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothAdapterStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothPeripheralStandardItemModel(new QStandardItemModel(this)),
       m_bluetoothServiceStandardItemModel(new QStandardItemModel(this)),
@@ -65,9 +62,6 @@ void PortSetting::propertySet(const QVariantHash &objects) {
     m_window->rootContext()->setContextProperty("portSetting", this);
     m_window->rootContext()->setContextProperty("global", g_globalManager);
     m_window->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_window->rootContext()->setContextProperty("serialPortStandardItemModel", m_serialPortStandardItemModel);
-    m_window->rootContext()->setContextProperty("localHostStandardItemModel", m_localHostStandardItemModel);
-    m_window->rootContext()->setContextProperty("visionStandardItemModel", m_visionStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothAdapterStandardItemModel", m_bluetoothAdapterStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothPeripheralStandardItemModel", m_bluetoothPeripheralStandardItemModel);
     m_window->rootContext()->setContextProperty("bluetoothServiceStandardItemModel", m_bluetoothServiceStandardItemModel);
@@ -182,6 +176,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         if (m_tcpServerLocalHostComboBox->property("count").toInt()) {
             m_tcpServerLocalHostComboBox->setProperty("currentIndex", 0);
         }
+        m_tcpServerLocalHostComboBox->setProperty("editText", m_tcpServerLocalHostComboBox->property("currentText"));
         m_tcpServerLocalPortSpinBox->setProperty("value", 0);
         // ssl client
         m_sslClientNameTextField->setProperty("text", "");
@@ -192,6 +187,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         if (m_sslServerLocalHostComboBox->property("count").toInt()) {
             m_sslServerLocalHostComboBox->setProperty("currentIndex", 0);
         }
+        m_sslServerLocalHostComboBox->setProperty("editText", m_sslServerLocalHostComboBox->property("currentText"));
         m_sslServerLocalPortSpinBox->setProperty("value", 0);
         m_sslServerCertificateTextField->setProperty("text", "");
         m_sslServerPrivateKeyTextField->setProperty("text", "");
@@ -203,6 +199,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         if (m_webSocketServerLocalHostComboBox->property("count").toInt()) {
             m_webSocketServerLocalHostComboBox->setProperty("currentIndex", 0);
         }
+        m_webSocketServerLocalHostComboBox->setProperty("editText", m_webSocketServerLocalHostComboBox->property("currentText"));
         m_webSocketServerLocalPortSpinBox->setProperty("value", 0);
         // udp socket
         m_udpSocketNameTextField->setProperty("text", "");
@@ -278,6 +275,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
             case PortType::TcpServer: {
                 m_tcpServerNameTextField->setProperty("text", portConfig["portName"].toString());
                 m_tcpServerLocalHostComboBox->setProperty("currentValue", portConfig["localHost"].toString());
+                m_tcpServerLocalHostComboBox->setProperty("editText", portConfig["localHost"].toString());
                 m_tcpServerLocalPortSpinBox->setProperty("value", portConfig["localPort"].toInt());
                 m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
                 m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
@@ -296,6 +294,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
             case PortType::SslServer: {
                 m_sslServerNameTextField->setProperty("text", portConfig["portName"].toString());
                 m_sslServerLocalHostComboBox->setProperty("currentValue", portConfig["localHost"].toString());
+                m_sslServerLocalHostComboBox->setProperty("editText", portConfig["localHost"].toString());
                 m_sslServerLocalPortSpinBox->setProperty("value", portConfig["localPort"].toInt());
                 m_sslServerCertificateTextField->setProperty("text", portConfig["certificate"].toString());
                 m_sslServerPrivateKeyTextField->setProperty("text", portConfig["privateKey"].toString());
@@ -315,6 +314,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
             case PortType::WebSocketServer: {
                 m_webSocketServerNameTextField->setProperty("text", portConfig["portName"].toString());
                 m_webSocketServerLocalHostComboBox->setProperty("currentValue", portConfig["localHost"].toString());
+                m_webSocketServerLocalHostComboBox->setProperty("editText", portConfig["localHost"].toString());
                 m_webSocketServerLocalPortSpinBox->setProperty("value", portConfig["localPort"].toInt());
                 m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
                 m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
@@ -469,7 +469,7 @@ void PortSetting::portSettingExport() {
             portConfig = {
                 {"portType", portType},
                 {"portName", m_tcpServerNameTextField->property("text").toString()},
-                {"localHost", m_tcpServerLocalHostComboBox->property("currentValue").toString()},
+                {"localHost", m_tcpServerLocalHostComboBox->property("editText").toString()},
                 {"localPort", m_tcpServerLocalPortSpinBox->property("value").toInt()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
@@ -493,7 +493,7 @@ void PortSetting::portSettingExport() {
             portConfig = {
                 {"portType", portType},
                 {"portName", m_sslServerNameTextField->property("text").toString()},
-                {"localHost", m_sslServerLocalHostComboBox->property("currentValue").toString()},
+                {"localHost", m_sslServerLocalHostComboBox->property("editText").toString()},
                 {"localPort", m_sslServerLocalPortSpinBox->property("value").toInt()},
                 {"certificate", m_sslServerCertificateTextField->property("text").toString()},
                 {"privateKey", m_sslServerPrivateKeyTextField->property("text").toString()},
@@ -518,7 +518,7 @@ void PortSetting::portSettingExport() {
             portConfig = {
                 {"portType", portType},
                 {"portName", m_webSocketServerNameTextField->property("text").toString()},
-                {"localHost", m_webSocketServerLocalHostComboBox->property("currentValue").toString()},
+                {"localHost", m_webSocketServerLocalHostComboBox->property("editText").toString()},
                 {"localPort", m_webSocketServerLocalPortSpinBox->property("value").toInt()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
@@ -772,46 +772,42 @@ void PortSetting::pipelineSwap(const int src, const int dst) const {
 }
 
 // private
-void PortSetting::serialPortRefresh() const {
-    m_serialPortStandardItemModel->clear();
-    for (const auto &portName: DeviceDiscovery::serialPorts()) {
-        auto *item = new QStandardItem(portName); // NOLINT
-        item->setData(portName, Qt::WhatsThisRole);
-        m_serialPortStandardItemModel->appendRow(item);
-    }
+QStringList PortSetting::serialPortsGet() const {
+    return m_serialPorts;
 }
 
-void PortSetting::localHostRefresh() const {
-    m_localHostStandardItemModel->clear();
+QStringList PortSetting::localHostsGet() const {
+    return m_localHosts;
+}
+
+QStringList PortSetting::visionSourcesGet() const {
+    return m_visionSources;
+}
+
+void PortSetting::serialPortRefresh() {
+    const auto serialPorts = DeviceDiscovery::serialPorts();
+    if (m_serialPorts == serialPorts) return;
+    m_serialPorts = serialPorts;
+    emit serialPortsChanged();
+}
+
+void PortSetting::localHostRefresh() {
+    QStringList localHosts{};
     for (const QHostAddress &address: QHostInfo::fromName(QHostInfo::localHostName()).addresses()) {
-        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-            const QString portName = address.toString();
-            auto *item = new QStandardItem(portName); // NOLINT
-            item->setData(portName, Qt::WhatsThisRole);
-            m_localHostStandardItemModel->appendRow(item);
-        } else if (address.protocol() == QAbstractSocket::IPv6Protocol) {
-            auto portName = address.toString();
-            // const QString scopeId = address.scopeId();
-            // if (!scopeId.isEmpty()) portName.remove("%"+scopeId);
-            auto *item = new QStandardItem(portName); // NOLINT
-            item->setData(portName, Qt::WhatsThisRole);
-            m_localHostStandardItemModel->appendRow(item);
+        if (address.protocol() == QAbstractSocket::IPv4Protocol || address.protocol() == QAbstractSocket::IPv6Protocol) {
+            localHosts.append(address.toString());
         }
     }
+    if (m_localHosts == localHosts) return;
+    m_localHosts = localHosts;
+    emit localHostsChanged();
 }
 
-void PortSetting::visionRefresh() const {
-    m_visionStandardItemModel->clear();
-    for (const auto &portName: DeviceDiscovery::screens()) {
-        auto *item = new QStandardItem(portName); // NOLINT
-        item->setData(portName, Qt::WhatsThisRole);
-        m_visionStandardItemModel->appendRow(item);
-    }
-    for (const auto &portName: DeviceDiscovery::cameras()) {
-        auto *item = new QStandardItem(portName); // NOLINT
-        item->setData(portName, Qt::WhatsThisRole);
-        m_visionStandardItemModel->appendRow(item);
-    }
+void PortSetting::visionRefresh() {
+    const auto visionSources = DeviceDiscovery::screens() + DeviceDiscovery::cameras();
+    if (m_visionSources == visionSources) return;
+    m_visionSources = visionSources;
+    emit visionSourcesChanged();
 }
 
 void PortSetting::bluetoothAdapterRefresh() const {
