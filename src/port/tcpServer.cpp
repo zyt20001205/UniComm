@@ -89,12 +89,6 @@ void TcpServer::close() {
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
-void TcpServer::disconnectPeer(const QString &peerIp) {
-    const auto peer = m_peerHash.constFind(peerIp);
-    if (peer == m_peerHash.constEnd()) return;
-    peer.value()->disconnectFromHost();
-}
-
 void TcpServer::clear() {
     for (RingBuffer *buffer: m_bufferHash) {
         buffer->clear();
@@ -210,7 +204,7 @@ void TcpServer::handleReadyRead(QTcpSocket *tcpServerPeer) {
     if (buffer == nullptr) return;
     if (buffer->write(rxData) != rxData.size()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
-        close();
+        tcpServerPeer->disconnectFromHost();
         return;
     }
     handleLog(LogLevel::Receive, rxData, tcpServerPeer);

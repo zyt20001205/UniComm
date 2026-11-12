@@ -260,22 +260,26 @@ bool UWebSocket::waitForConnected(const int msecs) {
 }
 
 bool UWebSocket::waitForReadyRead(const int msecs) {
-    if (state() != QAbstractSocket::ConnectedState) return false;
+    return waitForReadyRead(this, msecs);
+}
+
+bool UWebSocket::waitForReadyRead(QWebSocket *socket, const int msecs) {
+    if (socket->state() != QAbstractSocket::ConnectedState) return false;
 
     QEventLoop eventLoop{};
     QTimer timer{};
     bool ready = false;
     timer.setSingleShot(true);
-    connect(this, &QWebSocket::binaryMessageReceived, &eventLoop, [&] {
+    connect(socket, &QWebSocket::binaryMessageReceived, &eventLoop, [&] {
         ready = true;
         eventLoop.quit();
     });
-    connect(this, &QWebSocket::textMessageReceived, &eventLoop, [&] {
+    connect(socket, &QWebSocket::textMessageReceived, &eventLoop, [&] {
         ready = true;
         eventLoop.quit();
     });
-    connect(this, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
-    connect(this, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
+    connect(socket, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
+    connect(socket, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
     connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
 
     if (msecs >= 0) timer.start(msecs);

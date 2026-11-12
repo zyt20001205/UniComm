@@ -124,7 +124,7 @@ Item {
                                 case 6:
                                     return qsTr("A client that establishes a full-duplex WebSocket connection and exchanges text or binary messages.")
                                 case 7:
-                                    return qsTr("A server that accepts multiple WebSocket clients over ws or wss and manages each peer independently.")
+                                    return qsTr("A server that accepts multiple WebSocket clients over ws and manages each peer independently.")
                                 case 8:
                                     return qsTr("A device that uses the User Datagram Protocol to send independent, connectionless messages (datagrams) over an IP network.")
                                 case 9:
@@ -582,46 +582,6 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        Label {
-                            text: qsTr("Secure")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        Switch {
-                            id: webSocketServerSecureSwitch
-                            Layout.alignment: Qt.AlignLeft
-                        }
-
-                        Label {
-                            text: qsTr("Certificate")
-                            enabled: webSocketServerSecureSwitch.checked
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        TextField {
-                            id: webSocketServerCertificateTextField
-                            enabled: webSocketServerSecureSwitch.checked
-                            font.pointSize: 12
-                            placeholderText: qsTr("PEM certificate path")
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Private Key")
-                            enabled: webSocketServerSecureSwitch.checked
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        TextField {
-                            id: webSocketServerPrivateKeyTextField
-                            enabled: webSocketServerSecureSwitch.checked
-                            font.pointSize: 12
-                            placeholderText: qsTr("PEM private key path")
-                            Layout.fillWidth: true
-                        }
                     }
 
                     // udp socket
@@ -2791,9 +2751,6 @@ Item {
             "webSocketServerNameTextField": webSocketServerNameTextField,
             "webSocketServerLocalHostComboBox": webSocketServerLocalHostComboBox,
             "webSocketServerLocalPortSpinBox": webSocketServerLocalPortSpinBox,
-            "webSocketServerSecureSwitch": webSocketServerSecureSwitch,
-            "webSocketServerCertificateTextField": webSocketServerCertificateTextField,
-            "webSocketServerPrivateKeyTextField": webSocketServerPrivateKeyTextField,
             // udp socket
             "udpSocketNameTextField": udpSocketNameTextField,
             "udpSocketLocalHostComboBox": udpSocketLocalHostComboBox,

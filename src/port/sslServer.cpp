@@ -86,12 +86,6 @@ void SslServer::close() {
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
-void SslServer::disconnectPeer(const QString &peerIp) {
-    const auto peer = m_peerHash.constFind(peerIp);
-    if (peer == m_peerHash.constEnd()) return;
-    peer.value()->disconnectFromHost();
-}
-
 void SslServer::clear() {
     for (auto *buffer: m_bufferHash) buffer->clear();
 }
@@ -235,7 +229,7 @@ void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
     if (buffer == nullptr) return;
     if (buffer->write(rxData) != rxData.size()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
-        close();
+        sslServerPeer->disconnectFromHost();
         return;
     }
     handleLog(LogLevel::Receive, rxData, sslServerPeer);

@@ -68,8 +68,7 @@
 -- ws:write("Binary by default")
 -- ws:close()
 
--- WebSocket server: secure defaults to false. For wss, set secure = true
--- and provide certificate and privateKey PEM file paths.
+-- WebSocket server: accepts ws:// connections.
 -- local wsServer = Port.create({
 --     portType = Port.Type.WebSocketServer,
 --     portName = "WebSocket Server",

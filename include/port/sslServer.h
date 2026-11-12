@@ -28,8 +28,6 @@ public:
 
     void close() override;
 
-    void disconnectPeer(const QString &peerIp);
-
     void clear() override;
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;

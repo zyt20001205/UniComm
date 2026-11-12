@@ -26,8 +26,6 @@ public:
 
     void close() override;
 
-    void disconnectPeer(const QString &peerIp);
-
     void clear() override;
 
     [[nodiscard]] QVariantHash info() override;

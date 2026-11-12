@@ -68,6 +68,8 @@ public:
     [[nodiscard]] bool waitForConnected(int msecs = 30000);
 
     bool waitForReadyRead(int msecs = 30000);
+
+    static bool waitForReadyRead(QWebSocket *socket, int msecs);
 };
 
 #endif //UNICOMM_WEBSOCKETCLIENT_H

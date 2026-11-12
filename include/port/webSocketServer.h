@@ -28,8 +28,6 @@ public:
 
     void close() override;
 
-    void disconnectPeer(const QString &peerIp);
-
     void clear() override;
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
@@ -45,15 +43,13 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 private:
-    [[nodiscard]] bool configureSsl();
-
     void handleNewConnection();
 
     void handleServerError();
 
     void handleStateChanged(QWebSocket *webSocketServerPeer, QAbstractSocket::SocketState state);
 
-    void handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message);
+    void handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message);
 
     void handleError(const QWebSocket *webSocketServerPeer);
 

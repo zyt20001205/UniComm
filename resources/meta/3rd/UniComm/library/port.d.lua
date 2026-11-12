@@ -103,9 +103,6 @@ Port.Type = {
 ---@class WebSocketServerPortConfig : PortConfig
 ---@field localHost string Local IP address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
----@field secure? boolean (default: false) Accept wss:// connections instead of ws://.
----@field certificate? string Local path to the PEM certificate. Required when secure is true.
----@field privateKey? string Local path to the PEM private key. Required when secure is true.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.

@@ -1,30 +1,12 @@
 #include "port/webSocketServer.h"
 
-#include <QFile>
 #include <QScopedValueRollback>
-#include <QSslKey>
-#include <QTimer>
-#include <QWebSocket>
 #include <QWebSocketServer>
 
 #include "globals.h"
 #include "port/module/ringBuffer.h"
+#include "port/webSocketClient.h"
 #include "util/uniCast.h"
-
-namespace {
-void waitForMessage(QWebSocket *socket) {
-    QEventLoop eventLoop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    QObject::connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::binaryMessageReceived, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::textMessageReceived, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
-    QObject::connect(socket, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
-    timer.start(10);
-    eventLoop.exec();
-}
-}
 
 // public
 WebSocketServer::WebSocketServer(const QJsonObject &portConfig, QObject *parent)
@@ -48,8 +30,7 @@ QVariantHash WebSocketServer::info() {
     QVariantHash infoHash = {
         {"status", m_webSocketServer && m_webSocketServer->isListening() ? "opened" : "closed"},
         {"localHost", m_portConfig["localHost"].toString()},
-        {"localPort", QString::number(m_portConfig["localPort"].toInt())},
-        {"secure", m_portConfig["secure"].toBool()}
+        {"localPort", QString::number(m_portConfig["localPort"].toInt())}
     };
     int index = 1;
     for (const auto &peerIp: m_peerHash.keys()) {
@@ -68,16 +49,13 @@ QVariantHash WebSocketServer::info() {
 
 bool WebSocketServer::open() {
     if (m_webSocketServer == nullptr) {
-        const auto mode = m_portConfig["secure"].toBool()
-                              ? QWebSocketServer::SecureMode
-                              : QWebSocketServer::NonSecureMode;
-        m_webSocketServer = new QWebSocketServer(m_portConfig["portName"].toString(), mode, this);
+        // TODO: Restore WSS when TLS settings are unified across ports.
+        m_webSocketServer = new QWebSocketServer(m_portConfig["portName"].toString(), QWebSocketServer::NonSecureMode, this);
         connect(m_webSocketServer, &QWebSocketServer::newConnection, this, &WebSocketServer::handleNewConnection);
         connect(m_webSocketServer, &QWebSocketServer::acceptError, this, &WebSocketServer::handleServerError);
         connect(m_webSocketServer, &QWebSocketServer::serverError, this, &WebSocketServer::handleServerError);
     }
     if (m_webSocketServer->isListening()) return true;
-    if (m_portConfig["secure"].toBool() && !configureSsl()) return false;
 
     if (m_webSocketServer->listen(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
         emit refreshPort(m_portConfig["portName"].toString(), true);
@@ -104,12 +82,6 @@ void WebSocketServer::close() {
     }
     emit refreshPort(m_portConfig["portName"].toString(), false);
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
-}
-
-void WebSocketServer::disconnectPeer(const QString &peerIp) {
-    const auto peer = m_peerHash.constFind(peerIp);
-    if (peer == m_peerHash.constEnd()) return;
-    peer.value()->close();
 }
 
 void WebSocketServer::clear() {
@@ -158,40 +130,6 @@ QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout,
 }
 
 // private
-bool WebSocketServer::configureSsl() {
-    QFile certificateFile(m_portConfig["certificate"].toString());
-    if (!certificateFile.open(QIODevice::ReadOnly)) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "certificate invalid");
-        return false;
-    }
-    const auto certificates = QSslCertificate::fromDevice(&certificateFile, QSsl::Pem);
-    if (certificates.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "certificate invalid");
-        return false;
-    }
-
-    QFile privateKeyFile(m_portConfig["privateKey"].toString());
-    if (!privateKeyFile.open(QIODevice::ReadOnly)) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "private key invalid");
-        return false;
-    }
-    const QSslKey privateKey(&privateKeyFile,
-                             certificates.first().publicKey().algorithm(),
-                             QSsl::Pem,
-                             QSsl::PrivateKey);
-    if (privateKey.isNull()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "private key invalid");
-        return false;
-    }
-
-    auto sslConfiguration = QSslConfiguration::defaultConfiguration();
-    sslConfiguration.setLocalCertificateChain(certificates);
-    sslConfiguration.setPrivateKey(privateKey);
-    sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
-    m_webSocketServer->setSslConfiguration(sslConfiguration);
-    return true;
-}
-
 void WebSocketServer::handleNewConnection() {
     while (m_webSocketServer->hasPendingConnections()) {
         auto *peer = m_webSocketServer->nextPendingConnection();
@@ -242,13 +180,13 @@ void WebSocketServer::handleStateChanged(QWebSocket *webSocketServerPeer, const 
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
-void WebSocketServer::handleMessage(const QWebSocket *webSocketServerPeer, const QByteArray &message) {
+void WebSocketServer::handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;
     if (buffer->write(message) != message.size()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
-        disconnectPeer(peerIp);
+        webSocketServerPeer->close();
         return;
     }
     handleLog(LogLevel::Receive, message, webSocketServerPeer);
@@ -312,7 +250,7 @@ QByteArray WebSocketServer::handleRead(const int length, const int timeout, cons
     const QDeadlineTimer deadline(timeout);
     while (buffer->used() < minimum) {
         if (peer->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
-        waitForMessage(peer);
+        UWebSocket::waitForReadyRead(peer, 10);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};
@@ -336,7 +274,7 @@ QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int ti
     QByteArray data = buffer->readUntil(text, peek);
     while (data.isEmpty()) {
         if (peer->state() != QAbstractSocket::ConnectedState || deadline.hasExpired()) break;
-        waitForMessage(peer);
+        UWebSocket::waitForReadyRead(peer, 10);
         buffer = m_bufferHash.value(peerIp, nullptr);
         peer = m_peerHash.value(peerIp, nullptr);
         if (buffer == nullptr || peer == nullptr) return {};

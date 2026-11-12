@@ -244,9 +244,6 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 {"required", QJsonArray{"portName", "localHost", "localPort"}},
                 {
                     "defaults", QJsonObject{
-                        {"secure", false},
-                        {"certificate", ""},
-                        {"privateKey", ""},
                         {"logFormat", "utf-8"},
                         {"txSuffix", "null"},
                         {"bufferSize", 65536}
@@ -257,9 +254,6 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"portName", QJsonObject{{"type", "string"}}},
                         {"localHost", QJsonObject{{"type", "string"}}},
                         {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
-                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Accept wss:// connections instead of ws://."}}},
-                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Local path to the PEM certificate. Required when secure is true."}}},
-                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Local path to the PEM private key. Required when secure is true."}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
@@ -355,11 +349,6 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
 
         const auto localPort = portConfig.value("localPort").toInt();
         if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
-        if (!portConfig.value("secure").isBool()) return "Port check failed: secure must be a boolean.";
-        if (portConfig.value("secure").toBool()) {
-            if (portConfig.value("certificate").toString().trimmed().isEmpty()) return "Port check failed: certificate is empty.";
-            if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
-        }
     }
 
     if (portType == PortType::UdpSocket) {
