@@ -19,6 +19,7 @@ Port.Type = {
     WebSocketClient = 6,
     WebSocketServer = 7,
     UdpSocket = 8,
+    BluetoothLe = 9,
 }
 
 ---@alias PortLogFormat
@@ -117,6 +118,13 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---@class BluetoothLePortConfig : PortConfig
+---@field adapterAddress string Local Bluetooth adapter address recorded by discovery.
+---@field peripheralAddress string Device address shown by Bluetooth discovery. No Service or Characteristic UUID is required to open a connection.
+---@field logFormat? PortLogFormat (default: "utf-8")
+---@field txSuffix? PortSuffix (default: "null")
+---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+
 ---@alias PortCreateConfig
 ---| SerialPortConfig
 ---| TcpClientPortConfig
@@ -126,6 +134,7 @@ Port.Type = {
 ---| WebSocketClientPortConfig
 ---| WebSocketServerPortConfig
 ---| UdpSocketPortConfig
+---| BluetoothLePortConfig
 
 ---
 ---Returns the names of all configured ports.
@@ -171,6 +180,9 @@ port = {}
 ---buffer usage, and connected server peers.
 ---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
 ---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
+---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` capability arrays:
+---`read`, `write_request`, `write_command`, `notify`, and `indicate`.
+---The UUID keys are lowercase; `services` is empty after disconnecting.
 ---@return table<string, any> information
 function port:info() end
 
@@ -181,6 +193,11 @@ function port:info() end
 ---Calling open again on an already active port does not clear data.
 ---
 ---A Vision port waits up to 30 seconds for its first valid frame.
+---A Bluetooth LE port first matches existing scan results, paired devices, or connected devices.
+---Otherwise, it scans for up to 5 seconds and stops as soon as the configured device is found.
+---It then connects synchronously and caches the Service/Characteristic capabilities for `info()`.
+---It does not explicitly request pairing or subscribe to notifications.
+---Bluetooth LE currently supports connection management only; GATT I/O is not yet exposed.
 ---
 ---@return nil
 function port:open() end
@@ -188,10 +205,11 @@ function port:open() end
 ---
 ---Closes or stops this port.
 ---
----Serial, UDP, BLE, TCP/SSL clients and WebSocket clients preserve bytes already
+---Serial, UDP, TCP/SSL clients and WebSocket clients preserve bytes already
 ---held in the receive buffer after closing or disconnecting. These bytes remain
 ---readable and peekable until consumed, explicitly cleared, or a fresh open.
 ---Server ports keep their existing behavior and discard disconnected peer buffers.
+---Bluetooth LE releases its GATT connection without removing the system pairing.
 ---
 ---@return nil
 function port:close() end

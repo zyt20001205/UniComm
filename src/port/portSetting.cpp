@@ -104,6 +104,9 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_udpSocketLocalPortSpinBox = qvariant_cast<QObject *>(objects["udpSocketLocalPortSpinBox"]);
     m_udpSocketRemoteHostTextField = qvariant_cast<QObject *>(objects["udpSocketRemoteHostTextField"]);
     m_udpSocketRemotePortSpinBox = qvariant_cast<QObject *>(objects["udpSocketRemotePortSpinBox"]);
+    // bluetooth le
+    m_bluetoothNameTextField = qvariant_cast<QObject *>(objects["bluetoothNameTextField"]);
+    m_bluetoothPeripheralComboBox = qvariant_cast<QObject *>(objects["bluetoothPeripheralComboBox"]);
     // format
     m_logFormatComboBox = qvariant_cast<QObject *>(objects["logFormatComboBox"]);
     m_txSuffixComboBox = qvariant_cast<QObject *>(objects["txSuffixComboBox"]);
@@ -181,6 +184,9 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_udpSocketLocalPortSpinBox->setProperty("value", 0);
         m_udpSocketRemoteHostTextField->setProperty("text", "");
         m_udpSocketRemotePortSpinBox->setProperty("value", 0);
+        // bluetooth le
+        m_bluetoothNameTextField->setProperty("text", "");
+        m_bluetoothPeripheralComboBox->setProperty("currentValue", QVariant{});
         // format
         m_logFormatComboBox->setProperty("currentValue", "utf-8");
         m_txSuffixComboBox->setProperty("currentValue", "null");
@@ -295,6 +301,35 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
             }
             break;
+            case PortType::BluetoothLe: {
+                m_bluetoothNameTextField->setProperty("text", portConfig["portName"].toString());
+                const auto adapterAddress = portConfig["adapterAddress"].toString();
+                auto address = portConfig["peripheralAddress"].toString();
+                bool found = false;
+                for (auto &peripheral: m_bluetoothPeripherals) {
+                    auto current = peripheral.toHash();
+                    const auto currentAddress = current.value("address").toString();
+                    if (currentAddress.compare(address, Qt::CaseInsensitive) != 0) continue;
+                    address = currentAddress;
+                    if (current.value("adapterAddress").toString().compare(adapterAddress, Qt::CaseInsensitive) != 0) {
+                        current["adapterAddress"] = adapterAddress;
+                        current.remove("peripheral");
+                        peripheral = current;
+                        emit bluetoothPeripheralsChanged();
+                    }
+                    found = true;
+                    break;
+                }
+                if (!found) {
+                    m_bluetoothPeripherals.append(QVariantHash{{"adapterAddress", adapterAddress}, {"address", address}, {"name", ""}, {"display", address}});
+                    emit bluetoothPeripheralsChanged();
+                }
+                m_bluetoothPeripheralComboBox->setProperty("currentValue", address);
+                m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
+                m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
+                m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
+            }
+            break;
             default: break;
         }
     }
@@ -304,8 +339,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
 
 void PortSetting::portSettingExport() {
     const int portType = m_root->property("portType").toInt();
-    // BLE configuration will return with characteristic selection.
-    if (portType == PortType::BluetoothLe) return;
     QJsonObject portConfig{};
     switch (portType) {
         case PortType::SerialPort: {
@@ -457,6 +490,19 @@ void PortSetting::portSettingExport() {
                 {"localPort", m_udpSocketLocalPortSpinBox->property("value").toInt()},
                 {"remoteHost", m_udpSocketRemoteHostTextField->property("text").toString()},
                 {"remotePort", m_udpSocketRemotePortSpinBox->property("value").toInt()},
+                {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
+                {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
+                {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
+            };
+        }
+        break;
+        case PortType::BluetoothLe: {
+            const auto peripheral = m_bluetoothPeripherals.value(m_bluetoothPeripheralComboBox->property("currentIndex").toInt()).toHash();
+            portConfig = {
+                {"portType", portType},
+                {"portName", m_bluetoothNameTextField->property("text").toString()},
+                {"adapterAddress", peripheral.value("adapterAddress").toString()},
+                {"peripheralAddress", m_bluetoothPeripheralComboBox->property("currentValue").toString()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
                 {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
@@ -711,10 +757,16 @@ void PortSetting::bleRefresh() {
                     for (auto &peripheral: m_bluetoothPeripherals) {
                         auto current = peripheral.toHash();
                         if (current.value("address").toString().compare(address, Qt::CaseInsensitive) != 0) continue;
-                        if (device.value("name").toString().isEmpty() || current.value("name") == device.value("name")) return;
-                        current["name"] = device.value("name");
-                        current["display"] = device.value("display");
-                        peripheral = current;
+                        if (current.value("adapterAddress").toString().compare(device.value("adapterAddress").toString(), Qt::CaseInsensitive) != 0) return;
+                        if (current.value("peripheral").isValid()
+                            && (device.value("name").toString().isEmpty() || current.value("name") == device.value("name"))) return;
+                        auto updated = device;
+                        updated["address"] = current.value("address");
+                        if (device.value("name").toString().isEmpty()) {
+                            updated["name"] = current.value("name");
+                            updated["display"] = current.value("display");
+                        }
+                        peripheral = updated;
                         emit bluetoothPeripheralsChanged();
                         return;
                     }

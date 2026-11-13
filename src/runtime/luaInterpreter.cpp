@@ -283,6 +283,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
         portType["WebSocketClient"] = PortType::WebSocketClient;
         portType["WebSocketServer"] = PortType::WebSocketServer;
         portType["UdpSocket"] = PortType::UdpSocket;
+        portType["BluetoothLe"] = PortType::BluetoothLe;
         port["Type"] = portType;
         port.set_function("list", [](const sol::this_state ts) { return Port::list(ts); });
         port.set_function("create", [this](const sol::table &config) { return Port::create(config, this); });

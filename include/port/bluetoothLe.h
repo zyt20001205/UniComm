@@ -1,12 +1,12 @@
 #ifndef UNICOMM_BLUETOOTHLE_H
 #define UNICOMM_BLUETOOTHLE_H
 
+#include <QHash>
 #include <QJsonObject>
 #include <simpleble/SimpleBLE.h>
 
 #include "basePort.h"
 #include "port/module/ringBuffer.h"
-
 
 class BluetoothLe final : public BasePort {
     Q_OBJECT
@@ -28,41 +28,39 @@ public:
 
     void clear() override;
 
-    [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
-
-    [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek) override;
-
-    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
-
-signals:
-    void disconnected();
-
-    void readyRead();
-
 private:
-    [[nodiscard]] bool connectedGet();
+    bool peripheralGet(const QString &peripheralAddress, std::vector<SimpleBLE::Peripheral> peripherals);
 
-    void handleDisconnected();
+    void handleStateChanged(int state);
 
-    void handleNotification(const QByteArray &rxData);
+    struct State {
+        enum {
+            Disconnected,
+            Connecting,
+            Connected,
+            Disconnecting
+        };
+    };
 
-    [[nodiscard]] bool handleWrite(const QByteArray &f_txData);
-
-    [[nodiscard]] QByteArray handleRead(int length, int timeout, bool peek);
-
-    [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
-
-    void handleLog(int type, const QByteArray &data);
+    struct Capability {
+        enum {
+            None = 0,
+            Read = 1 << 0,
+            WriteRequest = 1 << 1,
+            WriteCommand = 1 << 2,
+            Notify = 1 << 3,
+            Indicate = 1 << 4
+        };
+    };
 
     SimpleBLE::Adapter m_adapter{};
     SimpleBLE::Peripheral m_peripheral{};
     QJsonObject m_portConfig{};
-    QString m_adapterAddress{};
-    QString m_peripheralName{};
+    // service UUID -> characteristic UUID -> capability flags.
+    QHash<QString, QHash<QString, int>> m_services{};
     RingBuffer m_buffer;
     quint16 m_mtu{};
-    bool m_subscribed{};
-    bool m_closing{};
+    int m_state{State::Disconnected};
 };
 
 #endif //UNICOMM_BLUETOOTHLE_H

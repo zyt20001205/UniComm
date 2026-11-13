@@ -56,18 +56,20 @@ void DeviceDiscovery::Bluetooth::scan(const std::function<void(QVariantHash)> &c
             }
         }
     });
-    const auto discovered = [callback](SimpleBLE::Peripheral peripheral) {
-        const auto address = QString::fromStdString(peripheral.address());
-        const auto name = QString::fromStdString(peripheral.identifier());
-        callback(QVariantHash{
-            {"name", name},
-            {"address", address},
-            {"display", name.isEmpty() ? address : QString("%1 \u00b7 %2").arg(address, name)},
-            {"peripheral", QVariant::fromValue(peripheral)}
-        });
-    };
     for (auto adapter: SimpleBLE::Adapter::get_adapters()) {
         if (!adapter.is_powered()) continue;
+        const auto adapterAddress = QString::fromStdString(adapter.address());
+        const auto discovered = [callback, adapterAddress](SimpleBLE::Peripheral peripheral) {
+            const auto address = QString::fromStdString(peripheral.address());
+            const auto name = QString::fromStdString(peripheral.identifier());
+            callback(QVariantHash{
+                {"name", name},
+                {"address", address},
+                {"adapterAddress", adapterAddress},
+                {"display", name.isEmpty() ? address : QString("%1 \u00b7 %2").arg(address, name)},
+                {"peripheral", QVariant::fromValue(peripheral)}
+            });
+        };
         scanning.push_back(adapter);
         adapter.set_callback_on_scan_found(discovered);
         adapter.set_callback_on_scan_updated(discovered);

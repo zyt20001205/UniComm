@@ -162,6 +162,9 @@ private:
     QObject *m_udpSocketLocalPortSpinBox{};
     QObject *m_udpSocketRemoteHostTextField{};
     QObject *m_udpSocketRemotePortSpinBox{};
+    // bluetooth le
+    QObject *m_bluetoothNameTextField{};
+    QObject *m_bluetoothPeripheralComboBox{};
     // format
     QObject *m_logFormatComboBox{};
     QObject *m_txSuffixComboBox{};

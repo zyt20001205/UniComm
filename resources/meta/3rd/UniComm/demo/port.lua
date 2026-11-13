@@ -95,6 +95,21 @@
 -- udp:open()
 -- print(udp:info().localPort) -- Actual local port selected by the system.
 
+-- Bluetooth LE: copy both addresses from a BLE port configuration saved through port settings.
+-- Only connection management is implemented; no Service/Characteristic is fixed.
+-- local ble = Port.create({
+--     portType = Port.Type.BluetoothLe,
+--     portName = "BLE Device",
+--     adapterAddress = "00:11:22:33:44:55",
+--     peripheralAddress = "C4:DE:E2:B1:6F:62",
+-- })
+-- ble:open() -- Scans only if needed, stopping on a match; then waits for the GATT connection.
+-- print(ble:info()) -- services[serviceUuid][characteristicUuid] lists capability names.
+-- ble:open() -- Already connected: returns without reconnecting.
+-- ble:close()
+-- ble:close() -- Already closed: no operation.
+-- Port.remove("BLE Device") -- Optional: also remove the saved port configuration.
+
 -- Vision ports configured in the UI can also export and read processed ROIs.
 -- ROI indexes are 1-based and relative paths resolve from the current workspace.
 -- local vision = Port.get("CG345UK")
@@ -107,7 +122,7 @@
 -- vision:close()
 
 -- Configure an echo-capable single-buffer byte port named "Echo" before running:
--- serial, UDP, BLE, TCP/SSL client, or WebSocket client (not a server port).
+-- serial, UDP, TCP/SSL client, or WebSocket client (not a server port).
 local name = "Echo"
 local timeout = 1000
 local port = Port.get(name)
@@ -171,7 +186,7 @@ assert(port:read(#partial, timeout) == partial, "unsuccessful peeks must preserv
 -- local preview = server:peek(5, timeout, peerIp)
 -- local data = server:read(5, timeout, peerIp)
 
--- Already buffered data survives close on the six single-buffer port types above.
+-- Already buffered data survives close on the five single-buffer port types above.
 -- A repeated open while active must not discard data either.
 local tailLine = "buffered before close\r\n"
 local tail = tailLine .. partial

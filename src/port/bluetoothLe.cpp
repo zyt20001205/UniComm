@@ -1,27 +1,13 @@
 #include "port/bluetoothLe.h"
 
-#include <QDeadlineTimer>
 #include <QEventLoop>
-#include <QScopedValueRollback>
+#include <QScopeGuard>
 #include <QTimer>
+#include <QVariantList>
 
 #include <stdexcept>
 
 #include "globals.h"
-#include "util/uniCast.h"
-
-namespace {
-void waitForData(BluetoothLe *port) {
-    QEventLoop eventLoop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    QObject::connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
-    QObject::connect(port, &BluetoothLe::readyRead, &eventLoop, &QEventLoop::quit);
-    QObject::connect(port, &BluetoothLe::disconnected, &eventLoop, &QEventLoop::quit);
-    timer.start(10);
-    eventLoop.exec();
-}
-}
 
 // public
 BluetoothLe::BluetoothLe(const QJsonObject &portConfig, QObject *parent)
@@ -43,13 +29,37 @@ QJsonObject BluetoothLe::config() {
 }
 
 QVariantHash BluetoothLe::info() {
+    QVariantHash services{};
+    for (auto service = m_services.constBegin(); service != m_services.constEnd(); ++service) {
+        QVariantHash characteristics{};
+        for (auto characteristic = service.value().constBegin(); characteristic != service.value().constEnd(); ++characteristic) {
+            QVariantList capabilities{};
+            if (characteristic.value() & Capability::Read) capabilities.append(QStringLiteral("read"));
+            if (characteristic.value() & Capability::WriteRequest) capabilities.append(QStringLiteral("write_request"));
+            if (characteristic.value() & Capability::WriteCommand) capabilities.append(QStringLiteral("write_command"));
+            if (characteristic.value() & Capability::Notify) capabilities.append(QStringLiteral("notify"));
+            if (characteristic.value() & Capability::Indicate) capabilities.append(QStringLiteral("indicate"));
+            characteristics.insert(characteristic.key(), capabilities);
+        }
+        services.insert(service.key(), characteristics);
+    }
+    QString status{};
+    switch (m_state) {
+        case State::Disconnected: status = "disconnected";
+            break;
+        case State::Connecting: status = "connecting";
+            break;
+        case State::Connected: status = "connected";
+            break;
+        case State::Disconnecting: status = "disconnecting";
+            break;
+        default: status = "unknown";
+    }
     return {
-        {"status", connectedGet() ? "connected" : "disconnected"},
-        {"adapter", m_adapterAddress},
+        {"status", status},
+        {"adapter", m_portConfig["adapterAddress"].toString()},
         {"peripheral", m_portConfig["peripheralAddress"].toString()},
-        {"service", m_portConfig["serviceUuid"].toString()},
-        {"txCharacteristic", m_portConfig["txCharacteristicUuid"].toString()},
-        {"rxCharacteristic", m_portConfig["rxCharacteristicUuid"].toString()},
+        {"services", services},
         {"mtu", QString::number(m_mtu)},
         {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
         {"bufferUsed", QString::number(m_buffer.used())}
@@ -57,204 +67,159 @@ QVariantHash BluetoothLe::info() {
 }
 
 bool BluetoothLe::open() {
-    if (connectedGet()) return true;
+    if (m_state != State::Disconnected) return m_state == State::Connected;
 
-    m_closing = false;
-    m_subscribed = false;
-    m_mtu = 0;
+    close();
     m_buffer.clear();
-    m_adapterAddress.clear();
     const auto portName = m_portConfig["portName"].toString();
+    const auto adapterAddress = m_portConfig["adapterAddress"].toString();
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), QString("connecting to %1").arg(peripheralAddress));
+    handleStateChanged(State::Connecting);
 
     try {
-        m_adapter = {};
-        m_peripheral = {};
-        auto adapters = SimpleBLE::Adapter::get_adapters();
-        if (adapters.empty()) throw std::runtime_error("adapter not found");
-        const auto peripheralSelect = [this, &peripheralAddress](std::vector<SimpleBLE::Peripheral> peripherals) {
-            for (auto &peripheral: peripherals) {
-                if (QString::fromStdString(peripheral.address()).compare(peripheralAddress, Qt::CaseInsensitive) == 0) {
-                    m_peripheral = peripheral;
-                    return true;
-                }
-            }
-            return false;
-        };
-        std::string scanError{};
-        for (auto &adapter: adapters) {
+        for (auto adapter: SimpleBLE::Adapter::get_adapters()) {
+            if (QString::fromStdString(adapter.address()).compare(adapterAddress, Qt::CaseInsensitive) != 0) continue;
+            m_adapter = adapter;
+            break;
+        }
+        if (!m_adapter.initialized()) throw std::runtime_error("adapter not found");
+        if (!m_adapter.is_powered()) throw std::runtime_error("adapter is not powered");
+
+        if (!peripheralGet(peripheralAddress, m_adapter.scan_get_results())) {
+            // these optional queries are not supported by every backend.
             try {
-                if (!adapter.is_powered()) continue;
-                adapter.scan_for(5000);
-                if (peripheralSelect(adapter.scan_get_results())
-                    || peripheralSelect(adapter.get_paired_peripherals())
-                    || peripheralSelect(adapter.get_connected_peripherals())) {
-                    m_adapter = adapter;
-                    break;
-                }
-            } catch (const std::exception &exception) {
-                scanError = exception.what();
+                if (!peripheralGet(peripheralAddress, m_adapter.get_paired_peripherals())) peripheralGet(peripheralAddress, m_adapter.get_connected_peripherals());
+            } catch (...) {
             }
         }
-        if (!m_peripheral.initialized()) throw std::runtime_error(scanError.empty() ? "peripheral not found" : scanError);
-        m_adapterAddress = QString::fromStdString(m_adapter.address());
+        if (!m_peripheral.initialized()) {
+            auto adapter = m_adapter;
+            QEventLoop eventLoop;
+            const auto cleanup = qScopeGuard([this, &adapter] {
+                adapter.set_callback_on_scan_found(nullptr);
+                adapter.set_callback_on_scan_updated(nullptr);
+                try {
+                    if (adapter.scan_is_active()) adapter.scan_stop();
+                } catch (const std::exception &exception) {
+                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("scan stop failed: %1").arg(exception.what()));
+                } catch (...) {
+                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "scan stop failed");
+                }
+            });
+            const auto discovered = [this, &eventLoop, &peripheralAddress](SimpleBLE::Peripheral peripheral) {
+                if (QString::fromStdString(peripheral.address()).compare(peripheralAddress, Qt::CaseInsensitive) != 0) return;
+                QMetaObject::invokeMethod(&eventLoop, [this, &eventLoop, peripheral] {
+                    if (m_state != State::Connecting || m_peripheral.initialized()) return;
+                    m_peripheral = peripheral;
+                    eventLoop.quit();
+                }, Qt::QueuedConnection);
+            };
+            connect(this, &BasePort::refreshPort, &eventLoop, [this, &eventLoop] {
+                if (m_state != State::Connecting) eventLoop.quit();
+            });
+            adapter.set_callback_on_scan_found(discovered);
+            adapter.set_callback_on_scan_updated(discovered);
+            QTimer::singleShot(5000, &eventLoop, &QEventLoop::quit);
+            adapter.scan_start();
+            eventLoop.exec();
+        }
+        if (m_state != State::Connecting) return false;
+        if (!m_peripheral.initialized()) throw std::runtime_error("peripheral not found");
 
-        m_peripheralName = QString::fromStdString(m_peripheral.identifier());
-        m_peripheral.set_callback_on_disconnected([this] { QMetaObject::invokeMethod(this, [this] { handleDisconnected(); }, Qt::QueuedConnection); });
-        m_peripheral.connect();
+        m_peripheral.set_callback_on_connected([this] {
+            QMetaObject::invokeMethod(this, [this] {
+                try {
+                    if (m_peripheral.initialized() && m_peripheral.is_connected()) handleStateChanged(State::Connected);
+                } catch (...) {
+                }
+            });
+        });
+        m_peripheral.set_callback_on_disconnected([this] {
+            QMetaObject::invokeMethod(this, [this] {
+                try {
+                    if (m_peripheral.initialized() && !m_peripheral.is_connected()) handleStateChanged(State::Disconnected);
+                } catch (...) {
+                }
+            }, Qt::QueuedConnection);
+        });
+        if (!m_peripheral.is_connected()) m_peripheral.connect();
         m_mtu = m_peripheral.mtu();
+        for (auto service: m_peripheral.services()) {
+            auto &characteristics = m_services[QString::fromStdString(service.uuid()).toLower()];
+            for (auto characteristic: service.characteristics()) {
+                int capabilities = Capability::None;
+                if (characteristic.can_read()) capabilities |= Capability::Read;
+                if (characteristic.can_write_request()) capabilities |= Capability::WriteRequest;
+                if (characteristic.can_write_command()) capabilities |= Capability::WriteCommand;
+                if (characteristic.can_notify()) capabilities |= Capability::Notify;
+                if (characteristic.can_indicate()) capabilities |= Capability::Indicate;
+                characteristics.insert(QString::fromStdString(characteristic.uuid()).toLower(), capabilities);
+            }
+        }
 
-        const auto serviceUuid = m_portConfig["serviceUuid"].toString().toStdString();
-        const auto rxCharacteristicUuid = m_portConfig["rxCharacteristicUuid"].toString().toStdString();
-        const auto callback = [this](SimpleBLE::ByteArray payload) {
-            const QByteArray rxData(reinterpret_cast<const char *>(payload.data()), static_cast<qsizetype>(payload.size()));
-            QMetaObject::invokeMethod(this, [this, rxData] { handleNotification(rxData); }, Qt::QueuedConnection);
-        };
-        if (m_portConfig["subscribeType"].toString() == "indicate") m_peripheral.indicate(serviceUuid, rxCharacteristicUuid, callback);
-        else m_peripheral.notify(serviceUuid, rxCharacteristicUuid, callback);
-        m_subscribed = true;
-
-        emit refreshPort(portName, true);
-        emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), QString("connected to %1 [%2]").arg(m_peripheralName, peripheralAddress));
+        handleStateChanged(State::Connected);
         return true;
     } catch (const std::exception &exception) {
-        m_closing = true;
-        try {
-            if (m_peripheral.initialized() && m_peripheral.is_connected()) m_peripheral.disconnect();
-        } catch (...) {
-        }
         emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), QString("open failed: %1").arg(exception.what()));
+        close();
         return false;
     }
 }
 
 void BluetoothLe::close() {
-    if (!m_peripheral.initialized()) return;
-
-    m_closing = true;
-    const bool connected = connectedGet();
-    try {
-        if (connected && m_subscribed) m_peripheral.unsubscribe(m_portConfig["serviceUuid"].toString().toStdString(), m_portConfig["rxCharacteristicUuid"].toString().toStdString());
-        if (connected) m_peripheral.disconnect();
-    } catch (const std::exception &exception) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
+    if (m_peripheral.initialized()) {
+        if (m_state == State::Connected) handleStateChanged(State::Disconnecting);
+        try {
+            m_peripheral.set_callback_on_connected(nullptr);
+            m_peripheral.set_callback_on_disconnected(nullptr);
+            m_peripheral.disconnect();
+        } catch (const std::exception &exception) {
+            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
+        }
     }
-    m_subscribed = false;
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    if (connected) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
+    m_peripheral = {};
+    m_adapter = {};
+    handleStateChanged(State::Disconnected);
 }
 
 void BluetoothLe::clear() {
     m_buffer.clear();
 }
 
-bool BluetoothLe::write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) {
-    QScopedValueRollback configRollback(m_portConfig);
-    if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
-    QByteArray f_txData = txData;
-    if (m_portConfig["txSuffix"].toString() == "crlf") f_txData += "\r\n";
-    else if (m_portConfig["txSuffix"].toString() == "modbus crc") f_txData += uni_cast<ModbusCRC>(f_txData).value;
-    else if (m_portConfig["txSuffix"].toString() == "modbus lrc") f_txData += uni_cast<ModbusLRC>(f_txData).value;
-    return handleWrite(f_txData);
-}
-
-QByteArray BluetoothLe::read(const int length, const int timeout, const QString &logFormat, const bool peek) {
-    QScopedValueRollback configRollback(m_portConfig);
-    if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleRead(length, timeout, peek);
-}
-
-QByteArray BluetoothLe::readUntil(const QByteArray &text, const int timeout, const QString &logFormat, const bool peek) {
-    QScopedValueRollback configRollback(m_portConfig);
-    if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
-    return handleReadUntil(text, timeout, peek);
-}
-
 // private
-bool BluetoothLe::connectedGet() {
-    try {
-        return m_peripheral.initialized() && m_peripheral.is_connected();
-    } catch (...) {
-        return false;
-    }
-}
-
-void BluetoothLe::handleDisconnected() {
-    m_subscribed = false;
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit disconnected();
-    if (!m_closing) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("disconnected from %1").arg(m_portConfig["peripheralAddress"].toString()));
-}
-
-void BluetoothLe::handleNotification(const QByteArray &rxData) {
-    if (m_closing) return;
-    if (m_buffer.write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
-        close();
-        return;
-    }
-    emit readyRead();
-    handleLog(LogLevel::Receive, rxData);
-}
-
-bool BluetoothLe::handleWrite(const QByteArray &f_txData) {
-    if (!connectedGet()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
-        return false;
-    }
-    try {
-        const auto serviceUuid = m_portConfig["serviceUuid"].toString().toStdString();
-        const auto txCharacteristicUuid = m_portConfig["txCharacteristicUuid"].toString().toStdString();
-        const qsizetype packetSize = qMax<qsizetype>(static_cast<qsizetype>(m_mtu) - 3, 20);
-        for (qsizetype offset = 0; offset < f_txData.size(); offset += packetSize) {
-            const qsizetype size = qMin(packetSize, f_txData.size() - offset);
-            const SimpleBLE::ByteArray packet(f_txData.constData() + offset, static_cast<size_t>(size));
-            if (m_portConfig["writeType"].toString() == "command") m_peripheral.write_command(serviceUuid, txCharacteristicUuid, packet);
-            else m_peripheral.write_request(serviceUuid, txCharacteristicUuid, packet);
+bool BluetoothLe::peripheralGet(const QString &peripheralAddress, std::vector<SimpleBLE::Peripheral> peripherals) {
+    for (auto &peripheral: peripherals) {
+        if (QString::fromStdString(peripheral.address()).compare(peripheralAddress, Qt::CaseInsensitive) == 0) {
+            m_peripheral = peripheral;
+            return true;
         }
-        handleLog(LogLevel::Transmit, f_txData);
-        return true;
-    } catch (const std::exception &exception) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("write failed: %1").arg(exception.what()));
-        return false;
     }
+    return false;
 }
 
-QByteArray BluetoothLe::handleRead(const int length, const int timeout, const bool peek) {
-    const int minimum = length == 0 ? 1 : length;
-    const QDeadlineTimer deadline(timeout);
-    while (m_buffer.used() < minimum) {
-        if (deadline.hasExpired() || !connectedGet()) break;
-        waitForData(this);
-    }
-    return m_buffer.read(length, peek);
-}
 
-QByteArray BluetoothLe::handleReadUntil(const QByteArray &text, const int timeout, const bool peek) {
-    if (text.isEmpty()) return {};
-    const QDeadlineTimer deadline(timeout);
-    QByteArray data = m_buffer.readUntil(text, peek);
-    while (data.isEmpty()) {
-        if (deadline.hasExpired() || !connectedGet()) break;
-        waitForData(this);
-        data = m_buffer.readUntil(text, peek);
-    }
-    return data;
-}
-
-void BluetoothLe::handleLog(const int type, const QByteArray &data) {
-    QString message{};
-    const QString logFormat = m_portConfig["logFormat"].toString();
-    if (logFormat == "raw") {
-        message.reserve(data.size() * 4);
-        for (const char c: data) message += QString("\\x%1").arg(static_cast<quint8>(c), 2, 16, QChar('0'));
-    } else if (logFormat == "hex") message = data.toHex(' ').toUpper();
-    else if (logFormat == "ascii") message = QString::fromLatin1(data);
-    else message = QString::fromUtf8(data);
-
+void BluetoothLe::handleStateChanged(const int state) {
+    if (m_state == state) return;
+    m_state = state;
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
-    if (type == LogLevel::Transmit) emit appendLog(type, QString("[%1 -&gt; %2]").arg(m_adapterAddress, peripheralAddress), message);
-    else emit appendLog(type, QString("[%1 &lt;- %2]").arg(m_adapterAddress, peripheralAddress), message);
+    QString message{};
+    switch (state) {
+        case State::Disconnected:
+            m_mtu = 0;
+            m_services.clear();
+            message = QString("disconnected from %1").arg(peripheralAddress);
+            break;
+        case State::Connecting:
+            message = QString("connecting to %1").arg(peripheralAddress);
+            break;
+        case State::Connected:
+            message = QString("connected to %1").arg(peripheralAddress);
+            break;
+        case State::Disconnecting:
+            message = QString("disconnecting from %1").arg(peripheralAddress);
+            break;
+        default: break;
+    }
+    emit refreshPort(m_portConfig["portName"].toString(), state == State::Connected);
+    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }

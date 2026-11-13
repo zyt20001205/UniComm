@@ -291,6 +291,30 @@ QJsonObject PortModule::portConfigGet(const int portType) {
             };
             break;
         }
+        case PortType::BluetoothLe: {
+            portConfig = {
+                {"type", "object"},
+                {"required", QJsonArray{"portName", "adapterAddress", "peripheralAddress"}},
+                {
+                    "defaults", QJsonObject{
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"adapterAddress", QJsonObject{{"type", "string"}}},
+                        {"peripheralAddress", QJsonObject{{"type", "string"}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
         default: break;
     }
     return portConfig;
@@ -365,6 +389,11 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
 
         const auto remotePort = portConfig.value("remotePort").toInt();
         if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+    }
+
+    if (portType == PortType::BluetoothLe) {
+        if (portConfig.value("adapterAddress").toString().trimmed().isEmpty()) return "Port check failed: adapterAddress is empty.";
+        if (portConfig.value("peripheralAddress").toString().trimmed().isEmpty()) return "Port check failed: peripheralAddress is empty.";
     }
 
     if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket || portType == PortType::BluetoothLe) {

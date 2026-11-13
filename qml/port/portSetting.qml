@@ -715,6 +715,8 @@ Item {
                             Button {
                                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                                 enabled: bluetoothPeripheralComboBox.currentIndex >= 0
+                                    && bluetoothPeripheralComboBox.currentIndex < portSetting.bluetoothPeripherals.length
+                                    && portSetting.bluetoothPeripherals[bluetoothPeripheralComboBox.currentIndex].peripheral !== undefined
                                 icon.source: "qrc:/icon/link.svg"
                                 icon.width: 24; icon.height: 24
                                 Layout.preferredWidth: 32; Layout.preferredHeight: 32
@@ -2164,7 +2166,6 @@ Item {
             Button {
                 text: swipeView.currentIndex !== 2 ? qsTr("Next") : qsTr("Confirm")
                 highlighted: swipeView.currentIndex === 2
-                enabled: rootItem.portType !== 9 || swipeView.currentIndex === 0
                 flat: true
 
                 onClicked: {
@@ -2306,6 +2307,19 @@ Item {
                                 //     portNameValidatorTimer.start()
                                 //     return
                                 // }
+                            }
+                                break
+                            case 9: {
+                                if (!bluetoothNameTextField.text.trim()) {
+                                    portNameValidator.text = qsTr("Invalid Port Name")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
+                                if (!bluetoothPeripheralComboBox.currentValue) {
+                                    portNameValidator.text = qsTr("Invalid Address")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
                             }
                                 break
                         }
@@ -2819,6 +2833,9 @@ Item {
             "udpSocketLocalPortSpinBox": udpSocketLocalPortSpinBox,
             "udpSocketRemoteHostTextField": udpSocketRemoteHostTextField,
             "udpSocketRemotePortSpinBox": udpSocketRemotePortSpinBox,
+            // bluetooth le
+            "bluetoothNameTextField": bluetoothNameTextField,
+            "bluetoothPeripheralComboBox": bluetoothPeripheralComboBox,
             // format
             "logFormatComboBox": logFormatComboBox,
             "txSuffixComboBox": txSuffixComboBox,
