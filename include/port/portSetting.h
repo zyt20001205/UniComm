@@ -29,6 +29,8 @@ class PortSetting final : public QObject {
     Q_PROPERTY(QStringList localHosts READ localHostsGet NOTIFY localHostsChanged)
     Q_PROPERTY(QStringList visionSources READ visionSourcesGet NOTIFY visionSourcesChanged)
     Q_PROPERTY(QVariantList bluetoothPeripherals READ bluetoothPeripheralsGet NOTIFY bluetoothPeripheralsChanged)
+    Q_PROPERTY(QAbstractItemModel *bluetoothServices READ bluetoothServicesGet CONSTANT)
+    Q_PROPERTY(QString bluetoothServiceAddress READ bluetoothServiceAddressGet NOTIFY bluetoothServicesChanged)
 
 public:
     explicit PortSetting(QWidget *parent = nullptr);
@@ -44,6 +46,8 @@ public:
     Q_INVOKABLE void portSettingExport();
 
     Q_INVOKABLE void dialogResize(int width, int height) const;
+
+    Q_INVOKABLE void bleConnect(const QVariant &peripheral);
 
     Q_INVOKABLE void visionCapture();
 
@@ -70,6 +74,8 @@ signals:
 
     void bluetoothPeripheralsChanged();
 
+    void bluetoothServicesChanged();
+
     void insertPort(int index, const QJsonObject &portConfig, const QString &undoGroupId);
 
     void editPort(const QString &oldPortName, const QJsonObject &portConfig);
@@ -82,6 +88,10 @@ private:
     [[nodiscard]] QStringList visionSourcesGet() const;
 
     [[nodiscard]] QVariantList bluetoothPeripheralsGet() const;
+
+    [[nodiscard]] QAbstractItemModel *bluetoothServicesGet() const;
+
+    [[nodiscard]] QString bluetoothServiceAddressGet() const;
 
     void serialPortRefresh();
 
@@ -98,7 +108,10 @@ private:
     QStringList m_localHosts{};
     QStringList m_visionSources{};
     QVariantList m_bluetoothPeripherals{};
-    QFuture<void> m_bleFuture{};
+    QStandardItemModel *m_bluetoothServices{};
+    QString m_bluetoothServiceAddress{};
+    QFuture<void> m_bleScanFuture{};
+    QFuture<QVariantList> m_bleConnectFuture{};
     QMediaCaptureSession *m_mediaCaptureSession{};
     QScreenCapture *m_screenCapture{};
     QCamera *m_cameraCapture{};

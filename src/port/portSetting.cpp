@@ -15,6 +15,7 @@
 #include <QScreenCapture>
 #include <QVideoSink>
 #include <QtConcurrentRun>
+#include <simpleble/Peripheral.h>
 
 #include <exception>
 #include <utility>
@@ -27,14 +28,21 @@
 PortSetting::PortSetting(QWidget *parent)
     : QObject(parent),
       m_window(new QQuickView()),
+      m_bluetoothServices(new QStandardItemModel(this)),
       m_mediaCaptureSession(new QMediaCaptureSession(this)),
       m_roiModel(new RoiModel(this)),
       m_pipelineModel(new PipelineModel(this)),
       m_imageProvider(new ImageProvider()) {
+    m_bluetoothServices->setItemRoleNames({
+        {Qt::DisplayRole, "uuid"},
+        {Qt::UserRole + 1, "capabilities"},
+        {Qt::UserRole + 2, "name"}
+    });
 }
 
 PortSetting::~PortSetting() {
-    m_bleFuture.waitForFinished();
+    m_bleScanFuture.waitForFinished();
+    m_bleConnectFuture.waitForFinished();
     delete m_window;
 }
 
@@ -296,7 +304,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
 
 void PortSetting::portSettingExport() {
     const int portType = m_root->property("portType").toInt();
-    // BLE configuration will return with service and characteristic selection.
+    // BLE configuration will return with characteristic selection.
     if (portType == PortType::BluetoothLe) return;
     QJsonObject portConfig{};
     switch (portType) {
@@ -469,6 +477,44 @@ void PortSetting::dialogResize(const int width, const int height) const {
     m_window->resize(width, height);
 }
 
+void PortSetting::bleConnect(const QVariant &peripheral) {
+    if (m_bleConnectFuture.isRunning() || !peripheral.canConvert<SimpleBLE::Peripheral>()) return;
+    m_bluetoothServiceAddress = QString::fromStdString(peripheral.value<SimpleBLE::Peripheral>().address());
+    m_bluetoothServices->clear();
+    emit bluetoothServicesChanged();
+    m_bleConnectFuture = QtConcurrent::run([peripheral] {
+        try {
+            return DeviceDiscovery::Bluetooth::connect(peripheral);
+        } catch (const std::exception &exception) {
+            qWarning("Bluetooth service discovery failed: %s", exception.what());
+        } catch (...) {
+            qWarning("Bluetooth service discovery failed");
+        }
+        return QVariantList{};
+    });
+    m_bleConnectFuture.then(this, [this, address = m_bluetoothServiceAddress](const QVariantList &services) {
+        if (m_bluetoothServiceAddress != address) return;
+        m_bluetoothServices->clear();
+        for (const auto &service: services) {
+            const auto data = service.toHash();
+            auto *serviceItem = new QStandardItem(data.value("uuid").toString());
+            serviceItem->setEditable(false);
+            serviceItem->setData(QStringList{}, Qt::UserRole + 1);
+            serviceItem->setData(data.value("name"), Qt::UserRole + 2);
+            for (const auto &characteristic: data.value("characteristics").toList()) {
+                const auto characteristicData = characteristic.toHash();
+                auto *characteristicItem = new QStandardItem(characteristicData.value("uuid").toString());
+                characteristicItem->setEditable(false);
+                characteristicItem->setData(characteristicData.value("capabilities"), Qt::UserRole + 1);
+                characteristicItem->setData(characteristicData.value("name"), Qt::UserRole + 2);
+                serviceItem->appendRow(characteristicItem);
+            }
+            m_bluetoothServices->appendRow(serviceItem);
+        }
+        emit bluetoothServicesChanged();
+    });
+}
+
 void PortSetting::visionCapture() {
     m_window->resize(1600, 900);
     if (m_screenCapture) {
@@ -616,6 +662,14 @@ QVariantList PortSetting::bluetoothPeripheralsGet() const {
     return m_bluetoothPeripherals;
 }
 
+QAbstractItemModel *PortSetting::bluetoothServicesGet() const {
+    return m_bluetoothServices;
+}
+
+QString PortSetting::bluetoothServiceAddressGet() const {
+    return m_bluetoothServiceAddress;
+}
+
 void PortSetting::serialPortRefresh() {
     const auto serialPorts = DeviceDiscovery::serialPorts();
     if (m_serialPorts == serialPorts) return;
@@ -643,19 +697,24 @@ void PortSetting::visionRefresh() {
 }
 
 void PortSetting::bleRefresh() {
-    if (m_bleFuture.isRunning()) return;
+    m_bluetoothServices->clear();
+    m_bluetoothServiceAddress.clear();
+    emit bluetoothServicesChanged();
+    if (m_bleScanFuture.isRunning()) return;
     m_bluetoothPeripherals.clear();
     emit bluetoothPeripheralsChanged();
-    m_bleFuture = QtConcurrent::run([this] {
+    m_bleScanFuture = QtConcurrent::run([this] {
         try {
-            DeviceDiscovery::Bluetooth::peripherals([this](QVariantHash device) {
+            DeviceDiscovery::Bluetooth::scan([this](QVariantHash device) {
                 QMetaObject::invokeMethod(this, [this, device = std::move(device)] {
                     const auto address = device.value("address").toString();
                     for (auto &peripheral: m_bluetoothPeripherals) {
-                        const auto current = peripheral.toHash();
+                        auto current = peripheral.toHash();
                         if (current.value("address").toString().compare(address, Qt::CaseInsensitive) != 0) continue;
-                        if (device.value("name").toString().isEmpty() || current == device) return;
-                        peripheral = device;
+                        if (device.value("name").toString().isEmpty() || current.value("name") == device.value("name")) return;
+                        current["name"] = device.value("name");
+                        current["display"] = device.value("display");
+                        peripheral = current;
                         emit bluetoothPeripheralsChanged();
                         return;
                     }

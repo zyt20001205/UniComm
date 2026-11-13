@@ -694,17 +694,213 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        ComboBox {
-                            id: bluetoothPeripheralComboBox
-                            font.pointSize: 12
-                            model: portSetting.bluetoothPeripherals
-                            textRole: "display"
-                            valueRole: "address"
+                        RowLayout {
                             Layout.fillWidth: true
 
-                            onActivated: {
-                                const device = portSetting.bluetoothPeripherals[currentIndex]
-                                bluetoothNameTextField.text = device.name || device.address
+                            ComboBox {
+                                id: bluetoothPeripheralComboBox
+                                font.pointSize: 12
+                                model: portSetting.bluetoothPeripherals
+                                textRole: "display"
+                                valueRole: "address"
+                                Layout.fillWidth: true
+
+                                onActivated: {
+                                    const device = portSetting.bluetoothPeripherals[currentIndex]
+                                    currentValue = device.address
+                                    bluetoothNameTextField.text = device.name || device.address
+                                }
+                            }
+
+                            Button {
+                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                enabled: bluetoothPeripheralComboBox.currentIndex >= 0
+                                icon.source: "qrc:/icon/link.svg"
+                                icon.width: 24; icon.height: 24
+                                Layout.preferredWidth: 32; Layout.preferredHeight: 32
+                                ToolTip.visible: hovered
+                                ToolTip.text: qsTr("Discover Services")
+
+                                onClicked: portSetting.bleConnect(portSetting.bluetoothPeripherals[bluetoothPeripheralComboBox.currentIndex].peripheral)
+                            }
+                        }
+
+                        TreeView {
+                            id: bluetoothTreeView
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            property int selectedRow: -1
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            Layout.preferredHeight: 180
+
+                            model: portSetting.bluetoothServiceAddress === bluetoothPeripheralComboBox.currentValue
+                                ? portSetting.bluetoothServices : null
+                            columnWidthProvider: function(column) {
+                                return Math.max(0, bluetoothTreeView.width - bluetoothTreeScrollBar.width)
+                            }
+                            onWidthChanged: forceLayout()
+
+                            delegate: Item {
+                                id: bluetoothTreeDelegate
+                                required property TreeView treeView
+                                required property bool isTreeNode
+                                required property bool expanded
+                                required property bool hasChildren
+                                required property int depth
+                                required property int row
+                                required property string uuid
+                                required property string name
+                                required property var capabilities
+                                implicitWidth: bluetoothTreeView.width
+                                implicitHeight: Math.max(24, bluetoothTreeRow.implicitHeight)
+
+                                onImplicitHeightChanged: Qt.callLater(bluetoothTreeView.forceLayout)
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: global.backHover
+                                    visible: bluetoothTreeHoverHandler.hovered
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 6
+                                    color: global.backSelected
+                                    visible: bluetoothTreeView.selectedRow === bluetoothTreeDelegate.row
+                                }
+
+                                RowLayout {
+                                    id: bluetoothTreeRow
+                                    anchors.left: parent.left; anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 0
+
+                                    Item {
+                                        Layout.preferredWidth: bluetoothTreeDelegate.depth * 24
+                                        Layout.preferredHeight: 24
+                                    }
+
+                                    Item {
+                                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
+
+                                        IconImage {
+                                            anchors.centerIn: parent
+                                            width: 16; height: 16
+                                            source: bluetoothTreeDelegate.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
+                                            color: global.fore
+                                            visible: bluetoothTreeDelegate.isTreeNode && bluetoothTreeDelegate.hasChildren
+                                        }
+
+                                        TapHandler {
+                                            acceptedButtons: Qt.LeftButton
+                                            gesturePolicy: TapHandler.DragWithinBounds
+
+                                            onTapped: {
+                                                bluetoothTreeView.selectedRow = bluetoothTreeDelegate.row
+                                                if (bluetoothTreeDelegate.isTreeNode && bluetoothTreeDelegate.hasChildren) {
+                                                    bluetoothTreeView.toggleExpanded(bluetoothTreeDelegate.row)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        id: bluetoothTreeContent
+                                        spacing: 4
+                                        Layout.minimumWidth: 0
+                                        Layout.fillWidth: true
+
+                                        Label {
+                                            text: bluetoothTreeDelegate.name.length > 0
+                                                ? bluetoothTreeDelegate.name + " \u00b7 " + bluetoothTreeDelegate.uuid
+                                                : bluetoothTreeDelegate.uuid
+                                            textFormat: Text.PlainText
+                                            font.pointSize: 12
+                                            font.weight: bluetoothTreeDelegate.depth === 0 ? Font.DemiBold : Font.Normal
+                                            color: global.fore
+                                            wrapMode: Text.WrapAnywhere
+                                            verticalAlignment: Text.AlignVCenter
+                                            Layout.minimumWidth: 0
+                                            Layout.minimumHeight: 24
+                                            Layout.fillWidth: true
+                                        }
+
+                                        Flow {
+                                            visible: bluetoothTreeDelegate.capabilities.length > 0
+                                            spacing: 6
+                                            Layout.minimumWidth: 0
+                                            Layout.fillWidth: true
+
+                                            Repeater {
+                                                model: bluetoothTreeDelegate.capabilities
+
+                                                Control {
+                                                    id: capabilityBadge
+                                                    required property string modelData
+                                                    leftPadding: 6; rightPadding: 6; topPadding: 2; bottomPadding: 2
+                                                    implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
+                                                    implicitHeight: Math.max(24, contentItem.implicitHeight + topPadding + bottomPadding)
+
+                                                    contentItem: Label {
+                                                        text: {
+                                                            switch (capabilityBadge.modelData) {
+                                                                case "read": return qsTr("Read")
+                                                                case "write_request": return qsTr("Write request")
+                                                                case "write_command": return qsTr("Write command")
+                                                                case "notify": return qsTr("Notify")
+                                                                case "indicate": return qsTr("Indicate")
+                                                                default: return capabilityBadge.modelData
+                                                            }
+                                                        }
+                                                        textFormat: Text.PlainText
+                                                        font.pointSize: 10
+                                                        font.weight: Font.DemiBold
+                                                        color: global.fore
+                                                        horizontalAlignment: Text.AlignHCenter
+                                                        verticalAlignment: Text.AlignVCenter
+                                                    }
+
+                                                    background: Rectangle {
+                                                        radius: 4 // Fluent borderRadiusMedium.
+                                                        color: global.backSelected
+                                                        border.width: 1
+                                                        border.color: global.stroke
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                HoverHandler {
+                                    id: bluetoothTreeHoverHandler
+                                }
+
+                                TapHandler {
+                                    acceptedButtons: Qt.LeftButton
+                                    gesturePolicy: TapHandler.DragWithinBounds
+
+                                    onTapped: bluetoothTreeView.selectedRow = bluetoothTreeDelegate.row
+                                }
+                            }
+
+                            ScrollBar.vertical: ScrollBar {
+                                id: bluetoothTreeScrollBar
+                                palette {
+                                    mid: global.stroke
+                                    dark: global.strokePressed
+                                }
+                            }
+
+                            Connections {
+                                target: portSetting
+
+                                function onBluetoothServicesChanged() {
+                                    bluetoothTreeView.selectedRow = -1
+                                    if (bluetoothTreeView.model) Qt.callLater(bluetoothTreeView.expandRecursively)
+                                }
                             }
                         }
                     }

@@ -1,15 +1,19 @@
 #include "port/module/deviceDiscovery.h"
 
 #include <QCameraDevice>
+#include <QEventLoop>
 #include <QMediaDevices>
 #include <QScreen>
 #include <QScopeGuard>
 #include <QSerialPortInfo>
+#include <QStringList>
 #include <QTimer>
 #include <simpleble/SimpleBLE.h>
 
 #include <exception>
 #include <vector>
+
+#include "util/uniCast.h"
 
 QVariantList DeviceDiscovery::serialPorts() {
     QVariantList devices{};
@@ -37,7 +41,7 @@ QStringList DeviceDiscovery::cameras() {
     return devices;
 }
 
-void DeviceDiscovery::Bluetooth::peripherals(const std::function<void(QVariantHash)> &callback) {
+void DeviceDiscovery::Bluetooth::scan(const std::function<void(QVariantHash)> &callback) {
     std::vector<SimpleBLE::Adapter> scanning{};
     const auto cleanup = qScopeGuard([&scanning] {
         for (auto &adapter: scanning) {
@@ -58,7 +62,8 @@ void DeviceDiscovery::Bluetooth::peripherals(const std::function<void(QVariantHa
         callback(QVariantHash{
             {"name", name},
             {"address", address},
-            {"display", name.isEmpty() ? address : QString("%1 \u00b7 %2").arg(address, name)}
+            {"display", name.isEmpty() ? address : QString("%1 \u00b7 %2").arg(address, name)},
+            {"peripheral", QVariant::fromValue(peripheral)}
         });
     };
     for (auto adapter: SimpleBLE::Adapter::get_adapters()) {
@@ -73,4 +78,42 @@ void DeviceDiscovery::Bluetooth::peripherals(const std::function<void(QVariantHa
     QEventLoop loop;
     QTimer::singleShot(5000, &loop, &QEventLoop::quit);
     loop.exec();
+}
+
+QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
+    auto device = peripheral.value<SimpleBLE::Peripheral>();
+    const bool connectedHere = !device.is_connected();
+    const auto cleanup = qScopeGuard([&device, connectedHere] {
+        if (!connectedHere) return;
+        try {
+            device.disconnect();
+        } catch (const std::exception &exception) {
+            qWarning("Bluetooth disconnect failed: %s", exception.what());
+        } catch (...) {
+            qWarning("Bluetooth disconnect failed");
+        }
+    });
+    if (connectedHere) device.connect();
+
+    QVariantList services{};
+    for (auto service: device.services()) {
+        const auto serviceUuid = QString::fromStdString(service.uuid());
+        QVariantList characteristics{};
+        for (auto characteristic: service.characteristics()) {
+            const auto characteristicUuid = QString::fromStdString(characteristic.uuid());
+            QStringList capabilities{};
+            for (const auto &capability: characteristic.capabilities()) capabilities.append(QString::fromStdString(capability));
+            characteristics.append(QVariantHash{
+                {"uuid", characteristicUuid},
+                {"name", uni_cast<QBluetoothUuidName>(characteristicUuid).value},
+                {"capabilities", capabilities}
+            });
+        }
+        services.append(QVariantHash{
+            {"uuid", serviceUuid},
+            {"name", uni_cast<QBluetoothUuidName>(serviceUuid).value},
+            {"characteristics", characteristics}
+        });
+    }
+    return services;
 }

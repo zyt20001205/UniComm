@@ -9,7 +9,6 @@
 
 #include <simpleble/export.h>
 
-#include <simpleble/Exceptions.h>
 #include <simpleble/Service.h>
 #include <simpleble/Types.h>
 

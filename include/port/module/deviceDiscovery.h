@@ -1,8 +1,6 @@
 #ifndef UNICOMM_DEVICEDISCOVERY_H
 #define UNICOMM_DEVICEDISCOVERY_H
 
-#include <QStringList>
-#include <QVariantHash>
 #include <QVariantList>
 
 #include <functional>
@@ -16,7 +14,9 @@ namespace DeviceDiscovery {
 }
 
 namespace DeviceDiscovery::Bluetooth {
-    void peripherals(const std::function<void(QVariantHash)> &callback);
+    void scan(const std::function<void(QVariantHash)> &callback);
+
+    [[nodiscard]] QVariantList connect(const QVariant &peripheral);
 }
 
 #endif //UNICOMM_DEVICEDISCOVERY_H

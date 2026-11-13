@@ -134,6 +134,12 @@ struct QCompactNumber {
     operator QString() const { return value; }
 };
 
+struct QBluetoothUuidName {
+    QString value;
+    QBluetoothUuidName(QString s) : value(std::move(s)) {}
+    operator QString() const { return value; }
+};
+
 template<>
 [[nodiscard]] QList<MarkdownBlock> uni_cast<QList<MarkdownBlock>, QString>(const QString &s, int depth);
 
@@ -154,6 +160,9 @@ template<>
 
 template<>
 [[nodiscard]] QCompactNumber uni_cast<QCompactNumber, qint64>(const qint64 &s, int depth);
+
+template<>
+[[nodiscard]] QBluetoothUuidName uni_cast<QBluetoothUuidName, QString>(const QString &s, int depth);
 
 // qt -> suffix
 struct ModbusCRC {
