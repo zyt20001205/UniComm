@@ -97,6 +97,11 @@ QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
     });
     if (connectedHere) device.connect();
 
+    const auto displayUuid = [](const QString &uuid) -> QString {
+        if (!uuid.endsWith("-0000-1000-8000-00805f9b34fb", Qt::CaseInsensitive)) return uuid;
+        const auto prefix = uuid.first(8).toUpper();
+        return "0x" + (prefix.startsWith("0000") ? prefix.sliced(4) : prefix);
+    };
     QVariantList services{};
     for (auto service: device.services()) {
         const auto serviceUuid = QString::fromStdString(service.uuid());
@@ -105,14 +110,26 @@ QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
             const auto characteristicUuid = QString::fromStdString(characteristic.uuid());
             QStringList capabilities{};
             for (const auto &capability: characteristic.capabilities()) capabilities.append(QString::fromStdString(capability));
+            QVariantList descriptors{};
+            for (auto descriptor: characteristic.descriptors()) {
+                const auto descriptorUuid = QString::fromStdString(descriptor.uuid()).toLower();
+                descriptors.append(QVariantHash{
+                    {"uuid", descriptorUuid},
+                    {"displayUuid", displayUuid(descriptorUuid)},
+                    {"name", uni_cast<QBluetoothUuidName>(descriptorUuid).value}
+                });
+            }
             characteristics.append(QVariantHash{
                 {"uuid", characteristicUuid},
+                {"displayUuid", displayUuid(characteristicUuid)},
                 {"name", uni_cast<QBluetoothUuidName>(characteristicUuid).value},
-                {"capabilities", capabilities}
+                {"capabilities", capabilities},
+                {"descriptors", descriptors}
             });
         }
         services.append(QVariantHash{
             {"uuid", serviceUuid},
+            {"displayUuid", displayUuid(serviceUuid)},
             {"name", uni_cast<QBluetoothUuidName>(serviceUuid).value},
             {"characteristics", characteristics}
         });

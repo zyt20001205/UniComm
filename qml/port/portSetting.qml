@@ -752,6 +752,7 @@ Item {
                                 required property int depth
                                 required property int row
                                 required property string uuid
+                                required property string displayUuid
                                 required property string name
                                 required property var capabilities
                                 implicitWidth: bluetoothTreeView.width
@@ -808,32 +809,30 @@ Item {
                                         }
                                     }
 
-                                    ColumnLayout {
+                                    RowLayout {
                                         id: bluetoothTreeContent
-                                        spacing: 4
+                                        spacing: 6
                                         Layout.minimumWidth: 0
                                         Layout.fillWidth: true
 
                                         Label {
                                             text: bluetoothTreeDelegate.name.length > 0
-                                                ? bluetoothTreeDelegate.name + " \u00b7 " + bluetoothTreeDelegate.uuid
-                                                : bluetoothTreeDelegate.uuid
+                                                ? bluetoothTreeDelegate.name + " \u00b7 " + bluetoothTreeDelegate.displayUuid
+                                                : bluetoothTreeDelegate.displayUuid
                                             textFormat: Text.PlainText
                                             font.pointSize: 12
                                             font.weight: bluetoothTreeDelegate.depth === 0 ? Font.DemiBold : Font.Normal
                                             color: global.fore
-                                            wrapMode: Text.WrapAnywhere
+                                            wrapMode: Text.NoWrap
                                             verticalAlignment: Text.AlignVCenter
-                                            Layout.minimumWidth: 0
+                                            Layout.minimumWidth: implicitWidth
                                             Layout.minimumHeight: 24
-                                            Layout.fillWidth: true
                                         }
 
-                                        Flow {
+                                        RowLayout {
                                             visible: bluetoothTreeDelegate.capabilities.length > 0
                                             spacing: 6
-                                            Layout.minimumWidth: 0
-                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: implicitWidth
 
                                             Repeater {
                                                 model: bluetoothTreeDelegate.capabilities
@@ -873,11 +872,25 @@ Item {
                                                 }
                                             }
                                         }
+
+                                        Item {
+                                            Layout.fillWidth: true
+                                        }
                                     }
                                 }
 
                                 HoverHandler {
                                     id: bluetoothTreeHoverHandler
+
+                                    onHoveredChanged: {
+                                        if (!hovered) {
+                                            mainToolTip.text = ""
+                                        }
+                                    }
+                                    onPointChanged: {
+                                        mainToolTip.position = parent.mapToGlobal(point.position)
+                                        mainToolTip.text = bluetoothTreeDelegate.uuid
+                                    }
                                 }
 
                                 TapHandler {

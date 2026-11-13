@@ -3,6 +3,7 @@
 
 #include <QHash>
 #include <QJsonObject>
+#include <QStringList>
 #include <memory>
 #include <simpleble/SimpleBLE.h>
 
@@ -74,6 +75,7 @@ private:
 
     struct Characteristic {
         int capabilities{};
+        QStringList descriptors{};
         std::shared_ptr<Subscription> subscription{};
     };
 

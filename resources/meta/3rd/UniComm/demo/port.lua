@@ -105,7 +105,15 @@
 --     peripheralAddress = "C4:DE:E2:B1:6F:62",
 -- })
 -- ble:open() -- Scans only if needed, stopping on a match; then waits for the GATT connection.
--- print(ble:info()) -- services[serviceUuid][characteristicUuid] lists capability names.
+-- local information = ble:info()
+-- print(information)
+-- for service, characteristics in pairs(information.services) do
+--     for characteristic, details in pairs(characteristics) do
+--         print(service, characteristic)
+--         print(details.capabilities) -- Capability names for this characteristic.
+--         print(details.descriptors) -- Descriptor UUIDs only; no values are read.
+--     end
+-- end
 -- Read the standard GAP Device Name characteristic when it supports reading.
 -- local serviceUuid = "1800"
 -- local characteristicUuid = "2a00"

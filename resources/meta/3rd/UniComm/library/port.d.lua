@@ -186,8 +186,10 @@ port = {}
 ---buffer usage, and connected server peers.
 ---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
 ---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
----Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` capability arrays:
----`read`, `write_request`, `write_command`, `notify`, and `indicate`.
+---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` objects:
+---`capabilities` is an array of `read`, `write_request`, `write_command`, `notify`, and `indicate` names.
+---`descriptors` is an array of lowercase, full Descriptor UUID strings, empty when none are discovered.
+---Descriptor values and access permissions are not read or inferred during discovery.
 ---Active subscriptions appear in `subscriptions[serviceUuid][characteristicUuid]`,
 ---with integer `mode`, string `bufferSize`, and string `bufferUsed` fields.
 ---Top-level `bufferUsed` is the sum across subscriptions; `bufferSize` is the capacity per characteristic.
@@ -204,7 +206,7 @@ function port:info() end
 ---A Vision port waits up to 30 seconds for its first valid frame.
 ---A Bluetooth LE port first matches existing scan results, paired devices, or connected devices.
 ---Otherwise, it scans for up to 5 seconds and stops as soon as the configured device is found.
----It then connects synchronously and caches the Service/Characteristic capabilities for `info()`.
+---It then connects synchronously and caches the Service/Characteristic capabilities and Descriptor UUIDs for `info()`.
 ---It does not explicitly request pairing or subscribe to notifications.
 ---Use `subscribe` explicitly to start receiving Notify or Indicate updates.
 ---

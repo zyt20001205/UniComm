@@ -45,7 +45,12 @@ QVariantHash BluetoothLe::info() {
             if (characteristic.value().capabilities & (1u << Capability::WriteCommand)) capabilities.append(QStringLiteral("write_command"));
             if (characteristic.value().capabilities & (1u << Capability::Notify)) capabilities.append(QStringLiteral("notify"));
             if (characteristic.value().capabilities & (1u << Capability::Indicate)) capabilities.append(QStringLiteral("indicate"));
-            characteristics.insert(characteristic.key(), capabilities);
+            QVariantList descriptors{};
+            for (const auto &descriptor: characteristic.value().descriptors) descriptors.append(descriptor);
+            characteristics.insert(characteristic.key(), QVariantHash{
+                {"capabilities", capabilities},
+                {"descriptors", descriptors}
+            });
             if (const auto &subscription = characteristic.value().subscription) {
                 const auto used = subscription->buffer.used();
                 bufferUsed += used;
@@ -169,7 +174,9 @@ bool BluetoothLe::open() {
                 if (characteristic.can_write_command()) capabilities |= 1u << Capability::WriteCommand;
                 if (characteristic.can_notify()) capabilities |= 1u << Capability::Notify;
                 if (characteristic.can_indicate()) capabilities |= 1u << Capability::Indicate;
-                characteristics.insert(QString::fromStdString(characteristic.uuid()).toLower(), Characteristic{capabilities});
+                QStringList descriptors{};
+                for (auto descriptor: characteristic.descriptors()) descriptors.append(QString::fromStdString(descriptor.uuid()).toLower());
+                characteristics.insert(QString::fromStdString(characteristic.uuid()).toLower(), Characteristic{capabilities, descriptors});
             }
         }
 
