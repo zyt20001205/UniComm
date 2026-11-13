@@ -96,7 +96,8 @@
 -- print(udp:info().localPort) -- Actual local port selected by the system.
 
 -- Bluetooth LE: copy both addresses from a BLE port configuration saved through port settings.
--- Only connection management is implemented; no Service/Characteristic is fixed.
+-- Service/Characteristic UUIDs are selected per operation, not fixed in the configuration.
+-- Write modes: 1 = Request, 2 = Command. Subscription modes: 3 = Notify, 4 = Indicate.
 -- local ble = Port.create({
 --     portType = Port.Type.BluetoothLe,
 --     portName = "BLE Device",
@@ -105,6 +106,38 @@
 -- })
 -- ble:open() -- Scans only if needed, stopping on a match; then waits for the GATT connection.
 -- print(ble:info()) -- services[serviceUuid][characteristicUuid] lists capability names.
+-- Read the standard GAP Device Name characteristic when it supports reading.
+-- local serviceUuid = "1800"
+-- local characteristicUuid = "2a00"
+-- local value = ble:read(serviceUuid, characteristicUuid)
+-- print(value)
+-- print(string.toHex(value, " "))
+-- Only write commands defined by the device protocol. Do not echo arbitrary read data back.
+-- local command = nil -- Replace only with a documented binary command; nil sends nothing.
+-- if command then
+--     ble:write(command, 1, "00ff", "ff01") -- Write Request: waits for GATT acknowledgement.
+--     -- Alternative: ble:write(command, 2, "00ff", "ff01") -- Write Command: no GATT response.
+-- end
+-- Subscribe only to a characteristic listed by info() with the selected capability.
+-- Replace these example UUIDs with the device's documented data channel.
+-- local service = "00ff"
+-- local characteristic = "ff01"
+-- ble:subscribe(3, service, characteristic) -- Notify; use 4 for a characteristic supporting Indicate.
+-- ble:subscribe(3, service, characteristic) -- Same mode: keeps the existing buffer and its data.
+-- print(ble:info().subscriptions)
+-- Updates are appended asynchronously, even when Lua is not currently reading.
+-- local preview = ble:peek(0, 2000, service, characteristic)
+-- print(string.toHex(preview, " "))
+-- local received = ble:read(#preview, 0, service, characteristic)
+-- print(string.toHex(received, " "))
+-- Choose lengths and delimiters from the device protocol, not the notification size or MTU.
+-- local frame = ble:read(20, 2000, service, characteristic) -- Wait for exactly 20 bytes.
+-- local line = ble:peekUntil("\r\n", 2000, service, characteristic)
+-- local consumed = ble:readUntil("\r\n", 0, service, characteristic)
+-- ble:clear() -- Clears every subscription buffer without unsubscribing.
+-- ble:unsubscribe(service, characteristic) -- Discards this characteristic's buffer only.
+-- ble:unsubscribe(service, characteristic) -- Already unsubscribed: no operation while connected.
+-- assert(ble:read(0, 0, service, characteristic) == "")
 -- ble:open() -- Already connected: returns without reconnecting.
 -- ble:close()
 -- ble:close() -- Already closed: no operation.

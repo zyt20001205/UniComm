@@ -38,6 +38,12 @@ Port.Type = {
 ---| 1 # Text message. Data must be valid UTF-8 after applying the configured suffix.
 ---| 2 # Binary message. All byte values are preserved.
 
+---@alias BluetoothLeMode
+---| 1 # Write Request: waits for the GATT write response, not an application-level reply.
+---| 2 # Write Command: does not request a GATT write response.
+---| 3 # Notify: subscribes to characteristic updates without ATT confirmations.
+---| 4 # Indicate: subscribes to characteristic updates with confirmations handled by the Bluetooth stack.
+
 ---@class PortConfig
 ---@field portType PortType Port type selected from `Port.Type`.
 ---@field portName string Unique name used to retrieve the configured port with `Port.get`.
@@ -123,7 +129,7 @@ Port.Type = {
 ---@field peripheralAddress string Device address shown by Bluetooth discovery. No Service or Characteristic UUID is required to open a connection.
 ---@field logFormat? PortLogFormat (default: "utf-8")
 ---@field txSuffix? PortSuffix (default: "null")
----@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
+---@field bufferSize? integer (default: 65536) Capacity of each subscribed characteristic's receive buffer, from 1 to 67108864 bytes.
 
 ---@alias PortCreateConfig
 ---| SerialPortConfig
@@ -182,7 +188,10 @@ port = {}
 ---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
 ---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` capability arrays:
 ---`read`, `write_request`, `write_command`, `notify`, and `indicate`.
----The UUID keys are lowercase; `services` is empty after disconnecting.
+---Active subscriptions appear in `subscriptions[serviceUuid][characteristicUuid]`,
+---with integer `mode`, string `bufferSize`, and string `bufferUsed` fields.
+---Top-level `bufferUsed` is the sum across subscriptions; `bufferSize` is the capacity per characteristic.
+---The UUID keys are lowercase; both tables are empty after disconnecting.
 ---@return table<string, any> information
 function port:info() end
 
@@ -197,7 +206,7 @@ function port:info() end
 ---Otherwise, it scans for up to 5 seconds and stops as soon as the configured device is found.
 ---It then connects synchronously and caches the Service/Characteristic capabilities for `info()`.
 ---It does not explicitly request pairing or subscribe to notifications.
----Bluetooth LE currently supports connection management only; GATT I/O is not yet exposed.
+---Use `subscribe` explicitly to start receiving Notify or Indicate updates.
 ---
 ---@return nil
 function port:open() end
@@ -210,6 +219,7 @@ function port:open() end
 ---readable and peekable until consumed, explicitly cleared, or a fresh open.
 ---Server ports keep their existing behavior and discard disconnected peer buffers.
 ---Bluetooth LE releases its GATT connection without removing the system pairing.
+---All Bluetooth LE subscriptions and their buffered data are discarded. Subscribe again after reconnecting.
 ---
 ---@return nil
 function port:close() end
@@ -218,6 +228,7 @@ function port:close() end
 ---Discards data currently held in this port's receive buffer.
 ---
 ---For a server port, the receive buffers of all connected peers are cleared.
+---For Bluetooth LE, every subscribed characteristic's buffer is cleared without ending its subscription.
 ---
 ---@return nil
 function port:clear() end
@@ -226,7 +237,7 @@ function port:clear() end
 ---Writes binary-safe data to this port.
 ---
 ---TCP and SSL servers use `write(data, peerIp?)`. Omitting `peerIp` broadcasts
----to all connected peers. Other non-WebSocket port types ignore `peerIp`.
+---to all connected peers. Other byte-stream port types ignore `peerIp`.
 ---
 ---WebSocket clients and servers use `write(data, messageType?, peerIp?)`.
 ---`messageType` is an integer: 1=text, 2=binary (default). Each write sends one
@@ -240,6 +251,19 @@ function port:clear() end
 ---Both enter the same receive buffer; message boundaries and types are discarded.
 ---
 ---[WebSocket loopback demo](../demo/websocket.lua)
+---
+---Bluetooth LE ports use `write(data, mode, serviceUuid, characteristicUuid)`.
+---The generic `write(data)` and WebSocket write forms are rejected on Bluetooth LE ports.
+---All four arguments are required. `mode` is 1 for Write Request or 2 for
+---Write Command; unsupported modes are rejected rather than switched automatically.
+---UUIDs follow the same normalization rules as the explicit UUID read overload.
+---The device must be connected, and the characteristic must belong to the service
+---and support the selected write capability. Invalid arguments and device errors
+---raise a Lua error without deliberately closing the connection.
+---Data is sent unchanged, including null bytes. The configured suffix is not
+---appended, and data is not split into multiple characteristic writes.
+---A Write Request response is a GATT acknowledgement, not a device application reply.
+---Write Command success does not confirm that the peer received or processed data.
 ---
 ---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
@@ -255,8 +279,43 @@ function port:clear() end
 ---@param data string Data to write, or a Vision export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
 ---@overload fun(self: port, data: string, messageType: WebSocketMessageType, peerIp?: string)
+---@overload fun(self: port, data: string, mode: BluetoothLeMode, serviceUuid: uuid, characteristicUuid: uuid)
 ---@return nil
 function port:write(data, peerIp) end
+
+---
+---Subscribes to updates from one Bluetooth LE characteristic.
+---
+---All three arguments are required. `mode` must be 3 (Notify) or 4 (Indicate),
+---and the characteristic must support that capability. UUIDs use the same rules as `read`.
+---A separate buffer is allocated for this Service/Characteristic pair using the configured `bufferSize`.
+---Callbacks append binary-safe bytes; notification boundaries are discarded, but different characteristics never share a buffer.
+---The subscription call does not wait for the first update. Some devices require a documented write command before reporting data.
+---Repeating the same subscription preserves its buffer. To change modes, unsubscribe first.
+---Indicate confirmations are handled below Lua and do not wait for `read`.
+---A failed subscription discards its new buffer. Buffer overflow logs an error, discards the affected buffer,
+---and attempts to unsubscribe that characteristic only; other subscriptions and the BLE connection remain active.
+---Invalid modes, UUIDs, unsupported capabilities, and device errors raise a Lua error.
+---
+---@param mode BluetoothLeMode Subscription mode: 3 for Notify or 4 for Indicate.
+---@param serviceUuid uuid Service containing the characteristic.
+---@param characteristicUuid uuid Characteristic to subscribe to.
+---@return nil
+function port:subscribe(mode, serviceUuid, characteristicUuid) end
+
+---
+---Ends one Bluetooth LE characteristic's subscription and discards its buffer.
+---
+---Other characteristics are unaffected. Repeating this call for a known, unsubscribed
+---characteristic while connected does nothing. A waiting buffer read returns an empty
+---string when its subscription ends; late callbacks are ignored.
+---The local buffer is discarded even if the device reports an unsubscribe error.
+---Invalid UUIDs, unknown characteristics, disconnected ports, non-BLE ports, and device errors raise a Lua error.
+---
+---@param serviceUuid uuid Service containing the characteristic.
+---@param characteristicUuid uuid Characteristic to unsubscribe from.
+---@return nil
+function port:unsubscribe(serviceUuid, characteristicUuid) end
 
 ---
 ---Reads data from this port's receive buffer.
@@ -279,9 +338,29 @@ function port:write(data, peerIp) end
 ---source frame is processed as one ROI. With `timeout` zero it uses the current
 ---frame immediately.
 ---
+---Bluetooth LE ports accept `read(serviceUuid, characteristicUuid)` to request
+---a characteristic value synchronously. No mode is required. UUID strings accept 4 or 8 hexadecimal
+---digits, expanded using the Bluetooth Base UUID, or a full 128-bit UUID.
+---The all-zero 128-bit UUID is rejected.
+---Uppercase letters and surrounding braces on full UUIDs are accepted. The device must
+---be connected, and the characteristic must belong to the service and support reading.
+---This overload returns a binary-safe string without consuming or appending to the
+---receive buffer. Its timeout is controlled by SimpleBLE and the operating system.
+---Invalid UUIDs, non-BLE ports, unsupported reads, and device errors raise a Lua error.
+---
+---Use `read(length, timeout, serviceUuid, characteristicUuid)` to consume a subscribed
+---characteristic's notification buffer instead. All four arguments are required.
+---The same length and timeout rules apply; reads may split or combine notifications.
+---A known characteristic without an active subscription returns an empty string immediately.
+---Unsubscribe or disconnect interrupts an existing wait and discards that subscription's data.
+---Unknown services or characteristics, and reads started after disconnecting, raise a Lua error.
+---The generic buffer read form without both UUIDs is rejected on BLE ports.
+---
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
+---@overload fun(self: port, serviceUuid: uuid, characteristicUuid: uuid): string
+---@overload fun(self: port, length: integer, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string|VisionResult[] data
 function port:read(length, timeout, peerIp) end
 
@@ -305,10 +384,13 @@ function port:read(length, timeout, peerIp) end
 ---
 ---Peeking does not reserve data for a later read. Avoid independent consumers
 ---on the same connection.
+---Bluetooth LE requires `peek(length, timeout, serviceUuid, characteristicUuid)`
+---and follows the subscription-buffer rules described by `read`.
 ---
 ---@param length? integer (default: 0) Number of bytes to peek at.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
+---@overload fun(self: port, length: integer, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:peek(length, timeout, peerIp) end
 
@@ -324,10 +406,13 @@ function port:peek(length, timeout, peerIp) end
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
 ---unspecified connected peer. Vision ports do not support delimiter reads.
+---Bluetooth LE requires `readUntil(text, timeout, serviceUuid, characteristicUuid)`
+---and reads only that subscribed characteristic's buffer. Unsuccessful reads preserve buffered bytes.
 ---
 ---@param text? string (default: "\r\n") Delimiter to read through.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
+---@overload fun(self: port, text: string, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:readUntil(text, timeout, peerIp) end
 
@@ -350,9 +435,12 @@ function port:readUntil(text, timeout, peerIp) end
 ---
 ---Peeking does not reserve data for a later read.
 ---Avoid independent consumers on the same connection.
+---Bluetooth LE requires `peekUntil(text, timeout, serviceUuid, characteristicUuid)`
+---and follows the same subscription-buffer rules as `readUntil`, without consuming bytes.
 ---
 ---@param text? string (default: "\r\n") Delimiter to peek through.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
+---@overload fun(self: port, text: string, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:peekUntil(text, timeout, peerIp) end

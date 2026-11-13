@@ -1,19 +1,22 @@
 #include "port/bluetoothLe.h"
 
+#include <QDeadlineTimer>
 #include <QEventLoop>
+#include <QPointer>
 #include <QScopeGuard>
 #include <QTimer>
+#include <QUuid>
 #include <QVariantList>
 
 #include <stdexcept>
+#include <utility>
 
 #include "globals.h"
 
 // public
 BluetoothLe::BluetoothLe(const QJsonObject &portConfig, QObject *parent)
     : BasePort(parent),
-      m_portConfig(portConfig),
-      m_buffer(portConfig["bufferSize"].toInt()) {
+      m_portConfig(portConfig) {
 }
 
 BluetoothLe::~BluetoothLe() {
@@ -30,18 +33,31 @@ QJsonObject BluetoothLe::config() {
 
 QVariantHash BluetoothLe::info() {
     QVariantHash services{};
+    QVariantHash subscriptions{};
+    qsizetype bufferUsed{};
     for (auto service = m_services.constBegin(); service != m_services.constEnd(); ++service) {
         QVariantHash characteristics{};
+        QVariantHash subscribed{};
         for (auto characteristic = service.value().constBegin(); characteristic != service.value().constEnd(); ++characteristic) {
             QVariantList capabilities{};
-            if (characteristic.value() & Capability::Read) capabilities.append(QStringLiteral("read"));
-            if (characteristic.value() & Capability::WriteRequest) capabilities.append(QStringLiteral("write_request"));
-            if (characteristic.value() & Capability::WriteCommand) capabilities.append(QStringLiteral("write_command"));
-            if (characteristic.value() & Capability::Notify) capabilities.append(QStringLiteral("notify"));
-            if (characteristic.value() & Capability::Indicate) capabilities.append(QStringLiteral("indicate"));
+            if (characteristic.value().capabilities & (1u << Capability::Read)) capabilities.append(QStringLiteral("read"));
+            if (characteristic.value().capabilities & (1u << Capability::WriteRequest)) capabilities.append(QStringLiteral("write_request"));
+            if (characteristic.value().capabilities & (1u << Capability::WriteCommand)) capabilities.append(QStringLiteral("write_command"));
+            if (characteristic.value().capabilities & (1u << Capability::Notify)) capabilities.append(QStringLiteral("notify"));
+            if (characteristic.value().capabilities & (1u << Capability::Indicate)) capabilities.append(QStringLiteral("indicate"));
             characteristics.insert(characteristic.key(), capabilities);
+            if (const auto &subscription = characteristic.value().subscription) {
+                const auto used = subscription->buffer.used();
+                bufferUsed += used;
+                subscribed.insert(characteristic.key(), QVariantHash{
+                                      {"mode", subscription->mode},
+                                      {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
+                                      {"bufferUsed", QString::number(used)}
+                                  });
+            }
         }
         services.insert(service.key(), characteristics);
+        if (!subscribed.isEmpty()) subscriptions.insert(service.key(), subscribed);
     }
     QString status{};
     switch (m_state) {
@@ -60,9 +76,10 @@ QVariantHash BluetoothLe::info() {
         {"adapter", m_portConfig["adapterAddress"].toString()},
         {"peripheral", m_portConfig["peripheralAddress"].toString()},
         {"services", services},
+        {"subscriptions", subscriptions},
         {"mtu", QString::number(m_mtu)},
         {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
-        {"bufferUsed", QString::number(m_buffer.used())}
+        {"bufferUsed", QString::number(bufferUsed)}
     };
 }
 
@@ -70,7 +87,6 @@ bool BluetoothLe::open() {
     if (m_state != State::Disconnected) return m_state == State::Connected;
 
     close();
-    m_buffer.clear();
     const auto portName = m_portConfig["portName"].toString();
     const auto adapterAddress = m_portConfig["adapterAddress"].toString();
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
@@ -147,13 +163,13 @@ bool BluetoothLe::open() {
         for (auto service: m_peripheral.services()) {
             auto &characteristics = m_services[QString::fromStdString(service.uuid()).toLower()];
             for (auto characteristic: service.characteristics()) {
-                int capabilities = Capability::None;
-                if (characteristic.can_read()) capabilities |= Capability::Read;
-                if (characteristic.can_write_request()) capabilities |= Capability::WriteRequest;
-                if (characteristic.can_write_command()) capabilities |= Capability::WriteCommand;
-                if (characteristic.can_notify()) capabilities |= Capability::Notify;
-                if (characteristic.can_indicate()) capabilities |= Capability::Indicate;
-                characteristics.insert(QString::fromStdString(characteristic.uuid()).toLower(), capabilities);
+                int capabilities{};
+                if (characteristic.can_read()) capabilities |= 1u << Capability::Read;
+                if (characteristic.can_write_request()) capabilities |= 1u << Capability::WriteRequest;
+                if (characteristic.can_write_command()) capabilities |= 1u << Capability::WriteCommand;
+                if (characteristic.can_notify()) capabilities |= 1u << Capability::Notify;
+                if (characteristic.can_indicate()) capabilities |= 1u << Capability::Indicate;
+                characteristics.insert(QString::fromStdString(characteristic.uuid()).toLower(), Characteristic{capabilities});
             }
         }
 
@@ -169,12 +185,25 @@ bool BluetoothLe::open() {
 void BluetoothLe::close() {
     if (m_peripheral.initialized()) {
         if (m_state == State::Connected) handleStateChanged(State::Disconnecting);
+        for (auto service = m_services.begin(); service != m_services.end(); ++service) {
+            for (auto characteristic = service.value().begin(); characteristic != service.value().end(); ++characteristic) {
+                try {
+                    unsubscribe(service.key(), characteristic.key());
+                } catch (const std::exception &exception) {
+                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("unsubscribe failed: %1").arg(exception.what()));
+                } catch (...) {
+                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "unsubscribe failed");
+                }
+            }
+        }
         try {
             m_peripheral.set_callback_on_connected(nullptr);
             m_peripheral.set_callback_on_disconnected(nullptr);
             m_peripheral.disconnect();
         } catch (const std::exception &exception) {
             emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
+        } catch (...) {
+            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "disconnect failed");
         }
     }
     m_peripheral = {};
@@ -183,7 +212,132 @@ void BluetoothLe::close() {
 }
 
 void BluetoothLe::clear() {
-    m_buffer.clear();
+    for (auto &service: m_services) {
+        for (auto &characteristic: service) {
+            if (characteristic.subscription) characteristic.subscription->buffer.clear();
+        }
+    }
+}
+
+bool BluetoothLe::normalize(QString &uuid) {
+    if (uuid.size() == 4 || uuid.size() == 8) {
+        bool valid{};
+        const auto value = uuid.toUInt(&valid, 16);
+        if (!valid || uuid.compare(QString::number(value, 16).rightJustified(uuid.size(), QChar('0')), Qt::CaseInsensitive) != 0) return false;
+        uuid = QString("%1-0000-1000-8000-00805f9b34fb").arg(value, 8, 16, QChar('0'));
+        return true;
+    }
+    const auto value = QUuid::fromString(uuid);
+    if (value.isNull()) return false;
+    uuid = value.toString(QUuid::WithoutBraces);
+    return true;
+}
+
+QString BluetoothLe::check(const QString &serviceUuid, const QString &characteristicUuid, const int mode) const {
+    if (mode < -1 || mode > Capability::Indicate) return "invalid BLE mode";
+    if (m_state != State::Connected) return "not connected";
+    const auto service = m_services.constFind(serviceUuid);
+    if (service == m_services.constEnd()) return "service not found";
+    const auto characteristic = service.value().constFind(characteristicUuid);
+    if (characteristic == service.value().constEnd()) return "characteristic not found in service";
+    if (mode == -1) return {};
+    if (characteristic.value().capabilities & (1u << mode)) {
+        const auto &subscription = characteristic.value().subscription;
+        if ((mode == Capability::Notify || mode == Capability::Indicate) && subscription && subscription->mode != mode)
+            return "characteristic already subscribed with a different mode; unsubscribe first";
+        return {};
+    }
+    switch (mode) {
+        case Capability::Read: return "characteristic does not support read";
+        case Capability::WriteRequest: return "characteristic does not support write_request";
+        case Capability::WriteCommand: return "characteristic does not support write_command";
+        case Capability::Notify: return "characteristic does not support notify";
+        case Capability::Indicate: return "characteristic does not support indicate";
+        default: return "characteristic does not support requested capability";
+    }
+}
+
+void BluetoothLe::write(const QByteArray &txData, const int mode, const QString &serviceUuid, const QString &characteristicUuid) {
+    const auto service = serviceUuid.toStdString();
+    const auto characteristic = characteristicUuid.toStdString();
+    const SimpleBLE::ByteArray data(reinterpret_cast<const uint8_t *>(txData.constData()), static_cast<size_t>(txData.size()));
+    if (mode == Capability::WriteRequest) m_peripheral.write_request(service, characteristic, data);
+    else m_peripheral.write_command(service, characteristic, data);
+    handleLog(LogLevel::Transmit, txData, serviceUuid, characteristicUuid);
+}
+
+QByteArray BluetoothLe::read(const QString &serviceUuid, const QString &characteristicUuid) {
+    const auto data = m_peripheral.read(serviceUuid.toStdString(), characteristicUuid.toStdString());
+    const QByteArray rxData(reinterpret_cast<const char *>(data.data()), static_cast<qsizetype>(data.size()));
+    handleLog(LogLevel::Receive, rxData, serviceUuid, characteristicUuid);
+    return rxData;
+}
+
+QByteArray BluetoothLe::read(const int length, const int timeout, const QString &serviceUuid, const QString &characteristicUuid, const bool peek) {
+    const auto subscription = m_services.value(serviceUuid).value(characteristicUuid).subscription;
+    if (!subscription || length < 0) return {};
+    const int minimum = length == 0 ? 1 : length;
+    const QDeadlineTimer deadline(timeout);
+    QEventLoop eventLoop;
+    while (subscription->buffer.used() < minimum) {
+        if (!subscription->active || m_state != State::Connected || deadline.hasExpired()) break;
+        const auto interval = deadline.isForever() ? 10 : static_cast<int>(qMin<qint64>(10, deadline.remainingTime()));
+        QTimer::singleShot(interval, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+    }
+    if (!subscription->active || m_state != State::Connected) return {};
+    return subscription->buffer.read(length, peek);
+}
+
+QByteArray BluetoothLe::readUntil(const QByteArray &text, const int timeout, const QString &serviceUuid, const QString &characteristicUuid, const bool peek) {
+    const auto subscription = m_services.value(serviceUuid).value(characteristicUuid).subscription;
+    if (!subscription || text.isEmpty()) return {};
+    const QDeadlineTimer deadline(timeout);
+    QEventLoop eventLoop;
+    QByteArray data = subscription->buffer.readUntil(text, peek);
+    while (data.isEmpty()) {
+        if (!subscription->active || m_state != State::Connected || deadline.hasExpired()) break;
+        const auto interval = deadline.isForever() ? 10 : static_cast<int>(qMin<qint64>(10, deadline.remainingTime()));
+        QTimer::singleShot(interval, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+        if (!subscription->active || m_state != State::Connected) return {};
+        data = subscription->buffer.readUntil(text, peek);
+    }
+    return data;
+}
+
+void BluetoothLe::subscribe(const int mode, const QString &serviceUuid, const QString &characteristicUuid) {
+    auto &characteristic = m_services[serviceUuid][characteristicUuid];
+    if (characteristic.subscription) return;
+    const auto subscription = std::make_shared<Subscription>(mode, m_portConfig["bufferSize"].toInt());
+    characteristic.subscription = subscription;
+    const auto callback = [port = QPointer(this), weak = std::weak_ptr(subscription), serviceUuid, characteristicUuid](SimpleBLE::ByteArray data) {
+        if (!port) return;
+        const QByteArray rxData(reinterpret_cast<const char *>(data.data()), static_cast<qsizetype>(data.size()));
+        QMetaObject::invokeMethod(port.data(), [port, weak, serviceUuid, characteristicUuid, rxData] {
+            if (const auto subscription = weak.lock()) port->handleReadyRead(subscription.get(), rxData, serviceUuid, characteristicUuid);
+        }, Qt::QueuedConnection);
+    };
+    try {
+        if (mode == Capability::Notify) m_peripheral.notify(serviceUuid.toStdString(), characteristicUuid.toStdString(), callback);
+        else m_peripheral.indicate(serviceUuid.toStdString(), characteristicUuid.toStdString(), callback);
+    } catch (...) {
+        subscription->active = false;
+        characteristic.subscription.reset();
+        try {
+            m_peripheral.unsubscribe(serviceUuid.toStdString(), characteristicUuid.toStdString());
+        } catch (...) {
+        }
+        throw;
+    }
+}
+
+void BluetoothLe::unsubscribe(const QString &serviceUuid, const QString &characteristicUuid) {
+    auto &characteristic = m_services.find(serviceUuid).value().find(characteristicUuid).value();
+    const auto subscription = std::exchange(characteristic.subscription, {});
+    if (!subscription) return;
+    subscription->active = false;
+    m_peripheral.unsubscribe(serviceUuid.toStdString(), characteristicUuid.toStdString());
 }
 
 // private
@@ -197,7 +351,6 @@ bool BluetoothLe::peripheralGet(const QString &peripheralAddress, std::vector<Si
     return false;
 }
 
-
 void BluetoothLe::handleStateChanged(const int state) {
     if (m_state == state) return;
     m_state = state;
@@ -206,6 +359,11 @@ void BluetoothLe::handleStateChanged(const int state) {
     switch (state) {
         case State::Disconnected:
             m_mtu = 0;
+            for (auto &service: m_services) {
+                for (auto &characteristic: service) {
+                    if (characteristic.subscription) characteristic.subscription->active = false;
+                }
+            }
             m_services.clear();
             message = QString("disconnected from %1").arg(peripheralAddress);
             break;
@@ -222,4 +380,39 @@ void BluetoothLe::handleStateChanged(const int state) {
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == State::Connected);
     if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+}
+
+void BluetoothLe::handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid) {
+    if (m_state != State::Connected || !subscription->active) return;
+    if (subscription->buffer.write(data) != data.size()) {
+        const auto source = QString("[%1/%2/%3]").arg(m_portConfig["portName"].toString(), serviceUuid, characteristicUuid);
+        emit appendLog(LogLevel::Error, source, "buffer overflow");
+        try {
+            unsubscribe(serviceUuid, characteristicUuid);
+        } catch (const std::exception &exception) {
+            emit appendLog(LogLevel::Error, source, QString("unsubscribe failed: %1").arg(exception.what()));
+        } catch (...) {
+            emit appendLog(LogLevel::Error, source, "unsubscribe failed");
+        }
+        return;
+    }
+    handleLog(LogLevel::Receive, data, serviceUuid, characteristicUuid);
+}
+
+void BluetoothLe::handleLog(const int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid) {
+    QString message{};
+    const auto format = m_portConfig["logFormat"].toString();
+    if (format == "raw") {
+        message.reserve(data.size() * 4);
+        for (const char c: data) message += QString("\\x%1").arg(static_cast<quint8>(c), 2, 16, QChar('0'));
+    } else if (format == "hex") message = data.toHex(' ').toUpper();
+    else if (format == "ascii") message = QString::fromLatin1(data);
+    else message = QString::fromUtf8(data);
+
+    const auto endpoint = QString("%1/%2/%3").arg(m_portConfig["peripheralAddress"].toString(), serviceUuid, characteristicUuid);
+    if (type == LogLevel::Transmit) {
+        emit appendLog(type, QString("[%1 -&gt; %2]").arg(m_portConfig["adapterAddress"].toString(), endpoint), message);
+    } else {
+        emit appendLog(type, QString("[%1 &lt;- %2]").arg(m_portConfig["adapterAddress"].toString(), endpoint), message);
+    }
 }

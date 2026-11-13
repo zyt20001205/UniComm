@@ -1,7 +1,6 @@
 #ifndef UNICOMM_RINGBUFFER_H
 #define UNICOMM_RINGBUFFER_H
 
-#include <QByteArray>
 #include <QMutex>
 
 class RingBuffer final {

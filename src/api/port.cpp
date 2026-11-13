@@ -3,10 +3,12 @@
 #include <sol/state_view.hpp>
 #include <sol/table_core.hpp>
 
+#include <exception>
 #include <utility>
 
 #include "globals.h"
 #include "port/basePort.h"
+#include "port/bluetoothLe.h"
 #include "port/portModule.h"
 #include "port/sslServer.h"
 #include "port/tcpServer.h"
@@ -96,6 +98,8 @@ void Port::clear() const {
 
 void Port::write(const std::string &data, const int messageType, const std::string &peerIp) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    if (m_port->type() == PortType::BluetoothLe)
+        throw sol::error(m_portName.toStdString() + ": Bluetooth LE writes require mode, service UUID and characteristic UUID");
     bool status = false;
     auto *port = m_port.data();
     const QByteArray txData(data.data(), static_cast<qsizetype>(data.size()));
@@ -123,8 +127,43 @@ void Port::write(const std::string &data, const int messageType, const std::stri
     if (!status) throw sol::error("failed to write port: " + m_portName.toStdString());
 }
 
+void Port::write(const std::string &data, const int mode, const std::string &serviceUuid, const std::string &characteristicUuid) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    if (mode != BluetoothLe::Capability::WriteRequest && mode != BluetoothLe::Capability::WriteCommand)
+        throw sol::error(m_portName.toStdString() + ": invalid BLE write mode (expected 1 or 2)");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    const QByteArray txData(data.data(), static_cast<qsizetype>(data.size()));
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &exception, &txData, &service, &characteristic, mode] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "UUID writes require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic, mode);
+        if (!exception.isEmpty()) return;
+        try {
+            ble->write(txData, mode, service, characteristic);
+        } catch (const std::exception &error) {
+            exception = QString::fromUtf8(error.what());
+        } catch (...) {
+            exception = "failed to write characteristic";
+        }
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
+}
+
 sol::object Port::read(const sol::this_state ts, const int length, const int timeout, const std::string &peerIp, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    if (m_port->type() == PortType::BluetoothLe)
+        throw sol::error(m_portName.toStdString() + ": Bluetooth LE buffer reads require service UUID and characteristic UUID");
     sol::state_view lua(ts);
     QByteArray rxData{};
     auto *port = m_port.data();
@@ -160,8 +199,70 @@ sol::object Port::read(const sol::this_state ts, const int length, const int tim
     return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
 }
 
+sol::object Port::read(const sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    QByteArray rxData{};
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &rxData, &exception, &service, &characteristic] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "UUID reads require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic, BluetoothLe::Capability::Read);
+        if (!exception.isEmpty()) return;
+        try {
+            rxData = ble->read(service, characteristic);
+        } catch (const std::exception &error) {
+            exception = QString::fromUtf8(error.what());
+        } catch (...) {
+            exception = "failed to read characteristic";
+        }
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
+    sol::state_view lua(ts);
+    return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
+}
+
+sol::object Port::read(const sol::this_state ts, const int length, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, const bool peek) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    QByteArray rxData{};
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &rxData, &exception, &service, &characteristic, length, timeout, peek] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "UUID buffer reads require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic);
+        if (!exception.isEmpty()) return;
+        rxData = ble->read(length, timeout, service, characteristic, peek);
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
+    sol::state_view lua(ts);
+    return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
+}
+
 sol::object Port::readUntil(const sol::this_state ts, const std::string &text, const int timeout, const std::string &peerIp, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    if (m_port->type() == PortType::BluetoothLe)
+        throw sol::error(m_portName.toStdString() + ": Bluetooth LE buffer reads require service UUID and characteristic UUID");
     sol::state_view lua(ts);
     QByteArray rxData{};
     auto *port = m_port.data();
@@ -188,4 +289,94 @@ sol::object Port::readUntil(const sol::this_state ts, const std::string &text, c
         rxData = port->readUntil(textData, timeout, "", peek);
     }, Qt::BlockingQueuedConnection);
     return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
+}
+
+sol::object Port::readUntil(const sol::this_state ts, const std::string &text, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, const bool peek) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    const QByteArray textData(text.data(), static_cast<qsizetype>(text.size()));
+    QByteArray rxData{};
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &rxData, &exception, &textData, &service, &characteristic, timeout, peek] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "UUID buffer reads require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic);
+        if (!exception.isEmpty()) return;
+        rxData = ble->readUntil(textData, timeout, service, characteristic, peek);
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
+    sol::state_view lua(ts);
+    return sol::make_object(lua, std::string(rxData.constData(), static_cast<std::string::size_type>(rxData.size())));
+}
+
+void Port::subscribe(const int mode, const std::string &serviceUuid, const std::string &characteristicUuid) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    if (mode != BluetoothLe::Capability::Notify && mode != BluetoothLe::Capability::Indicate)
+        throw sol::error(m_portName.toStdString() + ": invalid BLE subscription mode (expected 3 or 4)");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &exception, &service, &characteristic, mode] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "subscriptions require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic, mode);
+        if (!exception.isEmpty()) return;
+        try {
+            ble->subscribe(mode, service, characteristic);
+        } catch (const std::exception &error) {
+            exception = QString::fromUtf8(error.what());
+        } catch (...) {
+            exception = "failed to subscribe characteristic";
+        }
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
+}
+
+void Port::unsubscribe(const std::string &serviceUuid, const std::string &characteristicUuid) const {
+    if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
+    auto service = QString::fromStdString(serviceUuid);
+    auto characteristic = QString::fromStdString(characteristicUuid);
+    if (!BluetoothLe::normalize(service))
+        throw sol::error(m_portName.toStdString() + ": invalid service UUID");
+    if (!BluetoothLe::normalize(characteristic))
+        throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
+
+    QString exception{};
+    auto *port = m_port.data();
+    QMetaObject::invokeMethod(port, [port, &exception, &service, &characteristic] {
+        if (port->type() != PortType::BluetoothLe) {
+            exception = "subscriptions require a Bluetooth LE port";
+            return;
+        }
+        auto *ble = static_cast<BluetoothLe *>(port);
+        exception = ble->check(service, characteristic);
+        if (!exception.isEmpty()) return;
+        try {
+            ble->unsubscribe(service, characteristic);
+        } catch (const std::exception &error) {
+            exception = QString::fromUtf8(error.what());
+        } catch (...) {
+            exception = "failed to unsubscribe characteristic";
+        }
+    }, Qt::BlockingQueuedConnection);
+    if (!exception.isEmpty()) throw sol::error(m_portName.toStdString() + ": " + exception.toStdString());
 }

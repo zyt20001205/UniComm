@@ -3,6 +3,7 @@
 
 #include <QHash>
 #include <QJsonObject>
+#include <memory>
 #include <simpleble/SimpleBLE.h>
 
 #include "basePort.h"
@@ -12,6 +13,16 @@ class BluetoothLe final : public BasePort {
     Q_OBJECT
 
 public:
+    struct Capability {
+        enum {
+            Read = 0,
+            WriteRequest,
+            WriteCommand,
+            Notify,
+            Indicate
+        };
+    };
+
     explicit BluetoothLe(const QJsonObject &portConfig, QObject *parent = nullptr);
 
     ~BluetoothLe() override;
@@ -28,10 +39,43 @@ public:
 
     void clear() override;
 
+    [[nodiscard]] static bool normalize(QString &uuid);
+
+    [[nodiscard]] QString check(const QString &serviceUuid, const QString &characteristicUuid, int mode = -1) const;
+
+    void write(const QByteArray &txData, int mode, const QString &serviceUuid, const QString &characteristicUuid);
+
+    [[nodiscard]] QByteArray read(const QString &serviceUuid, const QString &characteristicUuid);
+
+    [[nodiscard]] QByteArray read(int length, int timeout, const QString &serviceUuid, const QString &characteristicUuid, bool peek = false);
+
+    [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &serviceUuid, const QString &characteristicUuid, bool peek = false);
+
+    void subscribe(int mode, const QString &serviceUuid, const QString &characteristicUuid);
+
+    void unsubscribe(const QString &serviceUuid, const QString &characteristicUuid);
+
 private:
     bool peripheralGet(const QString &peripheralAddress, std::vector<SimpleBLE::Peripheral> peripherals);
 
     void handleStateChanged(int state);
+
+    struct Subscription {
+        Subscription(const int mode, const int capacity) : mode(mode), buffer(capacity) {}
+
+        int mode{};
+        bool active{true};
+        RingBuffer buffer;
+    };
+
+    void handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid);
+
+    void handleLog(int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid);
+
+    struct Characteristic {
+        int capabilities{};
+        std::shared_ptr<Subscription> subscription{};
+    };
 
     struct State {
         enum {
@@ -42,23 +86,11 @@ private:
         };
     };
 
-    struct Capability {
-        enum {
-            None = 0,
-            Read = 1 << 0,
-            WriteRequest = 1 << 1,
-            WriteCommand = 1 << 2,
-            Notify = 1 << 3,
-            Indicate = 1 << 4
-        };
-    };
-
     SimpleBLE::Adapter m_adapter{};
     SimpleBLE::Peripheral m_peripheral{};
     QJsonObject m_portConfig{};
-    // service UUID -> characteristic UUID -> capability flags.
-    QHash<QString, QHash<QString, int>> m_services{};
-    RingBuffer m_buffer;
+    // service UUID -> characteristic UUID -> Characteristic struct.
+    QHash<QString, QHash<QString, Characteristic>> m_services{};
     quint16 m_mtu{};
     int m_state{State::Disconnected};
 };

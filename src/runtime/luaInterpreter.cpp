@@ -254,24 +254,50 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "close", &Port::close,
             "clear", &Port::clear,
             "write", sol::overload(
+                [](const Port &port, const std::string &data, const int mode, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    port.write(data, mode, serviceUuid, characteristicUuid);
+                },
                 // References prevent this sol2 version from detecting optional arity.
                 [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> peerIp) { port.write(data, messageType, peerIp.value_or("")); },
                 [](const Port &port, const std::string &data, const sol::optional<std::string> peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
             ),
-            "read", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
-                return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), false);
-            },
-            "peek", [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> &peerIp) {
-                return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), true);
-            },
-            "readUntil", [](const Port &port, const sol::this_state ts, const sol::optional<std::string> &text, const sol::optional<int> timeout,
-                            const sol::optional<std::string> &peerIp) {
-                return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), false);
-            },
-            "peekUntil", [](const Port &port, const sol::this_state ts, const sol::optional<std::string> &text, const sol::optional<int> timeout,
-                            const sol::optional<std::string> &peerIp) {
-                return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), true);
-            }
+            "read", sol::overload(
+                [](const Port &port, const sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    return port.read(ts, serviceUuid, characteristicUuid);
+                },
+                [](const Port &port, const sol::this_state ts, const int length, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    return port.read(ts, length, timeout, serviceUuid, characteristicUuid);
+                },
+                [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> peerIp) {
+                    return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), false);
+                }
+            ),
+            "peek", sol::overload(
+                [](const Port &port, const sol::this_state ts, const int length, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    return port.read(ts, length, timeout, serviceUuid, characteristicUuid, true);
+                },
+                [](const Port &port, const sol::this_state ts, const sol::optional<int> length, const sol::optional<int> timeout, const sol::optional<std::string> peerIp) {
+                    return port.read(ts, length.value_or(0), timeout.value_or(0), peerIp.value_or(""), true);
+                }
+            ),
+            "readUntil", sol::overload(
+                [](const Port &port, const sol::this_state ts, const std::string &text, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    return port.readUntil(ts, text, timeout, serviceUuid, characteristicUuid);
+                },
+                [](const Port &port, const sol::this_state ts, const sol::optional<std::string> text, const sol::optional<int> timeout, const sol::optional<std::string> peerIp) {
+                    return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), false);
+                }
+            ),
+            "peekUntil", sol::overload(
+                [](const Port &port, const sol::this_state ts, const std::string &text, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid) {
+                    return port.readUntil(ts, text, timeout, serviceUuid, characteristicUuid, true);
+                },
+                [](const Port &port, const sol::this_state ts, const sol::optional<std::string> text, const sol::optional<int> timeout, const sol::optional<std::string> peerIp) {
+                    return port.readUntil(ts, text.value_or("\r\n"), timeout.value_or(0), peerIp.value_or(""), true);
+                }
+            ),
+            "subscribe", &Port::subscribe,
+            "unsubscribe", &Port::unsubscribe
         );
         auto port = m_lua.create_table();
         auto portType = m_lua.create_table();

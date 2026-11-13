@@ -4,6 +4,9 @@
 ---| string
 ---| '"__PLACEHOLDER__PORTNAME__"'
 
+---Bluetooth UUID: 4 or 8 hexadecimal digits, or a full 128-bit UUID.
+---@alias uuid string
+
 ---@alias password "__PLACEHOLDER__PASSWORD__"
 
 ---@alias FileType
