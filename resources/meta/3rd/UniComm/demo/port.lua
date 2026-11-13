@@ -5,7 +5,8 @@
 -- Serial port:
 -- local serial = Port.create({
 --     portType = Port.Type.SerialPort,
---     portName = "COM4",
+--     portName = "Serial Port",
+--     deviceName = "COM4",
 --     baudRate = 115200,
 --     logFormat = "utf-8",
 -- })

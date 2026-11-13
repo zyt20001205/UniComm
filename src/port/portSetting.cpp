@@ -13,44 +13,28 @@
 #include <QQuickView>
 #include <QQuickWidget>
 #include <QScreenCapture>
-#include <QThread>
 #include <QVideoSink>
+#include <QtConcurrentRun>
+
+#include <exception>
+#include <utility>
 
 #include "globals.h"
 #include "core/globalManager.h"
-// #include "port/module/bluetoothDiscovery.h"
 #include "port/module/deviceDiscovery.h"
 
 // public
 PortSetting::PortSetting(QWidget *parent)
     : QObject(parent),
       m_window(new QQuickView()),
-      m_bluetoothAdapterStandardItemModel(new QStandardItemModel(this)),
-      m_bluetoothPeripheralStandardItemModel(new QStandardItemModel(this)),
-      m_bluetoothServiceStandardItemModel(new QStandardItemModel(this)),
-      m_bluetoothTxCharacteristicStandardItemModel(new QStandardItemModel(this)),
-      m_bluetoothRxCharacteristicStandardItemModel(new QStandardItemModel(this)),
-      // m_bluetoothThread(new QThread(this)),
-      // m_bluetoothDiscovery(new BluetoothDiscovery()),
       m_mediaCaptureSession(new QMediaCaptureSession(this)),
       m_roiModel(new RoiModel(this)),
       m_pipelineModel(new PipelineModel(this)),
       m_imageProvider(new ImageProvider()) {
-    /*
-    m_bluetoothDiscovery->moveToThread(m_bluetoothThread);
-    connect(m_bluetoothThread, &QThread::finished, m_bluetoothDiscovery, &QObject::deleteLater);
-    connect(m_bluetoothDiscovery, &BluetoothDiscovery::adaptersUpdated, this, &PortSetting::bluetoothAdaptersUpdate);
-    connect(m_bluetoothDiscovery, &BluetoothDiscovery::peripheralsUpdated, this, &PortSetting::bluetoothPeripheralsUpdate);
-    connect(m_bluetoothDiscovery, &BluetoothDiscovery::servicesUpdated, this, &PortSetting::bluetoothServicesUpdate);
-    connect(m_bluetoothDiscovery, &BluetoothDiscovery::statusUpdated, this, &PortSetting::bluetoothStatusUpdate);
-    connect(m_bluetoothDiscovery, &BluetoothDiscovery::busyChanged, this, &PortSetting::bluetoothBusyUpdate);
-    m_bluetoothThread->start();
-    */
 }
 
 PortSetting::~PortSetting() {
-    // m_bluetoothThread->quit();
-    // m_bluetoothThread->wait();
+    m_bleFuture.waitForFinished();
     delete m_window;
 }
 
@@ -62,11 +46,6 @@ void PortSetting::propertySet(const QVariantHash &objects) {
     m_window->rootContext()->setContextProperty("portSetting", this);
     m_window->rootContext()->setContextProperty("global", g_globalManager);
     m_window->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_window->rootContext()->setContextProperty("bluetoothAdapterStandardItemModel", m_bluetoothAdapterStandardItemModel);
-    m_window->rootContext()->setContextProperty("bluetoothPeripheralStandardItemModel", m_bluetoothPeripheralStandardItemModel);
-    m_window->rootContext()->setContextProperty("bluetoothServiceStandardItemModel", m_bluetoothServiceStandardItemModel);
-    m_window->rootContext()->setContextProperty("bluetoothTxCharacteristicStandardItemModel", m_bluetoothTxCharacteristicStandardItemModel);
-    m_window->rootContext()->setContextProperty("bluetoothRxCharacteristicStandardItemModel", m_bluetoothRxCharacteristicStandardItemModel);
     m_window->rootContext()->setContextProperty("roiModel", m_roiModel);
     m_window->rootContext()->setContextProperty("pipelineModel", m_pipelineModel);
 
@@ -78,7 +57,8 @@ void PortSetting::propertySet(const QVariantHash &objects) {
 void PortSetting::propertyGet(const QVariantMap &objects) {
     m_swipeView = qvariant_cast<QObject *>(objects["swipeView"]);
     // serial port
-    m_serialPortNameComboBox = qvariant_cast<QObject *>(objects["serialPortNameComboBox"]);
+    m_serialPortNameTextField = qvariant_cast<QObject *>(objects["serialPortNameTextField"]);
+    m_serialPortDeviceNameComboBox = qvariant_cast<QObject *>(objects["serialPortDeviceNameComboBox"]);
     m_serialPortBaudRateSpinBox = qvariant_cast<QObject *>(objects["serialPortBaudRateSpinBox"]);
     m_serialPortDataBitsComboBox = qvariant_cast<QObject *>(objects["serialPortDataBitsComboBox"]);
     m_serialPortParityComboBox = qvariant_cast<QObject *>(objects["serialPortParityComboBox"]);
@@ -116,16 +96,6 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_udpSocketLocalPortSpinBox = qvariant_cast<QObject *>(objects["udpSocketLocalPortSpinBox"]);
     m_udpSocketRemoteHostTextField = qvariant_cast<QObject *>(objects["udpSocketRemoteHostTextField"]);
     m_udpSocketRemotePortSpinBox = qvariant_cast<QObject *>(objects["udpSocketRemotePortSpinBox"]);
-    // bluetooth le
-    m_bluetoothNameTextField = qvariant_cast<QObject *>(objects["bluetoothNameTextField"]);
-    m_bluetoothAdapterComboBox = qvariant_cast<QObject *>(objects["bluetoothAdapterComboBox"]);
-    m_bluetoothPeripheralComboBox = qvariant_cast<QObject *>(objects["bluetoothPeripheralComboBox"]);
-    m_bluetoothServiceComboBox = qvariant_cast<QObject *>(objects["bluetoothServiceComboBox"]);
-    m_bluetoothTxCharacteristicComboBox = qvariant_cast<QObject *>(objects["bluetoothTxCharacteristicComboBox"]);
-    m_bluetoothRxCharacteristicComboBox = qvariant_cast<QObject *>(objects["bluetoothRxCharacteristicComboBox"]);
-    m_bluetoothWriteTypeComboBox = qvariant_cast<QObject *>(objects["bluetoothWriteTypeComboBox"]);
-    m_bluetoothSubscribeTypeComboBox = qvariant_cast<QObject *>(objects["bluetoothSubscribeTypeComboBox"]);
-    m_bluetoothStatusLabel = qvariant_cast<QObject *>(objects["bluetoothStatusLabel"]);
     // format
     m_logFormatComboBox = qvariant_cast<QObject *>(objects["logFormatComboBox"]);
     m_txSuffixComboBox = qvariant_cast<QObject *>(objects["txSuffixComboBox"]);
@@ -142,22 +112,16 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
     serialPortRefresh();
     localHostRefresh();
     visionRefresh();
-    m_bluetoothConfig = portConfig["portType"].toInt(-1) == PortType::BluetoothLe ? portConfig : QJsonObject{};
-    m_bluetoothServices.clear();
-    m_bluetoothAdapterStandardItemModel->clear();
-    m_bluetoothPeripheralStandardItemModel->clear();
-    m_bluetoothServiceStandardItemModel->clear();
-    m_bluetoothTxCharacteristicStandardItemModel->clear();
-    m_bluetoothRxCharacteristicStandardItemModel->clear();
-    bluetoothAdapterRefresh();
+    bleRefresh();
     processRefresh(portConfig);
     if (portConfig.isEmpty()) {
         m_root->setProperty("portType", 0);
         m_swipeView->setProperty("currentIndex", 0);
         m_oldPortName = "";
         // serial port
-        if (m_serialPortNameComboBox->property("count").toInt()) {
-            m_serialPortNameComboBox->setProperty("currentIndex", 0);
+        m_serialPortNameTextField->setProperty("text", "");
+        if (m_serialPortDeviceNameComboBox->property("count").toInt()) {
+            m_serialPortDeviceNameComboBox->setProperty("currentIndex", 0);
         }
         m_serialPortBaudRateSpinBox->setProperty("value", 115200);
         m_serialPortDataBitsComboBox->setProperty("currentValue", 8);
@@ -209,16 +173,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_udpSocketLocalPortSpinBox->setProperty("value", 0);
         m_udpSocketRemoteHostTextField->setProperty("text", "");
         m_udpSocketRemotePortSpinBox->setProperty("value", 0);
-        // bluetooth le
-        m_bluetoothNameTextField->setProperty("text", "");
-        m_bluetoothAdapterComboBox->setProperty("currentIndex", -1);
-        m_bluetoothPeripheralComboBox->setProperty("currentIndex", -1);
-        m_bluetoothServiceComboBox->setProperty("currentIndex", -1);
-        m_bluetoothTxCharacteristicComboBox->setProperty("currentIndex", -1);
-        m_bluetoothRxCharacteristicComboBox->setProperty("currentIndex", -1);
-        m_bluetoothWriteTypeComboBox->setProperty("currentValue", "request");
-        m_bluetoothSubscribeTypeComboBox->setProperty("currentValue", "notify");
-        m_bluetoothStatusLabel->setProperty("text", "");
         // format
         m_logFormatComboBox->setProperty("currentValue", "utf-8");
         m_txSuffixComboBox->setProperty("currentValue", "null");
@@ -230,7 +184,8 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_root->setProperty("portType", portType);
         switch (portType) {
             case PortType::SerialPort: {
-                m_serialPortNameComboBox->setProperty("currentValue", portConfig["portName"].toString());
+                m_serialPortNameTextField->setProperty("text", portConfig["portName"].toString());
+                m_serialPortDeviceNameComboBox->setProperty("currentValue", portConfig["deviceName"].toString());
                 m_serialPortBaudRateSpinBox->setProperty("value", portConfig["baudRate"].toInt());
                 m_serialPortDataBitsComboBox->setProperty("currentValue", portConfig["dataBits"].toInt());
                 m_serialPortParityComboBox->setProperty("currentValue", portConfig["parity"].toInt());
@@ -332,49 +287,6 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
             }
             break;
-            case PortType::BluetoothLe: {
-                const auto adapterName = portConfig["adapterName"].toString();
-                const auto adapterAddress = portConfig["adapterAddress"].toString();
-                auto *adapterItem = new QStandardItem(adapterName.isEmpty() ? adapterAddress : QString("%1 [%2]").arg(adapterName, adapterAddress)); // NOLINT
-                adapterItem->setData(adapterName, Qt::UserRole);
-                adapterItem->setData(adapterAddress, Qt::WhatsThisRole);
-                m_bluetoothAdapterStandardItemModel->appendRow(adapterItem);
-
-                const auto peripheralName = portConfig["peripheralName"].toString();
-                const auto peripheralAddress = portConfig["peripheralAddress"].toString();
-                auto *peripheralItem = new QStandardItem(peripheralName.isEmpty() ? peripheralAddress : QString("%1 [%2]").arg(peripheralName, peripheralAddress)); // NOLINT
-                peripheralItem->setData(peripheralName, Qt::UserRole);
-                peripheralItem->setData(peripheralAddress, Qt::WhatsThisRole);
-                m_bluetoothPeripheralStandardItemModel->appendRow(peripheralItem);
-
-                const auto serviceUuid = portConfig["serviceUuid"].toString();
-                auto *serviceItem = new QStandardItem(serviceUuid); // NOLINT
-                serviceItem->setData(serviceUuid, Qt::WhatsThisRole);
-                m_bluetoothServiceStandardItemModel->appendRow(serviceItem);
-
-                const auto txCharacteristicUuid = portConfig["txCharacteristicUuid"].toString();
-                auto *txItem = new QStandardItem(txCharacteristicUuid); // NOLINT
-                txItem->setData(txCharacteristicUuid, Qt::WhatsThisRole);
-                m_bluetoothTxCharacteristicStandardItemModel->appendRow(txItem);
-
-                const auto rxCharacteristicUuid = portConfig["rxCharacteristicUuid"].toString();
-                auto *rxItem = new QStandardItem(rxCharacteristicUuid); // NOLINT
-                rxItem->setData(rxCharacteristicUuid, Qt::WhatsThisRole);
-                m_bluetoothRxCharacteristicStandardItemModel->appendRow(rxItem);
-
-                m_bluetoothNameTextField->setProperty("text", portConfig["portName"].toString());
-                m_bluetoothAdapterComboBox->setProperty("currentValue", adapterAddress);
-                m_bluetoothPeripheralComboBox->setProperty("currentValue", peripheralAddress);
-                m_bluetoothServiceComboBox->setProperty("currentValue", serviceUuid);
-                m_bluetoothTxCharacteristicComboBox->setProperty("currentValue", txCharacteristicUuid);
-                m_bluetoothRxCharacteristicComboBox->setProperty("currentValue", rxCharacteristicUuid);
-                m_bluetoothWriteTypeComboBox->setProperty("currentValue", portConfig["writeType"].toString("request"));
-                m_bluetoothSubscribeTypeComboBox->setProperty("currentValue", portConfig["subscribeType"].toString("notify"));
-                m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
-                m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
-                m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
-            }
-            break;
             default: break;
         }
     }
@@ -384,12 +296,15 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
 
 void PortSetting::portSettingExport() {
     const int portType = m_root->property("portType").toInt();
+    // BLE configuration will return with service and characteristic selection.
+    if (portType == PortType::BluetoothLe) return;
     QJsonObject portConfig{};
     switch (portType) {
         case PortType::SerialPort: {
             portConfig = {
                 {"portType", portType},
-                {"portName", m_serialPortNameComboBox->property("currentValue").toString()},
+                {"portName", m_serialPortNameTextField->property("text").toString()},
+                {"deviceName", m_serialPortDeviceNameComboBox->property("currentValue").toString()},
                 {"baudRate", m_serialPortBaudRateSpinBox->property("value").toInt()},
                 {"dataBits", m_serialPortDataBitsComboBox->property("currentValue").toInt()},
                 {"parity", m_serialPortParityComboBox->property("currentValue").toInt()},
@@ -540,27 +455,6 @@ void PortSetting::portSettingExport() {
             };
         }
         break;
-        case PortType::BluetoothLe: {
-            const auto *adapterItem = m_bluetoothAdapterStandardItemModel->item(m_bluetoothAdapterComboBox->property("currentIndex").toInt());
-            const auto *peripheralItem = m_bluetoothPeripheralStandardItemModel->item(m_bluetoothPeripheralComboBox->property("currentIndex").toInt());
-            portConfig = {
-                {"portType", portType},
-                {"portName", m_bluetoothNameTextField->property("text").toString()},
-                {"adapterName", adapterItem->data(Qt::UserRole).toString()},
-                {"adapterAddress", m_bluetoothAdapterComboBox->property("currentValue").toString()},
-                {"peripheralName", peripheralItem->data(Qt::UserRole).toString()},
-                {"peripheralAddress", m_bluetoothPeripheralComboBox->property("currentValue").toString()},
-                {"serviceUuid", m_bluetoothServiceComboBox->property("currentValue").toString()},
-                {"txCharacteristicUuid", m_bluetoothTxCharacteristicComboBox->property("currentValue").toString()},
-                {"rxCharacteristicUuid", m_bluetoothRxCharacteristicComboBox->property("currentValue").toString()},
-                {"writeType", m_bluetoothWriteTypeComboBox->property("currentValue").toString()},
-                {"subscribeType", m_bluetoothSubscribeTypeComboBox->property("currentValue").toString()},
-                {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
-                {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
-                {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}
-            };
-        }
-        break;
         default: break;
     }
     if (m_oldPortName.isEmpty()) {
@@ -573,72 +467,6 @@ void PortSetting::portSettingExport() {
 
 void PortSetting::dialogResize(const int width, const int height) const {
     m_window->resize(width, height);
-}
-
-void PortSetting::bluetoothScan(const QString &adapterAddress) {
-    if (adapterAddress.isEmpty()) return;
-    m_bluetoothConfig.remove("peripheralName");
-    m_bluetoothConfig.remove("peripheralAddress");
-    m_bluetoothConfig.remove("serviceUuid");
-    m_bluetoothConfig.remove("txCharacteristicUuid");
-    m_bluetoothConfig.remove("rxCharacteristicUuid");
-    m_bluetoothServices.clear();
-    m_bluetoothPeripheralStandardItemModel->clear();
-    m_bluetoothServiceStandardItemModel->clear();
-    m_bluetoothTxCharacteristicStandardItemModel->clear();
-    m_bluetoothRxCharacteristicStandardItemModel->clear();
-    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress] { m_bluetoothDiscovery->scan(adapterAddress); }, Qt::QueuedConnection);
-}
-
-void PortSetting::bluetoothDiscover(const QString &adapterAddress, const QString &peripheralAddress) {
-    if (adapterAddress.isEmpty() || peripheralAddress.isEmpty()) return;
-    m_bluetoothConfig.remove("serviceUuid");
-    m_bluetoothConfig.remove("txCharacteristicUuid");
-    m_bluetoothConfig.remove("rxCharacteristicUuid");
-    m_bluetoothServices.clear();
-    m_bluetoothServiceStandardItemModel->clear();
-    m_bluetoothTxCharacteristicStandardItemModel->clear();
-    m_bluetoothRxCharacteristicStandardItemModel->clear();
-    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this, adapterAddress, peripheralAddress] { m_bluetoothDiscovery->discover(adapterAddress, peripheralAddress); }, Qt::QueuedConnection);
-}
-
-void PortSetting::bluetoothServiceSelect(const QString &serviceUuid) {
-    if (m_bluetoothServices.isEmpty()) return;
-    const auto previousTx = m_bluetoothTxCharacteristicComboBox->property("currentValue").toString();
-    const auto previousRx = m_bluetoothRxCharacteristicComboBox->property("currentValue").toString();
-    m_bluetoothTxCharacteristicStandardItemModel->clear();
-    m_bluetoothRxCharacteristicStandardItemModel->clear();
-    for (const auto &value: m_bluetoothServices) {
-        const auto service = value.toHash();
-        if (service["uuid"].toString() != serviceUuid) continue;
-        for (const auto &characteristicValue: service["characteristics"].toList()) {
-            const auto characteristic = characteristicValue.toHash();
-            const auto uuid = characteristic["uuid"].toString();
-            if (characteristic["writeRequest"].toBool() || characteristic["writeCommand"].toBool()) {
-                QStringList types{};
-                if (characteristic["writeRequest"].toBool()) types.append("request");
-                if (characteristic["writeCommand"].toBool()) types.append("command");
-                auto *item = new QStandardItem(QString("%1 [%2]").arg(uuid, types.join(", "))); // NOLINT
-                item->setData(uuid, Qt::WhatsThisRole);
-                m_bluetoothTxCharacteristicStandardItemModel->appendRow(item);
-            }
-            if (characteristic["notify"].toBool() || characteristic["indicate"].toBool()) {
-                QStringList types{};
-                if (characteristic["notify"].toBool()) types.append("notify");
-                if (characteristic["indicate"].toBool()) types.append("indicate");
-                auto *item = new QStandardItem(QString("%1 [%2]").arg(uuid, types.join(", "))); // NOLINT
-                item->setData(uuid, Qt::WhatsThisRole);
-                m_bluetoothRxCharacteristicStandardItemModel->appendRow(item);
-            }
-        }
-        break;
-    }
-
-    const bool configuredService = m_bluetoothConfig["serviceUuid"].toString() == serviceUuid;
-    m_bluetoothTxCharacteristicComboBox->setProperty("currentValue", configuredService ? m_bluetoothConfig["txCharacteristicUuid"].toString() : previousTx);
-    m_bluetoothRxCharacteristicComboBox->setProperty("currentValue", configuredService ? m_bluetoothConfig["rxCharacteristicUuid"].toString() : previousRx);
-    if (m_bluetoothTxCharacteristicComboBox->property("currentIndex").toInt() < 0 && m_bluetoothTxCharacteristicComboBox->property("count").toInt()) m_bluetoothTxCharacteristicComboBox->setProperty("currentIndex", 0);
-    if (m_bluetoothRxCharacteristicComboBox->property("currentIndex").toInt() < 0 && m_bluetoothRxCharacteristicComboBox->property("count").toInt()) m_bluetoothRxCharacteristicComboBox->setProperty("currentIndex", 0);
 }
 
 void PortSetting::visionCapture() {
@@ -772,7 +600,7 @@ void PortSetting::pipelineSwap(const int src, const int dst) const {
 }
 
 // private
-QStringList PortSetting::serialPortsGet() const {
+QVariantList PortSetting::serialPortsGet() const {
     return m_serialPorts;
 }
 
@@ -782,6 +610,10 @@ QStringList PortSetting::localHostsGet() const {
 
 QStringList PortSetting::visionSourcesGet() const {
     return m_visionSources;
+}
+
+QVariantList PortSetting::bluetoothPeripheralsGet() const {
+    return m_bluetoothPeripherals;
 }
 
 void PortSetting::serialPortRefresh() {
@@ -810,79 +642,33 @@ void PortSetting::visionRefresh() {
     emit visionSourcesChanged();
 }
 
-void PortSetting::bluetoothAdapterRefresh() const {
-    // QMetaObject::invokeMethod(m_bluetoothDiscovery, [this] { m_bluetoothDiscovery->adaptersRefresh(); }, Qt::QueuedConnection);
-}
-
-void PortSetting::bluetoothAdaptersUpdate(const QVariantList &adapters) {
-    const auto configuredAddress = m_bluetoothConfig["adapterAddress"].toString();
-    QString selectedAddress{};
-    m_bluetoothAdapterStandardItemModel->clear();
-    for (const auto &value: adapters) {
-        const auto adapter = value.toHash();
-        const auto name = adapter["name"].toString();
-        const auto address = adapter["address"].toString();
-        auto *item = new QStandardItem(name.isEmpty() ? address : QString("%1 [%2]").arg(name, address)); // NOLINT
-        item->setData(name, Qt::UserRole);
-        item->setData(address, Qt::WhatsThisRole);
-        m_bluetoothAdapterStandardItemModel->appendRow(item);
-        if (address.compare(configuredAddress, Qt::CaseInsensitive) == 0) selectedAddress = address;
-    }
-    if (selectedAddress.isEmpty() && !configuredAddress.isEmpty()) {
-        const auto name = m_bluetoothConfig["adapterName"].toString();
-        auto *item = new QStandardItem(name.isEmpty() ? configuredAddress : QString("%1 [%2]").arg(name, configuredAddress)); // NOLINT
-        item->setData(name, Qt::UserRole);
-        item->setData(configuredAddress, Qt::WhatsThisRole);
-        m_bluetoothAdapterStandardItemModel->appendRow(item);
-        selectedAddress = configuredAddress;
-    }
-    if (!selectedAddress.isEmpty()) m_bluetoothAdapterComboBox->setProperty("currentValue", selectedAddress);
-    else if (m_bluetoothAdapterComboBox->property("count").toInt()) m_bluetoothAdapterComboBox->setProperty("currentIndex", 0);
-}
-
-void PortSetting::bluetoothPeripheralsUpdate(const QVariantList &peripherals) {
-    const auto configuredAddress = m_bluetoothConfig["peripheralAddress"].toString();
-    QString selectedAddress{};
-    m_bluetoothPeripheralStandardItemModel->clear();
-    for (const auto &value: peripherals) {
-        const auto peripheral = value.toHash();
-        const auto name = peripheral["name"].toString();
-        const auto address = peripheral["address"].toString();
-        QString display = name.isEmpty() ? address : QString("%1 [%2]").arg(name, address);
-        display += QString(" (%1 dBm)").arg(peripheral["rssi"].toInt());
-        auto *item = new QStandardItem(display); // NOLINT
-        item->setData(name, Qt::UserRole);
-        item->setData(address, Qt::WhatsThisRole);
-        m_bluetoothPeripheralStandardItemModel->appendRow(item);
-        if (address.compare(configuredAddress, Qt::CaseInsensitive) == 0) selectedAddress = address;
-    }
-    if (!selectedAddress.isEmpty()) m_bluetoothPeripheralComboBox->setProperty("currentValue", selectedAddress);
-    else if (m_bluetoothPeripheralComboBox->property("count").toInt()) m_bluetoothPeripheralComboBox->setProperty("currentIndex", 0);
-}
-
-void PortSetting::bluetoothServicesUpdate(const QVariantList &services) {
-    m_bluetoothServices = services;
-    const auto configuredUuid = m_bluetoothConfig["serviceUuid"].toString();
-    QString selectedUuid{};
-    m_bluetoothServiceStandardItemModel->clear();
-    for (const auto &value: services) {
-        const auto uuid = value.toHash()["uuid"].toString();
-        auto *item = new QStandardItem(uuid); // NOLINT
-        item->setData(uuid, Qt::WhatsThisRole);
-        m_bluetoothServiceStandardItemModel->appendRow(item);
-        if (uuid.compare(configuredUuid, Qt::CaseInsensitive) == 0) selectedUuid = uuid;
-    }
-    if (!selectedUuid.isEmpty()) m_bluetoothServiceComboBox->setProperty("currentValue", selectedUuid);
-    else if (m_bluetoothServiceComboBox->property("count").toInt()) m_bluetoothServiceComboBox->setProperty("currentIndex", 0);
-    bluetoothServiceSelect(m_bluetoothServiceComboBox->property("currentValue").toString());
-}
-
-void PortSetting::bluetoothStatusUpdate(const QString &status) const {
-    if (m_bluetoothStatusLabel) m_bluetoothStatusLabel->setProperty("text", status);
-}
-
-void PortSetting::bluetoothBusyUpdate(const bool busy) const {
-    if (m_root) m_root->setProperty("bluetoothBusy", busy);
+void PortSetting::bleRefresh() {
+    if (m_bleFuture.isRunning()) return;
+    m_bluetoothPeripherals.clear();
+    emit bluetoothPeripheralsChanged();
+    m_bleFuture = QtConcurrent::run([this] {
+        try {
+            DeviceDiscovery::Bluetooth::peripherals([this](QVariantHash device) {
+                QMetaObject::invokeMethod(this, [this, device = std::move(device)] {
+                    const auto address = device.value("address").toString();
+                    for (auto &peripheral: m_bluetoothPeripherals) {
+                        const auto current = peripheral.toHash();
+                        if (current.value("address").toString().compare(address, Qt::CaseInsensitive) != 0) continue;
+                        if (device.value("name").toString().isEmpty() || current == device) return;
+                        peripheral = device;
+                        emit bluetoothPeripheralsChanged();
+                        return;
+                    }
+                    m_bluetoothPeripherals.append(device);
+                    emit bluetoothPeripheralsChanged();
+                }, Qt::QueuedConnection);
+            });
+        } catch (const std::exception &exception) {
+            qWarning("Bluetooth discovery failed: %s", exception.what());
+        } catch (...) {
+            qWarning("Bluetooth discovery failed");
+        }
+    });
 }
 
 void PortSetting::processRefresh(const QJsonObject &portConfig) const {

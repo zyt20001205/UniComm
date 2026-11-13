@@ -55,6 +55,7 @@ QVariantHash SerialPort::info() {
     return {
         {"status", m_serialPort && m_serialPort->isOpen() ? "opened" : "closed"},
         {"portName", m_portConfig["portName"].toString()},
+        {"deviceName", m_portConfig["deviceName"].toString()},
         {"baudRate", QString::number(m_portConfig["baudRate"].toInt())},
         {"dataBits", QString::number(m_portConfig["dataBits"].toInt())},
         {"parity", parity},
@@ -74,7 +75,7 @@ bool SerialPort::open() {
     if (m_serialPort->isOpen()) return true;
     // port open
     m_buffer.clear();
-    m_serialPort->setPortName(m_portConfig["portName"].toString());
+    m_serialPort->setPortName(m_portConfig["deviceName"].toString());
     m_serialPort->setBaudRate(m_portConfig["baudRate"].toInt());
     m_serialPort->setDataBits(static_cast<QSerialPort::DataBits>(m_portConfig["dataBits"].toInt()));
     m_serialPort->setParity(static_cast<QSerialPort::Parity>(m_portConfig["parity"].toInt()));

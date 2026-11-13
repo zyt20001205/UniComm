@@ -57,6 +57,7 @@ private:
     SimpleBLE::Adapter m_adapter{};
     SimpleBLE::Peripheral m_peripheral{};
     QJsonObject m_portConfig{};
+    QString m_adapterAddress{};
     QString m_peripheralName{};
     RingBuffer m_buffer;
     quint16 m_mtu{};

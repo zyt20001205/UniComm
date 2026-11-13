@@ -2,11 +2,13 @@
 #define UNICOMM_PORTSETTING_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
+#include <QFuture>
 #include <QJsonObject>
 #include <QPixmap>
 #include <QQuickImageProvider>
 #include <QStandardItemModel>
 #include <QStringList>
+#include <QVariantList>
 
 #include "port/module/imageProcess.h"
 
@@ -15,19 +17,18 @@ class QCamera;
 class QMediaCaptureSession;
 class QQuickItem;
 class QScreenCapture;
-class QThread;
 class QVideoSink;
 
-class BluetoothDiscovery;
 class ImageProvider;
 class RoiModel;
 class PipelineModel;
 
 class PortSetting final : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QStringList serialPorts READ serialPortsGet NOTIFY serialPortsChanged)
+    Q_PROPERTY(QVariantList serialPorts READ serialPortsGet NOTIFY serialPortsChanged)
     Q_PROPERTY(QStringList localHosts READ localHostsGet NOTIFY localHostsChanged)
     Q_PROPERTY(QStringList visionSources READ visionSourcesGet NOTIFY visionSourcesChanged)
+    Q_PROPERTY(QVariantList bluetoothPeripherals READ bluetoothPeripheralsGet NOTIFY bluetoothPeripheralsChanged)
 
 public:
     explicit PortSetting(QWidget *parent = nullptr);
@@ -43,12 +44,6 @@ public:
     Q_INVOKABLE void portSettingExport();
 
     Q_INVOKABLE void dialogResize(int width, int height) const;
-
-    Q_INVOKABLE void bluetoothScan(const QString &adapterAddress);
-
-    Q_INVOKABLE void bluetoothDiscover(const QString &adapterAddress, const QString &peripheralAddress);
-
-    Q_INVOKABLE void bluetoothServiceSelect(const QString &serviceUuid);
 
     Q_INVOKABLE void visionCapture();
 
@@ -73,16 +68,20 @@ signals:
 
     void visionSourcesChanged();
 
+    void bluetoothPeripheralsChanged();
+
     void insertPort(int index, const QJsonObject &portConfig, const QString &undoGroupId);
 
     void editPort(const QString &oldPortName, const QJsonObject &portConfig);
 
 private:
-    [[nodiscard]] QStringList serialPortsGet() const;
+    [[nodiscard]] QVariantList serialPortsGet() const;
 
     [[nodiscard]] QStringList localHostsGet() const;
 
     [[nodiscard]] QStringList visionSourcesGet() const;
+
+    [[nodiscard]] QVariantList bluetoothPeripheralsGet() const;
 
     void serialPortRefresh();
 
@@ -90,31 +89,16 @@ private:
 
     void visionRefresh();
 
-    void bluetoothAdapterRefresh() const;
-
-    void bluetoothAdaptersUpdate(const QVariantList &adapters);
-
-    void bluetoothPeripheralsUpdate(const QVariantList &peripherals);
-
-    void bluetoothServicesUpdate(const QVariantList &services);
-
-    void bluetoothStatusUpdate(const QString &status) const;
-
-    void bluetoothBusyUpdate(bool busy) const;
+    void bleRefresh();
 
     void processRefresh(const QJsonObject &portConfig) const;
 
     QQuickView *m_window{};
-    QStringList m_serialPorts{};
+    QVariantList m_serialPorts{};
     QStringList m_localHosts{};
     QStringList m_visionSources{};
-    QStandardItemModel *m_bluetoothAdapterStandardItemModel{};
-    QStandardItemModel *m_bluetoothPeripheralStandardItemModel{};
-    QStandardItemModel *m_bluetoothServiceStandardItemModel{};
-    QStandardItemModel *m_bluetoothTxCharacteristicStandardItemModel{};
-    QStandardItemModel *m_bluetoothRxCharacteristicStandardItemModel{};
-    QThread *m_bluetoothThread{};
-    BluetoothDiscovery *m_bluetoothDiscovery{};
+    QVariantList m_bluetoothPeripherals{};
+    QFuture<void> m_bleFuture{};
     QMediaCaptureSession *m_mediaCaptureSession{};
     QScreenCapture *m_screenCapture{};
     QCamera *m_cameraCapture{};
@@ -122,13 +106,12 @@ private:
     PipelineModel *m_pipelineModel{};
     ImageProvider *m_imageProvider{};
     QString m_oldPortName{};
-    QVariantList m_bluetoothServices{};
-    QJsonObject m_bluetoothConfig{};
 
     QObject *m_root{};
     QObject *m_swipeView{};
     // serial port
-    QObject *m_serialPortNameComboBox{};
+    QObject *m_serialPortNameTextField{};
+    QObject *m_serialPortDeviceNameComboBox{};
     QObject *m_serialPortBaudRateSpinBox{};
     QObject *m_serialPortDataBitsComboBox{};
     QObject *m_serialPortParityComboBox{};
@@ -166,16 +149,6 @@ private:
     QObject *m_udpSocketLocalPortSpinBox{};
     QObject *m_udpSocketRemoteHostTextField{};
     QObject *m_udpSocketRemotePortSpinBox{};
-    // bluetooth le
-    QObject *m_bluetoothNameTextField{};
-    QObject *m_bluetoothAdapterComboBox{};
-    QObject *m_bluetoothPeripheralComboBox{};
-    QObject *m_bluetoothServiceComboBox{};
-    QObject *m_bluetoothTxCharacteristicComboBox{};
-    QObject *m_bluetoothRxCharacteristicComboBox{};
-    QObject *m_bluetoothWriteTypeComboBox{};
-    QObject *m_bluetoothSubscribeTypeComboBox{};
-    QObject *m_bluetoothStatusLabel{};
     // format
     QObject *m_logFormatComboBox{};
     QObject *m_txSuffixComboBox{};

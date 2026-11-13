@@ -14,7 +14,7 @@
 #include "core/globalManager.h"
 #include "core/undoModule.h"
 #include "port/basePort.h"
-// #include "port/bluetoothLe.h"
+#include "port/bluetoothLe.h"
 #include "port/module/deviceDiscovery.h"
 #include "port/portSetting.h"
 #include "port/serialPort.h"
@@ -92,9 +92,11 @@ QJsonObject PortModule::portConfigGet(const int portType) {
     QJsonObject portConfig{};
     switch (portType) {
         case PortType::SerialPort: {
+            QJsonArray serialPorts{};
+            for (const auto &port: DeviceDiscovery::serialPorts()) serialPorts.append(port.toHash().value("deviceName").toString());
             portConfig = {
                 {"type", "object"},
-                {"required", QJsonArray{"portName"}},
+                {"required", QJsonArray{"portName", "deviceName"}},
                 {
                     "defaults", QJsonObject{
                         {"baudRate", 115200},
@@ -108,7 +110,8 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 },
                 {
                     "properties", QJsonObject{
-                        {"portName", QJsonObject{{"type", "string"}, {"enum", QJsonArray::fromStringList(DeviceDiscovery::serialPorts())}}},
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"deviceName", QJsonObject{{"type", "string"}, {"enum", serialPorts}}},
                         {"baudRate", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 5000000}}},
                         {"dataBits", QJsonObject{{"enum", QJsonArray{5, 6, 7, 8}}}},
                         {"parity", QJsonObject{{"enum", QJsonArray{0, 2, 3, 4, 5}}, {"description", "0=no, 2=even, 3=odd, 4=space, 5=mark"}}},
@@ -296,11 +299,13 @@ QJsonObject PortModule::portConfigGet(const int portType) {
 QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldPortName) const {
     const auto portType = portConfig.value("portType").toInt(-1);
     const auto portName = portConfig.value("portName").toString();
-    if (portType < PortType::SerialPort || portType > PortType::UdpSocket) return QString("Unsupported port type: %1.").arg(portType);
+    if (portType < PortType::SerialPort || portType > PortType::BluetoothLe) return QString("Unsupported port type: %1.").arg(portType);
     if (portName.trimmed().isEmpty()) return "Port check failed: portName is empty.";
     if (portName != oldPortName && m_portHash.contains(portName)) return QString("Port check failed: '%1' already exists.").arg(portName);
 
     if (portType == PortType::SerialPort) {
+        if (portConfig.value("deviceName").toString().trimmed().isEmpty()) return "Port check failed: deviceName is empty.";
+
         const auto baudRate = portConfig.value("baudRate").toInt();
         if (baudRate < 1 || baudRate > 5000000) return "Port check failed: baudRate must be between 1 and 5000000.";
 
@@ -362,7 +367,7 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
     }
 
-    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket) {
+    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket || portType == PortType::BluetoothLe) {
         const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
         if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
 
@@ -570,12 +575,10 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
             port = new UdpSocket(portConfig);
             break;
         }
-        /*
         case PortType::BluetoothLe: {
             port = new BluetoothLe(portConfig);
             break;
         }
-        */
         default: break;
     }
     connect(port, &BasePort::appendLog, this, &PortModule::appendLog);

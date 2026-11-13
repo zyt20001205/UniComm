@@ -56,6 +56,7 @@ Port.Type = {
 ---@field items VisionRecognitionItem[] Structured recognition areas or points.
 
 ---@class SerialPortConfig : PortConfig
+---@field deviceName string System serial device name, such as "COM4" or "ttyUSB0". Independent of the logical `portName`.
 ---@field baudRate? integer (default: 115200) Baud rate from 1 to 5000000.
 ---@field dataBits? 5|6|7|8 (default: 8)
 ---@field parity? 0|2|3|4|5 (default: 0) 0=none, 2=even, 3=odd, 4=space, 5=mark.

@@ -45,7 +45,7 @@ QJsonObject BluetoothLe::config() {
 QVariantHash BluetoothLe::info() {
     return {
         {"status", connectedGet() ? "connected" : "disconnected"},
-        {"adapter", m_portConfig["adapterAddress"].toString()},
+        {"adapter", m_adapterAddress},
         {"peripheral", m_portConfig["peripheralAddress"].toString()},
         {"service", m_portConfig["serviceUuid"].toString()},
         {"txCharacteristic", m_portConfig["txCharacteristicUuid"].toString()},
@@ -63,8 +63,8 @@ bool BluetoothLe::open() {
     m_subscribed = false;
     m_mtu = 0;
     m_buffer.clear();
+    m_adapterAddress.clear();
     const auto portName = m_portConfig["portName"].toString();
-    const auto adapterAddress = m_portConfig["adapterAddress"].toString();
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
     emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), QString("connecting to %1").arg(peripheralAddress));
 
@@ -72,15 +72,7 @@ bool BluetoothLe::open() {
         m_adapter = {};
         m_peripheral = {};
         auto adapters = SimpleBLE::Adapter::get_adapters();
-        for (auto &adapter: adapters) {
-            if (QString::fromStdString(adapter.address()).compare(adapterAddress, Qt::CaseInsensitive) == 0) {
-                m_adapter = adapter;
-                break;
-            }
-        }
-        if (!m_adapter.initialized()) throw std::runtime_error("adapter not found");
-
-        m_adapter.scan_for(5000);
+        if (adapters.empty()) throw std::runtime_error("adapter not found");
         const auto peripheralSelect = [this, &peripheralAddress](std::vector<SimpleBLE::Peripheral> peripherals) {
             for (auto &peripheral: peripherals) {
                 if (QString::fromStdString(peripheral.address()).compare(peripheralAddress, Qt::CaseInsensitive) == 0) {
@@ -90,10 +82,23 @@ bool BluetoothLe::open() {
             }
             return false;
         };
-        if (!peripheralSelect(m_adapter.scan_get_results())
-            && !peripheralSelect(m_adapter.get_paired_peripherals())
-            && !peripheralSelect(m_adapter.get_connected_peripherals()))
-            throw std::runtime_error("peripheral not found");
+        std::string scanError{};
+        for (auto &adapter: adapters) {
+            try {
+                if (!adapter.is_powered()) continue;
+                adapter.scan_for(5000);
+                if (peripheralSelect(adapter.scan_get_results())
+                    || peripheralSelect(adapter.get_paired_peripherals())
+                    || peripheralSelect(adapter.get_connected_peripherals())) {
+                    m_adapter = adapter;
+                    break;
+                }
+            } catch (const std::exception &exception) {
+                scanError = exception.what();
+            }
+        }
+        if (!m_peripheral.initialized()) throw std::runtime_error(scanError.empty() ? "peripheral not found" : scanError);
+        m_adapterAddress = QString::fromStdString(m_adapter.address());
 
         m_peripheralName = QString::fromStdString(m_peripheral.identifier());
         m_peripheral.set_callback_on_disconnected([this] { QMetaObject::invokeMethod(this, [this] { handleDisconnected(); }, Qt::QueuedConnection); });
@@ -249,8 +254,7 @@ void BluetoothLe::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    const auto adapterAddress = m_portConfig["adapterAddress"].toString();
     const auto peripheralAddress = m_portConfig["peripheralAddress"].toString();
-    if (type == LogLevel::Transmit) emit appendLog(type, QString("[%1 -&gt; %2]").arg(adapterAddress, peripheralAddress), message);
-    else emit appendLog(type, QString("[%1 &lt;- %2]").arg(adapterAddress, peripheralAddress), message);
+    if (type == LogLevel::Transmit) emit appendLog(type, QString("[%1 -&gt; %2]").arg(m_adapterAddress, peripheralAddress), message);
+    else emit appendLog(type, QString("[%1 &lt;- %2]").arg(m_adapterAddress, peripheralAddress), message);
 }

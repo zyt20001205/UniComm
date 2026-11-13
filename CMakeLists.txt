@@ -9,6 +9,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS
+        Concurrent
         Core
         Core5Compat
         Graphs
@@ -41,13 +42,6 @@ endif ()
 file(GLOB_RECURSE UNICOMM_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_SOURCE_DIR}/src/*.cpp"
         "${CMAKE_SOURCE_DIR}/include/*.h"
-)
-# Temporarily disable Bluetooth LE pending code review.
-list(REMOVE_ITEM UNICOMM_SOURCES
-        "${CMAKE_SOURCE_DIR}/include/port/bluetoothLe.h"
-        "${CMAKE_SOURCE_DIR}/include/port/module/bluetoothDiscovery.h"
-        "${CMAKE_SOURCE_DIR}/src/port/bluetoothLe.cpp"
-        "${CMAKE_SOURCE_DIR}/src/port/module/bluetoothDiscovery.cpp"
 )
 
 qt_standard_project_setup(REQUIRES 6.8)
@@ -217,7 +211,7 @@ target_include_directories(UniComm PRIVATE
         ${OPENCV_INCLUDE}
         ${QTKEYCHAIN_INCLUDE}
         ${SCINTILLA_INCLUDE}
-#        ${SIMPLEBLE_INCLUDE}
+        ${SIMPLEBLE_INCLUDE}
         ${SOL2_INCLUDE}
         ${TESSERACT_INCLUDE}
         ${VISA_INCLUDE}
@@ -226,6 +220,7 @@ target_include_directories(UniComm PRIVATE
 )
 
 target_link_libraries(UniComm PRIVATE
+        Qt6::Concurrent
         Qt6::Core
         Qt6::Core5Compat
         Qt6::Gui
@@ -256,7 +251,7 @@ target_link_libraries(UniComm PRIVATE
         ${NUSPELL_LIB}
         ${QTKEYCHAIN_LIB}
         ${SCINTILLA_LIB}
-#        ${SIMPLEBLE_LIB}
+        ${SIMPLEBLE_LIB}
         ${TESSERACT_LIB}
         ${VISA_LIB}
         ${WHISPER_LIB}
@@ -338,7 +333,7 @@ set(UNICOMM_RUNTIME_BIN_DIRS
         "${OPENCV_BIN}"
         "${QTKEYCHAIN_BIN}"
         "${SCINTILLA_BIN}"
-#        "${SIMPLEBLE_BIN}"
+        "${SIMPLEBLE_BIN}"
         "${TESSERACT_BIN}"
         "${VISA_BIN}"
         "${WHISPER_BIN}"
@@ -500,13 +495,11 @@ else ()
             "${CMAKE_BINARY_DIR}"
             COMMENT "SCINTILLA BIN COPIED")
     #simpleble-1.0.0
-    #[[
     add_custom_command(TARGET UniComm POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${SIMPLEBLE_BIN}"
             "${CMAKE_BINARY_DIR}"
             COMMENT "SIMPLEBLE BIN COPIED")
-    ]]
     #tesseract-5.5.2-1
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory

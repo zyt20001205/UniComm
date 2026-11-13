@@ -9,7 +9,6 @@ import QtQuick.Shapes
 Item {
     id: rootItem
     property int portType: 0
-    property bool bluetoothBusy: false
     property var patterns: {
         "ipv4": /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
         "ipv6": /[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){3}/
@@ -39,7 +38,7 @@ Item {
                     id: tumbler
                     currentIndex: rootItem.portType
                     delegate: delegateComponent
-                    model: [qsTr("Serial Port"), qsTr("Vision"), qsTr("Tcp Client"), qsTr("Tcp Server"), qsTr("Ssl Client"), qsTr("Ssl Server"), qsTr("WebSocket Client"), qsTr("WebSocket Server"), qsTr("Udp Socket")]
+                    model: [qsTr("Serial Port"), qsTr("Vision"), qsTr("Tcp Client"), qsTr("Tcp Server"), qsTr("Ssl Client"), qsTr("Ssl Server"), qsTr("WebSocket Client"), qsTr("WebSocket Server"), qsTr("Udp Socket"), qsTr("Bluetooth LE")]
                     wrap: false
                     Layout.fillWidth: true; Layout.fillHeight: true
 
@@ -156,11 +155,31 @@ Item {
                             Layout.fillWidth: true
                         }
 
+                        TextField {
+                            id: serialPortNameTextField
+                            font.pointSize: 12
+                            placeholderText: qsTr("Serial Port")
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: qsTr("Device Name")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
                         ComboBox {
-                            id: serialPortNameComboBox
+                            id: serialPortDeviceNameComboBox
                             font.pointSize: 12
                             model: portSetting.serialPorts
+                            textRole: "display"
+                            valueRole: "deviceName"
                             Layout.fillWidth: true
+
+                            onActivated: {
+                                const device = portSetting.serialPorts[currentIndex]
+                                serialPortNameTextField.text = device.name || device.deviceName
+                            }
                         }
 
                         Label {
@@ -670,157 +689,23 @@ Item {
                         }
 
                         Label {
-                            text: qsTr("Adapter")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            ComboBox {
-                                id: bluetoothAdapterComboBox
-                                enabled: !rootItem.bluetoothBusy
-                                font.pointSize: 12
-                                model: bluetoothAdapterStandardItemModel
-                                textRole: "display"
-                                valueRole: "whatsThis"
-                                Layout.fillWidth: true
-                            }
-
-                            Button {
-                                text: qsTr("Scan")
-                                enabled: !rootItem.bluetoothBusy && bluetoothAdapterComboBox.currentIndex >= 0
-                                onClicked: portSetting.bluetoothScan(bluetoothAdapterComboBox.currentValue)
-                            }
-                        }
-
-                        Label {
-                            text: qsTr("Peripheral")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            ComboBox {
-                                id: bluetoothPeripheralComboBox
-                                enabled: !rootItem.bluetoothBusy
-                                font.pointSize: 12
-                                model: bluetoothPeripheralStandardItemModel
-                                textRole: "display"
-                                valueRole: "whatsThis"
-                                Layout.fillWidth: true
-                            }
-
-                            Button {
-                                text: qsTr("Discover")
-                                enabled: !rootItem.bluetoothBusy && bluetoothPeripheralComboBox.currentIndex >= 0
-                                onClicked: portSetting.bluetoothDiscover(bluetoothAdapterComboBox.currentValue, bluetoothPeripheralComboBox.currentValue)
-                            }
-                        }
-
-                        Label {
-                            text: qsTr("Service")
+                            text: qsTr("Address")
                             font.pointSize: 12
                             Layout.fillWidth: true
                         }
 
                         ComboBox {
-                            id: bluetoothServiceComboBox
-                            enabled: !rootItem.bluetoothBusy
+                            id: bluetoothPeripheralComboBox
                             font.pointSize: 12
-                            model: bluetoothServiceStandardItemModel
+                            model: portSetting.bluetoothPeripherals
                             textRole: "display"
-                            valueRole: "whatsThis"
+                            valueRole: "address"
                             Layout.fillWidth: true
-                            onActivated: portSetting.bluetoothServiceSelect(currentValue)
-                        }
 
-                        Label {
-                            text: qsTr("Tx Characteristic")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: bluetoothTxCharacteristicComboBox
-                            enabled: !rootItem.bluetoothBusy
-                            font.pointSize: 12
-                            model: bluetoothTxCharacteristicStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Write Type")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: bluetoothWriteTypeComboBox
-                            enabled: !rootItem.bluetoothBusy
-                            font.pointSize: 12
-                            model: ListModel {
-                                ListElement {
-                                    text: qsTr("Request"); value: "request"
-                                }
-                                ListElement {
-                                    text: qsTr("Command"); value: "command"
-                                }
+                            onActivated: {
+                                const device = portSetting.bluetoothPeripherals[currentIndex]
+                                bluetoothNameTextField.text = device.name || device.address
                             }
-                            textRole: "text"
-                            valueRole: "value"
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Rx Characteristic")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: bluetoothRxCharacteristicComboBox
-                            enabled: !rootItem.bluetoothBusy
-                            font.pointSize: 12
-                            model: bluetoothRxCharacteristicStandardItemModel
-                            textRole: "display"
-                            valueRole: "whatsThis"
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            text: qsTr("Subscribe Type")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        ComboBox {
-                            id: bluetoothSubscribeTypeComboBox
-                            enabled: !rootItem.bluetoothBusy
-                            font.pointSize: 12
-                            model: ListModel {
-                                ListElement {
-                                    text: qsTr("Notify"); value: "notify"
-                                }
-                                ListElement {
-                                    text: qsTr("Indicate"); value: "indicate"
-                                }
-                            }
-                            textRole: "text"
-                            valueRole: "value"
-                            Layout.fillWidth: true
-                        }
-
-                        Label {
-                            id: bluetoothStatusLabel
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
-                            Layout.columnSpan: 2; Layout.fillWidth: true
                         }
                     }
                 }
@@ -2083,6 +1968,7 @@ Item {
             Button {
                 text: swipeView.currentIndex !== 2 ? qsTr("Next") : qsTr("Confirm")
                 highlighted: swipeView.currentIndex === 2
+                enabled: rootItem.portType !== 9 || swipeView.currentIndex === 0
                 flat: true
 
                 onClicked: {
@@ -2091,8 +1977,13 @@ Item {
                     } else if (swipeView.currentIndex === 1) {
                         switch (rootItem.portType) {
                             case 0: {
-                                if (!serialPortNameComboBox.currentText) {
+                                if (!serialPortNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
+                                if (!serialPortDeviceNameComboBox.currentValue) {
+                                    portNameValidator.text = qsTr("Invalid Device Name")
                                     portNameValidatorTimer.start()
                                     return
                                 }
@@ -2219,23 +2110,6 @@ Item {
                                 //     portNameValidatorTimer.start()
                                 //     return
                                 // }
-                            }
-                                break
-                            case 9: {
-                                if (!bluetoothNameTextField.text) {
-                                    portNameValidator.text = qsTr("Invalid Port Name")
-                                    portNameValidatorTimer.start()
-                                    return
-                                }
-                                if (bluetoothAdapterComboBox.currentIndex < 0
-                                    || bluetoothPeripheralComboBox.currentIndex < 0
-                                    || bluetoothServiceComboBox.currentIndex < 0
-                                    || bluetoothTxCharacteristicComboBox.currentIndex < 0
-                                    || bluetoothRxCharacteristicComboBox.currentIndex < 0) {
-                                    portNameValidator.text = qsTr("Incomplete Bluetooth Configuration")
-                                    portNameValidatorTimer.start()
-                                    return
-                                }
                             }
                                 break
                         }
@@ -2710,7 +2584,8 @@ Item {
             "swipeView": swipeView,
             "tumbler": tumbler,
             // serial port
-            "serialPortNameComboBox": serialPortNameComboBox,
+            "serialPortNameTextField": serialPortNameTextField,
+            "serialPortDeviceNameComboBox": serialPortDeviceNameComboBox,
             "serialPortBaudRateSpinBox": serialPortBaudRateSpinBox,
             "serialPortDataBitsComboBox": serialPortDataBitsComboBox,
             "serialPortParityComboBox": serialPortParityComboBox,
@@ -2748,16 +2623,6 @@ Item {
             "udpSocketLocalPortSpinBox": udpSocketLocalPortSpinBox,
             "udpSocketRemoteHostTextField": udpSocketRemoteHostTextField,
             "udpSocketRemotePortSpinBox": udpSocketRemotePortSpinBox,
-            // bluetooth le
-            "bluetoothNameTextField": bluetoothNameTextField,
-            "bluetoothAdapterComboBox": bluetoothAdapterComboBox,
-            "bluetoothPeripheralComboBox": bluetoothPeripheralComboBox,
-            "bluetoothServiceComboBox": bluetoothServiceComboBox,
-            "bluetoothTxCharacteristicComboBox": bluetoothTxCharacteristicComboBox,
-            "bluetoothRxCharacteristicComboBox": bluetoothRxCharacteristicComboBox,
-            "bluetoothWriteTypeComboBox": bluetoothWriteTypeComboBox,
-            "bluetoothSubscribeTypeComboBox": bluetoothSubscribeTypeComboBox,
-            "bluetoothStatusLabel": bluetoothStatusLabel,
             // format
             "logFormatComboBox": logFormatComboBox,
             "txSuffixComboBox": txSuffixComboBox,
