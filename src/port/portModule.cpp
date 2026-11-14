@@ -396,7 +396,8 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         if (portConfig.value("peripheralAddress").toString().trimmed().isEmpty()) return "Port check failed: peripheralAddress is empty.";
     }
 
-    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket || portType == PortType::BluetoothLe) {
+    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer
+        || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket || portType == PortType::BluetoothLe) {
         const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
         if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
 
@@ -424,7 +425,7 @@ void PortModule::portSetting(const int index) const {
 QString PortModule::portInsert(int index, QJsonObject portConfig, const QString &undoGroupId) {
     portDefaults(portConfig);
 
-    const auto exception = portCheck(portConfig);
+    auto exception = portCheck(portConfig);
     const auto portName = portConfig.value("portName").toString();
     if (!exception.isEmpty()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), exception);
@@ -439,7 +440,7 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
     }
 
     const auto portIndex = QSharedPointer<int>::create(index);
-    const auto error = g_undo->push(
+    auto error = g_undo->push(
         tr("Port Insert (%1)").arg(portName),
         [this, portIndex, portConfig] {
             if (const auto error = portCheck(portConfig); !error.isEmpty()) return error;
@@ -550,7 +551,12 @@ void PortModule::portRefresh(const QString &portName, const bool active) {
     const auto indexes = g_portModel->match(g_portModel->index(0, 0), Qt::DisplayRole, portName, 1, Qt::MatchExactly);
     if (indexes.isEmpty()) return;
     auto *item = g_portModel->itemFromIndex(indexes.constFirst());
-    item->setData(active, PortModel::ActiveRole);
+    if (item->data(PortModel::ActiveRole).toBool() == active) {
+        const auto index = item->index();
+        emit g_portModel->dataChanged(index, index, {PortModel::ActiveRole});
+    } else {
+        item->setData(active, PortModel::ActiveRole);
+    }
 }
 
 // private
