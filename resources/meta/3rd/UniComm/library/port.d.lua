@@ -267,6 +267,14 @@ function port:clear() end
 ---A Write Request response is a GATT acknowledgement, not a device application reply.
 ---Write Command success does not confirm that the peer received or processed data.
 ---
+---To write a Bluetooth LE Descriptor, use `write(data, serviceUuid, characteristicUuid, descriptorUuid)`.
+---All four arguments are required; this overload has no mode and uses the library's Descriptor write operation.
+---The Descriptor must belong to that characteristic. Its write permission is checked by the device,
+---not inferred from the characteristic's capabilities. Read-only Descriptors such as Number of Digitals (`2909`) reject writes.
+---Data is sent unchanged without a suffix, and successful writes are logged with the Descriptor UUID.
+---Use `subscribe`/`unsubscribe` for CCCD (`2902`) subscription control so callbacks and buffers remain managed by UniComm.
+---Invalid or unknown UUIDs, disconnected ports, non-BLE ports, and device errors raise a Lua error.
+---
 ---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
 ---must be enclosed in double quotes. Each command waits up to 30 seconds for the
@@ -282,6 +290,7 @@ function port:clear() end
 ---@param peerIp? string Server peer identifier in `address:port` form.
 ---@overload fun(self: port, data: string, messageType: WebSocketMessageType, peerIp?: string)
 ---@overload fun(self: port, data: string, mode: BluetoothLeMode, serviceUuid: uuid, characteristicUuid: uuid)
+---@overload fun(self: port, data: string, serviceUuid: uuid, characteristicUuid: uuid, descriptorUuid: uuid)
 ---@return nil
 function port:write(data, peerIp) end
 
@@ -350,6 +359,14 @@ function port:unsubscribe(serviceUuid, characteristicUuid) end
 ---receive buffer. Its timeout is controlled by SimpleBLE and the operating system.
 ---Invalid UUIDs, non-BLE ports, unsupported reads, and device errors raise a Lua error.
 ---
+---An optional third UUID selects a Descriptor: `read(serviceUuid, characteristicUuid, descriptorUuid)`.
+---The Descriptor must belong to that characteristic. Descriptor read permission is independent of
+---the characteristic's Read capability and is checked by the device. The result is a binary-safe
+---string returned directly, not appended to a subscription buffer or decoded automatically.
+---Omitting the Descriptor UUID (or passing nil) selects the characteristic. An explicitly empty or invalid
+---Descriptor UUID raises an error rather than falling back to a characteristic read.
+---Successful reads are logged with the Descriptor UUID. Unknown Descriptors and device errors raise a Lua error.
+---
 ---Use `read(length, timeout, serviceUuid, characteristicUuid)` to consume a subscribed
 ---characteristic's notification buffer instead. All four arguments are required.
 ---The same length and timeout rules apply; reads may split or combine notifications.
@@ -361,7 +378,7 @@ function port:unsubscribe(serviceUuid, characteristicUuid) end
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, serviceUuid: uuid, characteristicUuid: uuid): string
+---@overload fun(self: port, serviceUuid: uuid, characteristicUuid: uuid, descriptorUuid?: uuid): string
 ---@overload fun(self: port, length: integer, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string|VisionResult[] data
 function port:read(length, timeout, peerIp) end

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
+#include <optional>
 #include <sol/object.hpp>
 #include <sol/table.hpp>
 
@@ -37,15 +38,19 @@ public:
 
     void write(const std::string &data, int mode, const std::string &serviceUuid, const std::string &characteristicUuid) const;
 
+    void write(const std::string &data, const std::string &serviceUuid, const std::string &characteristicUuid, const std::string &descriptorUuid) const;
+
     [[nodiscard]] sol::object read(sol::this_state ts, int length, int timeout, const std::string &peerIp, bool peek = false) const;
 
-    [[nodiscard]] sol::object read(sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid) const;
+    [[nodiscard]] sol::object read(sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid,
+                                   std::optional<std::string> descriptorUuid = std::nullopt) const;
 
     [[nodiscard]] sol::object read(sol::this_state ts, int length, int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, bool peek = false) const;
 
     [[nodiscard]] sol::object readUntil(sol::this_state ts, const std::string &text, int timeout, const std::string &peerIp, bool peek = false) const;
 
-    [[nodiscard]] sol::object readUntil(sol::this_state ts, const std::string &text, int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, bool peek = false) const;
+    [[nodiscard]] sol::object readUntil(sol::this_state ts, const std::string &text, int timeout, const std::string &serviceUuid, const std::string &characteristicUuid,
+                                        bool peek = false) const;
 
     void subscribe(int mode, const std::string &serviceUuid, const std::string &characteristicUuid) const;
 

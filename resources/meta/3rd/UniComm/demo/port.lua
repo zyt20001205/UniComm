@@ -120,6 +120,21 @@
 -- local value = ble:read(serviceUuid, characteristicUuid)
 -- print(value)
 -- print(string.toHex(value, " "))
+-- On the example Automation IO device, Number of Digitals reports one channel as the byte 01.
+-- Confirm these UUIDs appear in info() before running this example.
+-- local digitals = ble:read("1815", "2a56", "2909")
+-- print(string.toHex(digitals, " "))
+-- assert(#digitals == 1 and digitals:byte(1) == 1, "expected one digital channel")
+-- A Descriptor read does not require its characteristic to support Read.
+-- For example, read the CCCD of an Indicate-only Service Changed characteristic if present:
+-- local cccd = ble:read("1801", "2a05", "2902")
+-- print(string.toHex(cccd, " "))
+-- Descriptor writes have no mode. Only write a value documented for a writable Descriptor.
+-- local descriptorData = nil -- Set only if this characteristic has a writable User Description (2901).
+-- if descriptorData then
+--     ble:write(descriptorData, serviceUuid, characteristicUuid, "2901")
+-- end
+-- Do not write Number of Digitals (2909): it is read-only. Use subscribe/unsubscribe, not writes to CCCD (2902).
 -- Only write commands defined by the device protocol. Do not echo arbitrary read data back.
 -- local command = nil -- Replace only with a documented binary command; nil sends nothing.
 -- if command then

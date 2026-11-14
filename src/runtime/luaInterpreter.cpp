@@ -254,16 +254,22 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
             "close", &Port::close,
             "clear", &Port::clear,
             "write", sol::overload(
+                [](const Port &port, const std::string &data, const std::string &serviceUuid, const std::string &characteristicUuid, const std::string &descriptorUuid) {
+                    port.write(data, serviceUuid, characteristicUuid, descriptorUuid);
+                },
                 [](const Port &port, const std::string &data, const int mode, const std::string &serviceUuid, const std::string &characteristicUuid) {
                     port.write(data, mode, serviceUuid, characteristicUuid);
                 },
                 // References prevent this sol2 version from detecting optional arity.
-                [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> peerIp) { port.write(data, messageType, peerIp.value_or("")); },
-                [](const Port &port, const std::string &data, const sol::optional<std::string> peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
+                [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> &peerIp) {
+                    port.write(data, messageType, peerIp.value_or(""));
+                },
+                [](const Port &port, const std::string &data, const sol::optional<std::string> &peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
             ),
             "read", sol::overload(
-                [](const Port &port, const sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid) {
-                    return port.read(ts, serviceUuid, characteristicUuid);
+                [](const Port &port, const sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid,
+                   const sol::optional<std::string> &descriptorUuid) {
+                    return port.read(ts, serviceUuid, characteristicUuid, descriptorUuid ? std::make_optional(*descriptorUuid) : std::nullopt);
                 },
                 [](const Port &port, const sol::this_state ts, const int length, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid) {
                     return port.read(ts, length, timeout, serviceUuid, characteristicUuid);

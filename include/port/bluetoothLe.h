@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QStringList>
 #include <memory>
+#include <optional>
 #include <simpleble/SimpleBLE.h>
 
 #include "basePort.h"
@@ -39,11 +40,14 @@ public:
 
     void clear() override;
 
-    [[nodiscard]] QString check(const QString &serviceUuid, const QString &characteristicUuid, int mode = -1) const;
+    [[nodiscard]] QString check(const QString &serviceUuid, const QString &characteristicUuid, const std::optional<QString> &descriptorUuid = std::nullopt,
+                                std::optional<int> mode = std::nullopt) const;
 
     void write(const QByteArray &txData, int mode, const QString &serviceUuid, const QString &characteristicUuid);
 
-    [[nodiscard]] QByteArray read(const QString &serviceUuid, const QString &characteristicUuid);
+    void write(const QByteArray &txData, const QString &serviceUuid, const QString &characteristicUuid, const QString &descriptorUuid);
+
+    [[nodiscard]] QByteArray read(const QString &serviceUuid, const QString &characteristicUuid, const std::optional<QString> &descriptorUuid = std::nullopt);
 
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &serviceUuid, const QString &characteristicUuid, bool peek = false);
 
@@ -59,7 +63,8 @@ private:
     void handleStateChanged(int state);
 
     struct Subscription {
-        Subscription(const int mode, const int capacity) : mode(mode), buffer(capacity) {}
+        Subscription(const int mode, const int capacity) : mode(mode), buffer(capacity) {
+        }
 
         int mode{};
         bool active{true};
@@ -68,7 +73,7 @@ private:
 
     void handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid);
 
-    void handleLog(int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid);
+    void handleLog(int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid, std::optional<QString> descriptorUuid = std::nullopt);
 
     struct Characteristic {
         int capabilities{};
@@ -89,7 +94,7 @@ private:
     SimpleBLE::Peripheral m_peripheral{};
     QJsonObject m_portConfig{};
     // service UUID -> characteristic UUID -> Characteristic struct.
-    QHash<QString, QHash<QString, Characteristic>> m_services{};
+    QHash<QString, QHash<QString, Characteristic> > m_services{};
     quint16 m_mtu{};
     int m_state{State::Disconnected};
 };
