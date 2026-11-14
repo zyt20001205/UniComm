@@ -1,17 +1,15 @@
 #include "port/bluetoothLe.h"
 
 #include <QDeadlineTimer>
-#include <QEventLoop>
 #include <QPointer>
 #include <QScopeGuard>
 #include <QTimer>
-#include <QUuid>
-#include <QVariantList>
 
 #include <stdexcept>
 #include <utility>
 
 #include "globals.h"
+#include "util/uniCast.h"
 
 // public
 BluetoothLe::BluetoothLe(const QJsonObject &portConfig, QObject *parent)
@@ -226,20 +224,6 @@ void BluetoothLe::clear() {
     }
 }
 
-bool BluetoothLe::normalize(QString &uuid) {
-    if (uuid.size() == 4 || uuid.size() == 8) {
-        bool valid{};
-        const auto value = uuid.toUInt(&valid, 16);
-        if (!valid || uuid.compare(QString::number(value, 16).rightJustified(uuid.size(), QChar('0')), Qt::CaseInsensitive) != 0) return false;
-        uuid = QString("%1-0000-1000-8000-00805f9b34fb").arg(value, 8, 16, QChar('0'));
-        return true;
-    }
-    const auto value = QUuid::fromString(uuid);
-    if (value.isNull()) return false;
-    uuid = value.toString(QUuid::WithoutBraces);
-    return true;
-}
-
 QString BluetoothLe::check(const QString &serviceUuid, const QString &characteristicUuid, const int mode) const {
     if (mode < -1 || mode > Capability::Indicate) return "invalid BLE mode";
     if (m_state != State::Connected) return "not connected";
@@ -392,7 +376,7 @@ void BluetoothLe::handleStateChanged(const int state) {
 void BluetoothLe::handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid) {
     if (m_state != State::Connected || !subscription->active) return;
     if (subscription->buffer.write(data) != data.size()) {
-        const auto source = QString("[%1/%2/%3]").arg(m_portConfig["portName"].toString(), serviceUuid, characteristicUuid);
+        const auto source = QString("[%1/%2/%3]").arg(m_portConfig["portName"].toString(), uni_cast<QBluetoothUuidShort>(serviceUuid).value, uni_cast<QBluetoothUuidShort>(characteristicUuid).value);
         emit appendLog(LogLevel::Error, source, "buffer overflow");
         try {
             unsubscribe(serviceUuid, characteristicUuid);
@@ -416,7 +400,7 @@ void BluetoothLe::handleLog(const int type, const QByteArray &data, const QStrin
     else if (format == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    const auto endpoint = QString("%1/%2/%3").arg(m_portConfig["peripheralAddress"].toString(), serviceUuid, characteristicUuid);
+    const auto endpoint = QString("%1/%2/%3").arg(m_portConfig["peripheralAddress"].toString(), uni_cast<QBluetoothUuidShort>(serviceUuid).value, uni_cast<QBluetoothUuidShort>(characteristicUuid).value);
     if (type == LogLevel::Transmit) {
         emit appendLog(type, QString("[%1 -&gt; %2]").arg(m_portConfig["adapterAddress"].toString(), endpoint), message);
     } else {

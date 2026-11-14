@@ -97,11 +97,6 @@ QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
     });
     if (connectedHere) device.connect();
 
-    const auto displayUuid = [](const QString &uuid) -> QString {
-        if (!uuid.endsWith("-0000-1000-8000-00805f9b34fb", Qt::CaseInsensitive)) return uuid;
-        const auto prefix = uuid.first(8).toUpper();
-        return "0x" + (prefix.startsWith("0000") ? prefix.sliced(4) : prefix);
-    };
     QVariantList services{};
     for (auto service: device.services()) {
         const auto serviceUuid = QString::fromStdString(service.uuid());
@@ -115,13 +110,13 @@ QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
                 const auto descriptorUuid = QString::fromStdString(descriptor.uuid()).toLower();
                 descriptors.append(QVariantHash{
                     {"uuid", descriptorUuid},
-                    {"displayUuid", displayUuid(descriptorUuid)},
+                    {"shortUuid", uni_cast<QBluetoothUuidShort>(descriptorUuid).value},
                     {"name", uni_cast<QBluetoothUuidName>(descriptorUuid).value}
                 });
             }
             characteristics.append(QVariantHash{
                 {"uuid", characteristicUuid},
-                {"displayUuid", displayUuid(characteristicUuid)},
+                {"shortUuid", uni_cast<QBluetoothUuidShort>(characteristicUuid).value},
                 {"name", uni_cast<QBluetoothUuidName>(characteristicUuid).value},
                 {"capabilities", capabilities},
                 {"descriptors", descriptors}
@@ -129,7 +124,7 @@ QVariantList DeviceDiscovery::Bluetooth::connect(const QVariant &peripheral) {
         }
         services.append(QVariantHash{
             {"uuid", serviceUuid},
-            {"displayUuid", displayUuid(serviceUuid)},
+            {"shortUuid", uni_cast<QBluetoothUuidShort>(serviceUuid).value},
             {"name", uni_cast<QBluetoothUuidName>(serviceUuid).value},
             {"characteristics", characteristics}
         });

@@ -1,7 +1,6 @@
 #ifndef UNICOMM_BLUETOOTHLE_H
 #define UNICOMM_BLUETOOTHLE_H
 
-#include <QHash>
 #include <QJsonObject>
 #include <QStringList>
 #include <memory>
@@ -39,8 +38,6 @@ public:
     void close() override;
 
     void clear() override;
-
-    [[nodiscard]] static bool normalize(QString &uuid);
 
     [[nodiscard]] QString check(const QString &serviceUuid, const QString &characteristicUuid, int mode = -1) const;
 

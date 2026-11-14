@@ -131,11 +131,11 @@ void Port::write(const std::string &data, const int mode, const std::string &ser
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     if (mode != BluetoothLe::Capability::WriteRequest && mode != BluetoothLe::Capability::WriteCommand)
         throw sol::error(m_portName.toStdString() + ": invalid BLE write mode (expected 1 or 2)");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     const QByteArray txData(data.data(), static_cast<qsizetype>(data.size()));
@@ -201,11 +201,11 @@ sol::object Port::read(const sol::this_state ts, const int length, const int tim
 
 sol::object Port::read(const sol::this_state ts, const std::string &serviceUuid, const std::string &characteristicUuid) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     QByteArray rxData{};
@@ -234,11 +234,11 @@ sol::object Port::read(const sol::this_state ts, const std::string &serviceUuid,
 
 sol::object Port::read(const sol::this_state ts, const int length, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     QByteArray rxData{};
@@ -293,11 +293,11 @@ sol::object Port::readUntil(const sol::this_state ts, const std::string &text, c
 
 sol::object Port::readUntil(const sol::this_state ts, const std::string &text, const int timeout, const std::string &serviceUuid, const std::string &characteristicUuid, const bool peek) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     const QByteArray textData(text.data(), static_cast<qsizetype>(text.size()));
@@ -323,11 +323,11 @@ void Port::subscribe(const int mode, const std::string &serviceUuid, const std::
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     if (mode != BluetoothLe::Capability::Notify && mode != BluetoothLe::Capability::Indicate)
         throw sol::error(m_portName.toStdString() + ": invalid BLE subscription mode (expected 3 or 4)");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     QString exception{};
@@ -353,11 +353,11 @@ void Port::subscribe(const int mode, const std::string &serviceUuid, const std::
 
 void Port::unsubscribe(const std::string &serviceUuid, const std::string &characteristicUuid) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
-    auto service = QString::fromStdString(serviceUuid);
-    auto characteristic = QString::fromStdString(characteristicUuid);
-    if (!BluetoothLe::normalize(service))
+    const auto service = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(serviceUuid)).value;
+    const auto characteristic = uni_cast<QBluetoothUuidNormalized>(QString::fromStdString(characteristicUuid)).value;
+    if (service.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid service UUID");
-    if (!BluetoothLe::normalize(characteristic))
+    if (characteristic.isEmpty())
         throw sol::error(m_portName.toStdString() + ": invalid characteristic UUID");
 
     QString exception{};

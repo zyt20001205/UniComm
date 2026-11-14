@@ -587,9 +587,32 @@ QCompactNumber uni_cast<QCompactNumber, qint64>(const qint64 &s, const int depth
 }
 
 template<>
+QBluetoothUuidNormalized uni_cast<QBluetoothUuidNormalized, QString>(const QString &s, const int depth) {
+    Q_UNUSED(depth);
+    if (s.size() == 4 || s.size() == 8) {
+        bool valid{};
+        const auto value = s.toUInt(&valid, 16);
+        if (!valid || s.compare(QString::number(value, 16).rightJustified(s.size(), QChar('0')), Qt::CaseInsensitive) != 0) return QStringLiteral("");
+        return QString("%1-0000-1000-8000-00805f9b34fb").arg(value, 8, 16, QChar('0'));
+    }
+    const auto uuid = QUuid::fromString(s);
+    if (uuid.isNull()) return QStringLiteral("");
+    return uuid.toString(QUuid::WithoutBraces);
+}
+
+template<>
+QBluetoothUuidShort uni_cast<QBluetoothUuidShort, QString>(const QString &s, const int depth) {
+    Q_UNUSED(depth);
+    const auto uuid = uni_cast<QBluetoothUuidNormalized>(s).value;
+    if (!uuid.endsWith("-0000-1000-8000-00805f9b34fb", Qt::CaseInsensitive)) return uuid;
+    const auto prefix = uuid.first(8).toUpper();
+    return QStringLiteral("0x") + (prefix.startsWith("0000") ? prefix.sliced(4) : prefix);
+}
+
+template<>
 QBluetoothUuidName uni_cast<QBluetoothUuidName, QString>(const QString &s, const int depth) {
     Q_UNUSED(depth);
-    const auto uuid = QUuid::fromString(s);
+    const auto uuid = QUuid::fromString(uni_cast<QBluetoothUuidNormalized>(s).value);
     const QUuid bluetoothUuid{uuid.data1, 0x0000, 0x1000, 0x80, 0x00, 0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb};
     if (uuid.data1 > 0xffff || uuid != bluetoothUuid) return QStringLiteral("");
 

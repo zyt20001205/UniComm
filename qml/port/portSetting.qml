@@ -752,7 +752,7 @@ Item {
                                 required property int depth
                                 required property int row
                                 required property string uuid
-                                required property string displayUuid
+                                required property string shortUuid
                                 required property string name
                                 required property var capabilities
                                 implicitWidth: bluetoothTreeView.width
@@ -817,8 +817,8 @@ Item {
 
                                         Label {
                                             text: bluetoothTreeDelegate.name.length > 0
-                                                ? bluetoothTreeDelegate.name + " \u00b7 " + bluetoothTreeDelegate.displayUuid
-                                                : bluetoothTreeDelegate.displayUuid
+                                                ? bluetoothTreeDelegate.name + " \u00b7 " + bluetoothTreeDelegate.shortUuid
+                                                : bluetoothTreeDelegate.shortUuid
                                             textFormat: Text.PlainText
                                             font.pointSize: 12
                                             font.weight: bluetoothTreeDelegate.depth === 0 ? Font.DemiBold : Font.Normal

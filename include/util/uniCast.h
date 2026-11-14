@@ -5,7 +5,6 @@
 #include <QJsonObject>
 #include <QList>
 #include <QSet>
-#include <QStringList>
 #include <QUrl>
 #include <QVariant>
 #include <sol/object.hpp>
@@ -134,6 +133,18 @@ struct QCompactNumber {
     operator QString() const { return value; }
 };
 
+struct QBluetoothUuidNormalized {
+    QString value;
+    QBluetoothUuidNormalized(QString s) : value(std::move(s)) {}
+    operator QString() const { return value; }
+};
+
+struct QBluetoothUuidShort {
+    QString value;
+    QBluetoothUuidShort(QString s) : value(std::move(s)) {}
+    operator QString() const { return value; }
+};
+
 struct QBluetoothUuidName {
     QString value;
     QBluetoothUuidName(QString s) : value(std::move(s)) {}
@@ -160,6 +171,12 @@ template<>
 
 template<>
 [[nodiscard]] QCompactNumber uni_cast<QCompactNumber, qint64>(const qint64 &s, int depth);
+
+template<>
+[[nodiscard]] QBluetoothUuidNormalized uni_cast<QBluetoothUuidNormalized, QString>(const QString &s, int depth);
+
+template<>
+[[nodiscard]] QBluetoothUuidShort uni_cast<QBluetoothUuidShort, QString>(const QString &s, int depth);
 
 template<>
 [[nodiscard]] QBluetoothUuidName uni_cast<QBluetoothUuidName, QString>(const QString &s, int depth);

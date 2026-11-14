@@ -37,7 +37,7 @@ PortSetting::PortSetting(QWidget *parent)
         {Qt::DisplayRole, "uuid"},
         {Qt::UserRole + 1, "capabilities"},
         {Qt::UserRole + 2, "name"},
-        {Qt::UserRole + 3, "displayUuid"}
+        {Qt::UserRole + 3, "shortUuid"}
     });
 }
 
@@ -548,21 +548,21 @@ void PortSetting::bleConnect(const QVariant &peripheral) {
             serviceItem->setEditable(false);
             serviceItem->setData(QStringList{}, Qt::UserRole + 1);
             serviceItem->setData(data.value("name"), Qt::UserRole + 2);
-            serviceItem->setData(data.value("displayUuid"), Qt::UserRole + 3);
+            serviceItem->setData(data.value("shortUuid"), Qt::UserRole + 3);
             for (const auto &characteristic: data.value("characteristics").toList()) {
                 const auto characteristicData = characteristic.toHash();
                 auto *characteristicItem = new QStandardItem(characteristicData.value("uuid").toString());
                 characteristicItem->setEditable(false);
                 characteristicItem->setData(characteristicData.value("capabilities"), Qt::UserRole + 1);
                 characteristicItem->setData(characteristicData.value("name"), Qt::UserRole + 2);
-                characteristicItem->setData(characteristicData.value("displayUuid"), Qt::UserRole + 3);
+                characteristicItem->setData(characteristicData.value("shortUuid"), Qt::UserRole + 3);
                 for (const auto &descriptor: characteristicData.value("descriptors").toList()) {
                     const auto descriptorData = descriptor.toHash();
                     auto *descriptorItem = new QStandardItem(descriptorData.value("uuid").toString());
                     descriptorItem->setEditable(false);
                     descriptorItem->setData(QStringList{}, Qt::UserRole + 1);
                     descriptorItem->setData(descriptorData.value("name"), Qt::UserRole + 2);
-                    descriptorItem->setData(descriptorData.value("displayUuid"), Qt::UserRole + 3);
+                    descriptorItem->setData(descriptorData.value("shortUuid"), Qt::UserRole + 3);
                     characteristicItem->appendRow(descriptorItem);
                 }
                 serviceItem->appendRow(characteristicItem);
