@@ -96,7 +96,7 @@ void DocumentModule::documentConfigSave() {
     for (const auto &url: m_pageHash.keys()) {
         (void) documentSave(url);
     }
-    if (m_focusedUrl.isEmpty()) {
+    if (m_pageHash.isEmpty()) {
         m_config["documentFocused"] = "";
     } else {
         m_config["documentFocused"] = m_focusedUrl.toString();
@@ -399,13 +399,16 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
 void DocumentModule::documentOpen(const QUrl &documentUrl) {
     // open page
     if (!m_pageHash.contains(documentUrl)) {
+        const bool firstDocument = m_pageHash.isEmpty();
+        auto *dockAnchor = m_pageHash.value(m_focusedUrl);
+        if (!firstDocument && !dockAnchor) dockAnchor = m_pageHash.cbegin().value();
         const auto documentPage = documentConstruct(documentUrl);
-        if (m_focusedUrl.isEmpty()) {
+        if (firstDocument) {
             m_welcomePage->open();
             m_welcomePage->addDockWidgetAsTab(documentPage);
             m_welcomePage->close();
         } else {
-            m_pageHash[m_focusedUrl]->addDockWidgetAsTab(documentPage);
+            dockAnchor->addDockWidgetAsTab(documentPage);
         }
         emit appendLog(LogLevel::Info, "document opened", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 
@@ -548,7 +551,7 @@ void DocumentModule::focusSet(const QUrl &documentUrl, const bool status) {
 }
 
 void DocumentModule::indexSet(const QUrl &documentUrl, const int line, const int character) {
-    if (documentUrl != m_focusedUrl) documentOpen(documentUrl);
+    if (!m_pageHash.contains(documentUrl) || documentUrl != m_focusedUrl) documentOpen(documentUrl);
     if (const auto *handler = handlerGet(documentUrl)) handler->indexSet(line, character);
 }
 
@@ -1573,7 +1576,6 @@ void DocumentModule::documentClose(const QUrl &documentUrl) {
     if (g_terminating) return;
     if (m_pageHash.isEmpty()) {
         m_welcomePage->open();
-        m_focusedUrl = nullptr;
     } else {
         const auto begin = m_pageHash.begin();
         m_focusedUrl = begin.key();
