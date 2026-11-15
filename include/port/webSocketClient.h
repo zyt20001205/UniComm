@@ -39,11 +39,15 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
 private:
+    [[nodiscard]] QString configure();
+
     void handleStateChanged(QAbstractSocket::SocketState state);
 
     void handleMessage(const QByteArray &message);
 
     void handleError();
+
+    void handleErrors(const QList<QSslError> &errors);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType);
 
@@ -58,6 +62,7 @@ private:
     QUrl m_url{};
     QString m_localHost{};
     int m_localPort{};
+    bool m_sslErrorsHandled{};
     RingBuffer m_buffer;
 };
 

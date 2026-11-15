@@ -568,7 +568,6 @@ Item {
                         Label {
                             text: qsTr("Port Name")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
@@ -582,7 +581,6 @@ Item {
                         Label {
                             text: qsTr("Local Host")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         ComboBox {
@@ -596,14 +594,13 @@ Item {
                         Label {
                             text: qsTr("Local Port")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         SpinBox {
                             id: sslServerLocalPortSpinBox
                             font.pointSize: 12
                             editable: true
-                            from: 0
+                            from: 1
                             to: 65535
                             value: 443
                             Layout.fillWidth: true
@@ -619,28 +616,15 @@ Item {
                         }
 
                         Label {
-                            text: qsTr("Secure")
+                            text: qsTr("Server Certificate")
                             font.pointSize: 12
-                            Layout.fillWidth: true
-                        }
-
-                        Switch {
-                            id: sslServerSecureSwitch
-                            checked: false
-                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                        }
-
-                        Label {
-                            text: qsTr("Certificate")
-                            font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
                             id: sslServerCertificateTextField
                             clearable: true
                             browsable: true
-                            title: qsTr("Select Certificate")
+                            title: qsTr("Select Server Certificate")
                             nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
                             font.pointSize: 12
                             placeholderText: qsTr("PEM certificate URL")
@@ -650,7 +634,6 @@ Item {
                         Label {
                             text: qsTr("Private Key")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
@@ -663,6 +646,35 @@ Item {
                             placeholderText: qsTr("PEM private key URL")
                             Layout.fillWidth: true
                         }
+
+                        Label {
+                            text: qsTr("Private Key Password")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslServerPrivateKeyPasswordTextField
+                            revealable: true
+                            clearable: true
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: qsTr("CA Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslServerCaCertificateTextField
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select CA Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("No client certificate required")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
                     }
 
                     // web socket client
@@ -673,7 +685,6 @@ Item {
                         Label {
                             text: qsTr("Port Name")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
@@ -687,7 +698,6 @@ Item {
                         Label {
                             text: qsTr("Remote Host")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
@@ -701,7 +711,6 @@ Item {
                         Label {
                             text: qsTr("Remote Port")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         SpinBox {
@@ -726,7 +735,6 @@ Item {
                         Label {
                             text: qsTr("Secure")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         Switch {
@@ -734,6 +742,75 @@ Item {
                             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
                             onToggled: webSocketClientRemotePortSpinBox.value = checked ? 443 : 80
+                        }
+
+                        Label {
+                            visible: webSocketClientSecureSwitch.checked
+                            text: qsTr("CA Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketClientCaCertificateTextField
+                            visible: webSocketClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select CA Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("Default trust store")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketClientSecureSwitch.checked
+                            text: qsTr("Client Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketClientCertificateTextField
+                            visible: webSocketClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Client Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("PEM certificate URL")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketClientSecureSwitch.checked
+                            text: qsTr("Private Key")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketClientPrivateKeyTextField
+                            visible: webSocketClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Private Key")
+                            nameFilters: [qsTr("PEM private keys (*.pem *.key)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("PEM private key URL")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketClientSecureSwitch.checked
+                            text: qsTr("Private Key Password")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketClientPrivateKeyPasswordTextField
+                            visible: webSocketClientSecureSwitch.checked
+                            revealable: true
+                            clearable: true
+                            font.pointSize: 12
+                            Layout.fillWidth: true
                         }
                     }
 
@@ -2490,6 +2567,16 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
+                                if (!sslServerCertificateTextField.text.trim()) {
+                                    portNameValidator.text = qsTr("Server Certificate Required")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
+                                if (!sslServerPrivateKeyTextField.text.trim()) {
+                                    portNameValidator.text = qsTr("Private Key Required")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
                             }
                                 break
                             case 6: {
@@ -3058,11 +3145,17 @@ Item {
             "sslServerLocalPortSpinBox": sslServerLocalPortSpinBox,
             "sslServerCertificateTextField": sslServerCertificateTextField,
             "sslServerPrivateKeyTextField": sslServerPrivateKeyTextField,
+            "sslServerCaCertificateTextField": sslServerCaCertificateTextField,
+            "sslServerPrivateKeyPasswordTextField": sslServerPrivateKeyPasswordTextField,
             // web socket client
             "webSocketClientNameTextField": webSocketClientNameTextField,
             "webSocketClientRemoteHostTextField": webSocketClientRemoteHostTextField,
             "webSocketClientRemotePortSpinBox": webSocketClientRemotePortSpinBox,
             "webSocketClientSecureSwitch": webSocketClientSecureSwitch,
+            "webSocketClientCaCertificateTextField": webSocketClientCaCertificateTextField,
+            "webSocketClientCertificateTextField": webSocketClientCertificateTextField,
+            "webSocketClientPrivateKeyTextField": webSocketClientPrivateKeyTextField,
+            "webSocketClientPrivateKeyPasswordTextField": webSocketClientPrivateKeyPasswordTextField,
             // web socket server
             "webSocketServerNameTextField": webSocketServerNameTextField,
             "webSocketServerLocalHostComboBox": webSocketServerLocalHostComboBox,

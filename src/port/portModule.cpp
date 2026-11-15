@@ -145,8 +145,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
             };
             break;
         }
-        case PortType::TcpClient:
-        case PortType::SslClient: {
+        case PortType::TcpClient: {
             portConfig = {
                 {"type", "object"},
                 {
@@ -174,27 +173,9 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                     }
                 }
             };
-            if (portType == PortType::SslClient) {
-                auto defaults = portConfig.value("defaults").toObject();
-                defaults["secure"] = false;
-                defaults["caCertificate"] = "";
-                defaults["certificate"] = "";
-                defaults["privateKey"] = "";
-                defaults["privateKeyPassword"] = "";
-                portConfig["defaults"] = defaults;
-
-                auto properties = portConfig.value("properties").toObject();
-                properties["secure"] = QJsonObject{{"type", "boolean"}, {"description", "Verify the server certificate and enable the optional certificate settings. False skips verification and ignores those settings; SSL always uses TLS."}};
-                properties["caCertificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle added to the default trust store when secure is true."}};
-                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true."}};
-                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Requires certificate and secure=true."}};
-                properties["privateKeyPassword"] = QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Used only when secure is true."}};
-                portConfig["properties"] = properties;
-            }
             break;
         }
-        case PortType::TcpServer:
-        case PortType::SslServer: {
+        case PortType::TcpServer: {
             portConfig = {
                 {"type", "object"},
                 {
@@ -222,17 +203,84 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                     }
                 }
             };
-            if (portType == PortType::SslServer) {
-                auto required = portConfig.value("required").toArray();
-                required.append("certificate");
-                required.append("privateKey");
-                portConfig["required"] = required;
-
-                auto properties = portConfig.value("properties").toObject();
-                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "The file:// URL of the PEM certificate."}};
-                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "The file:// URL of the PEM private key."}};
-                portConfig["properties"] = properties;
-            }
+            break;
+        }
+        case PortType::SslClient: {
+            portConfig = {
+                {"type", "object"},
+                {
+                    "required", QJsonArray{
+                        "portName",
+                        "remoteHost",
+                        "remotePort"
+                    }
+                },
+                {
+                    "defaults", QJsonObject{
+                        {"secure", false},
+                        {"caCertificate", ""},
+                        {"certificate", ""},
+                        {"privateKey", ""},
+                        {"privateKeyPassword", ""},
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"remoteHost", QJsonObject{{"type", "string"}}},
+                        {"remotePort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Verify the server certificate and enable the optional certificate settings. False skips verification and ignores those settings; SSL always uses TLS."}}},
+                        {"caCertificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle added to the default trust store when secure is true."}}},
+                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true."}}},
+                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Requires certificate and secure=true."}}},
+                        {"privateKeyPassword", QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Used only when secure is true."}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
+            break;
+        }
+        case PortType::SslServer: {
+            portConfig = {
+                {"type", "object"},
+                {
+                    "required", QJsonArray{
+                        "portName",
+                        "localHost",
+                        "localPort",
+                        "certificate",
+                        "privateKey"
+                    }
+                },
+                {
+                    "defaults", QJsonObject{
+                        {"caCertificate", ""},
+                        {"privateKeyPassword", ""},
+                        {"logFormat", "utf-8"},
+                        {"txSuffix", "null"},
+                        {"bufferSize", 65536}
+                    }
+                },
+                {
+                    "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
+                        {"localHost", QJsonObject{{"type", "string"}}},
+                        {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Required file:// URL of a PEM server certificate chain, leaf first. SSL Server always uses TLS."}}},
+                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Required file:// URL of the matching PEM private key."}}},
+                        {"privateKeyPassword", QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext."}}},
+                        {"caCertificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle. Empty does not request client certificates; nonempty requires valid client certificates trusted by this bundle only, without the default trust store."}}},
+                        {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
+                        {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
+                        {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
+                    }
+                }
+            };
             break;
         }
         case PortType::WebSocketClient: {
@@ -242,6 +290,10 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 {
                     "defaults", QJsonObject{
                         {"secure", false},
+                        {"caCertificate", ""},
+                        {"certificate", ""},
+                        {"privateKey", ""},
+                        {"privateKeyPassword", ""},
                         {"logFormat", "utf-8"},
                         {"txSuffix", "null"},
                         {"bufferSize", 65536}
@@ -252,7 +304,11 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"portName", QJsonObject{{"type", "string"}}},
                         {"remoteHost", QJsonObject{{"type", "string"}, {"description", "Hostname or IP address, optionally followed by path and query, without ws:// or wss://; for example ws.postman-echo.com/raw."}}},
                         {"remotePort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
-                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Use wss:// instead of ws://."}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Use WSS and verify the server certificate. False uses plaintext WS and ignores certificate settings."}}},
+                        {"caCertificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle added to the default trust store when secure is true."}}},
+                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true."}}},
+                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Requires certificate and secure=true."}}},
+                        {"privateKeyPassword", QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Used only when secure is true."}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}

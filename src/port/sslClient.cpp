@@ -77,9 +77,7 @@ bool SslClient::open() {
         connect(m_sslClient, &QSslSocket::encrypted, this, [this] { handleStateChanged(m_sslClient->state()); });
         connect(m_sslClient, &QSslSocket::readyRead, this, &SslClient::handleReadyRead);
         connect(m_sslClient, &QSslSocket::errorOccurred, this, &SslClient::handleError);
-        connect(m_sslClient, &QSslSocket::sslErrors, this, [this](const QList<QSslError> &errors) {
-            for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
-        });
+        connect(m_sslClient, &QSslSocket::sslErrors, this, &SslClient::handleErrors);
     }
     if (m_sslClient->state() == QAbstractSocket::ConnectedState && m_sslClient->isEncrypted()) return true;
     if (m_sslClient->state() == QAbstractSocket::ClosingState) m_sslClient->abort();
@@ -235,6 +233,10 @@ void SslClient::handleError() {
     }
     if (handled) return;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_sslClient->errorString()));
+}
+
+void SslClient::handleErrors(const QList<QSslError> &errors) {
+    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
 }
 
 bool SslClient::handleWrite(const QByteArray &f_txData) {

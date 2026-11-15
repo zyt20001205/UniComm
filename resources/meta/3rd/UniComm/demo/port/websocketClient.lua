@@ -1,11 +1,22 @@
 -- Start port/websocketServer first. remoteHost can include a path and query.
 -- On later runs, use Port.get("WebSocket Client") to reuse the saved configuration.
+-- For a WSS echo server, set secure=true, use its host/path and port (usually 443).
+-- WSS always verifies the server certificate; there is no skip-verification mode.
 local client = Port.create({
     portType = Port.Type.WebSocketClient,
     portName = "WebSocket Client",
     remoteHost = "127.0.0.1/",
     remotePort = 8080,
     secure = false,
+    -- Certificate settings are ignored for plaintext WS.
+    -- Empty uses the default trust store; select a PEM CA file for a private CA.
+    caCertificate = "",
+    -- For client authentication, provide both PEM file URLs. The certificate
+    -- chain starts with the client certificate; the private key must match it.
+    certificate = "",
+    privateKey = "",
+    -- Only needed for a password-protected key. Saved in plaintext.
+    privateKeyPassword = "",
     logFormat = "hex",
 })
 

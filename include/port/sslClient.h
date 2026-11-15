@@ -8,6 +8,7 @@
 #include "port/module/ringBuffer.h"
 
 class QSslSocket;
+class QSslError;
 
 class SslClient final : public BasePort {
     Q_OBJECT
@@ -43,6 +44,8 @@ private:
     void handleReadyRead();
 
     void handleError();
+
+    void handleErrors(const QList<QSslError> &errors);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData);
 

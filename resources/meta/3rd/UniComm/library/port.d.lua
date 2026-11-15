@@ -105,8 +105,10 @@ Port.Type = {
 ---@class SslServerPortConfig : PortConfig
 ---@field localHost string Local address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
----@field certificate string File URL of the PEM certificate, for example "file:///C:/certs/server-cert.pem".
----@field privateKey string File URL of the PEM private key, for example "file:///C:/certs/server-key.pem".
+---@field certificate string Required file URL of a PEM server certificate chain, leaf first. SSL Server always uses TLS.
+---@field privateKey string Required file URL of the matching PEM private key.
+---@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext.
+---@field caCertificate? string (default: "") File URL of a PEM CA bundle. Empty does not request client certificates; nonempty requires valid client certificates trusted by this bundle only, without the default trust store.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
@@ -115,7 +117,11 @@ Port.Type = {
 ---@class WebSocketClientPortConfig : PortConfig
 ---@field remoteHost string Hostname or IP address, optionally followed by path and query, without a scheme. Example: "ws.postman-echo.com/raw". Enclose IPv6 addresses in brackets.
 ---@field remotePort integer Remote port from 1 to 65535. Usually 80 for WS or 443 for WSS; this field determines the port even if remoteHost contains one.
----@field secure? boolean (default: false) Use WSS instead of WS.
+---@field secure? boolean (default: false) Use WSS and verify the server certificate. False uses plaintext WS and ignores certificate settings.
+---@field caCertificate? string (default: "") File URL of a PEM CA bundle added to the default trust store when secure is true. Empty uses the default trust store.
+---@field certificate? string (default: "") File URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true.
+---@field privateKey? string (default: "") File URL of the matching PEM private key. Requires certificate and secure=true.
+---@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext. Used only when secure is true.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
@@ -200,12 +206,15 @@ port = {}
 ---
 ---Available fields depend on the port type and may include status, addresses,
 ---buffer usage, and connected server peers.
----SSL clients also return secure, caCertificate, certificate, privateKey, hasPrivateKeyPassword,
----peerVerifyMode (VerifyPeer or VerifyNone), encrypted, protocol, and cipher.
+---SSL and WebSocket clients also return secure, caCertificate, certificate, privateKey,
+---hasPrivateKeyPassword, protocol, and cipher.
 ---Certificate fields describe configuration, not proof of mutual authentication.
----Protocol and cipher are empty until the TLS connection is encrypted. Passwords and key contents are never returned by info().
+---Protocol and cipher are empty when disconnected or using plaintext WS; WebSocket clients expose them after the WSS handshake completes.
+---Passwords and key contents are never returned by info().
 ---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
 ---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
+---SSL servers return caCertificate, certificate, privateKey, and hasPrivateKeyPassword.
+---SSL server peers include peerIp, protocol, and cipher; only completed TLS handshakes appear as peers.
 ---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` objects:
 ---`capabilities` is an array of `read`, `write_request`, `write_command`, `notify`, and `indicate` names.
 ---`descriptors` is an array of lowercase, full Descriptor UUID strings, empty when none are discovered.

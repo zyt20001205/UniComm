@@ -154,11 +154,17 @@ private:
     QObject *m_sslServerLocalPortSpinBox{};
     QObject *m_sslServerCertificateTextField{};
     QObject *m_sslServerPrivateKeyTextField{};
+    QObject *m_sslServerCaCertificateTextField{};
+    QObject *m_sslServerPrivateKeyPasswordTextField{};
     // web socket client
     QObject *m_webSocketClientNameTextField{};
     QObject *m_webSocketClientRemoteHostTextField{};
     QObject *m_webSocketClientRemotePortSpinBox{};
     QObject *m_webSocketClientSecureSwitch{};
+    QObject *m_webSocketClientCaCertificateTextField{};
+    QObject *m_webSocketClientCertificateTextField{};
+    QObject *m_webSocketClientPrivateKeyTextField{};
+    QObject *m_webSocketClientPrivateKeyPasswordTextField{};
     // web socket server
     QObject *m_webSocketServerNameTextField{};
     QObject *m_webSocketServerLocalHostComboBox{};

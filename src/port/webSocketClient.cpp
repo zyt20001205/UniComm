@@ -1,7 +1,12 @@
 #include "port/webSocketClient.h"
 
 #include <QDeadlineTimer>
+#include <QFile>
 #include <QScopedValueRollback>
+#include <QSslCipher>
+#include <QSslConfiguration>
+#include <QSslKey>
+#include <QSslSocket>
 #include <QTimer>
 #include <QUrl>
 #include <QWebSocket>
@@ -58,6 +63,12 @@ QVariantHash WebSocketClient::info() {
         {"remoteHost", m_url.host()},
         {"remotePort", QString::number(m_url.port())},
         {"secure", m_portConfig["secure"].toBool()},
+        {"caCertificate", m_portConfig["caCertificate"].toString()},
+        {"certificate", m_portConfig["certificate"].toString()},
+        {"privateKey", m_portConfig["privateKey"].toString()},
+        {"hasPrivateKeyPassword", !m_portConfig["privateKeyPassword"].toString().isEmpty()},
+        {"protocol", m_webSocketClient && m_portConfig["secure"].toBool() && m_webSocketClient->state() == QAbstractSocket::ConnectedState ? m_webSocketClient->sslConfiguration().sessionCipher().protocolString() : QString{}},
+        {"cipher", m_webSocketClient && m_portConfig["secure"].toBool() && m_webSocketClient->state() == QAbstractSocket::ConnectedState ? m_webSocketClient->sslConfiguration().sessionCipher().name() : QString{}},
         {"closeCode", m_webSocketClient ? static_cast<int>(m_webSocketClient->closeCode()) : 0},
         {"closeReason", m_webSocketClient ? m_webSocketClient->closeReason() : QString()},
         {"bufferSize", QString::number(m_portConfig["bufferSize"].toInt())},
@@ -72,10 +83,17 @@ bool WebSocketClient::open() {
         connect(m_webSocketClient, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray &message) { handleMessage(message); });
         connect(m_webSocketClient, &QWebSocket::textMessageReceived, this, [this](const QString &message) { handleMessage(message.toUtf8()); });
         connect(m_webSocketClient, &QWebSocket::errorOccurred, this, &WebSocketClient::handleError);
+        connect(m_webSocketClient, &QWebSocket::sslErrors, this, &WebSocketClient::handleErrors);
     }
     if (m_webSocketClient->state() == QAbstractSocket::ConnectedState) return true;
     if (m_webSocketClient->state() == QAbstractSocket::ClosingState) m_webSocketClient->abort();
     if (m_webSocketClient->state() == QAbstractSocket::UnconnectedState) {
+        m_sslErrorsHandled = false;
+        if (const auto exception = configure(); !exception.isEmpty()) {
+            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+            emit refreshPort(m_portConfig["portName"].toString(), false);
+            return false;
+        }
         m_buffer.clear();
         m_webSocketClient->open(m_url);
     }
@@ -135,6 +153,46 @@ QByteArray WebSocketClient::readUntil(const QByteArray &text, const int timeout,
 }
 
 // private
+QString WebSocketClient::configure() {
+    if (!m_portConfig["secure"].toBool()) return {};
+
+    auto configuration = QSslConfiguration::defaultConfiguration();
+    configuration.setProtocol(QSsl::TlsV1_2OrLater);
+    configuration.setLocalCertificateChain({});
+    configuration.setPrivateKey({});
+    configuration.setPeerVerifyMode(QSslSocket::VerifyPeer);
+
+    const auto caCertificate = m_portConfig["caCertificate"].toString();
+    if (!caCertificate.isEmpty()) {
+        QFile file(QUrl(caCertificate).toLocalFile());
+        if (!file.open(QIODevice::ReadOnly)) return "cannot open CA certificate: " + file.errorString();
+        const auto certificates = QSslCertificate::fromDevice(&file, QSsl::Pem);
+        if (certificates.isEmpty()) return "CA certificate invalid";
+        configuration.addCaCertificates(certificates);
+    }
+
+    const auto certificate = m_portConfig["certificate"].toString();
+    const auto privateKey = m_portConfig["privateKey"].toString();
+    const auto password = m_portConfig["privateKeyPassword"].toString().toUtf8();
+    if (certificate.isEmpty() != privateKey.isEmpty()) return "client certificate and private key must be provided together";
+    if (certificate.isEmpty() && !password.isEmpty()) return "private key password requires a client certificate and private key";
+    if (!certificate.isEmpty()) {
+        QFile certificateFile(QUrl(certificate).toLocalFile());
+        if (!certificateFile.open(QIODevice::ReadOnly)) return "cannot open client certificate: " + certificateFile.errorString();
+        const auto certificates = QSslCertificate::fromDevice(&certificateFile, QSsl::Pem);
+        if (certificates.isEmpty()) return "client certificate invalid";
+
+        QFile privateKeyFile(QUrl(privateKey).toLocalFile());
+        if (!privateKeyFile.open(QIODevice::ReadOnly)) return "cannot open private key: " + privateKeyFile.errorString();
+        const QSslKey key(&privateKeyFile, certificates.first().publicKey().algorithm(), QSsl::Pem, QSsl::PrivateKey, password);
+        if (key.isNull()) return "private key invalid or password incorrect";
+        configuration.setLocalCertificateChain(certificates);
+        configuration.setPrivateKey(key);
+    }
+    m_webSocketClient->setSslConfiguration(configuration);
+    return {};
+}
+
 void WebSocketClient::handleStateChanged(const QAbstractSocket::SocketState state) {
     const auto url = m_url.toString();
     QString message{};
@@ -176,7 +234,13 @@ void WebSocketClient::handleMessage(const QByteArray &message) {
 
 void WebSocketClient::handleError() {
     if (m_webSocketClient->error() == QAbstractSocket::SocketTimeoutError) return;
+    if (m_webSocketClient->error() == QAbstractSocket::SslHandshakeFailedError && m_sslErrorsHandled) return;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
+}
+
+void WebSocketClient::handleErrors(const QList<QSslError> &errors) {
+    m_sslErrorsHandled = !errors.isEmpty();
+    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
 }
 
 bool WebSocketClient::handleWrite(const QByteArray &f_txData, const int messageType) {
