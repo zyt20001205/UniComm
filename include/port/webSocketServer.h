@@ -43,15 +43,15 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 private:
-    void handleNewConnection();
-
-    void handleServerError();
-
     void handleStateChanged(QWebSocket *webSocketServerPeer, QAbstractSocket::SocketState state);
+
+    void handleNewConnection();
 
     void handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message);
 
-    void handleError(const QWebSocket *webSocketServerPeer);
+    void handleServerError();
+
+    void handleSocketError(const QWebSocket *webSocketServerPeer, QAbstractSocket::SocketError error);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType, const QString &peerIp);
 

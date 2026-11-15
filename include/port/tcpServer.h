@@ -43,15 +43,15 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 private:
-    void handleNewConnection();
-
-    void handleServerError();
-
     void handleStateChanged(QTcpSocket *tcpServerPeer, QAbstractSocket::SocketState state);
+
+    void handleNewConnection();
 
     void handleReadyRead(QTcpSocket *tcpServerPeer);
 
-    void handleError(const QTcpSocket *tcpServerPeer);
+    void handleServerError(QAbstractSocket::SocketError error);
+
+    void handleSocketError(const QTcpSocket *tcpServerPeer, QAbstractSocket::SocketError error);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, const QString &peerIp = QString());
 

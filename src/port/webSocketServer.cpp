@@ -68,6 +68,7 @@ bool WebSocketServer::open() {
         return true;
     }
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_webSocketServer->errorString()));
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     return false;
 }
 
@@ -135,25 +136,6 @@ QByteArray WebSocketServer::readUntil(const QByteArray &text, const int timeout,
 }
 
 // private
-void WebSocketServer::handleNewConnection() {
-    while (m_webSocketServer->hasPendingConnections()) {
-        auto *peer = m_webSocketServer->nextPendingConnection();
-        if (peer == nullptr) continue;
-        peer->setParent(this);
-        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
-        peer->setProperty("peerIp", peerIp);
-        connect(peer, &QWebSocket::binaryMessageReceived, this, [this, peer](const QByteArray &message) { handleMessage(peer, message); });
-        connect(peer, &QWebSocket::textMessageReceived, this, [this, peer](const QString &message) { handleMessage(peer, message.toUtf8()); });
-        connect(peer, &QWebSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
-        connect(peer, &QWebSocket::errorOccurred, this, [this, peer] { handleError(peer); });
-        handleStateChanged(peer, peer->state());
-    }
-}
-
-void WebSocketServer::handleServerError() {
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketServer->errorString());
-}
-
 void WebSocketServer::handleStateChanged(QWebSocket *webSocketServerPeer, const QAbstractSocket::SocketState state) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
     QString message{};
@@ -185,6 +167,21 @@ void WebSocketServer::handleStateChanged(QWebSocket *webSocketServerPeer, const 
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
+void WebSocketServer::handleNewConnection() {
+    while (m_webSocketServer->hasPendingConnections()) {
+        auto *peer = m_webSocketServer->nextPendingConnection();
+        if (peer == nullptr) continue;
+        peer->setParent(this);
+        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
+        peer->setProperty("peerIp", peerIp);
+        connect(peer, &QWebSocket::binaryMessageReceived, this, [this, peer](const QByteArray &message) { handleMessage(peer, message); });
+        connect(peer, &QWebSocket::textMessageReceived, this, [this, peer](const QString &message) { handleMessage(peer, message.toUtf8()); });
+        connect(peer, &QWebSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
+        connect(peer, &QWebSocket::errorOccurred, this, [this, peer](QAbstractSocket::SocketError error) { handleSocketError(peer, error); });
+        handleStateChanged(peer, peer->state());
+    }
+}
+
 void WebSocketServer::handleMessage(QWebSocket *webSocketServerPeer, const QByteArray &message) {
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
@@ -197,8 +194,12 @@ void WebSocketServer::handleMessage(QWebSocket *webSocketServerPeer, const QByte
     handleLog(LogLevel::Receive, message, webSocketServerPeer);
 }
 
-void WebSocketServer::handleError(const QWebSocket *webSocketServerPeer) {
-    if (webSocketServerPeer == nullptr || webSocketServerPeer->error() == QAbstractSocket::SocketTimeoutError) return;
+void WebSocketServer::handleServerError() {
+    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketServer->errorString());
+}
+
+void WebSocketServer::handleSocketError(const QWebSocket *webSocketServerPeer, const QAbstractSocket::SocketError error) {
+    if (webSocketServerPeer == nullptr || error == QAbstractSocket::SocketTimeoutError) return;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(webSocketServerPeer->property("peerIp").toString()), QString("error: %1").arg(webSocketServerPeer->errorString()));
 }
 
