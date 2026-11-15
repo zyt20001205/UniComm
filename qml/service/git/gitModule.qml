@@ -21,15 +21,15 @@ Item {
 
             Button {
                 flat: true
-                text: !global.gitEnabled ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
+                text: !gitModule.gitEnabled ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
                 font.pixelSize: 16
                 Layout.alignment: Qt.AlignVCenter
 
-                onClicked: !global.gitEnabled ? gitModule.gitInit() : gitModule.gitCommitPre()
+                onClicked: !gitModule.gitEnabled ? gitModule.gitInit() : gitModule.gitCommitPre()
             }
 
             IconImage {
-                source: !global.gitEnabled ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
+                source: !gitModule.gitEnabled ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
                 color: global.fore
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -39,7 +39,7 @@ Item {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: global.gitEnabled && !branchModel.empty
+        visible: gitModule.gitEnabled && !branchModel.empty
         handle: Item {
             implicitWidth: 5
 

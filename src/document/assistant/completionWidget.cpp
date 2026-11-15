@@ -7,6 +7,7 @@
 #include <QTimer>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/portModule.h"
 
 // public
@@ -212,8 +213,9 @@ void CompletionWidget::textReplace() {
 
 void CompletionWidget::placeholderExpand(const QString &placeholder) const {
     if (placeholder == "\"__PLACEHOLDER__PORTNAME__\"") {
-        for (int i = 0; i < g_portModel->rowCount(); ++i) {
-            const QString insertText = "\"" + g_portModel->item(i, 0)->text() + "\"";
+        const auto *model = g_globalManager->portModuleGet()->modelGet();
+        for (int i = 0; i < model->rowCount(); ++i) {
+            const QString insertText = "\"" + model->item(i, 0)->text() + "\"";
             auto *standardItem = new QStandardItem(insertText); // NOLINT
             standardItem->setData("qrc:/icon/symbolEnumMember.svg", Qt::DecorationRole);
             standardItem->setData(insertText, Qt::WhatsThisRole);

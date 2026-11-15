@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "globals.h"
+#include "mainWindow/mainWindow.h"
 #include "core/globalManager.h"
 #include "port/module/deviceDiscovery.h"
 
@@ -49,7 +50,7 @@ PortSetting::~PortSetting() {
 
 void PortSetting::propertySet(const QVariantHash &objects) {
     m_window->setTitle(tr("Port Setting"));
-    m_window->setTransientParent(g_mainWindow->windowHandle());
+    m_window->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_window->engine()->addImageProvider("capture", m_imageProvider);
 
     m_window->rootContext()->setContextProperty("portSetting", this);

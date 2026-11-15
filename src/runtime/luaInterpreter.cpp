@@ -27,7 +27,7 @@
 #include "api/ui/table.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
-#include "document/documentModule.h"
+#include "debug/watchModule.h"
 #include "util/luaUtils.h"
 #include "util/uniCast.h"
 
@@ -517,10 +517,11 @@ void LuaInterpreter::watchSet(lua_State *L, lua_Debug *ar) {
     }
     sol::state_view lua(L);
     QHash<QString, int> watchHash{};
-    for (int i = 0; i < g_watchStandardItemModel->rowCount(); ++i) {
-        const QString url = g_watchStandardItemModel->item(i, 0)->data(Qt::WhatsThisRole).toString();
+    const auto *model = g_globalManager->watchModuleGet()->modelGet();
+    for (int i = 0; i < model->rowCount(); ++i) {
+        const QString url = model->item(i, 0)->data(Qt::WhatsThisRole).toString();
         if (url == currentUrl) {
-            const QString key = g_watchStandardItemModel->item(i, 0)->text();
+            const QString key = model->item(i, 0)->text();
             watchHash.insert(key, i);
         }
     }
@@ -557,8 +558,8 @@ void LuaInterpreter::watchSet(lua_State *L, lua_Debug *ar) {
                 type = lua_typename(L, static_cast<int>(obj.get_type()));
                 val = uni_cast<QString>(obj);
             }
-            g_watchStandardItemModel->item(it.value(), 1)->setText(val);
-            g_watchStandardItemModel->item(it.value(), 1)->setData(type, Qt::WhatsThisRole);
+            model->item(it.value(), 1)->setText(val);
+            model->item(it.value(), 1)->setData(type, Qt::WhatsThisRole);
         }
     }
 }
@@ -597,9 +598,9 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
         }
         const int currentLine = ar->currentline;
         // watch refresh
-        if (g_globalManager->refreshGet()) {
+        if (g_globalManager->watchModuleGet()->refreshGet()) {
             watchSet(L, ar);
-            g_globalManager->refreshSet(false);
+            g_globalManager->watchModuleGet()->refreshSet(false);
         }
         // debug state machine
         if (session["state"].toInt() == Debug::Resume && g_breakpoints.contains(currentUrl.toString())) {

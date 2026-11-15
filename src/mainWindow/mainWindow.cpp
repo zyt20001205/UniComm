@@ -45,7 +45,6 @@
 #include "runtime/luaInterpreter.h"
 #include "runtime/threadpoolModule.h"
 #include "service/audio.h"
-#include "service/ripgrep.h"
 #include "service/git/gitModule.h"
 #include "service/lsp/lspManager.h"
 #include "service/serviceModule.h"
@@ -56,7 +55,6 @@
 MainWindow::MainWindow(QWidget *parent, const QString &uniqueName)
     : KDDockWidgets::QtWidgets::MainWindow(uniqueName, KDDockWidgets::MainWindowOption_None, parent) {
     // mainWindow ui init
-    g_mainWindow = this;
     setAttribute(Qt::WA_DeleteOnClose);
     QWidget::setWindowTitle("UniComm");
     QWidget::setWindowIcon(QIcon(":/icon/icon.ico"));
@@ -313,8 +311,7 @@ void MainWindow::terminate() {
     KDDockWidgets::DockRegistry::self()->clear();
     delete m_portModule;
     m_portModule = nullptr;
-    g_port = nullptr;
-    g_portModel = nullptr;
+    g_globalManager->portModuleSet(nullptr);
     close();
 }
 
@@ -336,7 +333,7 @@ void MainWindow::themeSet(const int theme) {
 void MainWindow::workspaceOpen() {
     // ask for new workspace location
     const auto workspaceDir = QFileDialog::getExistingDirectory(
-        g_mainWindow,
+        this,
         tr("Open Workspace"),
         QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
@@ -368,7 +365,7 @@ void MainWindow::workspaceSave(const QUrl &configUrl) {
     m_logModule->logConfigSave();
     m_portModule->portConfigSave();
     m_terminalModule->terminalConfigSave();
-    WatchModule::watchConfigSave();
+    m_watchModule->watchConfigSave();
     mainConfigSave();
     m_configManager->workspaceConfigSave(configUrl);
 
@@ -396,12 +393,13 @@ void MainWindow::moduleInit() {
     QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     qDebug() << QString("[%1] %2").arg(timestamp, "initializing module");
 
-    g_networkAccessManager = new QNetworkAccessManager(qApp);
     m_configManager = new ConfigManager(this);
+    g_globalManager = new GlobalManager(qApp);
+    g_globalManager->mainWindowSet(this);
+    g_globalManager->networkAccessManagerSet(new QNetworkAccessManager(qApp));
     m_serviceModule = new ServiceModule();
-    g_audioService = new AudioService(this);
-    g_ripgrep = new Ripgrep(this);
-    g_globalManager = new GlobalManager();
+    g_globalManager->serviceModuleSet(m_serviceModule);
+    g_globalManager->audioServiceSet(new AudioService(this));
 
     m_breakpointModule = new BreakpointModule();
     m_debugModule = new DebugModule();
@@ -423,15 +421,16 @@ void MainWindow::moduleInit() {
     m_watchModule = new WatchModule();
 
     m_mainConfig = g_workspaceConfig["mainConfig"].toObject();
-    g_agent = m_agentModule;
-    g_document = m_documentModule;
-    g_git = m_gitModule;
-    g_log = m_logModule;
-    g_nuspell = m_nuspellModule;
-    g_port = m_portModule;
-    g_terminal = m_terminalModule;
-    g_threadpool = m_threadpoolModule;
-    g_undo = m_undoModule;
+    g_globalManager->agentModuleSet(m_agentModule);
+    g_globalManager->documentModuleSet(m_documentModule);
+    g_globalManager->gitModuleSet(m_gitModule);
+    g_globalManager->logModuleSet(m_logModule);
+    g_globalManager->nuspellModuleSet(m_nuspellModule);
+    g_globalManager->portModuleSet(m_portModule);
+    g_globalManager->terminalModuleSet(m_terminalModule);
+    g_globalManager->threadpoolModuleSet(m_threadpoolModule);
+    g_globalManager->undoModuleSet(m_undoModule);
+    g_globalManager->watchModuleSet(m_watchModule);
 
     connect(this, &MainWindow::appendLog, m_logModule, &LogModule::logAppend);
 

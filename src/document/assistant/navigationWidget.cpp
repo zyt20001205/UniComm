@@ -1,9 +1,9 @@
 #include "document/assistant/navigationWidget.h"
 
 #include <QJsonArray>
-#include <QStandardItemModel>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "document/documentModule.h"
 #include "util/uniCast.h"
 
@@ -83,7 +83,7 @@ void NavigationWidget::detailReload(const int index) {
     const auto *item = m_navigationModel->item(m_detailIndex, 0);
     if (!item) return;
     const auto position = item->data(Qt::WhatsThisRole).toHash();
-    const auto hint = g_document->textGet(position["documentUrl"].toUrl(), position["startLine"].toInt(), 0, position["startLine"].toInt(), -1);
+    const auto hint = g_globalManager->documentModuleGet()->textGet(position["documentUrl"].toUrl(), position["startLine"].toInt(), 0, position["startLine"].toInt(), -1);
     const int startCharacter = position["startCharacter"].toInt();
     const int endCharacter = position["endCharacter"].toInt();
     const auto hintText = QString("<span style='white-space: pre;'>%1<span style='color: orange;'>%2</span>%3</span>").arg(

@@ -35,12 +35,12 @@ PortModule::PortModule()
     setWidget(m_widget);
     connect(m_portSetting, &PortSetting::insertPort, this, &PortModule::portInsert);
     connect(m_portSetting, &PortSetting::editPort, this, &PortModule::portEdit);
-    g_portModel = new PortModel(this);
+    m_model = new PortModel(this);
     for (const auto &value: g_workspaceConfig["portConfig"].toArray()) {
         auto portConfig = value.toObject();
         portDefaults(portConfig);
         if (!portCheck(portConfig).isEmpty()) continue;
-        _portInsert(g_portModel->rowCount(), portConfig);
+        _portInsert(m_model->rowCount(), portConfig);
     }
 }
 
@@ -59,7 +59,6 @@ void PortModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("global", g_globalManager);
     m_widget->rootContext()->setContextProperty("tableMenu", qvariant_cast<QObject *>(objects["portModuleTableMenu"]));
     m_widget->rootContext()->setContextProperty("rootMenu", qvariant_cast<QObject *>(objects["portModuleRootMenu"]));
-    m_widget->rootContext()->setContextProperty("portModel", g_portModel);
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/port/portModule.qml"));
@@ -72,8 +71,8 @@ void PortModule::propertySet(const QVariantHash &objects) {
 
 void PortModule::portConfigSave() {
     QJsonArray portConfigArray{};
-    for (int i = 0; i < g_portModel->rowCount(); ++i) {
-        const QString portName = g_portModel->item(i, 0)->text();
+    for (int i = 0; i < m_model->rowCount(); ++i) {
+        const QString portName = m_model->item(i, 0)->text();
         QJsonObject portConfig = m_portHash[portName]->config();
         portConfigArray.append(portConfig);
     }
@@ -414,7 +413,7 @@ void PortModule::portSetting(const int index) const {
     if (index == -1) {
         m_portSetting->portSettingImport();
     } else {
-        const auto *item = g_portModel->item(index, 0);
+        const auto *item = m_model->item(index, 0);
         const QString portName = item->text();
         const auto &portObject = m_portHash[portName];
         const auto &portConfig = portObject->config();
@@ -432,19 +431,19 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
         return exception;
     }
 
-    if (index == -1) index = g_portModel->rowCount();
-    if (index < 0 || index > g_portModel->rowCount()) {
+    if (index == -1) index = m_model->rowCount();
+    if (index < 0 || index > m_model->rowCount()) {
         const auto error = QString("Port insert failed: invalid index %1.").arg(index);
         emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), error);
         return error;
     }
 
     const auto portIndex = QSharedPointer<int>::create(index);
-    auto error = g_undo->push(
+    auto error = g_globalManager->undoModuleGet()->push(
         tr("Port Insert (%1)").arg(portName),
         [this, portIndex, portConfig] {
             if (const auto error = portCheck(portConfig); !error.isEmpty()) return error;
-            if (*portIndex < 0 || *portIndex > g_portModel->rowCount()) return QString("Port insert failed: invalid index %1.").arg(*portIndex);
+            if (*portIndex < 0 || *portIndex > m_model->rowCount()) return QString("Port insert failed: invalid index %1.").arg(*portIndex);
             _portInsert(*portIndex, portConfig);
             return QString{};
         },
@@ -452,7 +451,7 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
             const auto port = m_portHash.value(portName);
             if (port == nullptr) return QString("Port insert undo failed: '%1' does not exist.").arg(portName);
             if (port->config() != portConfig) return QString("Port insert undo failed: '%1' configuration has changed.").arg(portName);
-            *portIndex = g_portModel->findItems(portName).constFirst()->row();
+            *portIndex = m_model->findItems(portName).constFirst()->row();
             _portRemove(portName);
             return QString{};
         },
@@ -463,25 +462,25 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
 
 QString PortModule::portRemove(const QString &portName, const QString &undoGroupId) {
     const auto name = portName.trimmed();
-    const auto items = g_portModel->findItems(name);
+    const auto items = m_model->findItems(name);
     if (items.isEmpty()) return QString("Port remove failed: '%1' does not exist.").arg(name);
 
     const auto portIndex = QSharedPointer<int>::create(items.constFirst()->row());
     const auto portConfig = m_portHash.value(name)->config();
-    const auto error = g_undo->push(
+    const auto error = g_globalManager->undoModuleGet()->push(
         tr("Port Remove (%1)").arg(name),
         [this, portIndex, name, portConfig] {
             const auto port = m_portHash.value(name);
             if (port == nullptr) return QString("Port remove failed: '%1' does not exist.").arg(name);
             if (port->config() != portConfig) return QString("Port remove failed: '%1' configuration has changed.").arg(name);
-            *portIndex = g_portModel->findItems(name).constFirst()->row();
+            *portIndex = m_model->findItems(name).constFirst()->row();
             _portRemove(name);
             return QString{};
         },
         [this, portIndex, name, portConfig] {
             if (m_portHash.contains(name)) return QString("Port remove undo failed: '%1' already exists.").arg(name);
             if (const auto exception = portCheck(portConfig); !exception.isEmpty()) return exception;
-            if (*portIndex < 0 || *portIndex > g_portModel->rowCount()) return QString("Port remove undo failed: invalid index %1.").arg(*portIndex);
+            if (*portIndex < 0 || *portIndex > m_model->rowCount()) return QString("Port remove undo failed: invalid index %1.").arg(*portIndex);
             _portInsert(*portIndex, portConfig);
             return QString{};
         },
@@ -490,21 +489,21 @@ QString PortModule::portRemove(const QString &portName, const QString &undoGroup
 }
 
 void PortModule::portMove(const int src, const int dst) {
-    if (src < 0 || src >= g_portModel->rowCount() || dst < 0 || dst >= g_portModel->rowCount()) {
+    if (src < 0 || src >= m_model->rowCount() || dst < 0 || dst >= m_model->rowCount()) {
         emit appendLog(LogLevel::Error, "[Port]", "Port move failed: invalid index.");
         return;
     }
     if (src == dst) return;
 
-    const auto portName = g_portModel->item(src, 0)->text();
-    g_undo->push(
+    const auto portName = m_model->item(src, 0)->text();
+    g_globalManager->undoModuleGet()->push(
         tr("Port Move (%1: %2->%3)").arg(portName).arg(src + 1).arg(dst + 1),
         [this, src, dst] { _portMove(src, dst); },
         [this, src, dst] { _portMove(dst, src); });
 }
 
 void PortModule::portEdit(const QString &oldPortName, const QJsonObject &portConfig) {
-    const auto items = g_portModel->findItems(oldPortName);
+    const auto items = m_model->findItems(oldPortName);
     if (items.isEmpty()) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(oldPortName), "Port edit failed: port does not exist.");
         return;
@@ -525,14 +524,14 @@ void PortModule::portEdit(const QString &oldPortName, const QJsonObject &portCon
     const auto commandText = portName == oldPortName
                                  ? tr("Port Edit (%1)").arg(portName)
                                  : tr("Port Rename (%1->%2)").arg(oldPortName, portName);
-    g_undo->push(
+    g_globalManager->undoModuleGet()->push(
         commandText,
         [this, index, oldPortName, newPortConfig] { _portEdit(index, oldPortName, newPortConfig); },
         [this, index, portName, oldPortConfig] { _portEdit(index, portName, oldPortConfig); });
 }
 
 void PortModule::portToggle(const int index) {
-    const auto *item = g_portModel->item(index, 0);
+    const auto *item = m_model->item(index, 0);
     const QString portName = item->text();
     bool status = item->data(PortModel::ActiveRole).toBool();
     auto port = m_portHash[portName];
@@ -547,13 +546,13 @@ void PortModule::portToggle(const int index) {
     }
 }
 
-void PortModule::portRefresh(const QString &portName, const bool active) {
-    const auto indexes = g_portModel->match(g_portModel->index(0, 0), Qt::DisplayRole, portName, 1, Qt::MatchExactly);
+void PortModule::portRefresh(const QString &portName, const bool active) const {
+    const auto indexes = m_model->match(m_model->index(0, 0), Qt::DisplayRole, portName, 1, Qt::MatchExactly);
     if (indexes.isEmpty()) return;
-    auto *item = g_portModel->itemFromIndex(indexes.constFirst());
+    auto *item = m_model->itemFromIndex(indexes.constFirst());
     if (item->data(PortModel::ActiveRole).toBool() == active) {
         const auto index = item->index();
-        emit g_portModel->dataChanged(index, index, {PortModel::ActiveRole});
+        emit m_model->dataChanged(index, index, {PortModel::ActiveRole});
     } else {
         item->setData(active, PortModel::ActiveRole);
     }
@@ -571,7 +570,7 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
     const auto portName = portConfig.value("portName").toString();
     auto *item = new QStandardItem(portName); // NOLINT
     item->setData(false, PortModel::ActiveRole);
-    g_portModel->insertRow(index, item);
+    m_model->insertRow(index, item);
     BasePort *port{};
     switch (portConfig["portType"].toInt()) {
         case PortType::SerialPort: {
@@ -623,8 +622,8 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
 }
 
 void PortModule::_portRemove(const QString &portName) {
-    const auto items = g_portModel->findItems(portName);
-    g_portModel->removeRow(items.constFirst()->row());
+    const auto items = m_model->findItems(portName);
+    m_model->removeRow(items.constFirst()->row());
     auto *port = m_portHash.take(portName);
     auto *thread = port->thread();
     thread->quit();
@@ -638,8 +637,8 @@ void PortModule::_portEdit(const int index, const QString &oldPortName, const QJ
 }
 
 void PortModule::_portMove(const int src, const int dst) {
-    const auto tmp = g_portModel->takeRow(src);
-    g_portModel->insertRow(dst, tmp);
+    const auto tmp = m_model->takeRow(src);
+    m_model->insertRow(dst, tmp);
 }
 
 // public

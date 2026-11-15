@@ -1,10 +1,10 @@
 #include "api/mqtt.h"
 
-#include <QDeadlineTimer>
 #include <sol/error.hpp>
 #include <sol/state_view.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
 
@@ -14,8 +14,8 @@ Mqtt::Mqtt(QObject *parent)
 }
 
 void Mqtt::init(const std::string &portName, const int timeout) {
-    const auto port = g_port->m_portHash.constFind(QString::fromStdString(portName));
-    if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
+    const auto port = g_globalManager->portModuleGet()->m_portHash.constFind(QString::fromStdString(portName));
+    if (port == g_globalManager->portModuleGet()->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
     m_portName = portName;
     m_timeout = timeout;
     m_port = port.value();

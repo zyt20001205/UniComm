@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
 #include "util/uniCast.h"
@@ -20,8 +21,8 @@ Ftp::Ftp(QObject *parent)
 
 void Ftp::init(const std::string &portName, const int timeout) {
     const auto name = QString::fromStdString(portName);
-    const auto port = g_port->m_portHash.constFind(name);
-    if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
+    const auto port = g_globalManager->portModuleGet()->m_portHash.constFind(name);
+    if (port == g_globalManager->portModuleGet()->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
     if (port.value()->type() != PortType::TcpClient && port.value()->type() != PortType::SslClient) throw sol::error(portName + " is not a TCP or SSL client");
 
     m_portName = portName;

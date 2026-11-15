@@ -21,11 +21,31 @@ class CommitModel;
 
 class GitModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    Q_PROPERTY(bool gitEnabled READ gitEnabledGet NOTIFY gitEnabledChanged)
+    Q_PROPERTY(int gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
 
 public:
     explicit GitModule();
 
     ~GitModule() override;
+
+    [[nodiscard]] bool gitEnabledGet() const {
+        return m_gitEnabled;
+    }
+
+    void gitEnabledSet() {
+        m_gitEnabled = gitGet();
+        emit gitEnabledChanged();
+    }
+
+    [[nodiscard]] int gitStatusGet() const {
+        return m_gitStatus;
+    }
+
+    void gitStatusSet(const int type) {
+        m_gitStatus = type;
+        emit gitStatusChanged();
+    }
 
     void propertySet(const QVariantHash &objects);
 
@@ -112,6 +132,10 @@ public:
     Q_INVOKABLE void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const;
 
 signals:
+    void gitEnabledChanged();
+
+    void gitStatusChanged();
+
     void updateIndex();
 
     void openDocument(const QUrl &documentUrl);
@@ -131,6 +155,8 @@ private:
 
     void processFinished(int exitcode);
 
+    bool m_gitEnabled{};
+    int m_gitStatus{};
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
     QObject *m_root{};

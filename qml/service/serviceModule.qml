@@ -21,14 +21,27 @@ Item {
         spacing: 2
 
         delegate: ItemDelegate {
+            id: serviceDelegate
             required property int index
             required property var modelData
 
             width: serviceView.width; height: 36
             text: modelData.name
+            rightPadding: 28
             highlighted: serviceView.currentIndex === index
 
             onClicked: serviceView.currentIndex = index
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                width: 8; height: 8
+                radius: 4
+                color: serviceDelegate.modelData.status === 1 ? global.successFore3
+                    : serviceDelegate.modelData.status === 2 ? global.dangerFore3
+                    : global.stroke
+            }
         }
     }
 

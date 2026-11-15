@@ -14,6 +14,7 @@
 
 #include "core/globalManager.h"
 #include "globals.h"
+#include "mainWindow/mainWindow.h"
 
 // public
 SearchWindow::SearchWindow(QObject *parent)
@@ -28,7 +29,7 @@ SearchWindow::~SearchWindow() {
 }
 
 void SearchWindow::propertySet(const QVariantHash &objects) {
-    m_searchWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_searchWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_searchWindow->rootContext()->setContextProperty("searchWindow", this);
     m_searchWindow->rootContext()->setContextProperty("global", g_globalManager);
     m_searchWindow->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));

@@ -4,6 +4,7 @@
 #include <QJsonArray>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "mainWindow/toastModule.h"
 #include "runtime/threadpoolModule.h"
 #include "util/uniCast.h"
@@ -83,7 +84,7 @@ void HookModule::hookRun(const int event) const {
             m_toast->show(ToastLevel::Warning, tr("Hook"), tr("Hook script does not exist: %1").arg(documentUrl.toLocalFile()));
             continue;
         }
-        g_threadpool->threadStart(documentUrl, InterpreterMode::Agent);
+        g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, InterpreterMode::Agent);
     }
 }
 

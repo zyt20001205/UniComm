@@ -5,6 +5,7 @@
 #include <QJsonArray>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "analysis/nuspellModule.h"
 #include "util/uniCast.h"
 
@@ -85,7 +86,7 @@ void DwellWidget::linkClick(const QUrl &customUrl) {
         m_typoStartCharacter = arguments[2].toInt();
         m_typoEndLine = arguments[3].toInt();
         m_typoEndCharacter = arguments[4].toInt();
-        const QStringList suggestions = g_nuspell->spellSuggestRequest(host);
+        const QStringList suggestions = g_globalManager->nuspellModuleGet()->spellSuggestRequest(host);
         m_tooltip->setProperty("suggestions", suggestions);
         QMetaObject::invokeMethod(m_suggestionMenu, "open");
     }

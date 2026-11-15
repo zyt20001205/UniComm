@@ -6,7 +6,7 @@ import QtQuick.Layouts
 Item {
     id: rootItem
     anchors.fill: parent
-    property bool modelVisible: standardItemModel.rowCount() > 0
+    property bool modelVisible: watchModule.model.rowCount() > 0
 
     Rectangle {
         anchors.fill: parent
@@ -18,7 +18,7 @@ Item {
         interval: 1000
         repeat: true
 
-        onTriggered: global.refresh = true
+        onTriggered: watchModule.refresh = true
     }
 
     Item {
@@ -154,7 +154,7 @@ Item {
                 clip: true
                 rowSpacing: 1; columnSpacing: 1
                 resizableColumns: true
-                model: standardItemModel
+                model: watchModule.model
                 contentWidth: width
 
                 ScrollBar.vertical: ScrollBar {
@@ -276,14 +276,14 @@ Item {
     }
 
     Connections {
-        target: standardItemModel
+        target: watchModule.model
 
         function onRowsInserted() {
             modelVisible = true
         }
 
         function onRowsRemoved() {
-            modelVisible = standardItemModel.rowCount() > 0
+            modelVisible = watchModule.model.rowCount() > 0
         }
 
         function onModelReset() {

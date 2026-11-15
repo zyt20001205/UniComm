@@ -14,7 +14,7 @@ WatchModule::WatchModule()
     : DockWidget("Watch"),
       m_widget(new QQuickWidget()) {
     setWidget(m_widget);
-    g_watchStandardItemModel = new QStandardItemModel(this);
+    m_model = new QStandardItemModel(this);
     auto watchConfig = g_workspaceConfig["watchConfig"].toArray();
     for (const auto &value: watchConfig) {
         const auto pair = value.toArray();
@@ -36,7 +36,6 @@ void WatchModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("expressionMenu", qvariant_cast<QObject *>(objects["watchModuleExpressionMenu"]));
     m_widget->rootContext()->setContextProperty("valueMenu", qvariant_cast<QObject *>(objects["watchModuleValueMenu"]));
     m_widget->rootContext()->setContextProperty("rootMenu", qvariant_cast<QObject *>(objects["watchModuleRootMenu"]));
-    m_widget->rootContext()->setContextProperty("standardItemModel", g_watchStandardItemModel);
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/debug/watchModule.qml"));
@@ -45,43 +44,43 @@ void WatchModule::propertySet(const QVariantHash &objects) {
 
 void WatchModule::watchConfigSave() {
     auto watchArray = QJsonArray();
-    for (int i = 0; i < g_watchStandardItemModel->rowCount(); ++i) {
-        const QString url = g_watchStandardItemModel->item(i, 0)->data(Qt::WhatsThisRole).toString();
-        const QString expression = g_watchStandardItemModel->item(i, 0)->text();
+    for (int i = 0; i < m_model->rowCount(); ++i) {
+        const QString url = m_model->item(i, 0)->data(Qt::WhatsThisRole).toString();
+        const QString expression = m_model->item(i, 0)->text();
         watchArray.append(QJsonArray({url, expression}));
     }
     g_workspaceConfig["watchConfig"] = watchArray;
 }
 
 void WatchModule::watchInsert(int index, const QUrl &documentUrl, const QString &expression) {
-    index = g_watchStandardItemModel->rowCount();
+    index = m_model->rowCount();
     auto *expressionItem = new QStandardItem(expression); // NOLINT
     expressionItem->setData(documentUrl, Qt::WhatsThisRole);
     auto *valueItem = new QStandardItem("nil"); // NOLINT
     valueItem->setData("nil", Qt::WhatsThisRole);
-    g_watchStandardItemModel->insertRow(index, {expressionItem, valueItem});
+    m_model->insertRow(index, {expressionItem, valueItem});
 }
 
 void WatchModule::watchRemove(const int index) {
-    g_watchStandardItemModel->removeRow(index);
+    m_model->removeRow(index);
 }
 
 void WatchModule::watchRename(const int index, const QUrl &documentUrl, const QString &expression) {
-    g_watchStandardItemModel->item(index, 0)->setData(documentUrl, Qt::WhatsThisRole);
-    g_watchStandardItemModel->item(index, 0)->setText(expression);
+    m_model->item(index, 0)->setData(documentUrl, Qt::WhatsThisRole);
+    m_model->item(index, 0)->setText(expression);
 }
 
 void WatchModule::watchSwap(const int src, const int dst) const {
-    const auto tmp = g_watchStandardItemModel->takeRow(src);
-    g_watchStandardItemModel->insertRow(dst, tmp);
+    const auto tmp = m_model->takeRow(src);
+    m_model->insertRow(dst, tmp);
 }
 
 void WatchModule::watchClear(const int index) {
     if (index == -1) {
-        for (int i = 0; i < g_watchStandardItemModel->rowCount(); ++i) {
-            g_watchStandardItemModel->item(i, 1)->setText("");
+        for (int i = 0; i < m_model->rowCount(); ++i) {
+            m_model->item(i, 1)->setText("");
         }
     } else {
-        g_watchStandardItemModel->item(index, 1)->setText("");
+        m_model->item(index, 1)->setText("");
     }
 }

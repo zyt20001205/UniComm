@@ -8,16 +8,7 @@ import QtQuick.Layouts
 Item {
     id: rootItem
     anchors.fill: parent
-    property url selectedDocumentUrl: ""
-    property int selectedIndex: -1
-    readonly property var selectedDiagnostic: {
-        const diagnostics = diagnosticsModule.diagnostics
-        for (const diagnostic of diagnostics) {
-            if (String(diagnostic.documentUrl) === String(selectedDocumentUrl))
-                return diagnostic
-        }
-        return null
-    }
+    readonly property var selectedDiagnostic: diagnosticsModule.diagnostics[tabBar.currentIndex] ?? null
 
     Rectangle {
         anchors.fill: parent
@@ -54,29 +45,26 @@ Item {
             id: tabBar
             contentHeight: 24
             Layout.fillWidth: true; Layout.preferredHeight: 32
+            currentIndex: {
+                const diagnostics = diagnosticsModule.diagnostics
+                const focusedUrl = String(global.documentModule.focusedUrl)
+                // Wait for the Repeater to finish rebuilding its tabs.
+                if (count !== diagnostics.length)
+                    return -1
+                for (let i = 0; i < diagnostics.length; ++i) {
+                    if (String(diagnostics[i].documentUrl) === focusedUrl)
+                        return i
+                }
+                return diagnostics.length ? 0 : -1
+            }
 
             Repeater {
                 model: diagnosticsModule.diagnostics
 
                 delegate: TabButton {
-                    required property int index
                     required property var modelData
                     text: modelData.name
                     width: contentItem.implicitWidth + 24; height: 24
-
-                    onClicked: rootItem.selectDiagnostic(index, false)
-
-                    Keys.onLeftPressed: rootItem.selectDiagnostic((index + tabBar.count - 1) % tabBar.count, true)
-                    Keys.onRightPressed: rootItem.selectDiagnostic((index + 1) % tabBar.count, true)
-                    Keys.onPressed: function(event) {
-                        if (event.key === Qt.Key_Home) {
-                            rootItem.selectDiagnostic(0, true)
-                            event.accepted = true
-                        } else if (event.key === Qt.Key_End) {
-                            rootItem.selectDiagnostic(tabBar.count - 1, true)
-                            event.accepted = true
-                        }
-                    }
                 }
             }
         }
@@ -252,34 +240,4 @@ Item {
             }
         }
     }
-
-    function selectDiagnostic(index: int, focusTab: bool): void {
-        const diagnostic = diagnosticsModule.diagnostics[index]
-        selectedIndex = diagnostic ? index : -1
-        selectedDocumentUrl = diagnostic ? diagnostic.documentUrl : ""
-        tabBar.setCurrentIndex(selectedIndex)
-        if (focusTab && tabBar.currentItem)
-            tabBar.currentItem.forceActiveFocus(Qt.TabFocusReason)
-    }
-
-    function synchronizeSelection(): void {
-        const diagnostics = diagnosticsModule.diagnostics
-        for (let i = 0; i < diagnostics.length; ++i) {
-            if (String(diagnostics[i].documentUrl) === String(selectedDocumentUrl)) {
-                selectDiagnostic(i, false)
-                return
-            }
-        }
-        selectDiagnostic(Math.min(Math.max(selectedIndex, 0), diagnostics.length - 1), false)
-    }
-
-    Connections {
-        target: diagnosticsModule
-
-        function onChangeDiagnostics(): void {
-            Qt.callLater(rootItem.synchronizeSelection)
-        }
-    }
-
-    Component.onCompleted: synchronizeSelection()
 }

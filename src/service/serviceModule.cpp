@@ -5,13 +5,15 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "service/grepService.h"
 #include "service/lsp/lspManager.h"
-#include "service/mcp/mcpService.h"
+#include "service/mcpService.h"
 
 ServiceModule::ServiceModule()
     : DockWidget("Services"),
       m_lspManager(new LspManager(this)),
       m_mcpService(new McpService(this)),
+      m_grepService(new GrepService(this)),
       m_widget(new QQuickWidget()) {
     setWidget(m_widget);
 }
@@ -24,12 +26,11 @@ void ServiceModule::propertySet(const QVariantHash &objects) {
     m_widget->setSource(QUrl("qrc:/qml/service/serviceModule.qml"));
 }
 
-LspManager *ServiceModule::lspManagerGet() const {
-    return m_lspManager;
-}
-
 QVariantList ServiceModule::servicesGet() const {
-    QVariantList services{QVariant::fromValue<BaseService *>(m_mcpService)};
+    QVariantList services{
+        QVariant::fromValue<BaseService *>(m_mcpService),
+        QVariant::fromValue<BaseService *>(m_grepService)
+    };
     for (auto *server: m_lspManager->serversGet()) {
         services.append(QVariant::fromValue<BaseService *>(server));
     }

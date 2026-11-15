@@ -5,34 +5,7 @@
 
 #include "mainWindow/mainWindow.h"
 
-class QNetworkAccessManager;
-class QStandardItemModel;
-
-class AgentModule;
-class AudioService;
-class DebugModule;
-class LogModule;
-class PortModule;
-class DocumentModule;
-class StructureModule;
-class TerminalModule;
-class ThreadpoolModule;
-class UndoModule;
-
-extern MainWindow *g_mainWindow;
-extern QNetworkAccessManager *g_networkAccessManager;
 extern GlobalManager *g_globalManager;
-extern AgentModule *g_agent;
-extern AudioService *g_audioService;
-extern Ripgrep *g_ripgrep;
-extern DocumentModule *g_document;
-extern GitModule *g_git;
-extern LogModule *g_log;
-extern NuspellModule *g_nuspell;
-extern PortModule *g_port;
-extern TerminalModule *g_terminal;
-extern ThreadpoolModule *g_threadpool;
-extern UndoModule *g_undo;
 
 extern bool g_terminating;
 extern QUrl g_workspaceUrl;
@@ -45,11 +18,7 @@ extern ViSession g_rm;
 extern QVariantMap g_cursorPosition;
 extern QHash<QChar, int> g_gitStatusCode;
 
-class PortModel;
-
 extern QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints;
-extern PortModel *g_portModel;
-extern QStandardItemModel *g_watchStandardItemModel;
 
 namespace Theme {
     enum {

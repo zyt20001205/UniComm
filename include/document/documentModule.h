@@ -23,6 +23,7 @@ class ToastModule;
 
 class DocumentModule final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QUrl focusedUrl READ focusedUrlGet NOTIFY focusedUrlChanged)
 
 public:
     explicit DocumentModule(QWidget *parent = nullptr);
@@ -30,6 +31,10 @@ public:
     ~DocumentModule() override;
 
     void propertySet(const QVariantHash &objects);
+
+    [[nodiscard]] QUrl focusedUrlGet() const {
+        return m_pageHash.contains(m_focusedUrl) ? m_focusedUrl : QUrl{};
+    }
 
     [[nodiscard]] KDDockWidgets::QtWidgets::DockWidget *welcomePage() const {
         return m_welcomePage;
@@ -191,6 +196,8 @@ public:
     void spellCheckResponse(const QUrl &documentUrl, const QVariantList &typos);
 
 signals:
+    void focusedUrlChanged();
+
     void appendLog(int type, const QString &prefix, const QString &message);
 
     void updateDiff(const QString &undoGroupId, const QVariantMap &fileDiffs, int additions, int deletions);

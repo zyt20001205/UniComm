@@ -6,20 +6,21 @@
 #include <sol/utility/is_integer.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "runtime/threadpoolModule.h"
 
 std::string Thread::start(const sol::object &fn, const QUrl &documentUrl, const int mode) {
     LuaClosure closure(fn);
     QString threadId{};
-    QMetaObject::invokeMethod(g_threadpool, [&threadId, &documentUrl, mode, &closure] {
-        threadId = g_threadpool->threadStart(documentUrl, mode, &closure);
+    QMetaObject::invokeMethod(g_globalManager->threadpoolModuleGet(), [&threadId, &documentUrl, mode, &closure] {
+        threadId = g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, mode, &closure);
     }, Qt::BlockingQueuedConnection);
     if (threadId.isEmpty()) throw sol::error("could not start thread");
     return threadId.toStdString();
 }
 
 void Thread::stop(const std::string &threadId) {
-    QMetaObject::invokeMethod(g_threadpool, [id = QString::fromStdString(threadId)] { g_threadpool->threadStop(id); });
+    QMetaObject::invokeMethod(g_globalManager->threadpoolModuleGet(), [id = QString::fromStdString(threadId)] { g_globalManager->threadpoolModuleGet()->threadStop(id); });
 }
 
 void Thread::sleep(const int ms) {

@@ -100,7 +100,7 @@ Item {
 
         Button {
             id: gitMenuButton
-            enabled: global.gitEnabled
+            enabled: global.gitModule.gitEnabled
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
             text: "Git"

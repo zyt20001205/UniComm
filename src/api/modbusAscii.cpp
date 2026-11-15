@@ -4,6 +4,7 @@
 #include <sol/state_view.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
 #include "util/uniCast.h"
@@ -14,8 +15,8 @@ ModbusAscii::ModbusAscii(QObject *parent)
 }
 
 void ModbusAscii::init(const std::string &portName, const int slaveAddr, const int timeout) {
-    const auto port = g_port->m_portHash.constFind(QString::fromStdString(portName));
-    if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
+    const auto port = g_globalManager->portModuleGet()->m_portHash.constFind(QString::fromStdString(portName));
+    if (port == g_globalManager->portModuleGet()->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
 
     m_portName = portName;
     m_slaveAddr = slaveAddr;

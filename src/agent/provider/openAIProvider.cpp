@@ -6,6 +6,7 @@
 #include <qt6keychain/keychain.h>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "agent/provider/providerModule.h"
 
 OpenAIProvider::OpenAIProvider(const QString &id, const QJsonObject &provider, QObject *parent)
@@ -99,7 +100,7 @@ void OpenAIProvider::modelsGet() {
     else {
         auto request = m_request;
         request.setUrl(QUrl(m_baseUrl.toString() + m_modelEndpoint));
-        auto *reply = g_networkAccessManager->get(request);
+        auto *reply = g_globalManager->networkAccessManagerGet()->get(request);
 
         connect(reply, &QNetworkReply::finished, this, [this, reply] {
             const auto models = QJsonDocument::fromJson(reply->readAll()).object().value("data").toArray();

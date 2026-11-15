@@ -120,6 +120,4 @@ GlobalManager::GlobalManager(QObject *parent)
     if (m_theme == Theme::Light) QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Light);
     else QGuiApplication::styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     qApp->setStyleSheet(m_styleSheet[m_theme]);
-
-    gitEnabledSet();
 }

@@ -1,4 +1,4 @@
-#include "service/mcp/mcpService.h"
+#include "service/mcpService.h"
 
 #include <QDebug>
 #include <QHttpHeaders>
@@ -8,6 +8,7 @@
 #include <QTcpServer>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "agent/agentModule.h"
 #include "agent/module/toolsModule.h"
 
@@ -22,6 +23,7 @@ McpService::McpService(QObject *parent)
     })) {
         const auto error = tr("Could not register the MCP endpoint.");
         detailSet(error.toHtmlEscaped());
+        statusSet(Status::Error);
         qDebug().noquote() << "MCP server:" << error;
         return;
     }
@@ -31,6 +33,7 @@ McpService::McpService(QObject *parent)
     if (!listener->listen(QHostAddress::LocalHost, port)) {
         const auto error = listener->errorString();
         detailSet(error.toHtmlEscaped());
+        statusSet(Status::Error);
         qDebug("MCP server: %s", qPrintable(error));
         return;
     }
@@ -38,11 +41,13 @@ McpService::McpService(QObject *parent)
         listener->close();
         const auto error = tr("Could not bind the MCP endpoint.");
         detailSet(error.toHtmlEscaped());
+        statusSet(Status::Error);
         qDebug().noquote() << "MCP server:" << error;
         return;
     }
     const auto endpoint = QString("http://127.0.0.1:%1/mcp").arg(port);
     detailSet(QString("<b>%1</b><br>%2").arg(tr("Endpoint"), endpoint));
+    statusSet(Status::Running);
 }
 
 // private
@@ -77,7 +82,7 @@ QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest 
     if (message.value("jsonrpc") != "2.0" || method.isEmpty())
         return QtFuture::makeReadyValueFuture(responseError({}, -32600, "Invalid request.", QHttpServerResponse::StatusCode::BadRequest));
     if (id.isUndefined()) return QtFuture::makeReadyValueFuture(QHttpServerResponse(QHttpServerResponse::StatusCode::Accepted));
-    if ((method == "tools/list" || method == "tools/call") && (g_terminating || !g_agent))
+    if ((method == "tools/list" || method == "tools/call") && (g_terminating || !g_globalManager->agentModuleGet()))
         return QtFuture::makeReadyValueFuture(responseError(id, -32603, "Agent tools are unavailable.", QHttpServerResponse::StatusCode::ServiceUnavailable));
 
     const auto params = message.value("params").toObject();
@@ -99,14 +104,14 @@ QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest 
             {"_meta", QJsonObject{{"io.modelcontextprotocol/serverInfo", serverInfo}}}
         };
     } else if (method == "tools/list") {
-        result = {{"tools", g_agent->runtimeServicesGet().toolsModule->schemasGet(names)}};
+        result = {{"tools", g_globalManager->agentModuleGet()->runtimeServicesGet().toolsModule->schemasGet(names)}};
     } else if (method == "tools/call") {
         const auto name = params.value("name").toString();
         if (!names.contains(name))
             return QtFuture::makeReadyValueFuture(responseError(id, -32602, "Unknown tool."));
         event += " · " + name;
         const auto arguments = QJsonDocument(params.value("arguments").toObject()).toJson(QJsonDocument::Compact);
-        auto *tools = g_agent->runtimeServicesGet().toolsModule;
+        auto *tools = g_globalManager->agentModuleGet()->runtimeServicesGet().toolsModule;
         return tools->toolExecute(name, QString::fromUtf8(arguments)).then(this, [this, id, event, modern](const ToolResult &tool) {
             return responseResult(id, event, {
                                       {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", tool.content}}}},

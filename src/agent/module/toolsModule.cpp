@@ -8,6 +8,7 @@
 #include <QUrl>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "agent/agentModule.h"
 #include "agent/module/mcpModule.h"
 #include "agent/module/sqlModule.h"
@@ -15,7 +16,8 @@
 #include "document/documentModule.h"
 #include "port/portModule.h"
 #include "runtime/threadpoolModule.h"
-#include "service/ripgrep.h"
+#include "service/grepService.h"
+#include "service/serviceModule.h"
 
 // public
 ToolsModule::ToolsModule(McpModule *mcpModule, SqlModule *sqlModule, QObject *parent)
@@ -656,7 +658,7 @@ void ToolsModule::initialize() {
             {
                 "function", QJsonObject{
                     {"name", "grep_search"},
-                    {"description", "Search text across files in the current workspace."},
+                    {"description", "Search text across files in the current workspace. Returns count (number of returned match entries), truncated (whether more matches were omitted), and result (up to 50 match entries)."},
                     {
                         "parameters", QJsonObject{
                             {"type", "object"},
@@ -1014,7 +1016,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
         QList<QUrl> attachments{};
         for (const auto &attachment: object.value("attachments").toArray()) attachments.append(QUrl(attachment.toString()));
         if (attachments.isEmpty()) return QtFuture::makeReadyValueFuture(ToolResult{"Vision agent requires at least one attachment.", false});
-        auto *worker = g_agent->subagentDispatch("vision", object.value("prompt").toString(), attachments);
+        auto *worker = g_globalManager->agentModuleGet()->subagentDispatch("vision", object.value("prompt").toString(), attachments);
         if (worker == nullptr) return QtFuture::makeReadyValueFuture(ToolResult{"Vision agent is unavailable or not configured.", false});
         auto promise = QSharedPointer<QPromise<ToolResult> >::create();
         promise->start();
@@ -1052,7 +1054,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
                 finish(index, role, "Vision agent requires at least one attachment.", false);
                 continue;
             }
-            auto *worker = g_agent->subagentDispatch(role, task.value("prompt").toString(), attachments);
+            auto *worker = g_globalManager->agentModuleGet()->subagentDispatch(role, task.value("prompt").toString(), attachments);
             if (worker == nullptr) {
                 finish(index, role, QString("Subagent role is unavailable or not configured: %1").arg(role), false);
                 continue;
@@ -1070,7 +1072,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
         auto connection = QSharedPointer<QMetaObject::Connection>::create();
         promise->start();
         const auto future = promise->future();
-        *connection = connect(g_threadpool, &ThreadpoolModule::finishThread, this, [threadId, promise, connection](const QString &id, const QJsonObject &output) {
+        *connection = connect(g_globalManager->threadpoolModuleGet(), &ThreadpoolModule::finishThread, this, [threadId, promise, connection](const QString &id, const QJsonObject &output) {
             if (id != *threadId) return;
             disconnect(*connection);
             promise->addResult(ToolResult{
@@ -1079,7 +1081,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
             });
             promise->finish();
         });
-        *threadId = g_threadpool->threadStart(documentUrl, InterpreterMode::Agent);
+        *threadId = g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, InterpreterMode::Agent);
         return future;
     }
     return QtFuture::makeReadyValueFuture(toolExecute(name, object, runtimeId));
@@ -1178,12 +1180,12 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
             {"explanation", object.value("explanation").toString()},
             {"plan", normalizedSteps}
         };
-        g_agent->planUpdate(runtimeId, plan);
+        g_globalManager->agentModuleGet()->planUpdate(runtimeId, plan);
         return {QString("Plan updated: %1/%2 steps completed.").arg(completedCount).arg(normalizedSteps.size())};
     }
     if (name == "port_list") {
         QJsonArray ports{};
-        for (const auto &portName: g_port->portList()) ports.append(portName);
+        for (const auto &portName: g_globalManager->portModuleGet()->portList()) ports.append(portName);
         return {QString::fromUtf8(QJsonDocument(ports).toJson(QJsonDocument::Compact))};
     }
     if (name == "port_config_get") {
@@ -1197,70 +1199,70 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         auto config = object.value("config").toObject();
         config["portType"] = portType;
         const auto portName = config.value("portName").toString().trimmed();
-        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_agent->undoGroupIdGet();
-        const auto error = g_port->portInsert(-1, config, undoGroupId);
+        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_globalManager->agentModuleGet()->undoGroupIdGet();
+        const auto error = g_globalManager->portModuleGet()->portInsert(-1, config, undoGroupId);
         if (!error.isEmpty()) return {error, false};
         return {QString("Port '%1' created.").arg(portName)};
     }
     if (name == "port_delete") {
         const auto portName = object.value("port_name").toString().trimmed();
-        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_agent->undoGroupIdGet();
-        const auto error = g_port->portRemove(portName, undoGroupId);
+        const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_globalManager->agentModuleGet()->undoGroupIdGet();
+        const auto error = g_globalManager->portModuleGet()->portRemove(portName, undoGroupId);
         if (!error.isEmpty()) return {error, false};
         return {QString("Port '%1' deleted.").arg(portName)};
     }
     if (name == "diagnostics_get") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
-        const auto diagnostics = g_document->diagnosticsGet(documentUrl);
+        const auto diagnostics = g_globalManager->documentModuleGet()->diagnosticsGet(documentUrl);
         return {QString::fromUtf8(QJsonDocument(diagnostics).toJson(QJsonDocument::Compact))};
     }
     if (name == "directory_list") {
         const auto url = object.value("directory_url").toString();
         const auto directoryUrl = url.isEmpty() ? g_workspaceUrl : QUrl(url);
         if (!QFileInfo(directoryUrl.toLocalFile()).isDir()) return {"Directory list failed: directory does not exist.", false};
-        return {QString::fromUtf8(QJsonDocument(g_document->directoryList(directoryUrl)).toJson(QJsonDocument::Compact))};
+        return {QString::fromUtf8(QJsonDocument(g_globalManager->documentModuleGet()->directoryList(directoryUrl)).toJson(QJsonDocument::Compact))};
     }
     if (name == "directory_create") {
         const auto directoryUrl = QUrl(object.value("directory_url").toString());
-        const auto error = g_document->directoryCreate(directoryUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->directoryCreate(directoryUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Directory created: %1").arg(directoryUrl.toString())};
     }
     if (name == "directory_delete") {
         const auto directoryUrl = QUrl(object.value("directory_url").toString());
-        const auto error = g_document->directoryDelete(directoryUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->directoryDelete(directoryUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Directory deleted: %1").arg(directoryUrl.toString())};
     }
     if (name == "directory_rename") {
         const auto sourceUrl = QUrl(object.value("source_url").toString());
         const auto targetUrl = QUrl(object.value("target_url").toString());
-        const auto error = g_document->directoryRename(sourceUrl, targetUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->directoryRename(sourceUrl, targetUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Directory renamed: %1").arg(targetUrl.toString())};
     }
     if (name == "document_create") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
-        const auto error = g_document->documentCreate(documentUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->documentCreate(documentUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Document created: %1").arg(documentUrl.toString())};
     }
     if (name == "document_delete") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
-        const auto error = g_document->documentDelete(documentUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->documentDelete(documentUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Document deleted: %1").arg(documentUrl.toString())};
     }
     if (name == "document_rename") {
         const auto sourceUrl = QUrl(object.value("source_url").toString());
         const auto targetUrl = QUrl(object.value("target_url").toString());
-        const auto error = g_document->documentRename(sourceUrl, targetUrl, g_agent->undoGroupIdGet());
+        const auto error = g_globalManager->documentModuleGet()->documentRename(sourceUrl, targetUrl, g_globalManager->agentModuleGet()->undoGroupIdGet());
         if (!error.isEmpty()) return {error, false};
         return {QString("Document renamed: %1").arg(targetUrl.toString())};
     }
     if (name == "grep_search") {
         const auto pattern = object.value("pattern").toString();
-        const auto result = g_ripgrep->grep(pattern);
+        const auto result = g_globalManager->serviceModuleGet()->grepServiceGet()->grep(pattern);
         return {QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact))};
     }
     if (name == "line_get") {
@@ -1273,7 +1275,7 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         if (lineCount == 0 || lineCount < -1) return {"Line get failed: line_count is out of range.", false};
         if (documentInfo.size() == 0 && startLine == 0) return {QString("")};
 
-        const auto text = g_document->linesGet(documentUrl, startLine, lineCount);
+        const auto text = g_globalManager->documentModuleGet()->linesGet(documentUrl, startLine, lineCount);
         if (text.isNull()) return {"Line get failed: start_line is out of range.", false};
         auto lines = text.split('\n', Qt::KeepEmptyParts);
         for (qsizetype i = 0; i < lines.size(); ++i) lines[i].prepend(QString::number(startLine + i) + "|");
@@ -1294,7 +1296,7 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
             QString reason{};
             if (startLine < 0) reason = "start_line_out_of_range";
             else if (lineCount == 0 || lineCount < -1) reason = "line_count_out_of_range";
-            else if (g_document->linesGet(documentUrl, startLine, 1).trimmed() != edit.value("expected").toString().section('\n', 0, 0).trimmed()) reason = "document_changed";
+            else if (g_globalManager->documentModuleGet()->linesGet(documentUrl, startLine, 1).trimmed() != edit.value("expected").toString().section('\n', 0, 0).trimmed()) reason = "document_changed";
 
             if (!reason.isEmpty()) {
                 rejected.append(QJsonObject{{"index", index}, {"start_line", startLine}, {"reason", reason}});
@@ -1316,7 +1318,7 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
             lineCounts.append(edit.value("line_count").toInt());
         }
         if (!texts.isEmpty()) {
-            const auto error = g_document->linesSet(documentUrl, texts, startLines, lineCounts, g_agent->undoGroupIdGet());
+            const auto error = g_globalManager->documentModuleGet()->linesSet(documentUrl, texts, startLines, lineCounts, g_globalManager->agentModuleGet()->undoGroupIdGet());
             if (!error.isEmpty()) return {error, false};
         }
         return {

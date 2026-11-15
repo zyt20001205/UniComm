@@ -5,6 +5,7 @@
 #include "document/documentModule.h"
 #include "document/page/documentPage.h"
 #include "globals.h"
+#include "core/globalManager.h"
 #include "terminal/terminalModule.h"
 #include "terminal/terminalPage.h"
 
@@ -16,11 +17,11 @@ KDDockWidgets::Core::DockWidget *dockWidgetFactory(const QString &uniqueName) {
     const QUrl url(uniqueName);
     // file
     if (url.isLocalFile()) {
-        if (auto *page = g_document->documentConstruct(url)) return page->dockWidget();
+        if (auto *page = g_globalManager->documentModuleGet()->documentConstruct(url)) return page->dockWidget();
     }
     // terminal
     if (url.scheme() == QStringLiteral("terminal")) {
-        if (auto *page = g_terminal->terminalConstruct(url)) return page->dockWidget();
+        if (auto *page = g_globalManager->terminalModuleGet()->terminalConstruct(url)) return page->dockWidget();
     }
     return nullptr;
 }

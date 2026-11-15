@@ -6,6 +6,7 @@
 #include <QMimeDatabase>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "document/documentModule.h"
 #include "agent/runtime/runtimeModule.h"
 
@@ -149,7 +150,7 @@ QJsonObject ContextModule::messageBuild(const SqlModule::Message &message, const
             const auto mimeType = QMimeDatabase().mimeTypeForFile(url.toLocalFile()).name();
             content.append(mimeType.startsWith("image/")
                                ? "\n\nAttached image: " + url.toString()
-                               : "\n\nAttached file: " + url.toString() + "\n\n" + g_document->textGet(url));
+                               : "\n\nAttached file: " + url.toString() + "\n\n" + g_globalManager->documentModuleGet()->textGet(url));
         }
         object["content"] = content;
         return object;
@@ -183,7 +184,7 @@ QJsonObject ContextModule::messageBuild(const SqlModule::Message &message, const
         }
         content.append(QJsonObject{
             {"type", "text"},
-            {"text", "Attached file: " + url.toString() + "\n\n" + g_document->textGet(url)}
+            {"text", "Attached file: " + url.toString() + "\n\n" + g_globalManager->documentModuleGet()->textGet(url)}
         });
     }
     object["content"] = content;

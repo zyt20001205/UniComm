@@ -1,19 +1,6 @@
 #include "globals.h"
 
-MainWindow *g_mainWindow = nullptr;
-QNetworkAccessManager *g_networkAccessManager = nullptr;
 GlobalManager *g_globalManager = nullptr;
-AgentModule *g_agent = nullptr;
-AudioService *g_audioService = nullptr;
-Ripgrep *g_ripgrep = nullptr;
-DocumentModule *g_document = nullptr;
-GitModule *g_git = nullptr;
-LogModule *g_log = nullptr;
-NuspellModule *g_nuspell = nullptr;
-PortModule *g_port = nullptr;
-TerminalModule *g_terminal = nullptr;
-ThreadpoolModule *g_threadpool = nullptr;
-UndoModule *g_undo = nullptr;
 
 bool g_terminating = false;
 int g_theme = {};
@@ -44,5 +31,3 @@ QHash<QChar, int> g_gitStatusCode = {
 };
 
 QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints = {};
-PortModel *g_portModel = {};
-QStandardItemModel *g_watchStandardItemModel = {};

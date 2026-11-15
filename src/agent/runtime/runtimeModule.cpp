@@ -10,6 +10,7 @@
 #include <QUuid>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "agent/agentModule.h"
 #include "agent/module/contextModule.h"
 #include "agent/module/toolsModule.h"
@@ -216,7 +217,7 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
             QString providerId{};
             QString modelId{};
             QString steering{};
-            const auto toolPlanInterval = g_agent->toolPlanIntervalGet();
+            const auto toolPlanInterval = g_globalManager->agentModuleGet()->toolPlanIntervalGet();
             if (toolPlanInterval > 0 && m_agent->toolContains("plan_update") && m_turn.toolPlanCount >= toolPlanInterval) {
                 steering = "Tool activity has reached the configured planning interval. Review progress and call plan_update if the plan is missing or outdated.";
                 m_turn.toolPlanCount %= toolPlanInterval;
@@ -270,13 +271,13 @@ void RuntimeModule::stateSet(const int state, const QVariant &payload) {
         break;
         case AgentState::Permission: {
             if (m_turn.conversationId.isEmpty()) emit setActivity("Waiting for approval...");
-            g_agent->permissionRequest(m_id, payload.toString());
+            g_globalManager->agentModuleGet()->permissionRequest(m_id, payload.toString());
         }
         break;
         case AgentState::UserInput: {
             const auto request = payload.toMap();
             if (m_turn.conversationId.isEmpty()) emit setActivity("Waiting for input...");
-            g_agent->userInputRequest(m_id, request);
+            g_globalManager->agentModuleGet()->userInputRequest(m_id, request);
         }
         break;
         case AgentState::ToolExec: {
@@ -367,7 +368,7 @@ void RuntimeModule::_request(const BaseProvider *provider, const QJsonObject &bo
         }
     }
 
-    auto *reply = g_networkAccessManager->post(provider->requestGet(), QJsonDocument(body).toJson());
+    auto *reply = g_globalManager->networkAccessManagerGet()->post(provider->requestGet(), QJsonDocument(body).toJson());
     m_reply = reply;
 
     if (!stream) {
@@ -561,11 +562,11 @@ void RuntimeModule::toolResultSet(const ToolResult &result) {
         m_turn.failureCount = 1;
     }
 
-    if (m_turn.failureCount >= g_agent->toolFailureLimitGet()) {
+    if (m_turn.failureCount >= g_globalManager->agentModuleGet()->toolFailureLimitGet()) {
         stateSet(AgentState::Error, QString("Tool '%1' failed %2 consecutive times.").arg(m_turn.failedTool).arg(m_turn.failureCount));
         return;
     }
-    if (m_turn.toolCallCount >= g_agent->toolCallLimitGet()) {
+    if (m_turn.toolCallCount >= g_globalManager->agentModuleGet()->toolCallLimitGet()) {
         stateSet(AgentState::Error, QString("Tool call limit reached: %1.").arg(m_turn.toolCallCount));
         return;
     }

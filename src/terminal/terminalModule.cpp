@@ -6,6 +6,7 @@
 #include <QUuid>
 
 #include "globals.h"
+#include "mainWindow/mainWindow.h"
 #include "core/globalManager.h"
 #include "runtime/threadpoolModule.h"
 #include "terminal/logModule.h"
@@ -45,7 +46,7 @@ void TerminalModule::propertySet(const QVariantHash &objects) {
 
     // manage window
     m_manageWindow->setTitle(tr("Manage Terminal"));
-    m_manageWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_manageWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
 
     m_manageWindow->rootContext()->setContextProperty("terminalModule", this);
     m_manageWindow->rootContext()->setContextProperty("global", g_globalManager);
@@ -137,7 +138,7 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
     auto *terminalPage = new TerminalPage(uniqueName, session, m_config, backend); // NOLINT
     if (backend == TerminalPage::Backend::Lua) {
         const auto &id = parts.at(1);
-        connect(terminalPage, &TerminalPage::readTerminal, this, [id](const QByteArray &data) { g_threadpool->inputWrite(id, data); });
+        connect(terminalPage, &TerminalPage::readTerminal, this, [id](const QByteArray &data) { g_globalManager->threadpoolModuleGet()->inputWrite(id, data); });
     }
     terminalPage->setTitle(terminalTitle);
     terminalPage->propertySet({
@@ -163,7 +164,7 @@ void TerminalModule::terminalOpen(const QString &id, const int backend) {
     }
     auto *terminalPage = terminalConstruct(terminalUrl, backend);
     if (!terminalPage) return;
-    g_log->addDockWidgetAsTab(terminalPage);
+    g_globalManager->logModuleGet()->addDockWidgetAsTab(terminalPage);
 }
 
 void TerminalModule::terminalClose(const QString &id) const {

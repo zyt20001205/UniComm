@@ -13,9 +13,11 @@ class QTabWidget;
 class QVBoxLayout;
 
 class PortSetting;
+class PortModel;
 
 class PortModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    Q_PROPERTY(PortModel* model READ modelGet CONSTANT)
 
 public:
     explicit PortModule();
@@ -23,6 +25,10 @@ public:
     ~PortModule() override;
 
     void propertySet(const QVariantHash &objects);
+
+    [[nodiscard]] PortModel *modelGet() const {
+        return m_model;
+    }
 
     void portConfigSave();
 
@@ -44,7 +50,7 @@ public:
 
     Q_INVOKABLE void portToggle(int index);
 
-    static void portRefresh(const QString &portName, bool active);
+    void portRefresh(const QString &portName, bool active) const;
 
     QHash<QString, BasePort *> m_portHash{};
 signals:
@@ -64,6 +70,7 @@ private:
     QQuickWidget *m_widget{};
     QObject *m_root{};
     PortSetting *m_portSetting{};
+    PortModel *m_model{};
 };
 
 class PortModel final : public QStandardItemModel {

@@ -6,6 +6,7 @@
 #include <QGridLayout>
 
 #include "globals.h"
+#include "service/git/gitModule.h"
 #include "core/globalManager.h"
 #include "document/module/conflictWidget.h"
 #include "document/module/resolveWidget.h"
@@ -63,6 +64,6 @@ void ConflictPage::savepointChange(const bool status) {
 
 void ConflictPage::resolveFinish() {
     if (!documentSave().isEmpty()) return;
-    connect(g_git, &GitModule::addFinish, this, [this] { emit reloadDocument(m_documentUrl.toLocalFile()); });
-    g_git->gitAdd(m_documentUrl);
+    connect(g_globalManager->gitModuleGet(), &GitModule::addFinish, this, [this] { emit reloadDocument(m_documentUrl.toLocalFile()); });
+    g_globalManager->gitModuleGet()->gitAdd(m_documentUrl);
 }

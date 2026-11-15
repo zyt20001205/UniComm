@@ -5,6 +5,8 @@
 #include <sol/error.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
+#include "mainWindow/mainWindow.h"
 #include "api/ui/database.h"
 #include "api/ui/image.h"
 #include "api/ui/input.h"
@@ -42,7 +44,7 @@ sol::optional<std::string> Ui::file(const sol::optional<std::string> &title, con
         if (worker->isInterruptionRequested()) return "terminated";
 
         const auto _title = title.has_value() ? QString::fromStdString(title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(thread()), 0, 16);
-        auto *dialog = new QFileDialog(g_mainWindow, _title, g_workspaceUrl.toLocalFile()); // NOLINT
+        auto *dialog = new QFileDialog(g_globalManager->mainWindowGet(), _title, g_workspaceUrl.toLocalFile()); // NOLINT
         if (_mode == "save") {
             dialog->setAcceptMode(QFileDialog::AcceptSave);
             dialog->setFileMode(QFileDialog::AnyFile);

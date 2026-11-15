@@ -6,6 +6,7 @@
 #include <sol/error.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
 #include "util/uniCast.h"
@@ -18,8 +19,8 @@ Imap::Imap(QObject *parent)
 void Imap::init(const std::string &portName, const int timeout) {
     m_count = 1;
     const auto _portName = QString::fromStdString(portName);
-    const auto port = g_port->m_portHash.constFind(_portName);
-    if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
+    const auto port = g_globalManager->portModuleGet()->m_portHash.constFind(_portName);
+    if (port == g_globalManager->portModuleGet()->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
     m_portName = portName;
     m_timeout = timeout;
     m_port = port.value();

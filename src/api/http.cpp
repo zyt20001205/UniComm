@@ -6,6 +6,7 @@
 #include <sol/protected_function.hpp>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/portModule.h"
 #include "util/uniCast.h"
@@ -17,8 +18,8 @@ Http::Http(QObject *parent)
 
 void Http::init(const std::string &portName, const int timeout) {
     const QString name = QString::fromStdString(portName);
-    const auto port = g_port->m_portHash.constFind(name);
-    if (port == g_port->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
+    const auto port = g_globalManager->portModuleGet()->m_portHash.constFind(name);
+    if (port == g_globalManager->portModuleGet()->m_portHash.constEnd()) throw sol::error(portName + " does not exist");
 
     m_portName = portName;
     m_timeout = timeout;

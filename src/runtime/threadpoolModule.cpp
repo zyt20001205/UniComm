@@ -69,7 +69,7 @@ void ThreadpoolModule::quit() {
 QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, void *closure) {
     std::variant<QString, LuaClosure> entry{};
     if (closure) entry = std::move(*static_cast<LuaClosure *>(closure));
-    else entry = g_document->textGet(documentUrl);
+    else entry = g_globalManager->documentModuleGet()->textGet(documentUrl);
     auto *worker = new QThread(); // NOLINT
     const auto threadId = QString("0x%1").arg(reinterpret_cast<quintptr>(worker), 0, 16);
     auto output = QSharedPointer<QJsonObject>::create();

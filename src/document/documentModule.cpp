@@ -144,8 +144,8 @@ QString DocumentModule::directoryCreate(const QUrl &directoryUrl, const QString 
         return _directoryRestore(directoryUrl, *trashUrl);
     };
     const auto undo = [this, directoryUrl, trashUrl] { return _directoryDelete(directoryUrl, *trashUrl); };
-    if (!undoGroupId.isEmpty()) return g_undo->push(text, redo, undo, undoGroupId);
-    return g_undo->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
+    if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
 }
 
 QString DocumentModule::directoryRename(const QUrl &sourceUrl, const QUrl &targetUrl, const QString &undoGroupId) {
@@ -165,8 +165,8 @@ QString DocumentModule::directoryRename(const QUrl &sourceUrl, const QUrl &targe
     const auto redo = [this, sourceUrl, targetUrl] { return _directoryRename(sourceUrl, targetUrl); };
     const auto undo = [this, sourceUrl, targetUrl] { return _directoryRename(targetUrl, sourceUrl); };
     const auto error = undoGroupId.isEmpty()
-                           ? g_undo->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Directory"), message); })
-                           : g_undo->push(text, redo, undo, undoGroupId);
+                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Directory"), message); })
+                           : g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
     if (error.isEmpty() && !undoGroupId.isEmpty()) _transactionRename(undoGroupId, sourceUrl, targetUrl, true);
     return error;
 }
@@ -186,8 +186,8 @@ QString DocumentModule::directoryDelete(const QUrl &directoryUrl, const QString 
     const auto text = tr("Directory Delete (%1)").arg(QFileInfo(directoryPath).fileName());
     const auto redo = [this, directoryUrl, trashUrl] { return _directoryDelete(directoryUrl, *trashUrl); };
     const auto undo = [this, directoryUrl, trashUrl] { return _directoryRestore(directoryUrl, *trashUrl); };
-    if (!undoGroupId.isEmpty()) return g_undo->push(text, redo, undo, undoGroupId);
-    return g_undo->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
+    if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
 }
 
 // public: document
@@ -207,8 +207,8 @@ QString DocumentModule::documentCreate(const QUrl &documentUrl, const QString &u
         return error;
     };
     const auto undo = [this, documentUrl, trashUrl] { return _documentDelete(documentUrl, *trashUrl); };
-    if (!undoGroupId.isEmpty()) return g_undo->push(text, redo, undo, undoGroupId);
-    return g_undo->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
+    if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
 }
 
 QString DocumentModule::documentRename(const QUrl &sourceUrl, const QUrl &targetUrl, const QString &undoGroupId) {
@@ -228,8 +228,8 @@ QString DocumentModule::documentRename(const QUrl &sourceUrl, const QUrl &target
     const auto redo = [this, sourceUrl, targetUrl] { return _documentRename(sourceUrl, targetUrl); };
     const auto undo = [this, sourceUrl, targetUrl] { return _documentRename(targetUrl, sourceUrl); };
     const auto error = undoGroupId.isEmpty()
-                           ? g_undo->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Document"), message); })
-                           : g_undo->push(text, redo, undo, undoGroupId);
+                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Document"), message); })
+                           : g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
     if (error.isEmpty() && !undoGroupId.isEmpty()) _transactionRename(undoGroupId, sourceUrl, targetUrl, false);
     return error;
 }
@@ -249,8 +249,8 @@ QString DocumentModule::documentDelete(const QUrl &documentUrl, const QString &u
     const auto text = tr("Document Delete (%1)").arg(documentUrl.fileName());
     const auto redo = [this, documentUrl, trashUrl] { return _documentDelete(documentUrl, *trashUrl); };
     const auto undo = [this, documentUrl, trashUrl] { return _documentRestore(documentUrl, *trashUrl); };
-    if (!undoGroupId.isEmpty()) return g_undo->push(text, redo, undo, undoGroupId);
-    return g_undo->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
+    if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
 }
 
 DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
@@ -264,7 +264,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         });
     }
     // conflict page
-    else if (g_globalManager->gitEnabledGet()) {
+    else if (g_globalManager->gitModuleGet()->gitEnabledGet()) {
         QProcess process{};
         process.setWorkingDirectory(g_workspaceUrl.toLocalFile());
         process.start("git", {"diff", "--name-only", "--diff-filter=U", "--", documentUrl.toLocalFile()});
@@ -279,7 +279,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
-            connect(conflictPage, &ConflictPage::isFocusedChanged, this, [this, conflictPage](const bool status) { documentFocus(conflictPage, status); });
             connect(conflictPage, &ConflictPage::appendLog, this, &DocumentModule::appendLog);
             connect(conflictPage, &ConflictPage::changeSelection, this, &DocumentModule::changeSelection);
             connect(conflictPage, &ConflictPage::reloadDocument, this, &DocumentModule::documentReload);
@@ -311,7 +310,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)},
                 {"documentModuleEditorMenu", QVariant::fromValue(m_editorMenu)}
             });
-            connect(codePage, &CodePage::isFocusedChanged, this, [this, codePage](const bool status) { documentFocus(codePage, status); });
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
             connect(codePage, &CodePage::changeSelection, this, &DocumentModule::changeSelection);
             connect(codePage, &CodePage::insertBreakpoint, this, &DocumentModule::insertBreakpoint);
@@ -346,7 +344,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
-            connect(markupPage, &MarkupPage::isFocusedChanged, this, [this, markupPage](const bool status) { documentFocus(markupPage, status); });
             connect(markupPage, &MarkupPage::appendLog, this, &DocumentModule::appendLog);
             connect(markupPage, &MarkupPage::changeSelection, this, &DocumentModule::changeSelection);
         }
@@ -368,7 +365,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
-            connect(textPage, &TextPage::isFocusedChanged, this, [this, textPage](const bool status) { documentFocus(textPage, status); });
             connect(textPage, &TextPage::appendLog, this, &DocumentModule::appendLog);
             connect(textPage, &TextPage::changeSelection, this, &DocumentModule::changeSelection);
         }
@@ -387,6 +383,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         m_watcher->addPath(documentUrl.toLocalFile());
     }
     m_pageHash[documentUrl] = documentPage;
+    connect(documentPage, &DocumentPage::isFocusedChanged, this, [this, documentPage](const bool status) { documentFocus(documentPage, status); });
     connect(documentPage, &DocumentPage::closeRequest, this, [this, documentUrl] {
         m_saveDialog->setProperty("documentUrl", documentUrl.toString());
         m_saveDialog->setProperty("documentName", documentUrl.fileName());
@@ -399,16 +396,13 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
 void DocumentModule::documentOpen(const QUrl &documentUrl) {
     // open page
     if (!m_pageHash.contains(documentUrl)) {
-        const bool firstDocument = m_pageHash.isEmpty();
-        auto *dockAnchor = m_pageHash.value(m_focusedUrl);
-        if (!firstDocument && !dockAnchor) dockAnchor = m_pageHash.cbegin().value();
         const auto documentPage = documentConstruct(documentUrl);
-        if (firstDocument) {
+        if (m_focusedUrl.isEmpty()) {
             m_welcomePage->open();
             m_welcomePage->addDockWidgetAsTab(documentPage);
             m_welcomePage->close();
         } else {
-            dockAnchor->addDockWidgetAsTab(documentPage);
+            m_pageHash.value(m_focusedUrl)->addDockWidgetAsTab(documentPage);
         }
         emit appendLog(LogLevel::Info, "document opened", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 
@@ -616,7 +610,7 @@ QString DocumentModule::linesSet(const QUrl &documentUrl, const QStringList &tex
                                               });
     } else if (handler->textGet() != state->after) {
         const auto error = tr("Line set failed: document content has changed outside the undo group.");
-        g_undo->undoGroupInvalidate(undoGroupId, error);
+        g_globalManager->undoModuleGet()->undoGroupInvalidate(undoGroupId, error);
         return error;
     }
 
@@ -1160,7 +1154,7 @@ void DocumentModule::renameResponse(const QUrl &documentUrl, const QJsonObject &
     } else if (documentUrls.size() == 1) {
         if (const auto *codePage = qobject_cast<CodePage *>(m_pageHash.value(documentUrl))) codePage->renameResponse(changes.constBegin().value().toArray());
     } else {
-        const auto undoGroupId = g_undo->undoGroupBegin();
+        const auto undoGroupId = g_globalManager->undoModuleGet()->undoGroupBegin();
         for (auto change = changes.constBegin(); change != changes.constEnd(); ++change) {
             documentOpen(uni_cast<QUrl>(LUrl(change.key())));
         }
@@ -1176,12 +1170,12 @@ void DocumentModule::renameResponse(const QUrl &documentUrl, const QJsonObject &
 
         const auto transactionError = transactionCommit(undoGroupId);
         if (!transactionError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Rename"), transactionError);
-        const auto commitError = g_undo->undoGroupCommit(
+        const auto commitError = g_globalManager->undoModuleGet()->undoGroupCommit(
             undoGroupId,
             tr("LSP Rename"),
             [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Rename"), error); });
         if (!commitError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Rename"), commitError);
-        g_undo->undoGroupRelease(undoGroupId);
+        g_globalManager->undoModuleGet()->undoGroupRelease(undoGroupId);
     }
 }
 
@@ -1446,7 +1440,7 @@ QString DocumentModule::_transactionFlush(const QString &undoGroupId, const QUrl
     if (frozen->documents.isEmpty()) return {};
 
     const QSharedPointer<const DocumentTransaction> transactionData = frozen;
-    const auto error = g_undo->push(
+    auto error = g_globalManager->undoModuleGet()->push(
         tr("Document Edit"),
         [this, transactionData] { return _transactionRedo(transactionData); },
         [this, transactionData] { return _transactionUndo(transactionData); },
@@ -1456,7 +1450,7 @@ QString DocumentModule::_transactionFlush(const QString &undoGroupId, const QUrl
     for (auto document = frozen->documents.cbegin(); document != frozen->documents.cend(); ++document) {
         transaction->documents.insert(document.key(), document.value());
     }
-    g_undo->undoGroupInvalidate(undoGroupId, error);
+    g_globalManager->undoModuleGet()->undoGroupInvalidate(undoGroupId, error);
     return error;
 }
 
@@ -1478,7 +1472,7 @@ QString DocumentModule::_transactionCheck(const QString &undoGroupId, const QUrl
         if (handler != nullptr && handler->textGet() == document->after) continue;
 
         const auto error = tr("Document operation failed: document content has changed outside the undo group.");
-        g_undo->undoGroupInvalidate(undoGroupId, error);
+        g_globalManager->undoModuleGet()->undoGroupInvalidate(undoGroupId, error);
         return error;
     }
     return {};
@@ -1553,11 +1547,14 @@ ScintillaWidget *DocumentModule::handlerGet(const QUrl &documentUrl) const {
 }
 
 void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status) {
+    if (status && m_pageHash.contains(documentPage->documentUrl()) && m_focusedUrl != documentPage->documentUrl()) {
+        m_focusedUrl = documentPage->documentUrl();
+        emit focusedUrlChanged();
+    }
     auto *handler = handlerGet(documentPage->documentUrl());
     if (handler == nullptr) return;
     if (status) {
         handler->focusSet(true);
-        m_focusedUrl = documentPage->documentUrl();
         const QVariantHash session = {
             {"codePage", handler->codePageGet()},
             {"eolMode", handler->eolModeGet()}
@@ -1572,14 +1569,17 @@ void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status
 
 void DocumentModule::documentClose(const QUrl &documentUrl) {
     if (documentUrl.isLocalFile()) m_watcher->removePath(documentUrl.toLocalFile());
+    const auto previousFocusedUrl = m_focusedUrl;
     m_pageHash.remove(documentUrl);
     if (g_terminating) return;
     if (m_pageHash.isEmpty()) {
+        m_focusedUrl.clear();
         m_welcomePage->open();
-    } else {
+    } else if (documentUrl == m_focusedUrl) {
         const auto begin = m_pageHash.begin();
         m_focusedUrl = begin.key();
     }
+    if (previousFocusedUrl != m_focusedUrl) emit focusedUrlChanged();
     emit appendLog(LogLevel::Info, "document closed", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 }
 
@@ -1593,6 +1593,8 @@ void DocumentModule::textSetSelected(const QUrl &documentUrl, const QString &tex
 }
 
 void DocumentModule::navigationRecord(const QUrl &documentUrl, const int line, const int character) {
+    const auto *handler = documentUrl.isEmpty() ? handlerGet(m_focusedUrl) : nullptr;
+    if (documentUrl.isEmpty() && !handler) return;
     // not at end, resize
     if (m_navigationHistory["index"].toInt() < m_navigationHistory["list"].toList().size() - 1) {
         QVariantList list = m_navigationHistory["list"].toList();
@@ -1602,8 +1604,7 @@ void DocumentModule::navigationRecord(const QUrl &documentUrl, const int line, c
     m_navigationHistory["index"] = m_navigationHistory["index"].toInt() + 1;
     // src index
     if (documentUrl.isEmpty()) {
-        const auto *scintilla = qobject_cast<CodePage *>(m_pageHash[m_focusedUrl])->handler();
-        const auto index = scintilla->cast<ScintillaWidget::Utf16Index>(scintilla->positionGet());
+        const auto index = handler->cast<ScintillaWidget::Utf16Index>(handler->positionGet());
         const auto navigationSession = QVariantHash{
             {"documentUrl", m_focusedUrl},
             {"line", index.line},

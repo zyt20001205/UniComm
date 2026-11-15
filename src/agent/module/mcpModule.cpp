@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "agent/module/toolsModule.h"
 
 // public
@@ -272,7 +273,7 @@ QFuture<QJsonObject> McpModule::request(const QUrl &serverUrl, const QString &me
     promise->start();
     const auto future = promise->future();
     auto response = QSharedPointer<Response>::create();
-    auto *reply = g_networkAccessManager->post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    auto *reply = g_globalManager->networkAccessManagerGet()->post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
     connect(reply, &QIODevice::readyRead, this, [reply, response, id] {
         response->eventStream = reply->header(QNetworkRequest::ContentTypeHeader).toString().startsWith("text/event-stream");
         response->buffer.append(reply->readAll());

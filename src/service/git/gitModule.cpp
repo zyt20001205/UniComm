@@ -12,12 +12,15 @@
 #include <QTextDocument>
 
 #include "core/globalManager.h"
+#include "mainWindow/mainWindow.h"
 #include "service/git/gitConfig.h"
 #include "util/uniCast.h"
 
 // public
 GitModule::GitModule()
     : DockWidget("Git"),
+      m_gitEnabled(gitGet()),
+      m_gitStatus(GitStatus::Idle),
       m_config(g_workspaceConfig["gitConfig"].toObject()),
       m_widget(new QQuickWidget()),
       m_commitWindow(new QQuickView()),
@@ -90,7 +93,7 @@ void GitModule::propertySet(const QVariantHash &objects) {
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/git/gitModule.qml"));
     m_root = m_widget->rootObject();
-    if (g_globalManager->gitEnabledGet()) gitWatch();
+    if (m_gitEnabled) gitWatch();
 
     // config
     m_gitConfig->propertySet(QVariantHash{
@@ -100,7 +103,7 @@ void GitModule::propertySet(const QVariantHash &objects) {
 
     // commit window
     m_commitWindow->setTitle(tr("Git Commit"));
-    m_commitWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_commitWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
 
     m_commitWindow->rootContext()->setContextProperty("gitModule", this);
     m_commitWindow->rootContext()->setContextProperty("global", g_globalManager);
@@ -114,7 +117,7 @@ void GitModule::propertySet(const QVariantHash &objects) {
 
     // push window
     m_pushWindow->setTitle(tr("Git Push"));
-    m_pushWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_pushWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
 
     m_pushWindow->rootContext()->setContextProperty("gitModule", this);
     m_pushWindow->rootContext()->setContextProperty("global", g_globalManager);
@@ -189,7 +192,7 @@ void GitModule::gitFetch() {
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Fetching from remote..."));
-    g_globalManager->gitStatusSet(GitStatus::Transfer);
+    gitStatusSet(GitStatus::Transfer);
 }
 
 // public: push
@@ -227,7 +230,7 @@ void GitModule::gitPush() {
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Pushing to remote..."));
-    g_globalManager->gitStatusSet(GitStatus::Transfer);
+    gitStatusSet(GitStatus::Transfer);
 }
 
 // public: file watcher
@@ -236,7 +239,7 @@ void GitModule::gitWatch() {
 }
 
 void GitModule::gitRepo() {
-    if (g_globalManager->gitStatusGet() == GitStatus::Transfer) return;
+    if (m_gitStatus == GitStatus::Transfer) return;
     const auto &gitDir = QDir(m_gitDirPath);
     // merge
     if (QFileInfo::exists(gitDir.filePath("MERGE_HEAD"))) {
@@ -244,7 +247,7 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        g_globalManager->gitStatusSet(GitStatus::Merge);
+        gitStatusSet(GitStatus::Merge);
     }
     // rebase
     else if (QFileInfo::exists(gitDir.filePath("REBASE_HEAD"))) {
@@ -252,7 +255,7 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        g_globalManager->gitStatusSet(GitStatus::Rebase);
+        gitStatusSet(GitStatus::Rebase);
     }
     // cherry-pick
     else if (QFileInfo::exists(gitDir.filePath("CHERRY_PICK_HEAD"))) {
@@ -260,9 +263,9 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        g_globalManager->gitStatusSet(GitStatus::CherryPick);
+        gitStatusSet(GitStatus::CherryPick);
     }
-    if (g_globalManager->gitStatusGet() != GitStatus::Idle) gitDiff();
+    if (m_gitStatus != GitStatus::Idle) gitDiff();
 }
 
 // public: branch
@@ -357,7 +360,7 @@ void GitModule::gitRebase(const QString &name) {
 }
 
 void GitModule::gitAbort() {
-    switch (g_globalManager->gitStatusGet()) {
+    switch (m_gitStatus) {
         case GitStatus::Transfer: m_process->terminate();
             break;
         case GitStatus::Merge: processEnqueue(GitCommand::Abort, QStringList{"merge", "--abort"});
@@ -372,7 +375,7 @@ void GitModule::gitAbort() {
 
 void GitModule::gitContinue(const QString &message) {
     QStringList arguments{};
-    switch (g_globalManager->gitStatusGet()) {
+    switch (m_gitStatus) {
         case GitStatus::Merge: {
             if (message.isEmpty()) arguments = {"merge", "--continue"};
             else arguments = {"commit", "-m", message};
@@ -717,7 +720,7 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Diff: {
                 const auto &paths = QString::fromUtf8(output).split('\n', Qt::SkipEmptyParts);
                 QString operation{};
-                switch (g_globalManager->gitStatusGet()) {
+                switch (m_gitStatus) {
                     case GitStatus::Merge: operation = tr("Merging: ");
                         break;
                     case GitStatus::Rebase: operation = tr("Rebasing: ");
@@ -967,7 +970,7 @@ void GitModule::processFinished(const int exitcode) {
         // state machine
         switch (command) {
             case GitCommand::Init: {
-                g_globalManager->gitEnabledSet();
+                gitEnabledSet();
                 gitWatch();
             }
             break;
@@ -976,7 +979,7 @@ void GitModule::processFinished(const int exitcode) {
                     gitWatch();
                     gitStatus();
                 }
-                if (g_globalManager->gitStatusGet() != GitStatus::Idle) {
+                if (m_gitStatus != GitStatus::Idle) {
                     emit addFinish();
                     gitDiff();
                 }
@@ -994,7 +997,7 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Abort:
             case GitCommand::Push: {
                 emit removeBackground(m_taskId);
-                g_globalManager->gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitStatus::Idle);
             }
             break;
             case GitCommand::Ahead: gitDiff_();
@@ -1061,14 +1064,14 @@ void GitModule::processFinished(const int exitcode) {
                 title = tr("Fetch Failed");
                 text = QString::fromUtf8(error).trimmed();
                 emit removeBackground(m_taskId);
-                g_globalManager->gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitStatus::Idle);
             }
             break;
             case GitCommand::Push: {
                 title = tr("Push Failed");
                 text = QString::fromUtf8(error).trimmed();
                 emit removeBackground(m_taskId);
-                g_globalManager->gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitStatus::Idle);
             }
             break;
             default: {

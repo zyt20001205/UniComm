@@ -128,7 +128,7 @@ QVariant SortFilterProxyModel::data(const QModelIndex &index, const int role) co
         return documentUrl;
     }
     if (role == GitRole) {
-        if (!g_globalManager->gitEnabledGet() || !m_documentStatus->contains(documentUrl)) {
+        if (!g_globalManager->gitModuleGet()->gitEnabledGet() || !m_documentStatus->contains(documentUrl)) {
             return {};
         }
         const auto gitStatus = m_documentStatus->value(documentUrl).toHash();

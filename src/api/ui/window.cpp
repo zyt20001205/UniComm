@@ -6,6 +6,7 @@
 #include <sol/error.hpp>
 
 #include "globals.h"
+#include "mainWindow/mainWindow.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
 
@@ -27,7 +28,7 @@ void UiWindow::open(const bool blocking) {
         auto *window = new QQuickView(); // NOLINT
         const auto title = m_title.has_value() ? QString::fromStdString(m_title.value()) : QString("0x%1").arg(reinterpret_cast<quintptr>(m_owner->thread()), 0, 16);
         window->setTitle(title);
-        window->setTransientParent(g_mainWindow->windowHandle());
+        window->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
         window->rootContext()->setContextProperty("global", g_globalManager);
         window->setResizeMode(QQuickView::SizeRootObjectToView);
         QObject::connect(m_owner, &Ui::exit, window, &QWindow::close);

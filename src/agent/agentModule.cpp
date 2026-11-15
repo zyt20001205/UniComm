@@ -8,6 +8,7 @@
 #include <QUuid>
 
 #include "globals.h"
+#include "mainWindow/mainWindow.h"
 #include "agent/module/contextModule.h"
 #include "agent/module/evalModule.h"
 #include "agent/module/hookModule.h"
@@ -73,14 +74,14 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_modeMenu = qvariant_cast<QObject *>(objects["agentModuleModeMenu"]);
 
     m_evalWindow->setTitle(tr("Agent Evaluation"));
-    m_evalWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_evalWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_evalWindow->rootContext()->setContextProperty("evalModel", m_evalModule->modelGet());
     m_evalWindow->rootContext()->setContextProperty("global", g_globalManager);
     m_evalWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_evalWindow->setSource(QUrl("qrc:/qml/agent/agentEvalWindow.qml"));
 
     m_manageWindow->setTitle(tr("Agent Settings"));
-    m_manageWindow->setTransientParent(g_mainWindow->windowHandle());
+    m_manageWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_manageWindow->rootContext()->setContextProperty("agentModule", this);
     m_manageWindow->rootContext()->setContextProperty("global", g_globalManager);
     m_manageWindow->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
@@ -494,7 +495,7 @@ void AgentModule::conversationRollback() {
 }
 
 void AgentModule::changeRevert() const {
-    const auto error = g_undo->undoGroupRevert(m_undoGroupId);
+    const auto error = g_globalManager->undoModuleGet()->undoGroupRevert(m_undoGroupId);
     if (!error.isEmpty()) m_toast->show(ToastLevel::Error, tr("Agent"), error);
 }
 
@@ -680,9 +681,9 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
         m_fileDiffs.clear();
         m_additions = 0;
         m_deletions = 0;
-        if (!m_undoGroupId.isEmpty()) g_undo->undoGroupRelease(m_undoGroupId);
-        m_undoGroupId = g_undo->undoGroupBegin();
-        g_document->transactionBegin(m_undoGroupId);
+        if (!m_undoGroupId.isEmpty()) g_globalManager->undoModuleGet()->undoGroupRelease(m_undoGroupId);
+        m_undoGroupId = g_globalManager->undoModuleGet()->undoGroupBegin();
+        g_globalManager->documentModuleGet()->transactionBegin(m_undoGroupId);
         turnCreate(turnId, startedAt);
         m_attachments.clear();
         QMetaObject::invokeMethod(m_root, "attachmentsClear");
@@ -691,9 +692,9 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
     });
     connect(runtime, &RuntimeModule::finishTurn, this, [this, runtime](const QString &turnId, const qint64 finishedAt) {
         if (runtime != m_runtimes.value(m_primary)) return;
-        const auto documentError = g_document->transactionCommit(m_undoGroupId);
+        const auto documentError = g_globalManager->documentModuleGet()->transactionCommit(m_undoGroupId);
         if (!documentError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Agent"), documentError);
-        const auto commitError = g_undo->undoGroupCommit(
+        const auto commitError = g_globalManager->undoModuleGet()->undoGroupCommit(
             m_undoGroupId,
             tr("Agent Change"),
             [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Agent"), error); });
@@ -730,7 +731,7 @@ void AgentModule::diffUpdate(const QString &undoGroupId, const QVariantMap &file
 
 void AgentModule::changeUpdate(const QString &undoGroupId) const {
     if (undoGroupId != m_undoGroupId) return;
-    auto changes = g_undo->undoGroupGet(m_undoGroupId);
+    auto changes = g_globalManager->undoModuleGet()->undoGroupGet(m_undoGroupId);
     changes.insert("fileDiffs", m_fileDiffs);
     changes.insert("additions", m_additions);
     changes.insert("deletions", m_deletions);

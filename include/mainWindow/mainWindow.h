@@ -11,7 +11,6 @@ class ConfigManager;
 class GlobalManager;
 class ServiceModule;
 class AudioService;
-class Ripgrep;
 
 class AgentModule;
 class BreakpointModule;

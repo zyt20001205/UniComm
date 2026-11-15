@@ -14,7 +14,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: portModel.empty
+        visible: portModule.model.empty
 
         RowLayout {
             anchors.centerIn: parent
@@ -32,7 +32,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: !portModel.empty
+        visible: !portModule.model.empty
 
         VerticalHeaderView {
             id: verticalHeaderView
@@ -107,7 +107,7 @@ Item {
             clip: true
             editTriggers: TableView.NoEditTriggers
             rowSpacing: 1
-            model: portModel
+            model: portModule.model
             contentWidth: width
             property int hoveredRow: -1
 

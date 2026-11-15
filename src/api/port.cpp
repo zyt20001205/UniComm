@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "globals.h"
+#include "core/globalManager.h"
 #include "port/basePort.h"
 #include "port/bluetoothLe.h"
 #include "port/portModule.h"
@@ -20,14 +21,14 @@
 Port::Port(QString portName, QObject *parent)
     : QObject(parent),
       m_portName(std::move(portName)),
-      m_port(g_port->m_portHash.value(m_portName)) {
+      m_port(g_globalManager->portModuleGet()->m_portHash.value(m_portName)) {
 }
 
 sol::table Port::list(const sol::this_state ts) {
     QSet<QString> portSet{};
 
-    QMetaObject::invokeMethod(g_port, [&portSet] {
-        portSet = g_port->portList();
+    QMetaObject::invokeMethod(g_globalManager->portModuleGet(), [&portSet] {
+        portSet = g_globalManager->portModuleGet()->portList();
     }, Qt::BlockingQueuedConnection);
     return uni_cast<sol::table>(ts, portSet);
 }
@@ -35,8 +36,8 @@ sol::table Port::list(const sol::this_state ts) {
 Port *Port::create(const sol::table &config, QObject *parent) {
     auto portConfig = uni_cast<QJsonObject>(config);
     QString error{};
-    QMetaObject::invokeMethod(g_port, [&error, &portConfig] {
-        error = g_port->portInsert(-1, portConfig);
+    QMetaObject::invokeMethod(g_globalManager->portModuleGet(), [&error, &portConfig] {
+        error = g_globalManager->portModuleGet()->portInsert(-1, portConfig);
     }, Qt::BlockingQueuedConnection);
     if (!error.isEmpty()) throw sol::error(error.toStdString());
     return new Port(portConfig["portName"].toString(), parent); // NOLINT
@@ -44,14 +45,14 @@ Port *Port::create(const sol::table &config, QObject *parent) {
 
 Port *Port::get(const std::string &portName, QObject *parent) {
     const auto name = QString::fromStdString(portName);
-    if (!g_port->m_portHash.contains(name)) throw sol::error(portName + " does not exist");
+    if (!g_globalManager->portModuleGet()->m_portHash.contains(name)) throw sol::error(portName + " does not exist");
     return new Port(name, parent); // NOLINT
 }
 
 void Port::remove(const std::string &portName) {
     QString error{};
-    QMetaObject::invokeMethod(g_port, [&error, &portName] {
-        error = g_port->portRemove(QString::fromStdString(portName));
+    QMetaObject::invokeMethod(g_globalManager->portModuleGet(), [&error, &portName] {
+        error = g_globalManager->portModuleGet()->portRemove(QString::fromStdString(portName));
     }, Qt::BlockingQueuedConnection);
     if (!error.isEmpty()) throw sol::error(error.toStdString());
 }
