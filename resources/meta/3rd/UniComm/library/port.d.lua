@@ -108,7 +108,9 @@ Port.Type = {
 
 ---[WebSocket client demo](../demo/port/websocketClient.lua)
 ---@class WebSocketClientPortConfig : PortConfig
----@field url string Complete ws:// or wss:// URL, including any required path and query.
+---@field remoteHost string Hostname or IP address, optionally followed by path and query, without a scheme. Example: "ws.postman-echo.com/raw". Enclose IPv6 addresses in brackets.
+---@field remotePort integer Remote port from 1 to 65535. Usually 80 for WS or 443 for WSS; this field determines the port even if remoteHost contains one.
+---@field secure? boolean (default: false) Use WSS instead of WS.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
@@ -117,6 +119,7 @@ Port.Type = {
 ---@class WebSocketServerPortConfig : PortConfig
 ---@field localHost string Local IP address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
+---@field secure? boolean (default: false) Reserved for WSS. Opening with true is not supported yet.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.

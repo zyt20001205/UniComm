@@ -7,6 +7,7 @@
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickWidget>
+#include <QRegularExpression>
 #include <QThread>
 #include <QUrl>
 
@@ -220,9 +221,10 @@ QJsonObject PortModule::portConfigGet(const int portType) {
         case PortType::WebSocketClient: {
             portConfig = {
                 {"type", "object"},
-                {"required", QJsonArray{"portName", "url"}},
+                {"required", QJsonArray{"portName", "remoteHost", "remotePort"}},
                 {
                     "defaults", QJsonObject{
+                        {"secure", false},
                         {"logFormat", "utf-8"},
                         {"txSuffix", "null"},
                         {"bufferSize", 65536}
@@ -231,7 +233,9 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 {
                     "properties", QJsonObject{
                         {"portName", QJsonObject{{"type", "string"}}},
-                        {"url", QJsonObject{{"type", "string"}, {"description", "Complete ws:// or wss:// URL, including any required path and query."}}},
+                        {"remoteHost", QJsonObject{{"type", "string"}, {"description", "Hostname or IP address, optionally followed by path and query, without ws:// or wss://; for example ws.postman-echo.com/raw."}}},
+                        {"remotePort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Use wss:// instead of ws://."}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
@@ -246,6 +250,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 {"required", QJsonArray{"portName", "localHost", "localPort"}},
                 {
                     "defaults", QJsonObject{
+                        {"secure", false},
                         {"logFormat", "utf-8"},
                         {"txSuffix", "null"},
                         {"bufferSize", 65536}
@@ -256,6 +261,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"portName", QJsonObject{{"type", "string"}}},
                         {"localHost", QJsonObject{{"type", "string"}}},
                         {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Reserved for WSS. Opening with true is not supported yet."}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
@@ -367,9 +373,12 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
     }
 
     if (portType == PortType::WebSocketClient) {
-        const QUrl url(portConfig.value("url").toString());
-        if (!url.isValid() || url.host().isEmpty() || (url.scheme() != "ws" && url.scheme() != "wss"))
-            return "Port check failed: url must be a valid ws:// or wss:// URL.";
+        const auto remoteHost = portConfig.value("remoteHost").toString();
+        const QUrl url((portConfig.value("secure").toBool() ? "wss://" : "ws://") + remoteHost);
+        if (!url.isValid() || url.host().isEmpty() || remoteHost.contains(QRegularExpression("^[A-Za-z][A-Za-z0-9+.-]*://")) || url.hasFragment() || !url.userInfo().isEmpty())
+            return "Port check failed: remoteHost must be a host with optional path and query, without scheme, credentials or fragment.";
+        const auto remotePort = portConfig.value("remotePort").toInt();
+        if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
     }
 
     if (portType == PortType::WebSocketServer) {

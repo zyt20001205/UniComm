@@ -1,9 +1,11 @@
--- Start port/websocketServer first. Use a complete ws:// or wss:// URL.
+-- Start port/websocketServer first. remoteHost can include a path and query.
 -- On later runs, use Port.get("WebSocket Client") to reuse the saved configuration.
 local client = Port.create({
     portType = Port.Type.WebSocketClient,
     portName = "WebSocket Client",
-    url = "ws://127.0.0.1:8080/",
+    remoteHost = "127.0.0.1/",
+    remotePort = 8080,
+    secure = false,
     logFormat = "hex",
 })
 

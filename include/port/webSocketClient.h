@@ -2,6 +2,7 @@
 #define UNICOMM_WEBSOCKETCLIENT_H
 
 #include <QJsonObject>
+#include <QUrl>
 #include <QWebSocket>
 
 #include "basePort.h"
@@ -54,6 +55,7 @@ private:
 
     UWebSocket *m_webSocketClient{};
     QJsonObject m_portConfig{};
+    QUrl m_url{};
     QString m_localHost{};
     int m_localPort{};
     RingBuffer m_buffer;

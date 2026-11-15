@@ -151,11 +151,14 @@ private:
     QObject *m_sslServerPrivateKeyTextField{};
     // web socket client
     QObject *m_webSocketClientNameTextField{};
-    QObject *m_webSocketClientUrlTextField{};
+    QObject *m_webSocketClientRemoteHostTextField{};
+    QObject *m_webSocketClientRemotePortSpinBox{};
+    QObject *m_webSocketClientSecureSwitch{};
     // web socket server
     QObject *m_webSocketServerNameTextField{};
     QObject *m_webSocketServerLocalHostComboBox{};
     QObject *m_webSocketServerLocalPortSpinBox{};
+    QObject *m_webSocketServerSecureSwitch{};
     // udp socket
     QObject *m_udpSocketNameTextField{};
     QObject *m_udpSocketLocalHostComboBox{};

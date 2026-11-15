@@ -48,6 +48,11 @@ QVariantHash WebSocketServer::info() {
 }
 
 bool WebSocketServer::open() {
+    if (m_portConfig["secure"].toBool()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: secure WebSocket server is not implemented yet");
+        emit refreshPort(m_portConfig["portName"].toString(), false);
+        return false;
+    }
     if (m_webSocketServer == nullptr) {
         // TODO: Restore WSS when TLS settings are unified across ports.
         m_webSocketServer = new QWebSocketServer(m_portConfig["portName"].toString(), QWebSocketServer::NonSecureMode, this);

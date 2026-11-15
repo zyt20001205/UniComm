@@ -437,7 +437,30 @@ Item {
                             editable: true
                             from: 0
                             to: 65535
+                            value: 443
                             Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            color: global.stroke
+                            implicitHeight: 1
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 8
+                        }
+
+                        Label {
+                            text: qsTr("Secure")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Switch {
+                            id: sslClientSecureSwitch
+                            checked: true
+                            enabled: false
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                         }
                     }
 
@@ -485,7 +508,30 @@ Item {
                             editable: true
                             from: 0
                             to: 65535
+                            value: 443
                             Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            color: global.stroke
+                            implicitHeight: 1
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 8
+                        }
+
+                        Label {
+                            text: qsTr("Secure")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Switch {
+                            id: sslServerSecureSwitch
+                            checked: true
+                            enabled: false
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                         }
 
                         Label {
@@ -534,16 +580,54 @@ Item {
                         }
 
                         Label {
-                            text: qsTr("URL")
+                            text: qsTr("Remote Host")
                             font.pointSize: 12
                             Layout.fillWidth: true
                         }
 
                         TextField {
-                            id: webSocketClientUrlTextField
+                            id: webSocketClientRemoteHostTextField
                             font.pointSize: 12
-                            placeholderText: "ws://127.0.0.1:8080"
+                            placeholderText: "ws.postman-echo.com/raw"
                             Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: qsTr("Remote Port")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        SpinBox {
+                            id: webSocketClientRemotePortSpinBox
+                            font.pointSize: 12
+                            editable: true
+                            from: 1
+                            to: 65535
+                            value: 80
+                            Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            color: global.stroke
+                            implicitHeight: 1
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 8
+                        }
+
+                        Label {
+                            text: qsTr("Secure")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Switch {
+                            id: webSocketClientSecureSwitch
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                            onToggled: webSocketClientRemotePortSpinBox.value = checked ? 443 : 80
                         }
                     }
 
@@ -589,9 +673,32 @@ Item {
                             id: webSocketServerLocalPortSpinBox
                             font.pointSize: 12
                             editable: true
-                            from: 0
+                            from: 1
                             to: 65535
+                            value: 80
                             Layout.fillWidth: true
+                        }
+
+                        Rectangle {
+                            color: global.stroke
+                            implicitHeight: 1
+                            Layout.columnSpan: 2
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            Layout.bottomMargin: 8
+                        }
+
+                        Label {
+                            text: qsTr("Secure")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Switch {
+                            id: webSocketServerSecureSwitch
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+
+                            onToggled: webSocketServerLocalPortSpinBox.value = checked ? 443 : 80
                         }
 
                     }
@@ -2278,8 +2385,8 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
-                                if (!webSocketClientUrlTextField.text) {
-                                    portNameValidator.text = qsTr("Empty URL")
+                                if (!webSocketClientRemoteHostTextField.text) {
+                                    portNameValidator.text = qsTr("Empty Remote Host")
                                     portNameValidatorTimer.start()
                                     return
                                 }
@@ -2835,11 +2942,14 @@ Item {
             "sslServerPrivateKeyTextField": sslServerPrivateKeyTextField,
             // web socket client
             "webSocketClientNameTextField": webSocketClientNameTextField,
-            "webSocketClientUrlTextField": webSocketClientUrlTextField,
+            "webSocketClientRemoteHostTextField": webSocketClientRemoteHostTextField,
+            "webSocketClientRemotePortSpinBox": webSocketClientRemotePortSpinBox,
+            "webSocketClientSecureSwitch": webSocketClientSecureSwitch,
             // web socket server
             "webSocketServerNameTextField": webSocketServerNameTextField,
             "webSocketServerLocalHostComboBox": webSocketServerLocalHostComboBox,
             "webSocketServerLocalPortSpinBox": webSocketServerLocalPortSpinBox,
+            "webSocketServerSecureSwitch": webSocketServerSecureSwitch,
             // udp socket
             "udpSocketNameTextField": udpSocketNameTextField,
             "udpSocketLocalHostComboBox": udpSocketLocalHostComboBox,
