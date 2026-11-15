@@ -48,6 +48,7 @@ Item {
             onClicked: serviceView.currentIndex = index
 
             Rectangle {
+                id: statusIndicator
                 anchors.right: parent.right
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
@@ -56,6 +57,21 @@ Item {
                 color: serviceDelegate.modelData.status === 1 ? global.successFore3
                     : serviceDelegate.modelData.status === 2 ? global.dangerFore3
                     : global.stroke
+
+                SequentialAnimation {
+                    id: flashAnimation
+                    NumberAnimation { target: statusIndicator; property: "opacity"; to: 0.25; duration: 150 }
+                    PauseAnimation { duration: 350 }
+                    NumberAnimation { target: statusIndicator; property: "opacity"; to: 1; duration: 150 }
+                }
+
+                Connections {
+                    target: serviceDelegate.modelData.eventModel
+
+                    function onRowsInserted() {
+                        flashAnimation.restart()
+                    }
+                }
             }
         }
     }
