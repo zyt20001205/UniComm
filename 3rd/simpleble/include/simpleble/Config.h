@@ -13,16 +13,16 @@ namespace SimpleBLE {
  */
 namespace Config {
 namespace SimpleBluez {
-    extern SIMPLEBLE_EXPORT bool use_legacy_bluez_backend;
-    extern SIMPLEBLE_EXPORT bool use_system_bus; // NOTE: This is only available in the new Bluez backend.
+    extern SIMPLEBLE_EXPORT bool use_system_bus;
     extern SIMPLEBLE_EXPORT std::chrono::steady_clock::duration connection_timeout;
     extern SIMPLEBLE_EXPORT std::chrono::steady_clock::duration disconnection_timeout;
+    extern SIMPLEBLE_EXPORT bool interactive_pairing;
 
     static void reset() {
-        use_legacy_bluez_backend = false;
         use_system_bus = true;
         connection_timeout = std::chrono::seconds(2);
         disconnection_timeout = std::chrono::seconds(1);
+        interactive_pairing = false;
     }
 }  // namespace SimpleBluez
 
@@ -49,8 +49,12 @@ namespace Android {
     enum class ConnectionPriorityRequest { DISABLED = -1, BALANCED = 0, HIGH = 1, LOW_POWER = 2, DCK = 3 };
 
     extern SIMPLEBLE_EXPORT ConnectionPriorityRequest connection_priority_request;
+    extern SIMPLEBLE_EXPORT bool negotiate_mtu;
 
-    static void reset() { connection_priority_request = ConnectionPriorityRequest::DISABLED; }
+    static void reset() {
+        connection_priority_request = ConnectionPriorityRequest::DISABLED;
+        negotiate_mtu = true;
+    }
 }  // namespace Android
 
 namespace Dongl {
@@ -58,7 +62,7 @@ namespace Dongl {
     extern SIMPLEBLE_EXPORT bool auto_update;
     extern SIMPLEBLE_EXPORT bool force_update;
     static void reset() {
-        use_dongl_backend = false;
+        use_dongl_backend = true;
         auto_update = false;
         force_update = false;
     }

@@ -9,6 +9,7 @@
 
 #include <simpleble/export.h>
 
+#include <simpleble/Exceptions.h>
 #include <simpleble/Service.h>
 #include <simpleble/Types.h>
 
@@ -34,6 +35,8 @@ class SIMPLEBLE_EXPORT Peripheral {
      *
      * @note If the field has not been advertised by the peripheral,
      *       the returned value will be -32768.
+     * @note Advertising data reflects the latest advertisement and scan response.
+     *       When both carry the same field, the advertisement wins.
      */
     int16_t tx_power();
     uint16_t mtu();
@@ -41,6 +44,14 @@ class SIMPLEBLE_EXPORT Peripheral {
     void connect();
     void disconnect();
     bool is_connected();
+
+    /**
+     * @brief Indicates whether the peripheral's advertisements are connectable.
+     *
+     * @note On Linux, BlueZ does not report connectability, so the value is
+     *       estimated: true if the peripheral has a name, false otherwise.
+     *       It can be wrong in either direction.
+     */
     bool is_connectable();
     bool is_paired();
     void unpair();
@@ -52,6 +63,13 @@ class SIMPLEBLE_EXPORT Peripheral {
      *       that were advertised by the device.
      */
     std::vector<Service> services();
+
+    /**
+     * @brief Provides the advertised manufacturer specific data, by company identifier.
+     *
+     * @note Advertising data reflects the latest advertisement and scan response.
+     *       When both carry the same field, the advertisement wins.
+     */
     std::map<uint16_t, ByteArray> manufacturer_data();
 
     /* Calling any of the methods below when the device is not connected will throw
