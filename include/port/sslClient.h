@@ -36,6 +36,8 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &logFormat, bool peek) override;
 
 private:
+    [[nodiscard]] QString configure();
+
     void handleStateChanged(QAbstractSocket::SocketState state);
 
     void handleReadyRead();

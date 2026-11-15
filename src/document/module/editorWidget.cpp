@@ -41,13 +41,16 @@ EditorWidget::EditorWidget(const QJsonObject &documentConfig, const QUrl &docume
     connect(m_scintillaWidget, &ScintillaEdit::modifyAttemptReadOnly, this, &EditorWidget::permissionSet);
     connect(m_scintillaWidget, &ScintillaEdit::savePointChanged, this, &EditorWidget::changeSavepoint);
     connect(m_scintillaWidget, &ScintillaEdit::updateUi, this, [this](const Scintilla::Update updated) {
-        if (static_cast<int>(updated) & static_cast<int>(Scintilla::Update::Selection | Scintilla::Update::Content)) m_selectionTimer->start();
+        if (static_cast<int>(updated) & static_cast<int>(Scintilla::Update::Selection)) m_selectionTimer->start();
     });
     connect(m_scintillaWidget, &ScintillaEdit::focusChanged, this, [this](const bool focused) {
         if (focused) m_selectionTimer->start();
     });
     connect(m_scintillaWidget, &ScintillaEdit::modified, this, [this](const Scintilla::ModificationFlags type) {
-        if (static_cast<int>(type) & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_PERFORMED_UNDO | SC_PERFORMED_REDO)) m_contentTimer->start();
+        if (static_cast<int>(type) & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)) {
+            m_selectionTimer->start();
+            m_contentTimer->start();
+        }
     });
     connect(m_searchWidget, &SearchWidget::setSearchFlags, m_scintillaWidget, &ScintillaWidget::searchFlagsSet);
     connect(m_searchWidget, &SearchWidget::requestSearch, this, &EditorWidget::searchRequest);

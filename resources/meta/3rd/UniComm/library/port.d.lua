@@ -92,11 +92,11 @@ Port.Type = {
 ---@class SslClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
----@field secure? boolean (default: false) Certificate authentication setting. Stored only; not yet applied to connections. SSL always uses TLS.
----@field caCertificate? string (default: "") File URL of a PEM CA bundle. Stored only; not yet applied to connections.
----@field certificate? string (default: "") File URL of a PEM client certificate chain. Stored only; not yet applied to connections.
----@field privateKey? string (default: "") File URL of the matching PEM private key. Stored only; not yet applied to connections.
----@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext. Stored only; not yet applied to connections.
+---@field secure? boolean (default: false) Verify the server certificate and enable the optional certificate settings. False skips verification and ignores those settings; SSL always uses TLS.
+---@field caCertificate? string (default: "") File URL of a PEM CA bundle added to the default trust store when secure is true. Empty uses the default trust store.
+---@field certificate? string (default: "") File URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true.
+---@field privateKey? string (default: "") File URL of the matching PEM private key. Requires certificate and secure=true.
+---@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext. Used only when secure is true.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
@@ -200,6 +200,10 @@ port = {}
 ---
 ---Available fields depend on the port type and may include status, addresses,
 ---buffer usage, and connected server peers.
+---SSL clients also return secure, caCertificate, certificate, privateKey, hasPrivateKeyPassword,
+---peerVerifyMode (VerifyPeer or VerifyNone), encrypted, protocol, and cipher.
+---Certificate fields describe configuration, not proof of mutual authentication.
+---Protocol and cipher are empty until the TLS connection is encrypted. Passwords and key contents are never returned by info().
 ---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
 ---WebSocket server peers include `peerIp`, ready to pass to write/read methods.
 ---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` objects:

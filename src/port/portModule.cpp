@@ -184,11 +184,11 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 portConfig["defaults"] = defaults;
 
                 auto properties = portConfig.value("properties").toObject();
-                properties["secure"] = QJsonObject{{"type", "boolean"}, {"description", "Enable certificate authentication. Stored only; not yet applied to connections. SSL always uses TLS."}};
-                properties["caCertificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle. Stored only; not yet applied to connections."}};
-                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain. Stored only; not yet applied to connections."}};
-                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Stored only; not yet applied to connections."}};
-                properties["privateKeyPassword"] = QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Stored only; not yet applied to connections."}};
+                properties["secure"] = QJsonObject{{"type", "boolean"}, {"description", "Verify the server certificate and enable the optional certificate settings. False skips verification and ignores those settings; SSL always uses TLS."}};
+                properties["caCertificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle added to the default trust store when secure is true."}};
+                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain, leaf first. Requires privateKey and secure=true."}};
+                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Requires certificate and secure=true."}};
+                properties["privateKeyPassword"] = QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Used only when secure is true."}};
                 portConfig["properties"] = properties;
             }
             break;
