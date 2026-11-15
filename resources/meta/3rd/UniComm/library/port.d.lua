@@ -92,6 +92,11 @@ Port.Type = {
 ---@class SslClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
+---@field secure? boolean (default: false) Certificate authentication setting. Stored only; not yet applied to connections. SSL always uses TLS.
+---@field caCertificate? string (default: "") File URL of a PEM CA bundle. Stored only; not yet applied to connections.
+---@field certificate? string (default: "") File URL of a PEM client certificate chain. Stored only; not yet applied to connections.
+---@field privateKey? string (default: "") File URL of the matching PEM private key. Stored only; not yet applied to connections.
+---@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext. Stored only; not yet applied to connections.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.

@@ -87,6 +87,11 @@ void PortSetting::propertyGet(const QVariantMap &objects) {
     m_sslClientNameTextField = qvariant_cast<QObject *>(objects["sslClientNameTextField"]);
     m_sslClientRemoteHostTextField = qvariant_cast<QObject *>(objects["sslClientRemoteHostTextField"]);
     m_sslClientRemotePortSpinBox = qvariant_cast<QObject *>(objects["sslClientRemotePortSpinBox"]);
+    m_sslClientSecureSwitch = qvariant_cast<QObject *>(objects["sslClientSecureSwitch"]);
+    m_sslClientCaCertificateTextField = qvariant_cast<QObject *>(objects["sslClientCaCertificateTextField"]);
+    m_sslClientCertificateTextField = qvariant_cast<QObject *>(objects["sslClientCertificateTextField"]);
+    m_sslClientPrivateKeyTextField = qvariant_cast<QObject *>(objects["sslClientPrivateKeyTextField"]);
+    m_sslClientPrivateKeyPasswordTextField = qvariant_cast<QObject *>(objects["sslClientPrivateKeyPasswordTextField"]);
     // ssl server
     m_sslServerNameTextField = qvariant_cast<QObject *>(objects["sslServerNameTextField"]);
     m_sslServerLocalHostComboBox = qvariant_cast<QObject *>(objects["sslServerLocalHostComboBox"]);
@@ -162,6 +167,11 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
         m_sslClientNameTextField->setProperty("text", "");
         m_sslClientRemoteHostTextField->setProperty("text", "");
         m_sslClientRemotePortSpinBox->setProperty("value", 443);
+        m_sslClientSecureSwitch->setProperty("checked", false);
+        m_sslClientCaCertificateTextField->setProperty("text", "");
+        m_sslClientCertificateTextField->setProperty("text", "");
+        m_sslClientPrivateKeyTextField->setProperty("text", "");
+        m_sslClientPrivateKeyPasswordTextField->setProperty("text", "");
         // ssl server
         m_sslServerNameTextField->setProperty("text", "");
         if (m_sslServerLocalHostComboBox->property("count").toInt()) {
@@ -263,6 +273,11 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
                 m_sslClientNameTextField->setProperty("text", portConfig["portName"].toString());
                 m_sslClientRemoteHostTextField->setProperty("text", portConfig["remoteHost"].toString());
                 m_sslClientRemotePortSpinBox->setProperty("value", portConfig["remotePort"].toInt());
+                m_sslClientSecureSwitch->setProperty("checked", portConfig["secure"].toBool());
+                m_sslClientCaCertificateTextField->setProperty("text", portConfig["caCertificate"].toString());
+                m_sslClientCertificateTextField->setProperty("text", portConfig["certificate"].toString());
+                m_sslClientPrivateKeyTextField->setProperty("text", portConfig["privateKey"].toString());
+                m_sslClientPrivateKeyPasswordTextField->setProperty("text", portConfig["privateKeyPassword"].toString());
                 m_logFormatComboBox->setProperty("currentValue", portConfig["logFormat"].toString());
                 m_txSuffixComboBox->setProperty("currentValue", portConfig["txSuffix"].toString());
                 m_bufferSizeSpinBox->setProperty("value", portConfig["bufferSize"].toInt());
@@ -450,6 +465,11 @@ void PortSetting::portSettingExport() {
                 {"portName", m_sslClientNameTextField->property("text").toString()},
                 {"remoteHost", m_sslClientRemoteHostTextField->property("text").toString()},
                 {"remotePort", m_sslClientRemotePortSpinBox->property("value").toInt()},
+                {"secure", m_sslClientSecureSwitch->property("checked").toBool()},
+                {"caCertificate", m_sslClientCaCertificateTextField->property("text").toString()},
+                {"certificate", m_sslClientCertificateTextField->property("text").toString()},
+                {"privateKey", m_sslClientPrivateKeyTextField->property("text").toString()},
+                {"privateKeyPassword", m_sslClientPrivateKeyPasswordTextField->property("text").toString()},
                 {"logFormat", m_logFormatComboBox->property("currentValue").toString()},
                 {"txSuffix", m_txSuffixComboBox->property("currentValue").toString()},
                 {"bufferSize", m_bufferSizeSpinBox->property("value").toInt()}

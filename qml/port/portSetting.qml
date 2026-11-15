@@ -3047,6 +3047,11 @@ Item {
             "sslClientNameTextField": sslClientNameTextField,
             "sslClientRemoteHostTextField": sslClientRemoteHostTextField,
             "sslClientRemotePortSpinBox": sslClientRemotePortSpinBox,
+            "sslClientSecureSwitch": sslClientSecureSwitch,
+            "sslClientCaCertificateTextField": sslClientCaCertificateTextField,
+            "sslClientCertificateTextField": sslClientCertificateTextField,
+            "sslClientPrivateKeyTextField": sslClientPrivateKeyTextField,
+            "sslClientPrivateKeyPasswordTextField": sslClientPrivateKeyPasswordTextField,
             // ssl server
             "sslServerNameTextField": sslServerNameTextField,
             "sslServerLocalHostComboBox": sslServerLocalHostComboBox,

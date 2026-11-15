@@ -174,6 +174,23 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                     }
                 }
             };
+            if (portType == PortType::SslClient) {
+                auto defaults = portConfig.value("defaults").toObject();
+                defaults["secure"] = false;
+                defaults["caCertificate"] = "";
+                defaults["certificate"] = "";
+                defaults["privateKey"] = "";
+                defaults["privateKeyPassword"] = "";
+                portConfig["defaults"] = defaults;
+
+                auto properties = portConfig.value("properties").toObject();
+                properties["secure"] = QJsonObject{{"type", "boolean"}, {"description", "Enable certificate authentication. Stored only; not yet applied to connections. SSL always uses TLS."}};
+                properties["caCertificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle. Stored only; not yet applied to connections."}};
+                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM client certificate chain. Stored only; not yet applied to connections."}};
+                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of the matching PEM private key. Stored only; not yet applied to connections."}};
+                properties["privateKeyPassword"] = QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Stored only; not yet applied to connections."}};
+                portConfig["properties"] = properties;
+            }
             break;
         }
         case PortType::TcpServer:

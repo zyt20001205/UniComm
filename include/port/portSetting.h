@@ -143,6 +143,11 @@ private:
     QObject *m_sslClientNameTextField{};
     QObject *m_sslClientRemoteHostTextField{};
     QObject *m_sslClientRemotePortSpinBox{};
+    QObject *m_sslClientSecureSwitch{};
+    QObject *m_sslClientCaCertificateTextField{};
+    QObject *m_sslClientCertificateTextField{};
+    QObject *m_sslClientPrivateKeyTextField{};
+    QObject *m_sslClientPrivateKeyPasswordTextField{};
     // ssl server
     QObject *m_sslServerNameTextField{};
     QObject *m_sslServerLocalHostComboBox{};
