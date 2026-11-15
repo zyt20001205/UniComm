@@ -142,7 +142,7 @@ void ScintillaWidget::indicatorFill(const int type, const int startLine, const i
     send(SCI_SETINDICATORCURRENT, type); // NOLINT
     send(SCI_INDICATORFILLRANGE, start, length); // NOLINT
     if (time == -1) return;
-    QTimer::singleShot(time, [this, type, startLine, startCharacter, endLine, endCharacter] { indicatorClear(type, startLine, startCharacter, endLine, endCharacter); });
+    QTimer::singleShot(time, this, [this, type, startLine, startCharacter, endLine, endCharacter] { indicatorClear(type, startLine, startCharacter, endLine, endCharacter); });
 }
 
 void ScintillaWidget::indicatorClear(const int type, const int startLine, const int startCharacter, const int endLine, const int endCharacter) const {
@@ -269,7 +269,7 @@ void ScintillaWidget::markerAdd(const int type, const int line, const int time) 
     send(SCI_MARKERADD, line, type); // NOLINT
     send(SCI_ENSUREVISIBLE, line); // NOLINT
     if (time == -1) return;
-    QTimer::singleShot(time, [this, type, line] { markerDelete(type, line); });
+    QTimer::singleShot(time, this, [this, type, line] { markerDelete(type, line); });
 }
 
 void ScintillaWidget::markerDelete(const int type, const int line) const {
