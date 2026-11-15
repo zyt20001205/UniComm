@@ -15,8 +15,6 @@ class LspService final : public BaseService {
 public:
     explicit LspService(const QString &name, const QString &program, const QStringList &arguments, QObject *parent = nullptr);
 
-    ~LspService() override;
-
     void initialize();
 
     void shutdown();

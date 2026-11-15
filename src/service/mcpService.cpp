@@ -46,7 +46,7 @@ McpService::McpService(QObject *parent)
         return;
     }
     const auto endpoint = QString("http://127.0.0.1:%1/mcp").arg(port);
-    detailSet(QString("<b>%1</b><br>%2").arg(tr("Endpoint"), endpoint));
+    detailSet(QString("<b>%1</b><br><a href=\"%2\">%2</a>").arg(tr("Endpoint"), endpoint.toHtmlEscaped()));
     statusSet(Status::Running);
 }
 

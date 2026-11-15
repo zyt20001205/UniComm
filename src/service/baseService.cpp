@@ -6,6 +6,7 @@
 BaseService::BaseService(const QString &name, QObject *parent)
     : QObject(parent),
       m_name(name),
+      m_createdAt(QDateTime::currentMSecsSinceEpoch()),
       m_eventModel(new QStandardItemModel(this)) {
     m_eventModel->setHorizontalHeaderLabels({tr("Time"), tr("Event"), tr("Detail")});
 }

@@ -22,6 +22,7 @@ void ServiceModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("serviceModule", this);
     m_widget->rootContext()->setContextProperty("global", g_globalManager);
     m_widget->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
+    m_widget->rootContext()->setContextProperty("serviceModuleContextMenu", qvariant_cast<QObject *>(objects["serviceModuleContextMenu"]));
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/serviceModule.qml"));
 }

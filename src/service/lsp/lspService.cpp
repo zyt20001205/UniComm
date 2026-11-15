@@ -13,15 +13,22 @@ LspService::LspService(const QString &name, const QString &program, const QStrin
     m_process->setProgram(program);
     m_process->setArguments(arguments);
     connect(m_process, &QProcess::readyRead, this, &LspService::parser);
-}
-
-LspService::~LspService() {
+    connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError) {
+        detailSet(m_process->errorString().toHtmlEscaped());
+        statusSet(Status::Error);
+    });
+    connect(m_process, &QProcess::finished, this, [this](const int exitCode, const QProcess::ExitStatus exitStatus) {
+        if (statusGet() == Status::Error) return;
+        statusSet(exitStatus == QProcess::NormalExit && exitCode == 0 ? Status::Stopped : Status::Error);
+    });
 }
 
 void LspService::initialize() {
+    statusSet(Status::Stopped);
     m_process->start();
     if (!m_process->waitForStarted()) {
         detailSet(m_process->errorString().toHtmlEscaped());
+        statusSet(Status::Error);
         qDebug() << "failed to start language server";
         return;
     }
@@ -37,6 +44,7 @@ void LspService::initialize() {
     connect(this, &LspService::initialized, &loop, &QEventLoop::quit);
     loop.exec();
     jsonNotification("initialized", QJsonObject{});
+    if (statusGet() != Status::Error) statusSet(Status::Running);
 }
 
 void LspService::shutdown() {
@@ -47,7 +55,7 @@ void LspService::shutdown() {
     jsonRequest("shutdown", QJsonObject{});
     loop.exec();
     // wait for process exit
-    connect(m_process, &QProcess::finished, this, [&loop] { loop.quit(); });
+    connect(m_process, &QProcess::finished, &loop, &QEventLoop::quit);
     jsonNotification("exit", QJsonObject{});
     loop.exec();
 }
@@ -187,6 +195,8 @@ void LspService::parser() {
             m_methods.remove(id);
             m_urls.remove(id);
             eventAppend(method, json);
+            if ((method == "initialize" || method == "shutdown") && json.contains("error"))
+                statusSet(Status::Error);
             if (method == "initialize") {
                 // initialize response
                 // qDebug() << json;

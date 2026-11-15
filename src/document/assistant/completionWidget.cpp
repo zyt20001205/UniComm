@@ -1,6 +1,5 @@
 #include "document/assistant/completionWidget.h"
 
-#include <QHeaderView>
 #include <QJsonArray>
 #include <QLabel>
 #include <QListView>

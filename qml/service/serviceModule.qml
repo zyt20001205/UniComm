@@ -5,6 +5,21 @@ Item {
     id: rootItem
     anchors.fill: parent
     readonly property var selectedService: serviceModule.services[serviceView.currentIndex]
+    property double currentTime: Date.now()
+
+    function uptimeFormat(milliseconds) {
+        const seconds = Math.max(0, Math.floor(milliseconds / 1000))
+        return [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60]
+            .map(value => String(value).padStart(2, "0")).join(":")
+    }
+
+    Timer {
+        interval: 1000
+        repeat: true
+        triggeredOnStart: true
+        running: rootItem.visible && uptimeLabel.visible
+        onTriggered: rootItem.currentTime = Date.now()
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -61,31 +76,84 @@ Item {
             }
         }
 
-        ScrollView {
+        Item {
             SplitView.preferredWidth: 240; SplitView.minimumWidth: 120
-            clip: true
-            contentWidth: availableWidth
-            rightPadding: effectiveScrollBarWidth
 
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
-                palette {
-                    mid: global.stroke
-                    dark: global.strokePressed
-                }
+            Label {
+                id: uptimeLabel
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                height: visible ? implicitHeight : 0
+                visible: rootItem.selectedService ? rootItem.selectedService.status === 1 : false
+                text: visible ? qsTr("Uptime: %1").arg(rootItem.uptimeFormat(rootItem.currentTime - rootItem.selectedService.createdAt)) : ""
+                color: global.fore
+                wrapMode: Text.Wrap
             }
 
-            TextArea {
-                text: rootItem.selectedService ? rootItem.selectedService.detail : ""
-                textFormat: TextEdit.RichText
-                readOnly: true
-                selectByMouse: true
-                verticalAlignment: TextEdit.AlignTop
-                wrapMode: TextEdit.Wrap
-                color: global.fore
-                background: null
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+            ScrollView {
+                id: detailScrollView
+                anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+                anchors.top: uptimeLabel.bottom
+                anchors.topMargin: uptimeLabel.visible ? 4 : 0
+                clip: true
+                contentWidth: availableWidth
+                rightPadding: effectiveScrollBarWidth
+
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical: ScrollBar {
+                    parent: detailScrollView
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    x: parent.mirrored ? 0 : parent.width - width
+                    y: parent.topPadding
+                    height: parent.availableHeight
+                    policy: ScrollBar.AsNeeded
+                    palette {
+                        mid: global.stroke
+                        dark: global.strokePressed
+                    }
+                }
+
+                TextArea {
+                    id: detailTextArea
+                    text: rootItem.selectedService ? rootItem.selectedService.detail : ""
+                    textFormat: TextEdit.RichText
+                    readOnly: true
+                    selectByMouse: true
+                    ContextMenu.menu: null
+                    verticalAlignment: TextEdit.AlignTop
+                    wrapMode: TextEdit.Wrap
+                    color: global.fore
+                    background: null
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+
+                    HoverHandler {
+                        id: detailHoverHandler
+                        cursorShape: detailTextArea.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+                    }
+
+                    ToolTip {
+                        visible: detailTextArea.hoveredLink
+                        text: qsTr("Ctrl + Click")
+                        x: detailHoverHandler.point.position.x + 10
+                        y: detailHoverHandler.point.position.y + 10
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton
+                        acceptedModifiers: Qt.ControlModifier
+                        onTapped: {
+                            if (detailTextArea.hoveredLink) Qt.openUrlExternally(detailTextArea.hoveredLink)
+                        }
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.RightButton
+                        onTapped: {
+                            if (!detailTextArea.hoveredLink) return
+                            serviceModuleContextMenu.url = detailTextArea.hoveredLink
+                            serviceModuleContextMenu.popup()
+                        }
+                    }
+                }
             }
         }
 

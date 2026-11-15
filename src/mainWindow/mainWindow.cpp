@@ -225,7 +225,8 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_portModule->propertySet(portObjects);
 
     const QVariantHash serviceObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]}
+        {"mainWindowToolTip", objects["mainWindowToolTip"]},
+        {"serviceModuleContextMenu", objects["mainWindowLinkMenu"]}
     };
     m_serviceModule->propertySet(serviceObjects);
 
