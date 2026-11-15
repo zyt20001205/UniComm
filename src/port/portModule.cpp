@@ -212,8 +212,8 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 portConfig["required"] = required;
 
                 auto properties = portConfig.value("properties").toObject();
-                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "The local path to the PEM certificate."}};
-                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "The local path to the PEM private key."}};
+                properties["certificate"] = QJsonObject{{"type", "string"}, {"description", "The file:// URL of the PEM certificate."}};
+                properties["privateKey"] = QJsonObject{{"type", "string"}, {"description", "The file:// URL of the PEM private key."}};
                 portConfig["properties"] = properties;
             }
             break;

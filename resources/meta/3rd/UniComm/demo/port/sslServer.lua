@@ -1,4 +1,4 @@
--- Provide an existing PEM certificate and private key in the workspace.
+-- Set the file URLs of your existing PEM certificate and private key below.
 -- Run this script, then start port/sslClient in another interpreter.
 -- On later runs, use Port.get("SSL Server") to reuse the saved configuration.
 local server = Port.create({
@@ -6,8 +6,8 @@ local server = Port.create({
     portName = "SSL Server",
     localHost = "127.0.0.1",
     localPort = 8443,
-    certificate = "server-cert.pem",
-    privateKey = "server-key.pem",
+    certificate = "file:///C:/certs/server-cert.pem",
+    privateKey = "file:///C:/certs/server-key.pem",
     logFormat = "utf-8",
 })
 

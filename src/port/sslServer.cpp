@@ -6,6 +6,7 @@
 #include <QSslServer>
 #include <QSslSocket>
 #include <QTcpServer>
+#include <QUrl>
 
 #include "globals.h"
 #include "port/module/ringBuffer.h"
@@ -140,7 +141,7 @@ QByteArray SslServer::readUntil(const QByteArray &text, const int timeout, const
 
 // private
 bool SslServer::configureSsl() {
-    QFile certificateFile(m_portConfig["certificate"].toString());
+    QFile certificateFile(QUrl(m_portConfig["certificate"].toString()).toLocalFile());
     if (!certificateFile.open(QIODevice::ReadOnly)) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "certificate invalid");
         return false;
@@ -151,7 +152,7 @@ bool SslServer::configureSsl() {
         return false;
     }
 
-    QFile privateKeyFile(m_portConfig["privateKey"].toString());
+    QFile privateKeyFile(QUrl(m_portConfig["privateKey"].toString()).toLocalFile());
     if (!privateKeyFile.open(QIODevice::ReadOnly)) {
         emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "private key invalid");
         return false;

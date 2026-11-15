@@ -5,6 +5,7 @@ import QtQuick.Controls.impl
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Shapes
+import "../util"
 
 Item {
     id: rootItem
@@ -140,9 +141,34 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true
 
-                StackLayout {
-                    currentIndex: rootItem.portType
+                ScrollView {
+                    id: portSettingsScrollView
+                    clip: true
+                    contentWidth: availableWidth
+                    contentHeight: portSettingsLayout.height
+                    rightPadding: portSettingsScrollBar.width
                     Layout.fillWidth: true; Layout.fillHeight: true
+
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical: ScrollBar {
+                        id: portSettingsScrollBar
+                        minimumSize: Math.min(1, 20 / Math.max(1, height))
+                        x: portSettingsScrollView.width - width
+                        y: portSettingsScrollView.topPadding
+                        height: portSettingsScrollView.availableHeight
+                        policy: ScrollBar.AsNeeded
+                        palette {
+                            mid: global.stroke
+                            dark: global.strokePressed
+                        }
+                    }
+
+                    StackLayout {
+                        id: portSettingsLayout
+                        currentIndex: rootItem.portType
+                        width: portSettingsScrollView.availableWidth
+                        height: implicitHeight
+                        implicitHeight: children[currentIndex] ? children[currentIndex].implicitHeight : 0
 
                     // serial port
                     GridLayout {
@@ -155,8 +181,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: serialPortNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Serial Port")
                             Layout.fillWidth: true
@@ -312,8 +339,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: tcpClientNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Tcp Client")
                             Layout.fillWidth: true
@@ -325,8 +353,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: tcpClientRemoteHostTextField
+                            clearable: true
                             font.pointSize: 12
                             Layout.fillWidth: true
                         }
@@ -358,8 +387,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: tcpServerNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Tcp Server")
                             Layout.fillWidth: true
@@ -403,11 +433,11 @@ Item {
                         Label {
                             text: qsTr("Port Name")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: sslClientNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Ssl Client")
                             Layout.fillWidth: true
@@ -416,11 +446,11 @@ Item {
                         Label {
                             text: qsTr("Remote Host")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: sslClientRemoteHostTextField
+                            clearable: true
                             font.pointSize: 12
                             Layout.fillWidth: true
                         }
@@ -428,7 +458,6 @@ Item {
                         Label {
                             text: qsTr("Remote Port")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         SpinBox {
@@ -453,14 +482,81 @@ Item {
                         Label {
                             text: qsTr("Secure")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         Switch {
                             id: sslClientSecureSwitch
-                            checked: true
-                            enabled: false
+                            checked: false
                             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                        }
+
+                        Label {
+                            visible: sslClientSecureSwitch.checked
+                            text: qsTr("CA Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslClientCaCertificateTextField
+                            visible: sslClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select CA Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("Default trust store")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: sslClientSecureSwitch.checked
+                            text: qsTr("Client Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslClientCertificateTextField
+                            visible: sslClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Client Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("PEM certificate URL")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: sslClientSecureSwitch.checked
+                            text: qsTr("Private Key")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslClientPrivateKeyTextField
+                            visible: sslClientSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Private Key")
+                            nameFilters: [qsTr("PEM private keys (*.pem *.key)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("PEM private key URL")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: sslClientSecureSwitch.checked
+                            text: qsTr("Private Key Password")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: sslClientPrivateKeyPasswordTextField
+                            visible: sslClientSecureSwitch.checked
+                            revealable: true
+                            clearable: true
+                            font.pointSize: 12
+                            Layout.fillWidth: true
                         }
                     }
 
@@ -475,8 +571,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: sslServerNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Ssl Server")
                             Layout.fillWidth: true
@@ -529,8 +626,7 @@ Item {
 
                         Switch {
                             id: sslServerSecureSwitch
-                            checked: true
-                            enabled: false
+                            checked: false
                             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                         }
 
@@ -540,10 +636,14 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: sslServerCertificateTextField
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
                             font.pointSize: 12
-                            placeholderText: qsTr("PEM certificate path")
+                            placeholderText: qsTr("PEM certificate URL")
                             Layout.fillWidth: true
                         }
 
@@ -553,10 +653,14 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: sslServerPrivateKeyTextField
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Private Key")
+                            nameFilters: [qsTr("PEM private keys (*.pem *.key)"), qsTr("All files (*)")]
                             font.pointSize: 12
-                            placeholderText: qsTr("PEM private key path")
+                            placeholderText: qsTr("PEM private key URL")
                             Layout.fillWidth: true
                         }
                     }
@@ -572,8 +676,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: webSocketClientNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("WebSocket Client")
                             Layout.fillWidth: true
@@ -585,8 +690,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: webSocketClientRemoteHostTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: "ws.postman-echo.com/raw"
                             Layout.fillWidth: true
@@ -642,8 +748,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: webSocketServerNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("WebSocket Server")
                             Layout.fillWidth: true
@@ -714,8 +821,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: udpSocketNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Udp Socket")
                             Layout.fillWidth: true
@@ -755,8 +863,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: udpSocketRemoteHostTextField
+                            clearable: true
                             font.pointSize: 12
                             Layout.fillWidth: true
                         }
@@ -788,8 +897,9 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        TextField {
+                        LineEdit {
                             id: bluetoothNameTextField
+                            clearable: true
                             font.pointSize: 12
                             placeholderText: qsTr("Bluetooth LE")
                             Layout.fillWidth: true
@@ -1026,6 +1136,8 @@ Item {
                             }
                         }
                     }
+                }
+
                 }
 
                 Label {
@@ -2037,8 +2149,9 @@ Item {
                                     RowLayout {
                                         Layout.fillWidth: true
 
-                                        TextField {
+                                        LineEdit {
                                             id: templateTextField
+                                            clearable: true
                                             Layout.fillWidth: true
                                         }
 
