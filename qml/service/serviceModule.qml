@@ -121,7 +121,7 @@ Item {
                 anchors.rightMargin: verticalScrollBar.width
                 anchors.bottomMargin: horizontalScrollBar.height
                 model: rootItem.selectedService ? rootItem.selectedService.eventModel : null
-                rowSpacing: 0; columnSpacing: 0
+                rowSpacing: 1; columnSpacing: 0
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 editTriggers: TableView.NoEditTriggers
@@ -138,6 +138,12 @@ Item {
                 }
 
                 onWidthChanged: forceLayout()
+
+                Rectangle {
+                    parent: eventTable.contentItem
+                    anchors.fill: parent
+                    color: global.stroke
+                }
 
                 ScrollBar.vertical: ScrollBar {
                     id: verticalScrollBar
@@ -167,6 +173,11 @@ Item {
                     required property var toolTip
                     implicitWidth: 120; implicitHeight: 32
 
+                    Rectangle {
+                        anchors.fill: parent
+                        color: global.back
+                    }
+
                     Label {
                         anchors.fill: parent
                         text: eventCell.display ?? ""
@@ -175,12 +186,6 @@ Item {
                         leftPadding: 6; rightPadding: 6
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
-                    }
-
-                    Rectangle {
-                        anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
-                        height: 1
-                        color: global.stroke
                     }
 
                     HoverHandler {

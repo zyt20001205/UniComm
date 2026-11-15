@@ -1,12 +1,8 @@
 #include "analysis/diagnosticsModule.h"
 
-#include <QClipboard>
-#include <QHeaderView>
 #include <QJsonArray>
 #include <QQmlContext>
-#include <QQuickItem>
 #include <QQuickWidget>
-#include <QTimer>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -25,32 +21,83 @@ DiagnosticsModule::~DiagnosticsModule() {
 }
 
 void DiagnosticsModule::propertySet(const QVariantHash &objects) {
-    const QVariantList horizontalHeader = {"", tr("Source"), tr("Code"), tr("Data"), tr("Message")};
-
     m_widget->rootContext()->setContextProperty("diagnosticsModule", this);
     m_widget->rootContext()->setContextProperty("global", g_globalManager);
     m_widget->rootContext()->setContextProperty("diagnosticMenu", qvariant_cast<QObject *>(objects["diagnosticsModuleDiagnosticMenu"]));
-    m_widget->rootContext()->setContextProperty("horizontalHeader", horizontalHeader);
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/analysis/diagnosticsModule.qml"));
-    m_root = m_widget->rootObject();
+}
+
+QVariantList DiagnosticsModule::diagnosticsGet() const {
+    QVariantList diagnostics{};
+    diagnostics.reserve(m_diagnosticsModelHash.size());
+    for (auto it = m_diagnosticsModelHash.cbegin(); it != m_diagnosticsModelHash.cend(); ++it) {
+        const auto &documentUrl = it.key();
+        diagnostics.append(QVariantHash{
+            {"documentUrl", documentUrl},
+            {"name", documentUrl.fileName()},
+            {"model", QVariant::fromValue<QAbstractItemModel *>(it.value())}
+        });
+    }
+    return diagnostics;
 }
 
 void DiagnosticsModule::diagnosticsNotification(const QUrl &documentUrl, const QJsonArray &diagnostics) {
-    DiagnosticsModel *diagnosticsModel{};
-    if (!m_diagnosticsModelHash.contains(documentUrl)) {
-        diagnosticsModel = new DiagnosticsModel(); // NOLINT
-    } else {
-        diagnosticsModel = m_diagnosticsModelHash[documentUrl];
-        diagnosticsModel->clear();
-    }
+    QJsonArray filtered{};
     for (const auto &value: diagnostics) {
-        const QJsonObject diagnostic = value.toObject();
+        if (!value.toObject()["message"].toString().contains("__PLACEHOLDER__")) filtered.append(value);
+    }
+
+    auto *diagnosticsModel = m_diagnosticsModelHash.value(documentUrl);
+    if (filtered.isEmpty()) {
+        if (!diagnosticsModel) return;
+        m_diagnosticsModelHash.remove(documentUrl);
+        emit changeDiagnostics();
+        diagnosticsModel->deleteLater();
+        return;
+    }
+
+    if (diagnosticsModel) {
+        diagnosticsModel->diagnosticsSet(documentUrl, filtered);
+        return;
+    }
+
+    diagnosticsModel = new DiagnosticsModel(this);
+    diagnosticsModel->diagnosticsSet(documentUrl, filtered);
+    m_diagnosticsModelHash.insert(documentUrl, diagnosticsModel);
+    emit changeDiagnostics();
+}
+
+void DiagnosticsModule::indicatorFill(const QVariantHash &position) {
+    emit setIndex(
+        position["documentUrl"].toUrl(),
+        position["startLine"].toInt(),
+        position["startCharacter"].toInt());
+    emit fillIndicator(
+        position["documentUrl"].toUrl(),
+        ScintillaIndicator::Highlight,
+        position["startLine"].toInt(),
+        position["startCharacter"].toInt(),
+        position["endLine"].toInt(),
+        position["endCharacter"].toInt(),
+        1000);
+}
+
+// public
+DiagnosticsModel::DiagnosticsModel(QObject *parent)
+    : QStandardItemModel(parent) {
+    setHorizontalHeaderLabels({"", tr("Source"), tr("Code"), tr("Data"), tr("Message")});
+}
+
+void DiagnosticsModel::diagnosticsSet(const QUrl &documentUrl, const QJsonArray &diagnostics) {
+    setRowCount(0);
+    for (const auto &value: diagnostics) {
+        const auto diagnostic = value.toObject();
         // range
-        const QJsonObject range = diagnostic["range"].toObject();
-        const QJsonObject start = range["start"].toObject();
-        const QJsonObject end = range["end"].toObject();
+        const auto range = diagnostic["range"].toObject();
+        const auto start = range["start"].toObject();
+        const auto end = range["end"].toObject();
         const QVariantHash position = {
             {"documentUrl", documentUrl},
             {"startLine", start["line"].toInt()},
@@ -59,13 +106,9 @@ void DiagnosticsModule::diagnosticsNotification(const QUrl &documentUrl, const Q
             {"endCharacter", end["character"].toInt()}
         };
         // information
-        const int severity = diagnostic["severity"].toInt();
-        const QString source = diagnostic["source"].toString();
-        const QString code = diagnostic["code"].toString();
-        const QString data = diagnostic["data"].toString();
-        // placeholder operation
-        if (diagnostic["message"].toString().contains("__PLACEHOLDER__")) continue;
-        const QString message = uni_cast<QHtmlString>(diagnostic["message"].toString());
+        const auto severity = diagnostic["severity"].toInt();
+        const auto source = diagnostic["source"].toString();
+        const auto message = diagnostic["message"].toString();
         auto *severityItem = new QStandardItem(); // NOLINT
         switch (severity) {
             case LEVEL_ERROR: {
@@ -86,47 +129,30 @@ void DiagnosticsModule::diagnosticsNotification(const QUrl &documentUrl, const Q
             break;
             default: break;
         }
-        severityItem->setData(severity, DiagnosticsModel::SeverityRole);
-        severityItem->setData(position, DiagnosticsModel::PositionRole);
+        severityItem->setData(severity, SeverityRole);
+        severityItem->setData(position, PositionRole);
+        severityItem->setData(message, MessageRole);
         auto *sourceItem = new QStandardItem(source); // NOLINT
-        auto *codeItem = new QStandardItem(code); // NOLINT
-        auto *dataItem = new QStandardItem(data); // NOLINT
-        auto *messageItem = new QStandardItem(message); // NOLINT
-        diagnosticsModel->appendRow({severityItem, sourceItem, codeItem, dataItem, messageItem});
-    }
-    if (!m_diagnosticsModelHash.contains(documentUrl) && diagnosticsModel->rowCount() != 0) {
-        m_diagnosticsModelHash.insert(documentUrl, diagnosticsModel);
-        QMetaObject::invokeMethod(m_root, "append", Q_ARG(QVariant, documentUrl.fileName()), Q_ARG(QVariant, QVariant::fromValue(diagnosticsModel)));
-    } else {
-        m_diagnosticsModelHash[documentUrl] = diagnosticsModel;
+        auto *codeItem = new QStandardItem(); // NOLINT
+        codeItem->setData(diagnostic["code"].toVariant(), Qt::DisplayRole);
+        auto *dataItem = new QStandardItem(); // NOLINT
+        dataItem->setData(diagnostic["data"].toVariant(), Qt::DisplayRole);
+        auto *messageItem = new QStandardItem(uni_cast<QHtmlString>(message)); // NOLINT
+        appendRow({severityItem, sourceItem, codeItem, dataItem, messageItem});
     }
 }
 
-void DiagnosticsModule::indicatorFill(const QVariantHash &position) {
-    emit setIndex(
-        position["documentUrl"].toUrl(),
-        position["startLine"].toInt(),
-        position["startCharacter"].toInt());
-    emit fillIndicator(
-        position["documentUrl"].toUrl(),
-        ScintillaIndicator::Highlight,
-        position["startLine"].toInt(),
-        position["startCharacter"].toInt(),
-        position["endLine"].toInt(),
-        position["endCharacter"].toInt(),
-        1000);
-}
-
-// public
 QHash<int, QByteArray> DiagnosticsModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[SeverityRole] = "severity";
     roles[PositionRole] = "position";
+    roles[MessageRole] = "message";
     return roles;
 }
 
 QVariant DiagnosticsModel::data(const QModelIndex &index, const int role) const {
-    if (role == PositionRole || role == SeverityRole) {
+    if (!index.isValid()) return {};
+    if (role == PositionRole || role == SeverityRole || role == MessageRole) {
         return QStandardItemModel::data(this->index(index.row(), 0), role);
     }
     return QStandardItemModel::data(index, role);
