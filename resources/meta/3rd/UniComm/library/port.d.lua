@@ -1,13 +1,12 @@
 ---@meta
 
----@class Port
-Port = {}
-
 ---
 ---Access configured communication ports through a common I/O interface.
 ---
----[Port demo](../demo/port.lua)
+---[Common I/O demo](../demo/port/common.lua)
 ---
+---@class Port
+Port = {}
 
 ---@enum PortType
 Port.Type = {
@@ -62,6 +61,7 @@ Port.Type = {
 ---@field text string Complete recognition text, or an empty string when nothing was recognized.
 ---@field items VisionRecognitionItem[] Structured recognition areas or points.
 
+---[Serial port demo](../demo/port/serialPort.lua)
 ---@class SerialPortConfig : PortConfig
 ---@field deviceName string System serial device name, such as "COM4" or "ttyUSB0". Independent of the logical `portName`.
 ---@field baudRate? integer (default: 115200) Baud rate from 1 to 5000000.
@@ -72,6 +72,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[TCP client demo](../demo/port/tcpClient.lua)
 ---@class TcpClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
@@ -79,6 +80,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[TCP server demo](../demo/port/tcpServer.lua)
 ---@class TcpServerPortConfig : PortConfig
 ---@field localHost string Local address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
@@ -86,6 +88,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[SSL client demo](../demo/port/sslClient.lua)
 ---@class SslClientPortConfig : PortConfig
 ---@field remoteHost string Remote hostname or IP address.
 ---@field remotePort integer Remote port from 1 to 65535.
@@ -93,6 +96,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[SSL server demo](../demo/port/sslServer.lua)
 ---@class SslServerPortConfig : PortConfig
 ---@field localHost string Local address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
@@ -102,12 +106,14 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[WebSocket client demo](../demo/port/websocketClient.lua)
 ---@class WebSocketClientPortConfig : PortConfig
 ---@field url string Complete ws:// or wss:// URL, including any required path and query.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[WebSocket server demo](../demo/port/websocketServer.lua)
 ---@class WebSocketServerPortConfig : PortConfig
 ---@field localHost string Local IP address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
@@ -115,6 +121,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[UDP socket demo](../demo/port/udpSocket.lua)
 ---@class UdpSocketPortConfig : PortConfig
 ---@field localHost string Local IP address to bind.
 ---@field localPort integer Local port from 0 to 65535. Use 0 to let the system choose a port; `port:info().localPort` reports the actual port after opening.
@@ -124,6 +131,7 @@ Port.Type = {
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
 
+---[Bluetooth LE demo](../demo/port/bluetoothLe.lua)
 ---@class BluetoothLePortConfig : PortConfig
 ---@field adapterAddress string Local Bluetooth adapter address recorded by discovery.
 ---@field peripheralAddress string Device address shown by Bluetooth discovery. No Service or Characteristic UUID is required to open a connection.
@@ -241,39 +249,9 @@ function port:clear() end
 ---TCP and SSL servers use `write(data, peerIp?)`. Omitting `peerIp` broadcasts
 ---to all connected peers. Other byte-stream port types ignore `peerIp`.
 ---
----WebSocket clients and servers use `write(data, messageType?, peerIp?)`.
----`messageType` is an integer: 1=text, 2=binary (default). Each write sends one
----message, and the type can change on every call. To target a WebSocket server
----peer, pass an explicit type followed by its `address:port` identifier as the
----third argument. Omitting `peerIp` broadcasts; clients ignore it.
----Strings such as "text" are not message types; use the integer 1 or 2.
----A successful write queues data locally; it does not confirm peer receipt.
----
----Received WebSocket text is encoded as UTF-8 and binary is preserved as bytes.
----Both enter the same receive buffer; message boundaries and types are discarded.
----
----[WebSocket loopback demo](../demo/websocket.lua)
----
----Bluetooth LE ports use `write(data, mode, serviceUuid, characteristicUuid)`.
----The generic `write(data)` and WebSocket write forms are rejected on Bluetooth LE ports.
----All four arguments are required. `mode` is 1 for Write Request or 2 for
----Write Command; unsupported modes are rejected rather than switched automatically.
----UUIDs follow the same normalization rules as the explicit UUID read overload.
----The device must be connected, and the characteristic must belong to the service
----and support the selected write capability. Invalid arguments and device errors
----raise a Lua error without deliberately closing the connection.
----Data is sent unchanged, including null bytes. The configured suffix is not
----appended, and data is not split into multiple characteristic writes.
----A Write Request response is a GATT acknowledgement, not a device application reply.
----Write Command success does not confirm that the peer received or processed data.
----
----To write a Bluetooth LE Descriptor, use `write(data, serviceUuid, characteristicUuid, descriptorUuid)`.
----All four arguments are required; this overload has no mode and uses the library's Descriptor write operation.
----The Descriptor must belong to that characteristic. Its write permission is checked by the device,
----not inferred from the characteristic's capabilities. Read-only Descriptors such as Number of Digitals (`2909`) reject writes.
----Data is sent unchanged without a suffix, and successful writes are logged with the Descriptor UUID.
----Use `subscribe`/`unsubscribe` for CCCD (`2902`) subscription control so callbacks and buffers remain managed by UniComm.
----Invalid or unknown UUIDs, disconnected ports, non-BLE ports, and device errors raise a Lua error.
+---WebSocket writes default to binary. Use the messageType overload to send text.
+---Bluetooth LE requires the characteristic or descriptor write overload instead.
+---A successful write does not confirm that the receiving application processed it.
 ---
 ---A Vision port accepts the following commands. ROI indexes are 1-based,
 ---relative paths are resolved from the workspace, and paths containing spaces
@@ -286,13 +264,65 @@ function port:clear() end
 ---* `bundle [directory]` saves the raw frame, every ROI, every processed frame,
 ---  and `result.json`. The default directory is `bundle`.
 ---
+---[Common I/O demo](../demo/port/common.lua) | [Vision demo](../demo/port/vision.lua)
+---
 ---@param data string Data to write, or a Vision export command.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, data: string, messageType: WebSocketMessageType, peerIp?: string)
----@overload fun(self: port, data: string, mode: BluetoothLeMode, serviceUuid: uuid, characteristicUuid: uuid)
----@overload fun(self: port, data: string, serviceUuid: uuid, characteristicUuid: uuid, descriptorUuid: uuid)
 ---@return nil
 function port:write(data, peerIp) end
+
+---
+---Sends one WebSocket message with an explicit type.
+---
+---Use 1 for UTF-8 text or 2 for binary. Text must remain valid UTF-8 after the
+---configured suffix is applied; binary preserves arbitrary byte values.
+---For servers, omitting peerIp broadcasts to all peers; clients ignore it.
+---Received text and binary share a byte buffer: message types and boundaries are discarded.
+---
+---[Client demo](../demo/port/websocketClient.lua) | [Server demo](../demo/port/websocketServer.lua)
+---
+---@param data string Message data.
+---@param messageType WebSocketMessageType Outgoing message type.
+---@param peerIp? string Server peer identifier in `address:port` form.
+---@return nil
+function port:write(data, messageType, peerIp) end
+
+---
+---Writes one Bluetooth LE characteristic value.
+---
+---Use mode 1 for Write Request or 2 for Write Command. The connected device must
+---expose the characteristic under that service and support the selected capability.
+---Data is sent unchanged, without a suffix or automatic splitting.
+---Write Request waits for a GATT acknowledgement, not an application reply.
+---Write Command does not confirm receipt. UUIDs follow the explicit read overload's rules.
+---Invalid arguments and device errors raise a Lua error.
+---
+---[Bluetooth LE demo](../demo/port/bluetoothLe.lua)
+---
+---@param data string Raw value defined by the device's protocol.
+---@param mode BluetoothLeMode Write mode: 1 for Request or 2 for Command.
+---@param serviceUuid uuid Service containing the characteristic.
+---@param characteristicUuid uuid Characteristic to write.
+---@return nil
+function port:write(data, mode, serviceUuid, characteristicUuid) end
+
+---
+---Writes one Bluetooth LE descriptor value without a mode argument.
+---
+---The descriptor must belong to the selected characteristic. Its write permission
+---is checked by the device, independently of the characteristic's capabilities.
+---Data is sent unchanged, without a suffix. Read-only descriptors reject writes.
+---Use subscribe/unsubscribe rather than writing CCCD (2902) to manage subscriptions.
+---Invalid UUIDs, disconnected or non-BLE ports, and device errors raise a Lua error.
+---
+---[Bluetooth LE demo](../demo/port/bluetoothLe.lua)
+---
+---@param data string Raw descriptor value.
+---@param serviceUuid uuid Service containing the characteristic.
+---@param characteristicUuid uuid Characteristic containing the descriptor.
+---@param descriptorUuid uuid Descriptor to write.
+---@return nil
+function port:write(data, serviceUuid, characteristicUuid, descriptorUuid) end
 
 ---
 ---Subscribes to updates from one Bluetooth LE characteristic.
@@ -349,39 +379,57 @@ function port:unsubscribe(serviceUuid, characteristicUuid) end
 ---source frame is processed as one ROI. With `timeout` zero it uses the current
 ---frame immediately.
 ---
----Bluetooth LE ports accept `read(serviceUuid, characteristicUuid)` to request
----a characteristic value synchronously. No mode is required. UUID strings accept 4 or 8 hexadecimal
----digits, expanded using the Bluetooth Base UUID, or a full 128-bit UUID.
----The all-zero 128-bit UUID is rejected.
----Uppercase letters and surrounding braces on full UUIDs are accepted. The device must
----be connected, and the characteristic must belong to the service and support reading.
----This overload returns a binary-safe string without consuming or appending to the
----receive buffer. Its timeout is controlled by SimpleBLE and the operating system.
----Invalid UUIDs, non-BLE ports, unsupported reads, and device errors raise a Lua error.
+---Bluetooth LE requires either the explicit UUID read or subscription-buffer overload.
 ---
----An optional third UUID selects a Descriptor: `read(serviceUuid, characteristicUuid, descriptorUuid)`.
----The Descriptor must belong to that characteristic. Descriptor read permission is independent of
----the characteristic's Read capability and is checked by the device. The result is a binary-safe
----string returned directly, not appended to a subscription buffer or decoded automatically.
----Omitting the Descriptor UUID (or passing nil) selects the characteristic. An explicitly empty or invalid
----Descriptor UUID raises an error rather than falling back to a characteristic read.
----Successful reads are logged with the Descriptor UUID. Unknown Descriptors and device errors raise a Lua error.
----
----Use `read(length, timeout, serviceUuid, characteristicUuid)` to consume a subscribed
----characteristic's notification buffer instead. All four arguments are required.
----The same length and timeout rules apply; reads may split or combine notifications.
----A known characteristic without an active subscription returns an empty string immediately.
----Unsubscribe or disconnect interrupts an existing wait and discards that subscription's data.
----Unknown services or characteristics, and reads started after disconnecting, raise a Lua error.
----The generic buffer read form without both UUIDs is rejected on BLE ports.
+---[Common I/O demo](../demo/port/common.lua) | [Vision demo](../demo/port/vision.lua)
 ---
 ---@param length? integer (default: 0) Number of bytes to read.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, serviceUuid: uuid, characteristicUuid: uuid, descriptorUuid?: uuid): string
----@overload fun(self: port, length: integer, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string|VisionResult[] data
 function port:read(length, timeout, peerIp) end
+
+---
+---Reads a Bluetooth LE characteristic or descriptor directly.
+---
+---UUIDs accept 4 or 8 hexadecimal digits, expanded using the Bluetooth Base UUID,
+---or full 128-bit UUIDs. Uppercase and surrounding braces on full UUIDs are accepted;
+---the all-zero 128-bit UUID is rejected. Do not include a 0x prefix.
+---The device must be connected, and the characteristic must belong to the service.
+---Without descriptorUuid, the characteristic must support Read. Passing a descriptor
+---instead checks its membership; the device checks its independent read permission.
+---Omitting descriptorUuid or passing nil selects the characteristic. An empty string is invalid.
+---The result is binary-safe and does not consume or append to subscription buffers.
+---The operation timeout is controlled by SimpleBLE and the operating system.
+---Invalid UUIDs, unsupported operations, non-BLE ports and device errors raise a Lua error.
+---
+---[Bluetooth LE demo](../demo/port/bluetoothLe.lua)
+---
+---@param serviceUuid uuid Service containing the characteristic.
+---@param characteristicUuid uuid Characteristic to read, or containing the descriptor.
+---@param descriptorUuid? uuid Descriptor to read; omit to read the characteristic.
+---@return string data Raw characteristic or descriptor value.
+function port:read(serviceUuid, characteristicUuid, descriptorUuid) end
+
+---
+---Reads one Bluetooth LE characteristic's subscription buffer.
+---
+---All four arguments are required. Positive length waits for exactly that many
+---bytes; zero reads all available bytes, waiting for any bytes if empty.
+---An unsatisfied read returns an empty string without consuming buffered bytes.
+---Reads may split or combine updates; notification boundaries are not preserved.
+---A known characteristic without a subscription returns an empty string immediately.
+---Unsubscribe or disconnect interrupts a wait and discards that subscription's data.
+---Unknown services/characteristics and reads started while disconnected raise a Lua error.
+---
+---[Bluetooth LE demo](../demo/port/bluetoothLe.lua)
+---
+---@param length integer Number of bytes to read, or 0 for available bytes.
+---@param timeout integer Wait timeout in milliseconds: 0 is immediate, -1 waits indefinitely.
+---@param serviceUuid uuid Service containing the subscribed characteristic.
+---@param characteristicUuid uuid Subscribed characteristic to read.
+---@return string data
+function port:read(length, timeout, serviceUuid, characteristicUuid) end
 
 ---
 ---Peeks at data in this port's receive buffer without consuming it.
@@ -403,15 +451,26 @@ function port:read(length, timeout, peerIp) end
 ---
 ---Peeking does not reserve data for a later read. Avoid independent consumers
 ---on the same connection.
----Bluetooth LE requires `peek(length, timeout, serviceUuid, characteristicUuid)`
----and follows the subscription-buffer rules described by `read`.
+---Bluetooth LE requires the subscription-buffer overload with both UUIDs.
 ---
 ---@param length? integer (default: 0) Number of bytes to peek at.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, length: integer, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:peek(length, timeout, peerIp) end
+
+---
+---Peeks at one Bluetooth LE subscription buffer without consuming data.
+---
+---Uses the same length, timeout and subscription rules as the UUID buffer read.
+---This does not issue a direct GATT characteristic or descriptor read.
+---
+---@param length integer Number of bytes to peek at, or 0 for available bytes.
+---@param timeout integer Wait timeout in milliseconds: 0 is immediate, -1 waits indefinitely.
+---@param serviceUuid uuid Service containing the subscribed characteristic.
+---@param characteristicUuid uuid Subscribed characteristic to peek at.
+---@return string data
+function port:peek(length, timeout, serviceUuid, characteristicUuid) end
 
 ---
 ---Reads through the first occurrence of a delimiter.
@@ -425,15 +484,26 @@ function port:peek(length, timeout, peerIp) end
 ---
 ---For TCP, SSL, and WebSocket server ports, omitting `peerIp` selects one
 ---unspecified connected peer. Vision ports do not support delimiter reads.
----Bluetooth LE requires `readUntil(text, timeout, serviceUuid, characteristicUuid)`
----and reads only that subscribed characteristic's buffer. Unsuccessful reads preserve buffered bytes.
+---Bluetooth LE requires the subscription-buffer overload with both UUIDs.
 ---
 ---@param text? string (default: "\r\n") Delimiter to read through.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, text: string, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:readUntil(text, timeout, peerIp) end
+
+---
+---Reads through a delimiter in one Bluetooth LE subscription buffer.
+---
+---Includes the delimiter. An unsatisfied read returns an empty string without
+---consuming buffered bytes. Subscription requirements are the same as the UUID buffer read.
+---
+---@param text string Delimiter to read through.
+---@param timeout integer Wait timeout in milliseconds: 0 is immediate, -1 waits indefinitely.
+---@param serviceUuid uuid Service containing the subscribed characteristic.
+---@param characteristicUuid uuid Subscribed characteristic to read.
+---@return string data
+function port:readUntil(text, timeout, serviceUuid, characteristicUuid) end
 
 ---
 ---Peeks through the first occurrence of a delimiter without consuming data.
@@ -454,12 +524,23 @@ function port:readUntil(text, timeout, peerIp) end
 ---
 ---Peeking does not reserve data for a later read.
 ---Avoid independent consumers on the same connection.
----Bluetooth LE requires `peekUntil(text, timeout, serviceUuid, characteristicUuid)`
----and follows the same subscription-buffer rules as `readUntil`, without consuming bytes.
+---Bluetooth LE requires the subscription-buffer overload with both UUIDs.
 ---
 ---@param text? string (default: "\r\n") Delimiter to peek through.
 ---@param timeout? integer (default: 0) Wait timeout in milliseconds: `0` returns immediately, a positive value waits up to that duration, and `-1` waits indefinitely.
 ---@param peerIp? string Server peer identifier in `address:port` form.
----@overload fun(self: port, text: string, timeout: integer, serviceUuid: uuid, characteristicUuid: uuid): string
 ---@return string data
 function port:peekUntil(text, timeout, peerIp) end
+
+---
+---Peeks through a delimiter in one Bluetooth LE subscription buffer.
+---
+---Follows the same subscription and timeout rules as the UUID readUntil overload,
+---but never consumes bytes. An empty delimiter returns an empty string immediately.
+---
+---@param text string Delimiter to peek through.
+---@param timeout integer Wait timeout in milliseconds: 0 is immediate, -1 waits indefinitely.
+---@param serviceUuid uuid Service containing the subscribed characteristic.
+---@param characteristicUuid uuid Subscribed characteristic to peek at.
+---@return string data
+function port:peekUntil(text, timeout, serviceUuid, characteristicUuid) end

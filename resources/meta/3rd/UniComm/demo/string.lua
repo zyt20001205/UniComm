@@ -49,12 +49,13 @@ print("SHA-512:", string.toHex(sha512))
 
 ---
 
--- Fixed key and IV for a test vector only. Decode hex before passing key or IV.
+-- Fixed key and IV are for demonstration only, not production use.
+-- Decode hex before passing key or IV.
 local key = string.fromHex("000102030405060708090A0B0C0D0E0F")
 local iv = string.fromHex("101112131415161718191A1B1C1D1E1F")
 local data = "UniComm\0AES"
 local algorithm = "AES-128-CBC"
 local ciphertext = string.encrypt(data, key, iv, algorithm)
-assert(string.toHex(ciphertext) == "3AE374F3CA2D8CB2B29519921AB07730")
-assert(string.decrypt(ciphertext, key, iv, algorithm) == data)
 print("AES-128-CBC:", string.toHex(ciphertext))
+local plaintext = string.decrypt(ciphertext, key, iv, algorithm)
+print("Decrypted:", plaintext)

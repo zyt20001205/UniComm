@@ -1,6 +1,7 @@
 #include "agent/module/toolsModule.h"
 
 #include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QPromise>
 #include <QSharedPointer>
@@ -89,7 +90,7 @@ void ToolsModule::initialize() {
             {
                 "function", QJsonObject{
                     {"name", "demo_get"},
-                    {"description", "Get the detailed API demo for a specific package."},
+                    {"description", "Read a Lua demo or list the demos and subdirectories in a demo directory. Directory entries contain paths that can be passed back to this tool."},
                     {
                         "parameters", QJsonObject{
                             {"type", "object"},
@@ -98,7 +99,7 @@ void ToolsModule::initialize() {
                                     {
                                         "package_name", QJsonObject{
                                             {"type", "string"},
-                                            {"description", "The name of the package/module to query. Use api_list first to get available names."}
+                                            {"description", "Demo path relative to the demo directory, without .lua. For example: smtp, port, port/common, or port/bluetoothLe. Use api_list for package names, then query a package to read its demo or list its examples."}
                                         }
                                     }
                                 }
@@ -1114,10 +1115,32 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
     }
     if (name == "demo_get") {
         const auto packageName = object.value("package_name").toString();
-        if (packageName.isEmpty() || packageName.contains('/') || packageName.contains('\\') || packageName.contains("..")) {
-            return {"Invalid package name.", false};
+        const auto parts = packageName.split('/');
+        if (packageName.isEmpty() || QDir::isAbsolutePath(packageName) || packageName.contains('\\') || packageName.contains(':')
+            || parts.contains(QString{}) || parts.contains(".") || parts.contains("..")) {
+            return {"Invalid demo path.", false};
         }
-        auto file = QFile(demoDir.filePath(packageName + ".lua"));
+        const QFileInfo directoryInfo(demoDir.filePath(packageName));
+        const QFileInfo targetInfo(directoryInfo.isDir() ? directoryInfo : QFileInfo(demoDir.filePath(packageName + ".lua")));
+        const auto rootPath = demoDir.canonicalPath() + '/';
+        const auto targetPath = targetInfo.canonicalFilePath();
+        if (targetPath.isEmpty()) return {QString("Demo '%1' not found.").arg(packageName), false};
+        if (!targetPath.startsWith(rootPath, Qt::CaseInsensitive)) return {"Invalid demo path.", false};
+
+        if (targetInfo.isDir()) {
+            QJsonArray entries{};
+            const QDir directory(targetPath);
+            for (const auto &entry: directory.entryInfoList({"*.lua"}, QDir::Files | QDir::AllDirs | QDir::NoDotAndDotDot, QDir::DirsFirst | QDir::Name)) {
+                if (!entry.canonicalFilePath().startsWith(rootPath, Qt::CaseInsensitive)) continue;
+                entries.append(QJsonObject{
+                    {"path", packageName + '/' + (entry.isDir() ? entry.fileName() : entry.fileName().chopped(4))},
+                    {"type", entry.isDir() ? "directory" : "file"}
+                });
+            }
+            return {QString::fromUtf8(QJsonDocument(QJsonObject{{"path", packageName}, {"entries", entries}}).toJson(QJsonDocument::Compact))};
+        }
+
+        auto file = QFile(targetPath);
         if (!file.open(QIODevice::ReadOnly)) {
             return {QString("Demo '%1' not found.").arg(packageName), false};
         }
