@@ -2,7 +2,6 @@
 
 #include <QJsonArray>
 #include <QQmlContext>
-#include <QQuickItem>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -20,12 +19,13 @@ void SymbolWidget::propertySet(const QVariantHash &objects) {
 
     setResizeMode(SizeRootObjectToView);
     setSource(QUrl("qrc:/qml/document/module/symbolWidget.qml"));
-    m_root = rootObject();
 }
 
 void SymbolWidget::documentSymbolShow(const QJsonArray &result, const int line, const int character) {
     const auto symbolList = symbolParse(result, line, character);
-    QMetaObject::invokeMethod(m_root, "symbolLoad", Q_ARG(QVariant, QVariant::fromValue(symbolList)));
+    if (m_model == symbolList) return;
+    m_model = symbolList;
+    emit modelChanged();
 }
 
 void SymbolWidget::indicatorFill(const QVariantHash &position) {

@@ -23,19 +23,13 @@ Item {
         }
 
         RowLayout {
-            id: symbolBreadcrumb
+            Repeater {
+                model: symbolWidget.model
 
-            Component {
-                id: breadcrumbComponent
-
-                RowLayout {
+                delegate: RowLayout {
                     id: breadcrumbItem
                     Layout.alignment: Qt.AlignVCenter
-                    property string text
-                    property string source
-                    property color iconColor: global.theme.fore
-                    property string detail
-                    property var position
+                    required property var modelData
 
                     IconImage {
                         color: global.theme.fore
@@ -49,13 +43,13 @@ Item {
                         id: breadcrumbButton
                         flat: true
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                        icon.source: breadcrumbItem.source
-                        icon.color: breadcrumbItem.iconColor
+                        icon.source: breadcrumbItem.modelData.source
+                        icon.color: breadcrumbItem.modelData.iconColor
                         icon.width: 16; icon.height: 16
-                        text: breadcrumbItem.text
+                        text: breadcrumbItem.modelData.text
                         Layout.preferredWidth: breadcrumbButtonTextMetrics.width + 28; Layout.preferredHeight: 20
 
-                        onClicked: symbolWidget.indicatorFill(breadcrumbItem.position)
+                        onClicked: symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
 
                         HoverHandler {
                             onHoveredChanged: {
@@ -65,7 +59,7 @@ Item {
                             }
                             onPointChanged: {
                                 mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = breadcrumbItem.detail
+                                mainToolTip.text = breadcrumbItem.modelData.detail
                             }
                         }
 
@@ -81,19 +75,6 @@ Item {
 
         Item {
             Layout.fillWidth: true
-        }
-    }
-
-    function symbolLoad(symbolList) {
-        symbolBreadcrumb.children = [];
-        for (const symbol of symbolList) {
-            const item = breadcrumbComponent.createObject(symbolBreadcrumb, {
-                "text": symbol.text,
-                "source": symbol.source,
-                "iconColor": symbol.iconColor,
-                "detail": symbol.detail,
-                "position": symbol.position
-            });
         }
     }
 }
