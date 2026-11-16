@@ -1177,7 +1177,6 @@ Item {
         padding: 6
         property point position
         property var completionWidget
-        property int typed
         readonly property real rowHeight: completionWidget ? completionWidget.rowHeight : 24
 
         onOpened: {
@@ -1192,7 +1191,7 @@ Item {
         }
         onAboutToShow: {
             position = Overlay.overlay.mapFromGlobal(position)
-            x = position.x - 30
+            x = position.x - leftPadding - 11 - 24
             y = position.y
             documentModuleCompletionDetailToolTip.open()
             documentModuleCompletionDetailTimer.restart()
@@ -1201,11 +1200,12 @@ Item {
         contentItem: ListView {
             id: documentModuleCompletionListView
             model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.model : []
-            implicitWidth: Math.max(200, documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.contentSize.width + 38 : 0)
+            implicitWidth: Math.max(200, documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.contentSize.width + 45 : 0)
             implicitHeight: documentModuleCompletionToolTip.completionWidget ? Math.min(documentModuleCompletionToolTip.completionWidget.contentSize.height, 150) : 0
             clip: true
             focus: false
             keyNavigationEnabled: false
+            keyNavigationWraps: false
             highlightMoveDuration: 0
             flickableDirection: Flickable.VerticalFlick
             property int hoveredIndex: -1
@@ -1226,7 +1226,7 @@ Item {
                 width: documentModuleCompletionListView.width
                 height: documentModuleCompletionToolTip.rowHeight
                 font: documentModuleCompletionToolTip.font
-                leftPadding: 4; rightPadding: 10; topPadding: 0; bottomPadding: 0
+                leftPadding: 11; rightPadding: 10; topPadding: 0; bottomPadding: 0
                 focusPolicy: Qt.NoFocus
                 hoverEnabled: true
                 highlighted: documentModuleCompletionListView.currentIndex === index
@@ -1249,7 +1249,7 @@ Item {
                     Label {
                         font: completionDelegate.font
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: completionDelegate.modelData.text ? "<span style='color: " + global.theme.brandBack + ";'>" + completionDelegate.modelData.text.substring(0, documentModuleCompletionToolTip.typed) + "</span>" + completionDelegate.modelData.text.substring(documentModuleCompletionToolTip.typed) : ""
+                        text: completionDelegate.modelData.displayText
                         textFormat: Text.RichText
                         elide: Text.ElideRight
                         Layout.fillWidth: true
@@ -1305,13 +1305,6 @@ Item {
                 }
             }
 
-            function completionPrev() {
-                if (currentIndex > 0) currentIndex -= 1
-            }
-
-            function completionNext() {
-                if (currentIndex < count - 1) currentIndex += 1
-            }
         }
 
         ToolTip {
@@ -1615,8 +1608,10 @@ Item {
         id: documentModuleNavigationToolTip
         parent: Overlay.overlay
         closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
+        padding: 6
         property point position
         property var navigationWidget
+        readonly property real rowHeight: navigationWidget ? navigationWidget.rowHeight : 24
 
         onOpened: {
             mainWindow.overlayFlagSet(false, false)
@@ -1625,28 +1620,29 @@ Item {
         onClosed: {
             widgetCount -= 1
             documentModuleNavigationDetailTimer.stop()
+            documentModuleNavigationDetailToolTip.close()
             navigationWidget.navigationHide()
         }
         onAboutToShow: {
             position = Overlay.overlay.mapFromGlobal(position)
-            x = position.x - 6
+            x = position.x - leftPadding - 11
             y = position.y
             documentModuleNavigationDetailToolTip.open()
             documentModuleNavigationDetailTimer.restart()
         }
 
-        contentItem: TableView {
-            id: documentModuleNavigationTableView
-            anchors.fill: parent
-            anchors.margins: 6
-            implicitWidth: Math.max(idealWidth, 200); implicitHeight: Math.min(idealHeight, 150)
-            alternatingRows: false
+        contentItem: ListView {
+            id: documentModuleNavigationListView
+            model: documentModuleNavigationToolTip.navigationWidget ? documentModuleNavigationToolTip.navigationWidget.model : []
+            implicitWidth: Math.max(200, documentModuleNavigationToolTip.navigationWidget ? documentModuleNavigationToolTip.navigationWidget.contentSize.width + 45 : 0)
+            implicitHeight: documentModuleNavigationToolTip.navigationWidget ? Math.min(documentModuleNavigationToolTip.navigationWidget.contentSize.height, 150) : 0
             clip: true
-            editTriggers: TableView.NoEditTriggers
+            focus: false
+            keyNavigationEnabled: false
+            keyNavigationWraps: false
+            highlightMoveDuration: 0
             flickableDirection: Flickable.VerticalFlick
-            property int idealWidth; property int idealHeight
-            property int hoveredRow: -1
-            property int selectedRow: -1
+            property int hoveredIndex: -1
 
             ScrollBar.vertical: ScrollBar {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
@@ -1657,77 +1653,54 @@ Item {
                 }
             }
 
-            delegate: Item {
-                implicitWidth: documentModuleNavigationTableView.width; implicitHeight: textMetrics.height + 4
-                required property int row
+            delegate: ItemDelegate {
+                id: navigationDelegate
+                required property int index
+                required property var modelData
+                width: documentModuleNavigationListView.width
+                height: documentModuleNavigationToolTip.rowHeight
+                font: documentModuleNavigationToolTip.font
+                leftPadding: 11; rightPadding: 10; topPadding: 0; bottomPadding: 0
+                focusPolicy: Qt.NoFocus
+                hoverEnabled: true
+                highlighted: documentModuleNavigationListView.currentIndex === index
 
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    color: global.theme.backHover
-                    opacity: hoverHandler.hovered ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
+                contentItem: Label {
+                    font: navigationDelegate.font
+                    horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
+                    text: navigationDelegate.modelData.text
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                }
+
+                onHoveredChanged: {
+                    if (hovered) {
+                        documentModuleNavigationListView.hoveredIndex = index
+                    } else if (documentModuleNavigationListView.hoveredIndex === index) {
+                        documentModuleNavigationListView.hoveredIndex = -1
                     }
                 }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    color: documentModuleNavigationTableView.selectedRow === row ? global.theme.backSelected : "transparent"
-                }
-
-                TextMetrics {
-                    id: textMetrics
-                    font: documentModuleNavigationToolTip.font
-                    text: model.display
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: 0
-
-                    Label {
-                        font: documentModuleNavigationToolTip.font
-                        horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: model.display
-                        elide: Text.ElideRight
-                        Layout.fillWidth: true; Layout.preferredHeight: 24
-                    }
-                }
-
-                HoverHandler {
-                    id: hoverHandler
-
-                    onPointChanged: documentModuleNavigationTableView.hoveredRow = row
-                    onHoveredChanged: {
-                        if (!hovered) {
-                            documentModuleNavigationTableView.hoveredRow = -1
-                            documentModuleNavigationDetailTimer.restart()
-                        }
-                    }
-                }
-
-                TapHandler {
-                    acceptedButtons: Qt.LeftButton
-
-                    onTapped: documentModuleNavigationTableView.selectedRow = row
-                    onDoubleTapped: documentModuleNavigationToolTip.navigationWidget.indicatorInsert()
-                }
-
-                Component.onCompleted: {
-                    documentModuleNavigationTableView.idealWidth = Math.max(24 + textMetrics.width + 4 + 10, documentModuleNavigationTableView.idealWidth)
-                    documentModuleNavigationTableView.idealHeight = textMetrics.height + 4 + documentModuleNavigationTableView.idealHeight
+                onClicked: documentModuleNavigationListView.currentIndex = index
+                onDoubleClicked: {
+                    documentModuleNavigationListView.currentIndex = index
+                    documentModuleNavigationToolTip.navigationWidget.indicatorInsert()
                 }
             }
 
-            onHoveredRowChanged: documentModuleNavigationDetailTimer.restart()
-
-            onSelectedRowChanged: {
-                positionViewAtRow(selectedRow, TableView.Contain, 0, Qt.rect(0, 0, 0, 0))
-                documentModuleNavigationDetailTimer.restart()
+            onModelChanged: {
+                hoveredIndex = -1
+                positionViewAtBeginning()
+                if (documentModuleNavigationToolTip.visible) documentModuleNavigationDetailTimer.restart()
+            }
+            onHoveredIndexChanged: {
+                if (documentModuleNavigationToolTip.visible) documentModuleNavigationDetailTimer.restart()
+            }
+            onCurrentIndexChanged: {
+                if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+                if (documentModuleNavigationToolTip.visible) documentModuleNavigationDetailTimer.restart()
+            }
+            onContentYChanged: {
+                if (documentModuleNavigationToolTip.visible) documentModuleNavigationDetailTimer.restart()
             }
 
             Timer {
@@ -1735,51 +1708,19 @@ Item {
                 interval: 150
 
                 onTriggered: {
-                    var interestRow
-                    if (documentModuleNavigationTableView.hoveredRow !== -1) {
-                        interestRow = documentModuleNavigationTableView.hoveredRow
-                    } else {
-                        interestRow = documentModuleNavigationTableView.selectedRow
-                    }
-                    documentModuleNavigationToolTip.navigationWidget.detailReload(interestRow)
-                    const index = documentModuleNavigationTableView.index(interestRow, 0);
-                    const item = documentModuleNavigationTableView.itemAtIndex(index);
-                    if (item) {
-                        let idealY = item.mapToItem(documentModuleNavigationTableView, 0, 0).y
-                        idealY = Math.max(0, idealY)
-                        idealY = Math.min(documentModuleNavigationTableView.height - item.height, idealY)
-                        documentModuleNavigationDetailToolTip.y = idealY - 6
-                    }
+                    const navigation = documentModuleNavigationToolTip.navigationWidget
+                    if (!documentModuleNavigationToolTip.visible || !navigation) return
+                    const interestIndex = documentModuleNavigationListView.hoveredIndex !== -1
+                        ? documentModuleNavigationListView.hoveredIndex : documentModuleNavigationListView.currentIndex
+                    navigation.detailReload(interestIndex)
+                    if (interestIndex < 0 || interestIndex >= documentModuleNavigationListView.count) return
+                    const rowHeight = documentModuleNavigationToolTip.rowHeight
+                    let idealY = interestIndex * rowHeight - documentModuleNavigationListView.contentY
+                    idealY = Math.max(0, Math.min(documentModuleNavigationListView.height - rowHeight, idealY))
+                    documentModuleNavigationDetailToolTip.y = idealY - 6
                 }
             }
 
-            function navigationPrev() {
-                if (selectedRow > 0) {
-                    selectedRow = selectedRow - 1
-                }
-                // else {
-                //     selectedRow = model.rowCount() - 1
-                // }
-            }
-
-            function navigationNext() {
-                if (selectedRow < model.rowCount() - 1) {
-                    selectedRow = selectedRow + 1
-                }
-                // else {
-                //     selectedRow = 0
-                // }
-            }
-
-            Connections {
-                target: documentModuleNavigationTableView.model
-
-                function onModelReset() {
-                    documentModuleNavigationTableView.idealWidth = 0
-                    documentModuleNavigationTableView.idealHeight = 0
-                    documentModuleNavigationDetailTimer.restart()
-                }
-            }
         }
 
         ToolTip {
@@ -1787,8 +1728,8 @@ Item {
             x: documentModuleNavigationToolTip.width - 5
 
             contentItem: Label {
-                id: documentModuleNavigationDetailLabel
                 font: documentModuleNavigationToolTip.font
+                text: documentModuleNavigationToolTip.navigationWidget ? documentModuleNavigationToolTip.navigationWidget.detailText : ""
                 textFormat: Text.RichText
             }
         }
@@ -4744,8 +4685,7 @@ Item {
             "documentModuleDwellCodeActionMenu": documentModuleDwellCodeActionMenu,
             "documentModuleDwellSuggestionMenu": documentModuleDwellSuggestionMenu,
             "documentModuleNavigationToolTip": documentModuleNavigationToolTip,
-            "documentModuleNavigationTableView": documentModuleNavigationTableView,
-            "documentModuleNavigationDetailLabel": documentModuleNavigationDetailLabel,
+            "documentModuleNavigationListView": documentModuleNavigationListView,
             "documentModulePositionTooltip": documentModulePositionTooltip,
             "documentModuleSignatureToolTip": documentModuleSignatureToolTip,
             "documentModuleSignatureLabel": documentModuleSignatureLabel,

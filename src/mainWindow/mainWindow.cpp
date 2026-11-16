@@ -169,8 +169,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"documentModuleDwellCodeActionMenu", objects["documentModuleDwellCodeActionMenu"]},
         {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]},
         {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
-        {"documentModuleNavigationTableView", objects["documentModuleNavigationTableView"]},
-        {"documentModuleNavigationDetailLabel", objects["documentModuleNavigationDetailLabel"]},
+        {"documentModuleNavigationListView", objects["documentModuleNavigationListView"]},
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]},
         {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]},
         {"documentModuleSignatureLabel", objects["documentModuleSignatureLabel"]}

@@ -50,8 +50,7 @@ void CodeAssistant::propertySet(const QVariantHash &objects) const {
     });
     m_navigationWidget->propertySet(QVariantHash{
         {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
-        {"documentModuleNavigationTableView", objects["documentModuleNavigationTableView"]},
-        {"documentModuleNavigationDetailLabel", objects["documentModuleNavigationDetailLabel"]}
+        {"documentModuleNavigationListView", objects["documentModuleNavigationListView"]}
     });
     m_positionWidget->propertySet(QVariantHash{
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]}

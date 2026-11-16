@@ -40,12 +40,12 @@ bool CompletionWidget::isVisible() const {
 }
 
 void CompletionWidget::completionShow(const QVariantHash &completionSession, const QJsonArray &items) {
-    m_tooltip->setProperty("typed", QVariant::fromValue(completionSession["typed"]));
     m_completionSession = completionSession;
     QVariantList model;
     int completionMode = Full;
     const auto *theme = g_globalManager->themeGet();
     const auto colors = theme->configGet()["lua"].toObject()["completion"].toObject();
+    const int typed = completionSession["typed"].toInt();
     for (const auto &value: items) {
         QJsonObject item = value.toObject();
         const QString label = item["label"].toString();
@@ -156,8 +156,13 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
                 }
                 break;
             }
+            const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
+                theme->brandBackGet(),
+                insertText.left(typed).toHtmlEscaped(),
+                insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{
                 {"text", insertText},
+                {"displayText", displayText},
                 {"source", iconSource},
                 {"iconColor", iconColor},
                 {"kind", kind},
@@ -197,11 +202,11 @@ void CompletionWidget::completionHide() {
 }
 
 void CompletionWidget::completionPrev() const {
-    QMetaObject::invokeMethod(m_listView, "completionPrev");
+    QMetaObject::invokeMethod(m_listView, "decrementCurrentIndex");
 }
 
 void CompletionWidget::completionNext() const {
-    QMetaObject::invokeMethod(m_listView, "completionNext");
+    QMetaObject::invokeMethod(m_listView, "incrementCurrentIndex");
 }
 
 void CompletionWidget::detailReload(const int index) {
@@ -271,10 +276,16 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
         const auto *ports = g_globalManager->portModuleGet()->modelGet();
         const auto *theme = g_globalManager->themeGet();
         const auto color = theme->configGet()["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(theme->foreGet());
+        const int typed = m_completionSession["typed"].toInt();
         for (int i = 0; i < ports->rowCount(); ++i) {
             const QString insertText = "\"" + ports->item(i, 0)->text() + "\"";
+            const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
+                theme->brandBackGet(),
+                insertText.left(typed).toHtmlEscaped(),
+                insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{
                 {"text", insertText},
+                {"displayText", displayText},
                 {"source", QUrl("qrc:/icon/symbolEnumMember.svg")},
                 {"iconColor", color},
                 {"kind", EnumMember},
