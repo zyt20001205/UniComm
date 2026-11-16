@@ -222,16 +222,8 @@ void SslClient::handleReadyRead() {
 }
 
 void SslClient::handleError() {
-    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError) return;
-    if (m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) {
-        m_sslClient->disconnectFromHost();
-        return;
-    }
-    const bool handled = m_sslClient->error() == QAbstractSocket::SslHandshakeFailedError && !m_sslClient->sslHandshakeErrors().isEmpty();
-    if (m_sslClient->isOpen()) {
-        m_sslClient->close();
-    }
-    if (handled) return;
+    if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError || m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) return;
+    if (m_sslClient->error() == QAbstractSocket::SslHandshakeFailedError && !m_sslClient->sslHandshakeErrors().isEmpty()) return;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_sslClient->errorString()));
 }
 

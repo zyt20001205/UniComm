@@ -124,7 +124,7 @@ Item {
                                 case 6:
                                     return qsTr("A client that establishes a full-duplex WebSocket connection and exchanges text or binary messages.")
                                 case 7:
-                                    return qsTr("A server that accepts multiple WebSocket clients over ws and manages each peer independently.")
+                                    return qsTr("A server that accepts multiple WebSocket clients over ws or wss and manages each peer independently.")
                                 case 8:
                                     return qsTr("A device that uses the User Datagram Protocol to send independent, connectionless messages (datagrams) over an IP network.")
                                 case 9:
@@ -822,7 +822,6 @@ Item {
                         Label {
                             text: qsTr("Port Name")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         LineEdit {
@@ -836,7 +835,6 @@ Item {
                         Label {
                             text: qsTr("Local Host")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         ComboBox {
@@ -850,7 +848,6 @@ Item {
                         Label {
                             text: qsTr("Local Port")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         SpinBox {
@@ -875,7 +872,6 @@ Item {
                         Label {
                             text: qsTr("Secure")
                             font.pointSize: 12
-                            Layout.fillWidth: true
                         }
 
                         Switch {
@@ -885,6 +881,74 @@ Item {
                             onToggled: webSocketServerLocalPortSpinBox.value = checked ? 443 : 80
                         }
 
+                        Label {
+                            visible: webSocketServerSecureSwitch.checked
+                            text: qsTr("Server Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketServerCertificateTextField
+                            visible: webSocketServerSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Server Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            font.pointSize: 12
+                            placeholderText: qsTr("PEM certificate URL")
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketServerSecureSwitch.checked
+                            text: qsTr("Private Key")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketServerPrivateKeyTextField
+                            visible: webSocketServerSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select Private Key")
+                            nameFilters: [qsTr("PEM private keys (*.pem *.key)"), qsTr("All files (*)")]
+                            font.pointSize: 12
+                            placeholderText: qsTr("PEM private key URL")
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketServerSecureSwitch.checked
+                            text: qsTr("Private Key Password")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketServerPrivateKeyPasswordTextField
+                            visible: webSocketServerSecureSwitch.checked
+                            revealable: true
+                            clearable: true
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            visible: webSocketServerSecureSwitch.checked
+                            text: qsTr("CA Certificate")
+                            font.pointSize: 12
+                        }
+
+                        LineEdit {
+                            id: webSocketServerCaCertificateTextField
+                            visible: webSocketServerSecureSwitch.checked
+                            clearable: true
+                            browsable: true
+                            title: qsTr("Select CA Certificate")
+                            nameFilters: [qsTr("PEM certificates (*.pem *.crt *.cer)"), qsTr("All files (*)")]
+                            placeholderText: qsTr("No client certificate required")
+                            font.pointSize: 12
+                            Layout.fillWidth: true
+                        }
                     }
 
                     // udp socket
@@ -2603,6 +2667,16 @@ Item {
                                     portNameValidatorTimer.start()
                                     return
                                 }
+                                if (webSocketServerSecureSwitch.checked && !webSocketServerCertificateTextField.text.trim()) {
+                                    portNameValidator.text = qsTr("Server Certificate Required")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
+                                if (webSocketServerSecureSwitch.checked && !webSocketServerPrivateKeyTextField.text.trim()) {
+                                    portNameValidator.text = qsTr("Private Key Required")
+                                    portNameValidatorTimer.start()
+                                    return
+                                }
                             }
                                 break
                             case 8: {
@@ -3161,6 +3235,10 @@ Item {
             "webSocketServerLocalHostComboBox": webSocketServerLocalHostComboBox,
             "webSocketServerLocalPortSpinBox": webSocketServerLocalPortSpinBox,
             "webSocketServerSecureSwitch": webSocketServerSecureSwitch,
+            "webSocketServerCertificateTextField": webSocketServerCertificateTextField,
+            "webSocketServerPrivateKeyTextField": webSocketServerPrivateKeyTextField,
+            "webSocketServerCaCertificateTextField": webSocketServerCaCertificateTextField,
+            "webSocketServerPrivateKeyPasswordTextField": webSocketServerPrivateKeyPasswordTextField,
             // udp socket
             "udpSocketNameTextField": udpSocketNameTextField,
             "udpSocketLocalHostComboBox": udpSocketLocalHostComboBox,

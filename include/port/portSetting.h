@@ -170,6 +170,10 @@ private:
     QObject *m_webSocketServerLocalHostComboBox{};
     QObject *m_webSocketServerLocalPortSpinBox{};
     QObject *m_webSocketServerSecureSwitch{};
+    QObject *m_webSocketServerCertificateTextField{};
+    QObject *m_webSocketServerPrivateKeyTextField{};
+    QObject *m_webSocketServerCaCertificateTextField{};
+    QObject *m_webSocketServerPrivateKeyPasswordTextField{};
     // udp socket
     QObject *m_udpSocketNameTextField{};
     QObject *m_udpSocketLocalHostComboBox{};

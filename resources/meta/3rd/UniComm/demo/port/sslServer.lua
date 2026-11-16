@@ -8,6 +8,12 @@ local server = Port.create({
     localPort = 8443,
     certificate = "file:///C:/certs/server-cert.pem",
     privateKey = "file:///C:/certs/server-key.pem",
+    -- Only needed for a password-protected key. Saved in plaintext.
+    privateKeyPassword = "",
+    -- Empty allows clients without certificates. To require client authentication,
+    -- set the file URL of your client CA bundle; only this bundle is trusted.
+    -- The client must then provide its own certificate and matching private key.
+    caCertificate = "",
     logFormat = "utf-8",
 })
 
@@ -18,7 +24,7 @@ print(server:info())
 for _ = 1, 300 do
     for _, peer in pairs(server:info()) do
         if type(peer) == "table" then
-            local peerIp = peer.peerAddress .. ":" .. peer.peerPort
+            local peerIp = peer.peerIp
             local data = server:read(0, 0, peerIp)
             ---@cast data string
             if data ~= "" then

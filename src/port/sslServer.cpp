@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QScopedValueRollback>
+#include <QSslCipher>
 #include <QSslKey>
 #include <QSslServer>
 #include <QSslSocket>
@@ -34,15 +35,22 @@ QVariantHash SslServer::info() {
     QVariantHash infoHash = {
         {"status", m_sslServer && m_sslServer->isListening() ? "opened" : "closed"},
         {"localHost", m_portConfig["localHost"].toString()},
-        {"localPort", QString::number(m_portConfig["localPort"].toInt())}
+        {"localPort", QString::number(m_portConfig["localPort"].toInt())},
+        {"caCertificate", m_portConfig["caCertificate"].toString()},
+        {"certificate", m_portConfig["certificate"].toString()},
+        {"privateKey", m_portConfig["privateKey"].toString()},
+        {"hasPrivateKeyPassword", !m_portConfig["privateKeyPassword"].toString().isEmpty()}
     };
     int index = 1;
     for (const auto &peerIp: m_peerHash.keys()) {
         const auto *peer = m_peerHash.value(peerIp);
         auto *buffer = m_bufferHash.value(peerIp);
         infoHash.insert("peer" + QString::number(index++), QVariantHash{
+            {"peerIp", peerIp},
             {"peerAddress", peer->peerAddress().toString()},
             {"peerPort", peer->peerPort()},
+            {"protocol", peer->isEncrypted() ? peer->sessionCipher().protocolString() : QString{}},
+            {"cipher", peer->isEncrypted() ? peer->sessionCipher().name() : QString{}},
             {"used", QString::number(buffer->used())},
             {"capacity", QString::number(m_portConfig["bufferSize"].toInt())}
         });
@@ -55,10 +63,15 @@ bool SslServer::open() {
         m_sslServer = new QSslServer(this);
         connect(m_sslServer, &QTcpServer::pendingConnectionAvailable, this, &SslServer::handleNewConnection);
         connect(m_sslServer, &QTcpServer::acceptError, this, &SslServer::handleServerError);
-        connect(m_sslServer, &QSslServer::errorOccurred, this, [this](const QSslSocket *socket) { handleError(socket); });
+        connect(m_sslServer, &QSslServer::errorOccurred, this, &SslServer::handleSocketError);
+        connect(m_sslServer, &QSslServer::sslErrors, this, &SslServer::handleSocketErrors);
     }
     if (m_sslServer->isListening()) return true;
-    if (!configureSsl()) return false;
+    if (const auto exception = configure(); !exception.isEmpty()) {
+        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+        emit refreshPort(m_portConfig["portName"].toString(), false);
+        return false;
+    }
 
     if (m_sslServer->listen(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
         emit refreshPort(m_portConfig["portName"].toString(), true);
@@ -66,6 +79,7 @@ bool SslServer::open() {
         return true;
     }
     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_sslServer->errorString()));
+    emit refreshPort(m_portConfig["portName"].toString(), false);
     return false;
 }
 
@@ -140,58 +154,39 @@ QByteArray SslServer::readUntil(const QByteArray &text, const int timeout, const
 }
 
 // private
-bool SslServer::configureSsl() {
-    QFile certificateFile(QUrl(m_portConfig["certificate"].toString()).toLocalFile());
-    if (!certificateFile.open(QIODevice::ReadOnly)) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "certificate invalid");
-        return false;
-    }
+QString SslServer::configure() {
+    const auto certificate = m_portConfig["certificate"].toString();
+    const auto privateKey = m_portConfig["privateKey"].toString();
+    const auto password = m_portConfig["privateKeyPassword"].toString().toUtf8();
+    if (certificate.isEmpty() || privateKey.isEmpty()) return "server certificate and private key are required";
+
+    QFile certificateFile(QUrl(certificate).toLocalFile());
+    if (!certificateFile.open(QIODevice::ReadOnly)) return "cannot open server certificate: " + certificateFile.errorString();
     const auto certificates = QSslCertificate::fromDevice(&certificateFile, QSsl::Pem);
-    if (certificates.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "certificate invalid");
-        return false;
-    }
+    if (certificates.isEmpty()) return "server certificate invalid";
 
-    QFile privateKeyFile(QUrl(m_portConfig["privateKey"].toString()).toLocalFile());
-    if (!privateKeyFile.open(QIODevice::ReadOnly)) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "private key invalid");
-        return false;
-    }
-    const QSslKey privateKey(&privateKeyFile,
-                             certificates.first().publicKey().algorithm(),
-                             QSsl::Pem,
-                             QSsl::PrivateKey);
-    if (privateKey.isNull()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "private key invalid");
-        return false;
-    }
+    QFile privateKeyFile(QUrl(privateKey).toLocalFile());
+    if (!privateKeyFile.open(QIODevice::ReadOnly)) return "cannot open private key: " + privateKeyFile.errorString();
+    const QSslKey key(&privateKeyFile, certificates.first().publicKey().algorithm(), QSsl::Pem, QSsl::PrivateKey, password);
+    if (key.isNull()) return "private key invalid or password incorrect";
 
-    auto sslConfiguration = QSslConfiguration::defaultConfiguration();
-    sslConfiguration.setLocalCertificateChain(certificates);
-    sslConfiguration.setPrivateKey(privateKey);
-    sslConfiguration.setPeerVerifyMode(QSslSocket::VerifyNone);
-    m_sslServer->setSslConfiguration(sslConfiguration);
-    return true;
-}
-
-void SslServer::handleNewConnection() {
-    while (m_sslServer->hasPendingConnections()) {
-        auto *peer = qobject_cast<QSslSocket *>(m_sslServer->nextPendingConnection());
-        if (peer == nullptr) continue;
-        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
-        peer->setProperty("peerIp", peerIp);
-        connect(peer, &QSslSocket::readyRead, this, [this, peer] { handleReadyRead(peer); });
-        connect(peer, &QSslSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
-        connect(peer, &QSslSocket::errorOccurred, this, [this, peer] { handleError(peer); });
-        handleStateChanged(peer, peer->state());
+    auto configuration = QSslConfiguration::defaultConfiguration();
+    configuration.setProtocol(QSsl::TlsV1_2OrLater);
+    configuration.setLocalCertificateChain(certificates);
+    configuration.setPrivateKey(key);
+    configuration.setCaCertificates({});
+    configuration.setPeerVerifyMode(QSslSocket::VerifyNone);
+    const auto caCertificate = m_portConfig["caCertificate"].toString();
+    if (!caCertificate.isEmpty()) {
+        QFile file(QUrl(caCertificate).toLocalFile());
+        if (!file.open(QIODevice::ReadOnly)) return "cannot open CA certificate: " + file.errorString();
+        const auto authorities = QSslCertificate::fromDevice(&file, QSsl::Pem);
+        if (authorities.isEmpty()) return "CA certificate invalid";
+        configuration.setCaCertificates(authorities);
+        configuration.setPeerVerifyMode(QSslSocket::VerifyPeer);
     }
-}
-
-void SslServer::handleServerError() {
-    if (m_sslServer->serverError() == QAbstractSocket::SocketTimeoutError) return;
-    if (m_sslServer->isListening()) m_sslServer->close();
-    emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_sslServer->errorString());
+    m_sslServer->setSslConfiguration(configuration);
+    return {};
 }
 
 void SslServer::handleStateChanged(QSslSocket *sslServerPeer, const QAbstractSocket::SocketState state) {
@@ -223,6 +218,19 @@ void SslServer::handleStateChanged(QSslSocket *sslServerPeer, const QAbstractSoc
     emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
+void SslServer::handleNewConnection() {
+    while (m_sslServer->hasPendingConnections()) {
+        auto *peer = qobject_cast<QSslSocket *>(m_sslServer->nextPendingConnection());
+        if (peer == nullptr) continue;
+        const QString peerIp = peer->peerAddress().toString() + ":" + QString::number(peer->peerPort());
+        peer->setProperty("peerIp", peerIp);
+        connect(peer, &QSslSocket::readyRead, this, [this, peer] { handleReadyRead(peer); });
+        connect(peer, &QSslSocket::stateChanged, this, [this, peer](QAbstractSocket::SocketState state) { handleStateChanged(peer, state); });
+        connect(peer, &QSslSocket::errorOccurred, this, [this, peer](QAbstractSocket::SocketError error) { handleSocketError(peer, error); });
+        handleStateChanged(peer, peer->state());
+    }
+}
+
 void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
     const QString peerIp = sslServerPeer->property("peerIp").toString();
     const auto rxData = sslServerPeer->readAll();
@@ -236,11 +244,24 @@ void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
     handleLog(LogLevel::Receive, rxData, sslServerPeer);
 }
 
-void SslServer::handleError(const QSslSocket *sslServerPeer) {
-    if (sslServerPeer == nullptr || sslServerPeer->error() == QAbstractSocket::SocketTimeoutError) return;
+void SslServer::handleServerError(const QAbstractSocket::SocketError error) {
+    if (error == QAbstractSocket::SocketTimeoutError) return;
+    if (m_sslServer->isListening()) m_sslServer->close();
+    emit refreshPort(m_portConfig["portName"].toString(), false);
+    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_sslServer->errorString());
+}
+
+void SslServer::handleSocketError(const QSslSocket *sslServerPeer, const QAbstractSocket::SocketError error) {
+    if (sslServerPeer == nullptr || error == QAbstractSocket::SocketTimeoutError) return;
+    if (error == QAbstractSocket::SslHandshakeFailedError && !sslServerPeer->sslHandshakeErrors().isEmpty()) return;
     const auto cachedPeerIp = sslServerPeer->property("peerIp").toString();
     const QString peerIp = cachedPeerIp.isEmpty() ? sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort()) : cachedPeerIp;
     emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), QString("error: %1").arg(sslServerPeer->errorString()));
+}
+
+void SslServer::handleSocketErrors(const QSslSocket *sslServerPeer, const QList<QSslError> &errors) {
+    const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
+    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), error.errorString());
 }
 
 bool SslServer::handleWrite(const QByteArray &f_txData, const QString &peerIp) {

@@ -324,6 +324,10 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                 {
                     "defaults", QJsonObject{
                         {"secure", false},
+                        {"certificate", ""},
+                        {"privateKey", ""},
+                        {"caCertificate", ""},
+                        {"privateKeyPassword", ""},
                         {"logFormat", "utf-8"},
                         {"txSuffix", "null"},
                         {"bufferSize", 65536}
@@ -334,7 +338,11 @@ QJsonObject PortModule::portConfigGet(const int portType) {
                         {"portName", QJsonObject{{"type", "string"}}},
                         {"localHost", QJsonObject{{"type", "string"}}},
                         {"localPort", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 65535}}},
-                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Reserved for WSS. Opening with true is not supported yet."}}},
+                        {"secure", QJsonObject{{"type", "boolean"}, {"description", "Use WSS with the supplied server identity. False uses plaintext WS and ignores certificate settings."}}},
+                        {"certificate", QJsonObject{{"type", "string"}, {"description", "Required when secure=true: file:// URL of a PEM server certificate chain, leaf first."}}},
+                        {"privateKey", QJsonObject{{"type", "string"}, {"description", "Required when secure=true: file:// URL of the matching PEM private key."}}},
+                        {"privateKeyPassword", QJsonObject{{"type", "string"}, {"description", "Optional private key passphrase, saved in plaintext. Used only when secure is true."}}},
+                        {"caCertificate", QJsonObject{{"type", "string"}, {"description", "Optional file:// URL of a PEM CA bundle. Empty does not request client certificates; nonempty requires valid client certificates trusted by this bundle only, without the default trust store. Used only when secure is true."}}},
                         {"logFormat", QJsonObject{{"enum", QJsonArray{"raw", "hex", "ascii", "utf-8"}}}},
                         {"txSuffix", QJsonObject{{"enum", QJsonArray{"null", "crlf", "modbus crc", "modbus lrc"}}}},
                         {"bufferSize", QJsonObject{{"type", "integer"}, {"minimum", 1}, {"maximum", 67108864}}}
@@ -401,93 +409,104 @@ QJsonObject PortModule::portConfigGet(const int portType) {
 QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldPortName) const {
     const auto portType = portConfig.value("portType").toInt(-1);
     const auto portName = portConfig.value("portName").toString();
-    if (portType < PortType::SerialPort || portType > PortType::BluetoothLe) return QString("Unsupported port type: %1.").arg(portType);
     if (portName.trimmed().isEmpty()) return "Port check failed: portName is empty.";
     if (portName != oldPortName && m_portHash.contains(portName)) return QString("Port check failed: '%1' already exists.").arg(portName);
 
-    if (portType == PortType::SerialPort) {
-        if (portConfig.value("deviceName").toString().trimmed().isEmpty()) return "Port check failed: deviceName is empty.";
+    switch (portType) {
+        case PortType::SerialPort: {
+            if (portConfig.value("deviceName").toString().trimmed().isEmpty()) return "Port check failed: deviceName is empty.";
 
-        const auto baudRate = portConfig.value("baudRate").toInt();
-        if (baudRate < 1 || baudRate > 5000000) return "Port check failed: baudRate must be between 1 and 5000000.";
+            const auto baudRate = portConfig.value("baudRate").toInt();
+            if (baudRate < 1 || baudRate > 5000000) return "Port check failed: baudRate must be between 1 and 5000000.";
 
-        if (!QJsonArray{5, 6, 7, 8}.contains(portConfig.value("dataBits"))) return "Port check failed: invalid dataBits.";
-        if (!QJsonArray{0, 2, 3, 4, 5}.contains(portConfig.value("parity"))) return "Port check failed: invalid parity.";
-        if (!QJsonArray{1, 2, 3}.contains(portConfig.value("stopBits"))) return "Port check failed: invalid stopBits.";
+            if (!QJsonArray{5, 6, 7, 8}.contains(portConfig.value("dataBits"))) return "Port check failed: invalid dataBits.";
+            if (!QJsonArray{0, 2, 3, 4, 5}.contains(portConfig.value("parity"))) return "Port check failed: invalid parity.";
+            if (!QJsonArray{1, 2, 3}.contains(portConfig.value("stopBits"))) return "Port check failed: invalid stopBits.";
+            break;
+        }
+        case PortType::Vision: {
+            auto devices = DeviceDiscovery::screens();
+            devices.append(DeviceDiscovery::cameras());
+            if (!devices.contains(portName)) return "Port check failed: vision source is unavailable.";
+            return {};
+        }
+        case PortType::TcpClient: {
+            if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
+
+            const auto remotePort = portConfig.value("remotePort").toInt();
+            if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+            break;
+        }
+        case PortType::TcpServer: {
+            if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+            const auto localPort = portConfig.value("localPort").toInt();
+            if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
+            break;
+        }
+        case PortType::SslClient: {
+            if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
+
+            const auto remotePort = portConfig.value("remotePort").toInt();
+            if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+            break;
+        }
+        case PortType::SslServer: {
+            if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+            const auto localPort = portConfig.value("localPort").toInt();
+            if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
+            if (portConfig.value("certificate").toString().trimmed().isEmpty()) return "Port check failed: certificate is empty.";
+            if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
+            break;
+        }
+        case PortType::WebSocketClient: {
+            const auto remoteHost = portConfig.value("remoteHost").toString();
+            const QUrl url((portConfig.value("secure").toBool() ? "wss://" : "ws://") + remoteHost);
+            if (!url.isValid() || url.host().isEmpty() || remoteHost.contains(QRegularExpression("^[A-Za-z][A-Za-z0-9+.-]*://")) || url.hasFragment() || !url.userInfo().isEmpty())
+                return "Port check failed: remoteHost must be a host with optional path and query, without scheme, credentials or fragment.";
+            const auto remotePort = portConfig.value("remotePort").toInt();
+            if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+            break;
+        }
+        case PortType::WebSocketServer: {
+            if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+            const auto localPort = portConfig.value("localPort").toInt();
+            if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
+            if (portConfig.value("secure").toBool()) {
+                if (portConfig.value("certificate").toString().trimmed().isEmpty()) return "Port check failed: certificate is empty.";
+                if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
+            }
+            break;
+        }
+        case PortType::UdpSocket: {
+            if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
+
+            const auto localPort = portConfig.value("localPort").toInt(-1);
+            if (localPort < 0 || localPort > 65535) return "Port check failed: localPort must be between 0 and 65535.";
+            if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
+
+            const auto remotePort = portConfig.value("remotePort").toInt();
+            if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
+            break;
+        }
+        case PortType::BluetoothLe: {
+            if (portConfig.value("adapterAddress").toString().trimmed().isEmpty()) return "Port check failed: adapterAddress is empty.";
+            if (portConfig.value("peripheralAddress").toString().trimmed().isEmpty()) return "Port check failed: peripheralAddress is empty.";
+            break;
+        }
+        default: return QString("Unsupported port type: %1.").arg(portType);
     }
 
-    if (portType == PortType::Vision) {
-        auto devices = DeviceDiscovery::screens();
-        devices.append(DeviceDiscovery::cameras());
-        if (!devices.contains(portName)) return "Port check failed: vision source is unavailable.";
-    }
+    const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
+    if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
 
-    if (portType == PortType::TcpClient || portType == PortType::SslClient) {
-        if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
+    const QJsonArray suffixes{"null", "crlf", "modbus crc", "modbus lrc"};
+    if (!suffixes.contains(portConfig.value("txSuffix"))) return "Port check failed: invalid txSuffix.";
 
-        const auto remotePort = portConfig.value("remotePort").toInt();
-        if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
-    }
-
-    if (portType == PortType::TcpServer) {
-        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
-
-        const auto localPort = portConfig.value("localPort").toInt();
-        if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
-    }
-
-    if (portType == PortType::SslServer) {
-        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
-
-        const auto localPort = portConfig.value("localPort").toInt();
-        if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
-        if (portConfig.value("certificate").toString().trimmed().isEmpty()) return "Port check failed: certificate is empty.";
-        if (portConfig.value("privateKey").toString().trimmed().isEmpty()) return "Port check failed: privateKey is empty.";
-    }
-
-    if (portType == PortType::WebSocketClient) {
-        const auto remoteHost = portConfig.value("remoteHost").toString();
-        const QUrl url((portConfig.value("secure").toBool() ? "wss://" : "ws://") + remoteHost);
-        if (!url.isValid() || url.host().isEmpty() || remoteHost.contains(QRegularExpression("^[A-Za-z][A-Za-z0-9+.-]*://")) || url.hasFragment() || !url.userInfo().isEmpty())
-            return "Port check failed: remoteHost must be a host with optional path and query, without scheme, credentials or fragment.";
-        const auto remotePort = portConfig.value("remotePort").toInt();
-        if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
-    }
-
-    if (portType == PortType::WebSocketServer) {
-        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
-
-        const auto localPort = portConfig.value("localPort").toInt();
-        if (localPort < 1 || localPort > 65535) return "Port check failed: localPort must be between 1 and 65535.";
-    }
-
-    if (portType == PortType::UdpSocket) {
-        if (portConfig.value("localHost").toString().trimmed().isEmpty()) return "Port check failed: localHost is empty.";
-
-        const auto localPort = portConfig.value("localPort").toInt(-1);
-        if (localPort < 0 || localPort > 65535) return "Port check failed: localPort must be between 0 and 65535.";
-        if (portConfig.value("remoteHost").toString().trimmed().isEmpty()) return "Port check failed: remoteHost is empty.";
-
-        const auto remotePort = portConfig.value("remotePort").toInt();
-        if (remotePort < 1 || remotePort > 65535) return "Port check failed: remotePort must be between 1 and 65535.";
-    }
-
-    if (portType == PortType::BluetoothLe) {
-        if (portConfig.value("adapterAddress").toString().trimmed().isEmpty()) return "Port check failed: adapterAddress is empty.";
-        if (portConfig.value("peripheralAddress").toString().trimmed().isEmpty()) return "Port check failed: peripheralAddress is empty.";
-    }
-
-    if (portType == PortType::SerialPort || portType == PortType::TcpClient || portType == PortType::TcpServer || portType == PortType::SslClient || portType == PortType::SslServer
-        || portType == PortType::WebSocketClient || portType == PortType::WebSocketServer || portType == PortType::UdpSocket || portType == PortType::BluetoothLe) {
-        const QJsonArray logFormats{"raw", "hex", "ascii", "utf-8"};
-        if (!logFormats.contains(portConfig.value("logFormat"))) return "Port check failed: invalid logFormat.";
-
-        const QJsonArray suffixes{"null", "crlf", "modbus crc", "modbus lrc"};
-        if (!suffixes.contains(portConfig.value("txSuffix"))) return "Port check failed: invalid txSuffix.";
-
-        const auto bufferSize = portConfig.value("bufferSize").toInt();
-        if (bufferSize < 1 || bufferSize > 67108864) return "Port check failed: bufferSize must be between 1 and 67108864.";
-    }
+    const auto bufferSize = portConfig.value("bufferSize").toInt();
+    if (bufferSize < 1 || bufferSize > 67108864) return "Port check failed: bufferSize must be between 1 and 67108864.";
     return {};
 }
 

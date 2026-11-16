@@ -130,7 +130,11 @@ Port.Type = {
 ---@class WebSocketServerPortConfig : PortConfig
 ---@field localHost string Local IP address on which the server listens.
 ---@field localPort integer Local listening port from 1 to 65535.
----@field secure? boolean (default: false) Reserved for WSS. Opening with true is not supported yet.
+---@field secure? boolean (default: false) Use WSS with the supplied server identity. False uses plaintext WS and ignores certificate settings.
+---@field certificate? string (default: "") Required when secure=true: file:// URL of a PEM server certificate chain, leaf first.
+---@field privateKey? string (default: "") Required when secure=true: file:// URL of the matching PEM private key.
+---@field privateKeyPassword? string (default: "") Private key passphrase, saved in plaintext. Used only when secure is true.
+---@field caCertificate? string (default: "") File URL of a PEM CA bundle. Empty does not request client certificates; nonempty requires valid client certificates trusted by this bundle only, without the default trust store. Used only when secure is true.
 ---@field logFormat? PortLogFormat (default: "utf-8") Format used to render both transmitted and received data in the port log.
 ---@field txSuffix? PortSuffix (default: "null")
 ---@field bufferSize? integer (default: 65536) Receive buffer capacity in bytes, from 1 to 67108864.
@@ -212,8 +216,9 @@ port = {}
 ---Protocol and cipher are empty when disconnected or using plaintext WS; WebSocket clients expose them after the WSS handshake completes.
 ---Passwords and key contents are never returned by info().
 ---WebSocket clients also return the Qt-reported `closeCode` and `closeReason`.
----WebSocket server peers include `peerIp`, ready to pass to write/read methods.
----SSL servers return caCertificate, certificate, privateKey, and hasPrivateKeyPassword.
+---SSL and WebSocket servers return caCertificate, certificate, privateKey, and hasPrivateKeyPassword.
+---WebSocket servers also return secure. Their peers include peerIp, protocol, and cipher.
+---WebSocket peers appear only after the WebSocket handshake completes; protocol and cipher are empty for plaintext WS.
 ---SSL server peers include peerIp, protocol, and cipher; only completed TLS handshakes appear as peers.
 ---Bluetooth LE ports return `services[serviceUuid][characteristicUuid]` objects:
 ---`capabilities` is an array of `read`, `write_request`, `write_command`, `notify`, and `indicate` names.

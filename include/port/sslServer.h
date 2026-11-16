@@ -9,6 +9,7 @@
 class RingBuffer;
 class QSslServer;
 class QSslSocket;
+class QSslError;
 
 class SslServer final : public BasePort {
     Q_OBJECT
@@ -43,17 +44,19 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 private:
-    [[nodiscard]] bool configureSsl();
-
-    void handleNewConnection();
-
-    void handleServerError();
+    [[nodiscard]] QString configure();
 
     void handleStateChanged(QSslSocket *sslServerPeer, QAbstractSocket::SocketState state);
 
+    void handleNewConnection();
+
     void handleReadyRead(QSslSocket *sslServerPeer);
 
-    void handleError(const QSslSocket *sslServerPeer);
+    void handleServerError(QAbstractSocket::SocketError error);
+
+    void handleSocketError(const QSslSocket *sslServerPeer, QAbstractSocket::SocketError error);
+
+    void handleSocketErrors(const QSslSocket *sslServerPeer, const QList<QSslError> &errors);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, const QString &peerIp = QString());
 

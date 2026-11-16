@@ -7,6 +7,8 @@
 #include "basePort.h"
 
 class RingBuffer;
+class QSslSocket;
+class QSslError;
 class QWebSocket;
 class QWebSocketServer;
 
@@ -43,6 +45,8 @@ public:
     [[nodiscard]] QByteArray readUntil(const QByteArray &text, int timeout, const QString &peerIp, const QString &logFormat, bool peek = false);
 
 private:
+    [[nodiscard]] QString configure();
+
     void handleStateChanged(QWebSocket *webSocketServerPeer, QAbstractSocket::SocketState state);
 
     void handleNewConnection();
@@ -52,6 +56,8 @@ private:
     void handleServerError();
 
     void handleSocketError(const QWebSocket *webSocketServerPeer, QAbstractSocket::SocketError error);
+
+    void handleSocketErrors(const QSslSocket *webSocketServerPeer, const QList<QSslError> &errors);
 
     [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType, const QString &peerIp);
 
