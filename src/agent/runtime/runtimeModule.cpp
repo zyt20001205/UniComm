@@ -368,7 +368,9 @@ void RuntimeModule::_request(const BaseProvider *provider, const QJsonObject &bo
         }
     }
 
-    auto *reply = g_globalManager->networkAccessManagerGet()->post(provider->requestGet(), QJsonDocument(body).toJson());
+    auto request = provider->requestGet();
+    request.setOriginatingObject(this);
+    auto *reply = g_globalManager->networkAccessManagerGet()->post(request, QJsonDocument(body).toJson());
     m_reply = reply;
 
     if (!stream) {

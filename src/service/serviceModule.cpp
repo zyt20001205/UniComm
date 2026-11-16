@@ -8,12 +8,14 @@
 #include "service/grepService.h"
 #include "service/lsp/lspManager.h"
 #include "service/mcpService.h"
+#include "service/network/networkService.h"
 
 ServiceModule::ServiceModule()
     : DockWidget("Services"),
       m_lspManager(new LspManager(this)),
       m_mcpService(new McpService(this)),
       m_grepService(new GrepService(this)),
+      m_networkService(new NetworkService(this)),
       m_widget(new QQuickWidget()) {
     setWidget(m_widget);
 }
@@ -30,7 +32,8 @@ void ServiceModule::propertySet(const QVariantHash &objects) {
 QVariantList ServiceModule::servicesGet() const {
     QVariantList services{
         QVariant::fromValue<BaseService *>(m_mcpService),
-        QVariant::fromValue<BaseService *>(m_grepService)
+        QVariant::fromValue<BaseService *>(m_grepService),
+        QVariant::fromValue<BaseService *>(m_networkService)
     };
     for (auto *server: m_lspManager->serversGet()) {
         services.append(QVariant::fromValue<BaseService *>(server));

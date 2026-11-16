@@ -259,6 +259,7 @@ QFuture<QJsonObject> McpModule::request(const QUrl &serverUrl, const QString &me
     };
     if (!notification) body["id"] = id;
     QNetworkRequest request(serverUrl);
+    request.setOriginatingObject(this);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Accept", "application/json, text/event-stream");
     request.setRawHeader("MCP-Protocol-Version", server.protocolVersion.toUtf8());

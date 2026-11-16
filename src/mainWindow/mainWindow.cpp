@@ -45,6 +45,7 @@
 #include "service/audio.h"
 #include "service/git/gitModule.h"
 #include "service/lsp/lspManager.h"
+#include "service/network/networkService.h"
 #include "service/serviceModule.h"
 #include "terminal/logModule.h"
 #include "terminal/terminalModule.h"
@@ -416,9 +417,9 @@ void MainWindow::moduleInit() {
 
     m_configManager = new ConfigManager(this);
     g_globalManager->mainWindowSet(this);
-    g_globalManager->networkAccessManagerSet(new QNetworkAccessManager(qApp));
     m_serviceModule = new ServiceModule();
     g_globalManager->serviceModuleSet(m_serviceModule);
+    g_globalManager->networkAccessManagerSet(m_serviceModule->networkServiceGet()->managerGet());
     g_globalManager->audioServiceSet(new AudioService(this));
 
     m_breakpointModule = new BreakpointModule();

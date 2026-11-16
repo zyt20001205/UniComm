@@ -99,6 +99,7 @@ void OpenAIProvider::modelsGet() {
     // request from /models
     else {
         auto request = m_request;
+        request.setOriginatingObject(this);
         request.setUrl(QUrl(m_baseUrl.toString() + m_modelEndpoint));
         auto *reply = g_globalManager->networkAccessManagerGet()->get(request);
 

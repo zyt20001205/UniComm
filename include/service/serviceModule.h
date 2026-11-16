@@ -6,6 +6,7 @@
 class GrepService;
 class LspManager;
 class McpService;
+class NetworkService;
 class QQuickWidget;
 
 class ServiceModule final : public KDDockWidgets::QtWidgets::DockWidget {
@@ -25,12 +26,17 @@ public:
         return m_grepService;
     }
 
+    [[nodiscard]] NetworkService *networkServiceGet() const {
+        return m_networkService;
+    }
+
     [[nodiscard]] QVariantList servicesGet() const;
 
 private:
     LspManager *m_lspManager{};
     McpService *m_mcpService{};
     GrepService *m_grepService{};
+    NetworkService *m_networkService{};
     QQuickWidget *m_widget{};
 };
 
