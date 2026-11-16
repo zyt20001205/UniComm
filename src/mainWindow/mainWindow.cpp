@@ -6,11 +6,9 @@
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QMediaDevices>
-#include <QNetworkAccessManager>
 #include <QProcess>
 #include <QQmlContext>
 #include <QQuickItem>
-#include <QQuickView>
 #include <QScreen>
 #include <QShortcut>
 #include <QStandardPaths>
@@ -306,11 +304,36 @@ void MainWindow::quit() {
 
 void MainWindow::terminate() {
     g_terminating = true;
-    KDDockWidgets::DockRegistry::self()->clear();
-    delete m_portModule;
-    m_portModule = nullptr;
-    g_globalManager->portModuleSet(nullptr);
-    close();
+    // let the calling qml handler return before unloading its objects.
+    QTimer::singleShot(0, this, [this] {
+        KDDockWidgets::DockRegistry::self()->clear();
+
+        QList<QPointer<QQuickWidget>> widgets;
+        for (auto *widget: QApplication::allWidgets()) {
+            if (auto *quickWidget = qobject_cast<QQuickWidget *>(widget)) widgets.append(QPointer(quickWidget));
+        }
+        QList<QPointer<QQuickView>> views;
+        for (auto *window: QGuiApplication::allWindows()) {
+            if (auto *view = qobject_cast<QQuickView *>(window); view && view != m_overlay) views.append(QPointer(view));
+        }
+
+        // unload consumers before the overlay that provides shared menus and tooltips.
+        for (const auto &widget: widgets) {
+            if (widget) widget->setSource(QUrl());
+        }
+        for (const auto &view: views) {
+            if (!view) continue;
+            view->hide();
+            if (view) view->setSource(QUrl());
+        }
+        m_overlay->hide();
+        m_overlay->setSource(QUrl());
+
+        delete m_portModule;
+        m_portModule = nullptr;
+        g_globalManager->portModuleSet(nullptr);
+        close();
+    });
 }
 
 void MainWindow::themeSet(const int theme) {

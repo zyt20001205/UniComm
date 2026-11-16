@@ -10,7 +10,11 @@ PositionWidget::PositionWidget(QObject *parent)
     : QObject(parent),
       m_timer(new QTimer(this)) {
     m_timer->setInterval(16); // 60Hz
-    connect(m_timer, &QTimer::timeout, [this] {
+    connect(m_timer, &QTimer::timeout, this, [this] {
+        if (g_terminating) {
+            m_timer->stop();
+            return;
+        }
         m_tooltip->setProperty("position", QCursor::pos());
         POINT physicalPos{};
         GetCursorPos(&physicalPos);

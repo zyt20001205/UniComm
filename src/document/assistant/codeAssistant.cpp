@@ -1,7 +1,6 @@
 #include "document/assistant/codeAssistant.h"
 
-#include <QKeyEvent>
-
+#include "globals.h"
 #include "document/assistant/completionWidget.h"
 #include "document/assistant/dwellWidget.h"
 #include "document/assistant/navigationWidget.h"
@@ -106,6 +105,7 @@ void CodeAssistant::signatureShow(const QVariantHash &signatureSession, const QJ
 }
 
 bool CodeAssistant::eventFilter(QObject *watched, QEvent *event) {
+    if (g_terminating) return QObject::eventFilter(watched, event);
     if (event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
         if (keyEvent->key() == Qt::Key_F && keyEvent->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
