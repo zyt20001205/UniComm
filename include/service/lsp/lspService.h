@@ -74,6 +74,7 @@ private:
     QProcess *m_process{};
     QByteArray m_buffer{};
     int m_id{0};
+    int m_hoverRequestId{-1};
     QHash<int, QString> m_methods{};
     QHash<int, QUrl> m_urls{};
 };

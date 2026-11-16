@@ -85,7 +85,7 @@ signals:
 
     void notificationJson(const QString &method, const QJsonObject &params);
 
-    void showDiagnostic(const QVariantHash &diagnosticSession, const QString &message);
+    void setDiagnostic(const QVariantHash &diagnosticSession, const QJsonArray &diagnostics, const QVariantList &typos);
 
 protected:
     [[nodiscard]] bool documentModified() const override;

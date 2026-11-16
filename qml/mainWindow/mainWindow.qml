@@ -1348,259 +1348,77 @@ Item {
         }
     }
 
-    ToolTip {
-        id: documentModuleDwellToolTip
+
+    Menu {
+        id: documentModuleDwellCodeActionMenu
         parent: Overlay.overlay
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
+        popupType: Popup.Window
+        focus: true
         property point position
         property var dwellWidget
-        property var codeActions
-        property var suggestions
 
-        onOpened: {
-            mainWindow.overlayFlagSet(false, false)
-            widgetCount += 1
-        }
-        onClosed: {
-            widgetCount -= 1
-            dwellWidget.dwellHide()
-        }
         onAboutToShow: {
-            position = Overlay.overlay.mapFromGlobal(position)
-            x = position.x + 10
-            y = position.y + 10
+            const p = parent.mapFromGlobal(position)
+            x = p.x
+            y = p.y
         }
 
-        contentItem: ColumnLayout {
+        Instantiator {
+            model: documentModuleDwellCodeActionMenu.dwellWidget && documentModuleDwellCodeActionMenu.dwellWidget.codeActions.length
+                ? documentModuleDwellCodeActionMenu.dwellWidget.codeActions
+                : [{"title": qsTr("No fixes available"), "edit": null}]
 
-            ScrollView {
-                id: documentModuleDwellDiagnosticScrollView
-                visible: documentModuleDwellDiagnosticTextArea.length > 0
-                rightPadding: effectiveScrollBarWidth
-                bottomPadding: effectiveScrollBarHeight
-                Layout.minimumWidth: 400; Layout.maximumWidth: 800
+            delegate: MenuItem {
+                required property var modelData
+                text: modelData.title
+                enabled: modelData.edit !== null
 
-                ScrollBar.vertical: ScrollBar {
-                    parent: documentModuleDwellDiagnosticScrollView
-                    x: parent.mirrored ? 0 : parent.width - width
-                    y: parent.topPadding
-                    height: parent.availableHeight
-                    active: parent.ScrollBar.horizontal.active
-                    policy: ScrollBar.AsNeeded
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
-                    }
+                onTriggered: {
+                    documentModuleDwellCodeActionMenu.dwellWidget.codeActionAccept(modelData.edit)
+                    documentModuleDwellCodeActionMenu.dwellWidget.dwellHide()
                 }
 
-                ScrollBar.horizontal: ScrollBar {
-                    parent: documentModuleDwellDiagnosticScrollView
-                    x: parent.leftPadding
-                    y: parent.height - height
-                    width: parent.availableWidth
-                    active: parent.ScrollBar.vertical.active
-                    policy: ScrollBar.AsNeeded
-                    minimumSize: Math.min(1, 20 / Math.max(1, width))
-                    palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
-                    }
-                }
-
-                TextArea {
-                    id: documentModuleDwellDiagnosticTextArea
-                    background: null
-                    readOnly: true
-                    textFormat: TextEdit.RichText
-                    verticalAlignment: TextEdit.AlignTop
-                    wrapMode: Text.Wrap
-
-                    HoverHandler {
-                        id: diagnosticHoverHandler
-                        cursorShape: documentModuleDwellDiagnosticTextArea.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
-                    }
-
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        onTapped: {
-                            if (documentModuleDwellDiagnosticTextArea.hoveredLink) {
-                                documentModuleDwellToolTip.dwellWidget.linkClick(documentModuleDwellDiagnosticTextArea.hoveredLink)
-                            }
-                        }
-                    }
-                }
+                ToolTip.visible: hovered
+                ToolTip.text: text
             }
 
-            ScrollView {
-                id: documentModuleDwellHoverScrollView
-                visible: documentModuleDwellHoverTextArea.length > 0
-                rightPadding: effectiveScrollBarWidth
-                bottomPadding: effectiveScrollBarHeight
-                Layout.minimumWidth: 400; Layout.maximumWidth: 800
+            onObjectAdded: (index, object) => documentModuleDwellCodeActionMenu.insertItem(index, object)
+            onObjectRemoved: (index, object) => documentModuleDwellCodeActionMenu.removeItem(object)
+        }
+    }
 
-                ScrollBar.vertical: ScrollBar {
-                    parent: documentModuleDwellHoverScrollView
-                    x: parent.mirrored ? 0 : parent.width - width
-                    y: parent.topPadding
-                    height: parent.availableHeight
-                    active: parent.ScrollBar.horizontal.active
-                    policy: ScrollBar.AsNeeded
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
-                    }
-                }
+    Menu {
+        id: documentModuleDwellSuggestionMenu
+        parent: Overlay.overlay
+        popupType: Popup.Window
+        focus: true
+        property point position
+        property var dwellWidget
 
-                ScrollBar.horizontal: ScrollBar {
-                    parent: documentModuleDwellHoverScrollView
-                    x: parent.leftPadding
-                    y: parent.height - height
-                    width: parent.availableWidth
-                    active: parent.ScrollBar.vertical.active
-                    policy: ScrollBar.AsNeeded
-                    minimumSize: Math.min(1, 20 / Math.max(1, width))
-                    palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
-                    }
-                }
-
-                TextArea {
-                    id: documentModuleDwellHoverTextArea
-                    background: null
-                    readOnly: true
-                    textFormat: TextEdit.MarkdownText
-                    verticalAlignment: TextEdit.AlignTop
-                    wrapMode: Text.Wrap
-
-                    HoverHandler {
-                        id: dwellHoverHandler
-                        cursorShape: documentModuleDwellHoverTextArea.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
-                    }
-
-                    ToolTip {
-                        visible: documentModuleDwellHoverTextArea.hoveredLink
-                        text: "Click to open link"
-                        x: dwellHoverHandler.point.position.x + 10
-                        y: dwellHoverHandler.point.position.y + 10
-                    }
-
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        onTapped: {
-                            if (documentModuleDwellHoverTextArea.hoveredLink) {
-                                documentModule.documentOpen(documentModuleDwellHoverTextArea.hoveredLink)
-                            }
-                        }
-                    }
-                }
-            }
+        onAboutToShow: {
+            const p = parent.mapFromGlobal(position)
+            x = p.x
+            y = p.y
         }
 
-        Menu {
-            id: documentModuleDwellCodeActionMenu
-            x: documentModuleDwellToolTip.width - 5; y: -8
+        Instantiator {
+            model: documentModuleDwellSuggestionMenu.dwellWidget ? documentModuleDwellSuggestionMenu.dwellWidget.suggestions : []
 
-            onAboutToShow: {
-                for (var i = documentModuleDwellCodeActionMenu.count - 1; i >= 0; --i) {
-                    var item = documentModuleDwellCodeActionMenu.itemAt(i)
-                    documentModuleDwellCodeActionMenu.removeItem(item)
-                    item.destroy()
-                }
-                if (documentModuleDwellToolTip.codeActions.length) {
-                    for (let i = 0; i < documentModuleDwellToolTip.codeActions.length; ++i) {
-                        const menuItem = documentModuleDwellCodeActionMenuComponent.createObject(
-                            null,
-                            {
-                                text: documentModuleDwellToolTip.codeActions[i]["title"],
-                                codeAction: documentModuleDwellToolTip.codeActions[i]["edit"]
-                            }
-                        )
-                        documentModuleDwellCodeActionMenu.addItem(menuItem)
-                    }
-                } else {
-                    const menuItem = documentModuleDwellCodeActionMenuComponent.createObject(
-                        null,
-                        {
-                            text: qsTr("No fixes available")
-                        }
-                    )
-                    documentModuleDwellCodeActionMenu.addItem(menuItem)
-                }
-            }
-
-            Component {
-                id: documentModuleDwellCodeActionMenuComponent
-
-                MenuItem {
-                    property var codeAction
-
-                    onTriggered: {
-                        documentModuleDwellToolTip.dwellWidget.codeActionAccept(codeAction)
-                        documentModuleDwellToolTip.close()
-                    }
-
-                    ToolTip.visible: hovered
-                    ToolTip.text: text
-                }
-            }
-        }
-
-        Menu {
-            id: documentModuleDwellSuggestionMenu
-            x: documentModuleDwellToolTip.width - 5; y: -8
-
-            MenuItem {
-                text: documentModuleDwellToolTip.suggestions ? documentModuleDwellToolTip.suggestions[0] : ""
-                visible: text
+            delegate: MenuItem {
+                required property string modelData
+                text: modelData
 
                 onTriggered: {
-                    documentModuleDwellToolTip.dwellWidget.suggestionAccept(text)
-                    documentModuleDwellToolTip.close()
+                    documentModuleDwellSuggestionMenu.dwellWidget.suggestionAccept(text)
+                    documentModuleDwellSuggestionMenu.dwellWidget.dwellHide()
                 }
+
+                ToolTip.visible: hovered
+                ToolTip.text: text
             }
 
-            MenuItem {
-                text: documentModuleDwellToolTip.suggestions ? documentModuleDwellToolTip.suggestions[1] : ""
-                visible: text
-
-                onTriggered: {
-                    documentModuleDwellToolTip.dwellWidget.suggestionAccept(text)
-                    documentModuleDwellToolTip.close()
-                }
-            }
-
-            MenuItem {
-                text: documentModuleDwellToolTip.suggestions ? documentModuleDwellToolTip.suggestions[2] : ""
-                visible: text
-
-                onTriggered: {
-                    documentModuleDwellToolTip.dwellWidget.suggestionAccept(text)
-                    documentModuleDwellToolTip.close()
-                }
-            }
-
-            MenuItem {
-                text: documentModuleDwellToolTip.suggestions ? documentModuleDwellToolTip.suggestions[3] : ""
-                visible: text
-
-                onTriggered: {
-                    documentModuleDwellToolTip.dwellWidget.suggestionAccept(text)
-                    documentModuleDwellToolTip.close()
-                }
-            }
-
-            MenuItem {
-                text: documentModuleDwellToolTip.suggestions ? documentModuleDwellToolTip.suggestions[4] : ""
-                visible: text
-
-                onTriggered: {
-                    documentModuleDwellToolTip.dwellWidget.suggestionAccept(text)
-                    documentModuleDwellToolTip.close()
-                }
-            }
+            onObjectAdded: (index, object) => documentModuleDwellSuggestionMenu.insertItem(index, object)
+            onObjectRemoved: (index, object) => documentModuleDwellSuggestionMenu.removeItem(object)
         }
     }
 
@@ -4680,9 +4498,11 @@ Item {
             "documentModuleEditorMenu": documentModuleEditorMenu,
             "documentModuleCompletionToolTip": documentModuleCompletionToolTip,
             "documentModuleCompletionListView": documentModuleCompletionListView,
-            "documentModuleDwellToolTip": documentModuleDwellToolTip,
-            "documentModuleDwellDiagnosticTextArea": documentModuleDwellDiagnosticTextArea,
-            "documentModuleDwellHoverTextArea": documentModuleDwellHoverTextArea,
+            "documentModuleDwellStyle": {
+                "background": mainWindowToolTip.palette.toolTipBase,
+                "foreground": mainWindowToolTip.palette.toolTipText,
+                "border": Application.styleHints.colorScheme === Qt.Light ? mainWindowToolTip.palette.midlight : Color.transparent(mainWindowToolTip.palette.shadow, 0.2)
+            },
             "documentModuleDwellCodeActionMenu": documentModuleDwellCodeActionMenu,
             "documentModuleDwellSuggestionMenu": documentModuleDwellSuggestionMenu,
             "documentModuleNavigationToolTip": documentModuleNavigationToolTip,

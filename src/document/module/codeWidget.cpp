@@ -871,77 +871,42 @@ void CodeWidget::hoverRequest() {
     const auto line = index.line;
     const auto character = index.character;
     if (line == 0 && character == 0) return;
-    // show diagnostic if exists
-    QString diagnosticText = "<table width='100%'>";
+    // collect diagnostics at the hovered position
+    QJsonArray diagnostics;
     for (const auto &value: m_diagnostic) {
-        const QJsonObject diagnostic = value.toObject();
-        const QJsonObject range = diagnostic["range"].toObject();
-        const QJsonObject start = range["start"].toObject();
-        const QJsonObject end = range["end"].toObject();
-        const int startLine = start["line"].toInt();
-        const int startCharacter = start["character"].toInt();
-        const int endLine = end["line"].toInt();
-        const int endCharacter = end["character"].toInt();
+        const auto diagnostic = value.toObject();
+        const auto range = diagnostic["range"].toObject();
+        const auto start = range["start"].toObject();
+        const auto end = range["end"].toObject();
+        const auto startLine = start["line"].toInt();
+        const auto startCharacter = start["character"].toInt();
+        const auto endLine = end["line"].toInt();
+        const auto endCharacter = end["character"].toInt();
         if (line < startLine || line > endLine) continue;
         if (line == startLine && character < startCharacter) continue;
         if (line == endLine && character > endCharacter) continue;
-        const int severity = diagnostic["severity"].toInt();
-        QString severityString{};
-        switch (severity) {
-            case 1: {
-                severityString = "Error";
-            }
-            break;
-            case 2: {
-                severityString = "Warning";
-            }
-            break;
-            case 3: {
-                severityString = "Info";
-            }
-            break;
-            case 4: {
-                severityString = "Hint";
-            }
-            break;
-            default: break;
-        }
-        const QString message = diagnostic["message"].toString();
-        // qDebug() << message << parsed;
-        const QString customUrl = QString("request.code.action://reserved/%1/%2/%3/%4").arg(
-            QString::number(startLine), QString::number(startCharacter), QString::number(endLine), QString::number(endCharacter));
-        auto html = uni_cast<QHtmlString>(message).value;
-        if (html.startsWith("<p>") && html.endsWith("</p>\n")) {
-            html = html.mid(3, html.size() - 8);
-        }
-        diagnosticText += QString("<tr><td><b>%1</b>: %2</td><td align='right'><a href='%3'>Code Action</a></td></tr>").arg(severityString, html, customUrl);
+        diagnostics.append(diagnostic);
     }
-    // show typo if exists
+    // collect spelling matches and their original text
+    QVariantList typos;
     for (const auto &value: m_typo) {
         auto typo = value.toMap();
-        const int startLine = typo["line"].toInt();
-        const int endLine = typo["line"].toInt();
-        const int startCharacter = typo["startCharacter"].toInt();
-        const int endCharacter = typo["endCharacter"].toInt();
+        const auto startLine = typo["line"].toInt();
+        const auto endLine = typo["line"].toInt();
+        const auto startCharacter = typo["startCharacter"].toInt();
+        const auto endCharacter = typo["endCharacter"].toInt();
         if (line < startLine || line > endLine) continue;
         if (line == startLine && character < startCharacter) continue;
         if (line == endLine && character > endCharacter) continue;
-        const QString word = m_scintillaWidget->textGet(startLine, startCharacter, endLine, endCharacter);
-        const QString customUrl = QString("request.spell.suggestion://%1/%2/%3/%4/%5").arg(
-            word, QString::number(startLine), QString::number(startCharacter), QString::number(endLine), QString::number(endCharacter));
-        diagnosticText += QString("<tr><td><b>Typo</b>: In word '%1'</td><td align='right'><a href='%2'>Show Suggestions</a></td></tr>").arg(word, customUrl);
+        typo["word"] = m_scintillaWidget->textGet(startLine, startCharacter, endLine, endCharacter);
+        typos.append(typo);
     }
-    // call diagnostic show
+    // cache diagnostics before requesting hover
     const QVariantHash diagnosticSession = {
         {"documentUrl", m_documentUrl},
         {"position", QCursor::pos()}
     };
-    if (diagnosticText == "<table width='100%'>") {
-        emit showDiagnostic(diagnosticSession, "");
-    } else {
-        diagnosticText += "</table>";
-        emit showDiagnostic(diagnosticSession, diagnosticText);
-    }
+    emit setDiagnostic(diagnosticSession, diagnostics, typos);
     // hover request to script module
     emit requestHover(m_documentUrl, line, character);
 }

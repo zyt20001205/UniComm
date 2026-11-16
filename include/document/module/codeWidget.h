@@ -83,7 +83,7 @@ signals:
 
     void requestTypeDefinition(const QUrl &documentUrl, int line, int character);
 
-    void showDiagnostic(const QVariantHash &diagnosticSession, const QString &message);
+    void setDiagnostic(const QVariantHash &diagnosticSession, const QJsonArray &diagnostics, const QVariantList &typos);
 
     void showDocumentSymbol(int line, int character);
 

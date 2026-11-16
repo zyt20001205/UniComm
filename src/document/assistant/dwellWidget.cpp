@@ -1,93 +1,176 @@
 #include "document/assistant/dwellWidget.h"
 
-#include <QCoreApplication>
-#include <QDir>
+#include <QDebug>
+#include <QHideEvent>
 #include <QJsonArray>
+#include <QMouseEvent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include <QScreen>
+#include <QVBoxLayout>
 
 #include "globals.h"
 #include "core/globalManager.h"
 #include "analysis/nuspellModule.h"
+#include "document/documentModule.h"
+#include "document/module/webviewWidget.h"
 #include "util/uniCast.h"
 
 // public
-DwellWidget::DwellWidget(QObject *parent)
-    : QObject(parent) {
+DwellWidget::DwellWidget(QWidget *parent)
+    : QWidget(parent, Qt::Tool | Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus),
+      m_surface(new QWidget(this)) {
+    setAttribute(Qt::WA_ShowWithoutActivating);
+    setAttribute(Qt::WA_TranslucentBackground);
+    m_webview = new WebviewWidget(this);
+    m_surface->setObjectName("dwellSurface");
+    m_surface->setAttribute(Qt::WA_TransparentForMouseEvents);
+    auto *layout = new QVBoxLayout(this); // NOLINT
+    layout->setContentsMargins(8, 8, 8, 8);
+    layout->addWidget(m_webview);
+    m_webview->setLinkDelegationEnabled(true);
+    m_webview->hide();
+    connect(m_webview, &WebviewWidget::errorOccurred, this, [](const QString &message) {
+        qWarning().noquote() << "Dwell WebView:" << message;
+    });
+    connect(m_webview, &WebviewWidget::linkClicked, this, &DwellWidget::linkClick, Qt::QueuedConnection);
+    qApp->installEventFilter(this);
 }
 
 void DwellWidget::propertySet(const QVariantHash &objects) {
-    m_tooltip = qvariant_cast<QObject *>(objects["documentModuleDwellToolTip"]);
-    m_tooltip->setProperty("dwellWidget", QVariant::fromValue(this));
-    m_diagnosticTextArea = qvariant_cast<QObject *>(objects["documentModuleDwellDiagnosticTextArea"]);
-    m_hoverTextArea = qvariant_cast<QObject *>(objects["documentModuleDwellHoverTextArea"]);
     m_codeActionMenu = qvariant_cast<QObject *>(objects["documentModuleDwellCodeActionMenu"]);
     m_suggestionMenu = qvariant_cast<QObject *>(objects["documentModuleDwellSuggestionMenu"]);
+    m_codeActionMenu->setProperty("dwellWidget", QVariant::fromValue(this));
+    m_suggestionMenu->setProperty("dwellWidget", QVariant::fromValue(this));
+    const auto style = objects["documentModuleDwellStyle"].toHash();
+    m_background = style["background"].value<QColor>();
+    m_foreground = style["foreground"].value<QColor>();
+    const auto border = style["border"].value<QColor>();
+    m_surface->setStyleSheet(QString("QWidget#dwellSurface { background: %1; border: 1px solid rgba(%2, %3, %4, %5); border-radius: 4px; }")
+        .arg(m_background.name()).arg(border.red()).arg(border.green()).arg(border.blue()).arg(border.alpha()));
 }
 
-void DwellWidget::diagnosticShow(const QVariantHash &diagnosticSession, const QString &message) {
+void DwellWidget::diagnosticSet(const QVariantHash &diagnosticSession, const QJsonArray &diagnostics, const QVariantList &typos) {
+    ++m_sessionId;
+    m_sessionActive = true;
     m_documentUrl = diagnosticSession["documentUrl"].toUrl();
-    m_diagnosticTextArea->setProperty("text", message);
-    if (message.isEmpty()) {
-        m_diagnosticTextArea->setProperty("visible", false);
-    } else {
-        m_diagnosticTextArea->setProperty("visible", true);
-        const auto position = diagnosticSession["position"].toPoint();
-        m_tooltip->setProperty("position", position);
-        QMetaObject::invokeMethod(m_tooltip, "open");
-    }
+    m_diagnostics = diagnostics;
+    m_typos = typos;
+    m_position = diagnosticSession["position"].toPoint();
 }
 
-void DwellWidget::hoverShow(const QVariantHash &hoverSession, const QString &message) const {
-    m_hoverTextArea->setProperty("text", message);
-    if (message.isEmpty()) {
-        m_hoverTextArea->setProperty("visible", false);
-    } else {
-        m_hoverTextArea->setProperty("visible", true);
-        const auto position = hoverSession["position"].toPoint();
-        m_tooltip->setProperty("position", position);
-        QMetaObject::invokeMethod(m_tooltip, "open");
+void DwellWidget::hoverShow(const QVariantHash &hoverSession, const QString &message) {
+    if (!m_sessionActive || hoverSession["documentUrl"].toUrl() != m_documentUrl) return;
+    m_position = hoverSession["position"].toPoint();
+    QMetaObject::invokeMethod(m_codeActionMenu, "close");
+    QMetaObject::invokeMethod(m_suggestionMenu, "close");
+    QStringList sections;
+    for (qsizetype i = 0; i < m_diagnostics.size(); ++i) {
+        const auto diagnostic = m_diagnostics[i].toObject();
+        QString severity;
+        switch (diagnostic["severity"].toInt()) {
+            case 1: severity = tr("Error"); break;
+            case 2: severity = tr("Warning"); break;
+            case 3: severity = tr("Info"); break;
+            case 4: severity = tr("Hint"); break;
+            default: severity = tr("Diagnostic"); break;
+        }
+        const auto url = QString("request.code.action://session-%1/%2").arg(m_sessionId).arg(i);
+        sections.append(QString("**%1:** %2\n\n[%3](%4)")
+            .arg(severity, diagnostic["message"].toString(), tr("Code Action"), url));
     }
+    for (qsizetype i = 0; i < m_typos.size(); ++i) {
+        auto word = m_typos[i].toMap()["word"].toString().toHtmlEscaped();
+        for (const auto character: {'\\', '`', '*', '_', '[', ']'}) {
+            word.replace(QChar(character), QString("\\") + QChar(character));
+        }
+        const auto url = QString("request.spell.suggestion://session-%1/%2").arg(m_sessionId).arg(i);
+        sections.append(QString("**%1:** %2\n\n[%3](%4)")
+            .arg(tr("Typo"), tr("In word '%1'").arg(word), tr("Show Suggestions"), url));
+    }
+    auto markdown = sections.join("\n\n");
+    if (!message.isEmpty()) {
+        if (!markdown.isEmpty()) markdown += "\n\n---\n\n";
+        markdown += message;
+    }
+    if (markdown.isEmpty()) {
+        hide();
+        return;
+    }
+    if (m_renderedText != markdown) {
+        auto html = uni_cast<QFullHtmlString>(markdown).value;
+        const auto style = QString("<style>html, body { background: %1; color: %2; } body { padding: 0; }</style>\n")
+            .arg(m_background.name(), m_foreground.name());
+        html.insert(html.indexOf("</head>"), style);
+        m_webview->setHtml(html);
+        m_renderedText = markdown;
+    }
+    const auto *screen = QGuiApplication::screenAt(m_position);
+    if (!screen) screen = this->screen();
+    const auto available = screen->availableGeometry();
+    setFixedSize(qMin(600, available.width()), qMin(336, available.height()));
+    m_webview->show();
+    move(qBound(available.left(), m_position.x() + 10, available.right() - width() + 1),
+         qBound(available.top(), m_position.y() + 10, available.bottom() - height() + 1));
+    show();
+    raise();
 }
 
-void DwellWidget::codeActionShow(const QUrl &documentUrl, const QJsonArray &result) const {
-    QVariantList codeActions{};
+void DwellWidget::codeActionShow(const QUrl &documentUrl, const QJsonArray &result) {
+    if (!isVisible() || documentUrl != m_documentUrl) return;
+    m_codeActions.clear();
     for (const auto &value: result) {
         const QJsonObject action = value.toObject();
         if (action.contains("edit")) {
-            codeActions.append(QVariantMap{
-                {"title", action["title"]},
-                {"edit", action["edit"]}
+            m_codeActions.append(QVariantMap{
+                {"title", action["title"].toString()},
+                {"edit", action["edit"].toObject()}
             });
         }
     }
-    m_tooltip->setProperty("codeActions", codeActions);
+    emit codeActionsChanged();
+    m_codeActionMenu->setProperty("position", mapToGlobal(QPoint(width() - 5, -8)));
     QMetaObject::invokeMethod(m_codeActionMenu, "open");
 }
 
-void DwellWidget::dwellHide() const {
-    QMetaObject::invokeMethod(m_tooltip, "close");
-    m_diagnosticTextArea->setProperty("text", "");
-    m_hoverTextArea->setProperty("text", "");
+void DwellWidget::dwellHide() {
+    m_sessionActive = false;
+    m_renderedText.clear();
+    m_diagnostics = {};
+    m_typos.clear();
+    hide();
 }
 
 void DwellWidget::linkClick(const QUrl &customUrl) {
-    // qDebug() << customUrl;
     const QString scheme = customUrl.scheme();
+    const bool diagnosticLink = scheme == "request.code.action" || scheme == "request.spell.suggestion";
+    if (!diagnosticLink) {
+        if (scheme != "javascript" && scheme != "data") g_globalManager->documentModuleGet()->documentOpen(customUrl);
+        return;
+    }
+    if (!m_sessionActive || customUrl.host() != QString("session-%1").arg(m_sessionId)) return;
+    bool validIndex{};
+    const int index = customUrl.path().mid(1).toInt(&validIndex);
+    if (!validIndex || index < 0) return;
     if (scheme == "request.code.action") {
-        const QStringList arguments = customUrl.path().split('/');
-        m_diagnosticStartLine = arguments[1].toInt();
-        m_diagnosticStartCharacter = arguments[2].toInt();
-        m_diagnosticEndLine = arguments[3].toInt();
-        m_diagnosticEndCharacter = arguments[4].toInt();
-        emit requestCodeAction(m_documentUrl, m_diagnosticStartLine, m_diagnosticStartCharacter, m_diagnosticEndLine, m_diagnosticEndCharacter);
+        if (index >= m_diagnostics.size()) return;
+        const auto range = m_diagnostics[index].toObject()["range"].toObject();
+        const auto start = range["start"].toObject();
+        const auto end = range["end"].toObject();
+        emit requestCodeAction(m_documentUrl, start["line"].toInt(), start["character"].toInt(), end["line"].toInt(), end["character"].toInt());
     } else if (scheme == "request.spell.suggestion") {
-        const QString host = customUrl.host();
-        const QStringList arguments = customUrl.path().split('/');
-        m_typoStartLine = arguments[1].toInt();
-        m_typoStartCharacter = arguments[2].toInt();
-        m_typoEndLine = arguments[3].toInt();
-        m_typoEndCharacter = arguments[4].toInt();
-        const QStringList suggestions = g_globalManager->nuspellModuleGet()->spellSuggestRequest(host);
-        m_tooltip->setProperty("suggestions", suggestions);
+        if (index >= m_typos.size()) return;
+        const auto typo = m_typos[index].toMap();
+        m_typoStartLine = m_typoEndLine = typo["line"].toInt();
+        m_typoStartCharacter = typo["startCharacter"].toInt();
+        m_typoEndCharacter = typo["endCharacter"].toInt();
+        const QStringList suggestions = g_globalManager->nuspellModuleGet()->spellSuggestRequest(typo["word"].toString());
+        m_suggestions.clear();
+        for (const auto &suggestion: suggestions.first(qMin<qsizetype>(5, suggestions.size()))) {
+            m_suggestions.append(suggestion);
+        }
+        emit suggestionsChanged();
+        m_suggestionMenu->setProperty("position", mapToGlobal(QPoint(width() - 5, -8)));
         QMetaObject::invokeMethod(m_suggestionMenu, "open");
     }
 }
@@ -115,4 +198,37 @@ void DwellWidget::codeActionAccept(const QJsonObject &codeAction) {
             emit textSet(documentUrl, newText, startLine, startCharacter, endLine, endCharacter);
         }
     }
+}
+
+bool DwellWidget::eventFilter(QObject *watched, QEvent *event) {
+    if (m_sessionActive) {
+        if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonRelease) {
+            const auto position = static_cast<QMouseEvent *>(event)->globalPosition().toPoint();
+            const auto insideMenu = [position](QObject *menu) {
+                if (!menu || !menu->property("visible").toBool()) return false;
+                const auto *content = qvariant_cast<QQuickItem *>(menu->property("contentItem"));
+                return content && content->window() && content->window()->geometry().contains(position);
+            };
+            const bool insidePopup = isVisible() && m_surface->geometry().contains(mapFromGlobal(position));
+            if (!insidePopup && !insideMenu(m_codeActionMenu) && !insideMenu(m_suggestionMenu)) dwellHide();
+        } else if (event->type() == QEvent::ApplicationDeactivate) {
+            dwellHide();
+        } else if (watched == parentWidget() && (event->type() == QEvent::Hide || event->type() == QEvent::Close)) {
+            dwellHide();
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void DwellWidget::hideEvent(QHideEvent *event) {
+    if (m_codeActionMenu) QMetaObject::invokeMethod(m_codeActionMenu, "close");
+    if (m_suggestionMenu) QMetaObject::invokeMethod(m_suggestionMenu, "close");
+    m_renderedText.clear();
+    m_webview->stop();
+    QWidget::hideEvent(event);
+}
+
+void DwellWidget::resizeEvent(QResizeEvent *event) {
+    m_surface->setGeometry(rect());
+    QWidget::resizeEvent(event);
 }

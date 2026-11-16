@@ -21,6 +21,10 @@ public:
 
     void setHtml(const QString &html);
 
+    void setLinkDelegationEnabled(bool enabled) {
+        m_delegateLinks = enabled;
+    }
+
     void reload() const;
 
     void stop() const;
@@ -30,6 +34,8 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
+    void linkClicked(const QUrl &url);
+
     void readyChanged(bool ready);
 
     void loadFinished(bool ok);
@@ -54,6 +60,7 @@ private:
     bool m_oleInitialized{};
     bool m_creating{};
     bool m_ready{};
+    bool m_delegateLinks{};
     QString m_pendingUrl{};
     QString m_pendingHtml{};
     ICoreWebView2Environment *m_environment{};

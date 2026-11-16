@@ -37,16 +37,14 @@ CodeAssistant::CodeAssistant(QWidget *parent)
 }
 
 void CodeAssistant::propertySet(const QVariantHash &objects) const {
+    m_dwellWidget->propertySet(QVariantHash{
+        {"documentModuleDwellStyle", objects["documentModuleDwellStyle"]},
+        {"documentModuleDwellCodeActionMenu", objects["documentModuleDwellCodeActionMenu"]},
+        {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]}
+    });
     m_completionWidget->propertySet(QVariantHash{
         {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
         {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]}
-    });
-    m_dwellWidget->propertySet(QVariantHash{
-        {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
-        {"documentModuleDwellDiagnosticTextArea", objects["documentModuleDwellDiagnosticTextArea"]},
-        {"documentModuleDwellHoverTextArea", objects["documentModuleDwellHoverTextArea"]},
-        {"documentModuleDwellCodeActionMenu", objects["documentModuleDwellCodeActionMenu"]},
-        {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]}
     });
     m_navigationWidget->propertySet(QVariantHash{
         {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
@@ -77,8 +75,8 @@ void CodeAssistant::completionHide() const {
     m_completionWidget->completionHide();
 }
 
-void CodeAssistant::diagnosticShow(const QVariantHash &diagnosticSession, const QString &message) const {
-    m_dwellWidget->diagnosticShow(diagnosticSession, message);
+void CodeAssistant::diagnosticSet(const QVariantHash &diagnosticSession, const QJsonArray &diagnostics, const QVariantList &typos) const {
+    m_dwellWidget->diagnosticSet(diagnosticSession, diagnostics, typos);
 }
 
 void CodeAssistant::hoverShow(const QVariantHash &hoverSession, const QString &message) const {

@@ -26,7 +26,7 @@ public:
 
     void completionHide() const;
 
-    void diagnosticShow(const QVariantHash &diagnosticSession, const QString &message) const;
+    void diagnosticSet(const QVariantHash &diagnosticSession, const QJsonArray &diagnostics, const QVariantList &typos) const;
 
     void hoverShow(const QVariantHash &hoverSession, const QString &message) const;
 

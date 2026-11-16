@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QDir>
+#include <QPointer>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -95,6 +96,36 @@ namespace {
     private:
         std::function<HRESULT(ICoreWebView2NavigationCompletedEventArgs *)> m_callback;
     };
+
+    class NavigationStartingHandler final : public CallbackBase<ICoreWebView2NavigationStartingEventHandler> {
+    public:
+        explicit NavigationStartingHandler(std::function<HRESULT(ICoreWebView2NavigationStartingEventArgs *)> callback)
+            : CallbackBase(IID_ICoreWebView2NavigationStartingEventHandler),
+              m_callback(std::move(callback)) {
+        }
+
+        HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2 *, ICoreWebView2NavigationStartingEventArgs *args) override {
+            return m_callback(args);
+        }
+
+    private:
+        std::function<HRESULT(ICoreWebView2NavigationStartingEventArgs *)> m_callback;
+    };
+
+    class NewWindowRequestedHandler final : public CallbackBase<ICoreWebView2NewWindowRequestedEventHandler> {
+    public:
+        explicit NewWindowRequestedHandler(std::function<HRESULT(ICoreWebView2NewWindowRequestedEventArgs *)> callback)
+            : CallbackBase(IID_ICoreWebView2NewWindowRequestedEventHandler),
+              m_callback(std::move(callback)) {
+        }
+
+        HRESULT STDMETHODCALLTYPE Invoke(ICoreWebView2 *, ICoreWebView2NewWindowRequestedEventArgs *args) override {
+            return m_callback(args);
+        }
+
+    private:
+        std::function<HRESULT(ICoreWebView2NewWindowRequestedEventArgs *)> m_callback;
+    };
 } // namespace
 
 WebviewWidget::WebviewWidget(QWidget *parent)
@@ -153,6 +184,9 @@ bool WebviewWidget::isReady() const {
 
 bool WebviewWidget::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_host && event->type() == QEvent::Resize) resizeWebView();
+    if (watched == m_host && m_controller && (event->type() == QEvent::Show || event->type() == QEvent::Hide)) {
+        m_controller->put_IsVisible(m_host->isVisible());
+    }
     return QWidget::eventFilter(watched, event);
 }
 
@@ -168,7 +202,9 @@ void WebviewWidget::ensureCreated() {
     const auto userData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/webview2";
     if (!QDir().mkpath(userData)) return;
 
-    auto *environmentHandler = new EnvironmentCompletedHandler([this](const HRESULT result, ICoreWebView2Environment *createdEnvironment) -> HRESULT {
+    const QPointer<WebviewWidget> guard(this);
+    auto *environmentHandler = new EnvironmentCompletedHandler([this, guard](const HRESULT result, ICoreWebView2Environment *createdEnvironment) -> HRESULT {
+        if (!guard) return S_OK;
         if (FAILED(result)) {
             m_creating = false;
             emit errorOccurred("Failed to create WebView2 environment");
@@ -178,7 +214,11 @@ void WebviewWidget::ensureCreated() {
         m_environment = createdEnvironment;
         m_environment->AddRef();
 
-        auto *controllerHandler = new ControllerCompletedHandler([this](const HRESULT controllerResult, ICoreWebView2Controller *createdController) -> HRESULT {
+        auto *controllerHandler = new ControllerCompletedHandler([this, guard](const HRESULT controllerResult, ICoreWebView2Controller *createdController) -> HRESULT {
+            if (!guard) {
+                if (createdController) createdController->Close();
+                return S_OK;
+            }
             m_creating = false;
             if (FAILED(controllerResult)) {
                 emit errorOccurred("Failed to create WebView2 controller");
@@ -206,6 +246,7 @@ void WebviewWidget::ensureCreated() {
             }
 
             resizeWebView();
+            m_controller->put_IsVisible(m_host->isVisible());
             QTimer::singleShot(0, this, [this] {
                 for (auto *ancestor = parentWidget(); ancestor; ancestor = ancestor->parentWidget()) {
                     ancestor->update();
@@ -213,6 +254,7 @@ void WebviewWidget::ensureCreated() {
             });
             m_ready = m_webView && m_controller;
             emit readyChanged(m_ready);
+            if (!guard) return S_OK;
             if (!m_pendingHtml.isEmpty()) setHtml(m_pendingHtml);
             else if (!m_pendingUrl.isEmpty()) navigate(m_pendingUrl);
             return S_OK;
@@ -252,6 +294,10 @@ void WebviewWidget::resizeWebView() const {
 
 void WebviewWidget::closeWebView() {
     if (m_controller) m_controller->Close();
+    if (m_webView28) {
+        m_webView28->Release();
+        m_webView28 = nullptr;
+    }
     if (m_webView) {
         m_webView->Release();
         m_webView = nullptr;
@@ -299,7 +345,9 @@ void WebviewWidget::themeApply() const {
 }
 
 void WebviewWidget::registerEvents() {
-    auto *handler = new NavigationCompletedHandler([this](ICoreWebView2NavigationCompletedEventArgs *args) -> HRESULT {
+    const QPointer<WebviewWidget> guard(this);
+    auto *handler = new NavigationCompletedHandler([this, guard](ICoreWebView2NavigationCompletedEventArgs *args) -> HRESULT {
+        if (!guard) return S_OK;
         BOOL success = FALSE;
         if (args) args->get_IsSuccess(&success);
         emit loadFinished(success);
@@ -307,4 +355,48 @@ void WebviewWidget::registerEvents() {
     });
     m_webView->add_NavigationCompleted(handler, nullptr);
     handler->Release();
+
+    auto *navigationHandler = new NavigationStartingHandler([this, guard](ICoreWebView2NavigationStartingEventArgs *args) -> HRESULT {
+        if (!guard || !m_delegateLinks) return S_OK;
+        LPWSTR uri{};
+        if (FAILED(args->get_Uri(&uri))) return S_OK;
+        const auto uriString = QString::fromWCharArray(uri);
+        const QUrl url(uriString);
+        CoTaskMemFree(uri);
+        if (url == QUrl("about:blank")) return S_OK;
+        // allow the internal data navigation generated by NavigateToString.
+        if (url.scheme() == "data" && !m_pendingHtml.isEmpty()) {
+            const auto separator = uriString.indexOf(',');
+            const auto metadata = uriString.left(separator);
+            if (separator >= 0 && metadata.section(';', 0, 0).compare("data:text/html", Qt::CaseInsensitive) == 0) {
+                auto content = QByteArray::fromPercentEncoding(uriString.mid(separator + 1).toUtf8());
+                if (metadata.endsWith(";base64", Qt::CaseInsensitive)) content = QByteArray::fromBase64(content);
+                if (QString::fromUtf8(content) == m_pendingHtml) return S_OK;
+            }
+        }
+        args->put_Cancel(TRUE);
+        BOOL userInitiated = FALSE;
+        args->get_IsUserInitiated(&userInitiated);
+        if (userInitiated) emit linkClicked(url);
+        return S_OK;
+    });
+    m_webView->add_NavigationStarting(navigationHandler, nullptr);
+    navigationHandler->Release();
+
+    auto *windowHandler = new NewWindowRequestedHandler([this, guard](ICoreWebView2NewWindowRequestedEventArgs *args) -> HRESULT {
+        if (!guard || !m_delegateLinks) return S_OK;
+        args->put_Handled(TRUE);
+        BOOL userInitiated = FALSE;
+        args->get_IsUserInitiated(&userInitiated);
+        if (!userInitiated) return S_OK;
+        LPWSTR uri{};
+        if (SUCCEEDED(args->get_Uri(&uri))) {
+            const QUrl url(QString::fromWCharArray(uri));
+            CoTaskMemFree(uri);
+            emit linkClicked(url);
+        }
+        return S_OK;
+    });
+    m_webView->add_NewWindowRequested(windowHandler, nullptr);
+    windowHandler->Release();
 }

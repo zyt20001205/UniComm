@@ -39,7 +39,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &CodeWidget::requestSignatureHelp, this, &CodePage::requestSignatureHelp);
     connect(m_codeWidget, &CodeWidget::requestSpellCheck, this, &CodePage::requestSpellCheck);
     connect(m_codeWidget, &CodeWidget::requestTypeDefinition, this, &CodePage::requestTypeDefinition);
-    connect(m_codeWidget, &CodeWidget::showDiagnostic, this, &CodePage::showDiagnostic);
+    connect(m_codeWidget, &CodeWidget::setDiagnostic, this, &CodePage::setDiagnostic);
     connect(m_codeWidget, &CodeWidget::showDocumentSymbol, this, [this](const int line, const int character) { m_symbolWidget->documentSymbolShow(m_symbol, line, character); });
     connect(m_symbolWidget, &SymbolWidget::appendLog, this, &CodePage::appendLog);
     connect(m_symbolWidget, &SymbolWidget::setFocus, handler(), &ScintillaWidget::focusSet);

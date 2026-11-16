@@ -319,7 +319,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             connect(codePage, &CodePage::requestSignatureHelp, this, &DocumentModule::signatureHelpRequest);
             connect(codePage, &CodePage::requestSpellCheck, this, &DocumentModule::requestSpellCheck);
             connect(codePage, &CodePage::requestTypeDefinition, this, &DocumentModule::typeDefinitionRequest);
-            connect(codePage, &CodePage::showDiagnostic, m_codeAssistant, &CodeAssistant::diagnosticShow);
+            connect(codePage, &CodePage::setDiagnostic, m_codeAssistant, &CodeAssistant::diagnosticSet);
             codePage->diagnosticsNotification(m_diagnosticsHash[documentUrl]);
         }
         // markup page
@@ -919,6 +919,7 @@ void DocumentModule::hoverRequest(const QUrl &documentUrl, int line, int charact
 void DocumentModule::hoverResponse(const QUrl &documentUrl, const QString &message) const {
     // call hover show
     const QVariantHash hoverSession = {
+        {"documentUrl", documentUrl},
         {"position", QCursor::pos()}
     };
     m_codeAssistant->hoverShow(hoverSession, message);

@@ -65,6 +65,7 @@ void LspService::jsonRequest(const QString &method, const QJsonObject &params) {
     const auto url = QUrl(textDocument["uri"].toString());
     m_methods.insert(m_id, method);
     m_urls.insert(m_id, url);
+    if (method == "textDocument/hover") m_hoverRequestId = m_id;
     const QJsonObject msg = {
         {"jsonrpc", "2.0"},
         {"id", m_id},
@@ -255,6 +256,7 @@ void LspService::parser() {
                 }
             } else if (method == "textDocument/hover") {
                 // hover response
+                if (id != m_hoverRequestId) continue;
                 if (!json["result"].isObject()) {
                     // null result
                     emit responseHover(documentUrl, QString());

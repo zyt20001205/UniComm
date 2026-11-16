@@ -520,11 +520,14 @@ img {
 .mermaid svg {
     max-width: 100%;
 }
-.hljs {
-    background: transparent;
-}
 </style>
 <link rel="stylesheet" href="http://unicomm/@highlightTheme">
+<style>
+pre code.hljs {
+    background: transparent;
+    padding: 0;
+}
+</style>
 <script src="http://unicomm/mermaid.min.js"></script>
 <script src="http://unicomm/highlight.min.js"></script>
 <script>
