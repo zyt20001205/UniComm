@@ -33,6 +33,7 @@ Item {
                     Layout.alignment: Qt.AlignVCenter
                     property string text
                     property string source
+                    property color iconColor: global.theme.fore
                     property string detail
                     property var position
 
@@ -49,6 +50,7 @@ Item {
                         flat: true
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                         icon.source: breadcrumbItem.source
+                        icon.color: breadcrumbItem.iconColor
                         icon.width: 16; icon.height: 16
                         text: breadcrumbItem.text
                         Layout.preferredWidth: breadcrumbButtonTextMetrics.width + 28; Layout.preferredHeight: 20
@@ -88,6 +90,7 @@ Item {
             const item = breadcrumbComponent.createObject(symbolBreadcrumb, {
                 "text": symbol.text,
                 "source": symbol.source,
+                "iconColor": symbol.iconColor,
                 "detail": symbol.detail,
                 "position": symbol.position
             });

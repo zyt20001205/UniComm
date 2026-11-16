@@ -29,7 +29,57 @@
     "dangerFore3": "#eeacb2",
     "dangerBack3": "#c50f1f"
   },
-  "lsp": {
+  "lua": {
+    "completion": {
+      "text": {
+        "fore": "#ced0d6"
+      },
+      "method": {
+        "fore": "#db5c5c"
+      },
+      "function": {
+        "fore": "#db5c5c"
+      },
+      "field": {
+        "fore": "#b589ec"
+      },
+      "variable": {
+        "fore": "#c77d55"
+      },
+      "class": {
+        "fore": "#548af7"
+      },
+      "interface": {
+        "fore": "#c77d55"
+      },
+      "property": {
+        "fore": "#b589ec"
+      },
+      "value": {
+        "fore": "#57965c"
+      },
+      "enum": {
+        "fore": "#b589ec"
+      },
+      "keyword": {
+        "fore": "#cf8e6d"
+      },
+      "snippet": {
+        "fore": "#ced0d6"
+      },
+      "file": {
+        "fore": "#ced0d6"
+      },
+      "enumMember": {
+        "fore": "#57965c"
+      },
+      "event": {
+        "fore": "#548af7"
+      },
+      "operator": {
+        "fore": "#db5c5c"
+      }
+    },
     "semantics": {
       "namespace": {
         "fore": "#b5b6e3"
@@ -38,6 +88,12 @@
         "fore": "#b5b6e3"
       },
       "type": {
+        "fore": "#b5b6e3"
+      },
+      "struct": {
+        "fore": "#b5b6e3"
+      },
+      "typeParameter": {
         "fore": "#cf8e6d"
       },
       "parameter": {
@@ -50,6 +106,9 @@
         "fore": "#9373a5"
       },
       "enumMember": {
+        "fore": "#2aacb8"
+      },
+      "event": {
         "fore": "#c77dbb"
       },
       "functionCall": {
@@ -62,7 +121,7 @@
         "fore": "#bcbec4"
       },
       "macro": {
-        "fore": "#908b25"
+        "fore": "#b5b6e3"
       },
       "keyword": {
         "fore": "#cf8e6d"
@@ -78,6 +137,41 @@
       },
       "operator": {
         "fore": "#bcbec4"
+      },
+      "decorator": {
+        "fore": "#cf8e6d"
+      }
+    },
+    "structure": {
+      "package": {
+        "fore": "#ced0d6"
+      },
+      "method": {
+        "fore": "#db5c5c"
+      },
+      "function": {
+        "fore": "#db5c5c"
+      },
+      "variable": {
+        "fore": "#c77d55"
+      },
+      "constant": {
+        "fore": "#57965c"
+      },
+      "string": {
+        "fore": "#57965c"
+      },
+      "number": {
+        "fore": "#548af7"
+      },
+      "boolean": {
+        "fore": "#cf8e6d"
+      },
+      "array": {
+        "fore": "#b589ec"
+      },
+      "object": {
+        "fore": "#548af7"
       }
     }
   },

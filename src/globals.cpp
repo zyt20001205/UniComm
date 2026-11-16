@@ -3,7 +3,6 @@
 GlobalManager *g_globalManager = nullptr;
 
 bool g_terminating = false;
-int g_theme = {};
 QUrl g_workspaceUrl = {};
 QString g_gitRootPath = {};
 QJsonObject g_mainConfig = {};

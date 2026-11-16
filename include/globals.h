@@ -144,10 +144,13 @@ namespace ScintillaStyle {
         Namespace,
         Class,
         Type,
+        Struct,
+        TypeParameter,
         Parameter,
         Variable,
         Property,
         EnumMember,
+        Event,
         FunctionCall,
         FunctionDeclaration,
         Method,
@@ -156,7 +159,8 @@ namespace ScintillaStyle {
         Comment,
         String,
         Number,
-        Operator
+        Operator,
+        Decorator
     };
 }
 

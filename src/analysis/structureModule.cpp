@@ -14,7 +14,12 @@
 StructureModule::StructureModule()
     : DockWidget("Structure"),
       m_widget(new QQuickWidget()),
-      m_standardItemModel(new StructureModel(this)) {
+      m_model(new QStandardItemModel(this)) {
+    auto roles = m_model->roleNames();
+    roles[DetailRole] = "detail";
+    roles[PositionRole] = "position";
+    roles[IconColorRole] = "iconColor";
+    m_model->setItemRoleNames(roles);
     setWidget(m_widget);
     m_widget->installEventFilter(this);
 }
@@ -29,7 +34,6 @@ void StructureModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("global", g_globalManager);
     m_widget->rootContext()->setContextProperty("rootMenu", qvariant_cast<QObject *>(objects["structureModuleRootMenu"]));
     m_widget->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
-    m_widget->rootContext()->setContextProperty("standardItemModel", m_standardItemModel);
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/analysis/structureModule.qml"));
@@ -42,7 +46,7 @@ void StructureModule::propertyGet(const QVariantMap &objects) {
 void StructureModule::documentSymbolResponse(const QUrl &documentUrl, const QJsonArray &result) {
     m_documentSymbolHash[documentUrl] = result;
     if (documentUrl == m_documentUrl) {
-        m_standardItemModel->clear();
+        m_model->clear();
         documentSymbolPublish(result, nullptr);
     }
 }
@@ -50,7 +54,7 @@ void StructureModule::documentSymbolResponse(const QUrl &documentUrl, const QJso
 void StructureModule::documentFocus(const QUrl &documentUrl, const QVariantHash &session) {
     if (documentUrl == m_documentUrl) return;
     m_documentUrl = documentUrl;
-    m_standardItemModel->clear();
+    m_model->clear();
     if (m_documentSymbolHash.contains(documentUrl)) {
         documentSymbolPublish(m_documentSymbolHash[documentUrl], nullptr);
     }
@@ -79,6 +83,8 @@ bool StructureModule::eventFilter(QObject *watched, QEvent *event) {
 
 // private
 void StructureModule::documentSymbolPublish(const QJsonArray &result, QStandardItem *parentItem) {
+    const auto *theme = g_globalManager->themeGet();
+    const auto colors = theme->configGet()["lua"].toObject()["structure"].toObject();
     for (const auto &value: result) {
         const auto symbol = value.toObject();
         auto *item = new QStandardItem(); // NOLINT
@@ -89,52 +95,62 @@ void StructureModule::documentSymbolPublish(const QJsonArray &result, QStandardI
         const auto start = range["start"].toObject();
         const auto end = range["end"].toObject();
         item->setData(name, Qt::DisplayRole);
-        item->setData(detail, StructureModel::DetailRole);
+        item->setData(detail, DetailRole);
         item->setData(QVariantHash{
                           {"startLine", start["line"].toInt()},
                           {"startCharacter", start["character"].toInt()},
                           {"endLine", end["line"].toInt()},
                           {"endCharacter", end["character"].toInt()}
-                      }, StructureModel::PositionRole);
+                      }, PositionRole);
         switch (kind) {
             case LspSymbolKind::Package: {
+                item->setData(colors["package"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolPackage.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Method:
             case LspSymbolKind::Function: {
+                item->setData(colors[kind == LspSymbolKind::Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolMethod.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Variable: {
+                item->setData(colors["variable"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolVariable.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Constant: {
+                item->setData(colors["constant"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolConstant.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::String: {
+                item->setData(colors["string"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolString.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Number: {
+                item->setData(colors["number"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolNumeric.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Boolean: {
+                item->setData(colors["boolean"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolBoolean.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Array: {
+                item->setData(colors["array"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolArray.svg"), Qt::DecorationRole);
             }
             break;
             case LspSymbolKind::Object: {
+                item->setData(colors["object"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolMisc.svg"), Qt::DecorationRole);
             }
             break;
             default: {
+                item->setData(theme->foreGet(), IconColorRole);
                 item->setData(QUrl("qrc:/icon/symbolMisc.svg"), Qt::DecorationRole);
                 emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported symbol (kind:%1, name:%2, detail:%3)").arg(QString::number(kind), name, detail));
             }
@@ -143,19 +159,11 @@ void StructureModule::documentSymbolPublish(const QJsonArray &result, QStandardI
         if (parentItem) {
             parentItem->appendRow(item);
         } else {
-            m_standardItemModel->appendRow(item);
+            m_model->appendRow(item);
         }
         if (symbol.contains("children")) {
             QJsonArray children = symbol["children"].toArray();
             documentSymbolPublish(children, item);
         }
     }
-}
-
-// public
-QHash<int, QByteArray> StructureModel::roleNames() const {
-    auto roles = QStandardItemModel::roleNames();
-    roles[DetailRole] = "detail";
-    roles[PositionRole] = "position";
-    return roles;
 }

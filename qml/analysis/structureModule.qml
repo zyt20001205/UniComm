@@ -16,7 +16,7 @@ Item {
         id: treeView
         anchors.fill: parent
         clip: true
-        model: standardItemModel
+        model: structureModule.model
         property int selectedRow: -1
 
         ScrollBar.vertical: ScrollBar {
@@ -94,7 +94,7 @@ Item {
                         anchors.centerIn: parent
                         width: 20; height: 20
                         source: model.decoration
-                        color: global.theme.fore
+                        color: model.iconColor
                     }
                 }
 

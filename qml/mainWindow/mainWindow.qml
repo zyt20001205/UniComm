@@ -1197,6 +1197,7 @@ Item {
 
         contentItem: TableView {
             id: documentModuleCompletionTableView
+            model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.model : null
             anchors.fill: parent
             anchors.margins: 6
             implicitWidth: Math.max(idealWidth, 200); implicitHeight: Math.min(idealHeight, 150)
@@ -1256,7 +1257,7 @@ Item {
                             anchors.centerIn: parent
                             width: 16; height: 16
                             source: model.decoration
-                            color: global.theme.fore
+                            color: model.iconColor
                         }
                     }
 
@@ -1360,6 +1361,7 @@ Item {
 
             contentItem: TableView {
                 id: documentModuleCompletionDetailTableView
+                model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.detailModel : null
                 anchors.fill: parent
                 anchors.margins: 6
                 implicitWidth: idealWidth; implicitHeight: idealHeight
@@ -4788,7 +4790,6 @@ Item {
             "documentModuleEditorMenu": documentModuleEditorMenu,
             "documentModuleCompletionToolTip": documentModuleCompletionToolTip,
             "documentModuleCompletionTableView": documentModuleCompletionTableView,
-            "documentModuleCompletionDetailTableView": documentModuleCompletionDetailTableView,
             "documentModuleDwellToolTip": documentModuleDwellToolTip,
             "documentModuleDwellDiagnosticTextArea": documentModuleDwellDiagnosticTextArea,
             "documentModuleDwellHoverTextArea": documentModuleDwellHoverTextArea,

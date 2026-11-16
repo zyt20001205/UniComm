@@ -1,15 +1,12 @@
 #ifndef UNICOMM_COMPLETIONPOPUP_H
 #define UNICOMM_COMPLETIONPOPUP_H
 
-#include <QObject>
-#include <QSet>
-
-#include "ScintillaTypes.h"
-
-class QStandardItemModel;
+#include <QStandardItemModel>
 
 class CompletionWidget final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
+    Q_PROPERTY(QStandardItemModel* detailModel READ detailModelGet CONSTANT)
 
 public:
     explicit CompletionWidget(QObject *parent = nullptr);
@@ -17,6 +14,14 @@ public:
     ~CompletionWidget() override = default;
 
     void propertySet(const QVariantHash &objects);
+
+    [[nodiscard]] QStandardItemModel *modelGet() const {
+        return m_model;
+    }
+
+    [[nodiscard]] QStandardItemModel *detailModelGet() const {
+        return m_detailModel;
+    }
 
     void fontSet(const QString &family, int pointSize) const;
 
@@ -49,14 +54,15 @@ private:
     void placeholderExpand(const QString &placeholder) const;
 
     enum Role {
-        KindRole = Qt::UserRole + 1
+        KindRole = Qt::UserRole + 1,
+        IconColorRole
     };
 
     QObject *m_tooltip{};
     QObject *m_tableView{};
     QVariantHash m_completionSession{};
     QSet<QString > m_placeholderSet{};
-    QStandardItemModel *m_completionModel{};
+    QStandardItemModel *m_model{};
     QStandardItemModel *m_detailModel{};
 
     enum CompletionKind {

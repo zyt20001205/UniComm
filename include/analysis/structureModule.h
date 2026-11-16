@@ -8,10 +8,9 @@ class QQuickWidget;
 class QStandardItem;
 class QTreeView;
 
-class StructureModel;
-
 class StructureModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
 
 public:
     explicit StructureModule();
@@ -19,6 +18,10 @@ public:
     ~StructureModule() override;
 
     void propertySet(const QVariantHash &objects);
+
+    [[nodiscard]] QStandardItemModel *modelGet() const {
+        return m_model;
+    }
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 
@@ -40,27 +43,19 @@ signals:
     void addMarker(const QUrl &documentUrl, int type, int line, int time);
 
 private:
+    enum Role {
+        DetailRole = Qt::UserRole + 1,
+        PositionRole,
+        IconColorRole
+    };
+
     void documentSymbolPublish(const QJsonArray &result, QStandardItem *parentItem);
 
     QUrl m_documentUrl{};
     QQuickWidget *m_widget{};
     QObject *m_treeView{};
-    StructureModel *m_standardItemModel{};
+    QStandardItemModel *m_model{};
     QHash<QUrl, QJsonArray> m_documentSymbolHash{};
-};
-
-class StructureModel final : public QStandardItemModel {
-    Q_OBJECT
-
-public:
-    using QStandardItemModel::QStandardItemModel;
-
-    enum Role {
-        DetailRole = Qt::UserRole + 1,
-        PositionRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 };
 
 #endif //UNICOMM_STRUCTUREMODULE_H
