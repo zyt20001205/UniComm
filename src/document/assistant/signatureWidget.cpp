@@ -1,10 +1,10 @@
 #include "document/assistant/signatureWidget.h"
 
 #include <QJsonArray>
-#include <QJsonObject>
-#include <QLabel>
+#include <QFont>
 
-#include "util/uniCast.h"
+#include "globals.h"
+#include "core/globalManager.h"
 
 // public
 SignatureWidget::SignatureWidget(QObject *parent)
@@ -14,15 +14,14 @@ SignatureWidget::SignatureWidget(QObject *parent)
 void SignatureWidget::propertySet(const QVariantHash &objects) {
     m_tooltip = qvariant_cast<QObject *>(objects["documentModuleSignatureToolTip"]);
     m_tooltip->setProperty("signatureWidget", QVariant::fromValue(this));
-    m_label = qvariant_cast<QObject *>(objects["documentModuleSignatureLabel"]);
 }
 
 void SignatureWidget::fontSet(const QString &family, const int pointSize) const {
-    if (!m_label) return;
-    auto font = m_label->property("font").value<QFont>();
+    if (!m_tooltip) return;
+    auto font = m_tooltip->property("font").value<QFont>();
     font.setFamily(family);
     font.setPointSize(pointSize);
-    m_label->setProperty("font", font);
+    m_tooltip->setProperty("font", font);
 }
 
 bool SignatureWidget::isVisible() const {
@@ -32,6 +31,7 @@ bool SignatureWidget::isVisible() const {
 
 void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const QJsonArray &signatures) {
     m_signatureSession = signatureSession;
+    const auto *theme = g_globalManager->themeGet();
     QString helpText{};
     bool reposition = false;
     for (const auto &value: signatures) {
@@ -51,11 +51,9 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
             const QJsonArray range = parameter["label"].toArray();
             const int startIndex = range[0].toInt();
             const int endIndex = range[1].toInt();
-            QString param = label.mid(startIndex, endIndex - startIndex);
+            QString param = label.mid(startIndex, endIndex - startIndex).toHtmlEscaped();
             if (index == activeParameter) {
-                const auto html = uni_cast<QHtmlString>(param).value;
-                // remove <p> & </p>\n
-                param = QString("<span style='color: #115ea3; font-weight: 600;'>%1</span>").arg(html.mid(3, html.size() - 8));
+                param = QString("<span style='color: %1; font-weight: 600;'>%2</span>").arg(theme->warningFore3Get(), param);
             }
             helpText += param;
             helpText += ", ";
@@ -65,7 +63,10 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
         helpText += ")<br>";
     }
     helpText.chop(4);
-    m_label->setProperty("text", helpText);
+    if (m_text != helpText) {
+        m_text = helpText;
+        emit textChanged();
+    }
     if (reposition) {
         const auto position = signatureSession["position"].toPoint();
         m_tooltip->setProperty("position", position);
@@ -73,9 +74,11 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
     QMetaObject::invokeMethod(m_tooltip, "open");
 }
 
-void SignatureWidget::signatureHide() const {
+void SignatureWidget::signatureHide() {
     QMetaObject::invokeMethod(m_tooltip, "close");
-    m_label->setProperty("text", "");
+    if (m_text.isEmpty()) return;
+    m_text.clear();
+    emit textChanged();
 }
 
 void SignatureWidget::signatureNext() {

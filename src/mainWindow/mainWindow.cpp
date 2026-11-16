@@ -171,8 +171,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
         {"documentModuleNavigationListView", objects["documentModuleNavigationListView"]},
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]},
-        {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]},
-        {"documentModuleSignatureLabel", objects["documentModuleSignatureLabel"]}
+        {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]}
     };
     m_documentModule->propertySet(documentObjects);
 

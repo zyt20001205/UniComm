@@ -1785,7 +1785,8 @@ Item {
         }
 
         contentItem: Label {
-            id: documentModuleSignatureLabel
+            text: documentModuleSignatureToolTip.signatureWidget ? documentModuleSignatureToolTip.signatureWidget.text : ""
+            font: documentModuleSignatureToolTip.font
             textFormat: Text.RichText
         }
     }
@@ -4688,7 +4689,6 @@ Item {
             "documentModuleNavigationListView": documentModuleNavigationListView,
             "documentModulePositionTooltip": documentModulePositionTooltip,
             "documentModuleSignatureToolTip": documentModuleSignatureToolTip,
-            "documentModuleSignatureLabel": documentModuleSignatureLabel,
 
             "explorerModuleFileMenu": explorerModuleFileMenu,
             "explorerModuleFolderMenu": explorerModuleFolderMenu,

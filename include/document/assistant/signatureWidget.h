@@ -5,6 +5,7 @@
 
 class SignatureWidget final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString text READ textGet NOTIFY textChanged)
 
 public:
     explicit SignatureWidget(QObject *parent = nullptr);
@@ -13,24 +14,30 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
+    [[nodiscard]] QString textGet() const {
+        return m_text;
+    }
+
     void fontSet(const QString &family, int pointSize) const;
 
     [[nodiscard]] bool isVisible() const;
 
     void signatureShow(const QVariantHash &signatureSession, const QJsonArray &signatures);
 
-    Q_INVOKABLE void signatureHide() const;
+    Q_INVOKABLE void signatureHide();
 
     void signatureNext();
 
 signals:
+    void textChanged();
+
     void setTextSelected(const QUrl &documentUrl, const QString &text);
 
     void addChar(const QUrl &documentUrl, QChar character);
 
 private:
     QObject *m_tooltip{};
-    QObject *m_label{};
+    QString m_text{};
     QVariantHash m_signatureSession{};
 };
 

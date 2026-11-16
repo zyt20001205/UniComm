@@ -59,8 +59,7 @@ void CodeAssistant::propertySet(const QVariantHash &objects) const {
         {"mainWindowToolTip", objects["mainWindowToolTip"]}
     });
     m_signatureWidget->propertySet(QVariantHash{
-        {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]},
-        {"documentModuleSignatureLabel", objects["documentModuleSignatureLabel"]}
+        {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]}
     });
 }
 

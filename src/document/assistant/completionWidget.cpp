@@ -157,7 +157,7 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
                 break;
             }
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
-                theme->brandBackGet(),
+                theme->foreDisabledGet(),
                 insertText.left(typed).toHtmlEscaped(),
                 insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{
@@ -280,7 +280,7 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
         for (int i = 0; i < ports->rowCount(); ++i) {
             const QString insertText = "\"" + ports->item(i, 0)->text() + "\"";
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
-                theme->brandBackGet(),
+                theme->foreDisabledGet(),
                 insertText.left(typed).toHtmlEscaped(),
                 insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{
