@@ -1,12 +1,17 @@
 #ifndef UNICOMM_COMPLETIONPOPUP_H
 #define UNICOMM_COMPLETIONPOPUP_H
 
-#include <QStandardItemModel>
+#include <QFont>
+#include <QSizeF>
+#include <QVariant>
 
 class CompletionWidget final : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
-    Q_PROPERTY(QStandardItemModel* detailModel READ detailModelGet CONSTANT)
+    Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
+    Q_PROPERTY(QVariantList detailModel READ detailModelGet NOTIFY detailModelChanged)
+    Q_PROPERTY(qreal rowHeight READ rowHeightGet NOTIFY sizesChanged)
+    Q_PROPERTY(QSizeF contentSize READ contentSizeGet NOTIFY sizesChanged)
+    Q_PROPERTY(QSizeF detailContentSize READ detailContentSizeGet NOTIFY sizesChanged)
 
 public:
     explicit CompletionWidget(QObject *parent = nullptr);
@@ -15,31 +20,49 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
-    [[nodiscard]] QStandardItemModel *modelGet() const {
+    [[nodiscard]] QVariantList modelGet() const {
         return m_model;
     }
 
-    [[nodiscard]] QStandardItemModel *detailModelGet() const {
+    [[nodiscard]] QVariantList detailModelGet() const {
         return m_detailModel;
     }
 
-    void fontSet(const QString &family, int pointSize) const;
+    [[nodiscard]] qreal rowHeightGet() const {
+        return m_rowHeight;
+    }
+
+    [[nodiscard]] QSizeF contentSizeGet() const {
+        return m_contentSize;
+    }
+
+    [[nodiscard]] QSizeF detailContentSizeGet() const {
+        return m_detailContentSize;
+    }
+
+    void fontSet(const QString &family, int pointSize);
 
     [[nodiscard]] bool isVisible() const;
 
     void completionShow(const QVariantHash &completionSession, const QJsonArray &items);
 
-    Q_INVOKABLE void completionHide() const;
+    Q_INVOKABLE void completionHide();
 
     void completionPrev() const;
 
     void completionNext() const;
 
-    Q_INVOKABLE void detailReload(int index) const;
+    Q_INVOKABLE void detailReload(int index);
 
     Q_INVOKABLE void textReplace();
 
 signals:
+    void modelChanged();
+
+    void detailModelChanged();
+
+    void sizesChanged();
+
     void appendLog(int type, const QString &prefix, const QString &message);
 
     void setIndex(const QUrl &documentUrl, int line, int character);
@@ -51,19 +74,20 @@ signals:
     void showPosition(const QVariantMap &positionSession);
 
 private:
-    void placeholderExpand(const QString &placeholder) const;
+    void placeholderExpand(const QString &placeholder, QVariantList &model) const;
 
-    enum Role {
-        KindRole = Qt::UserRole + 1,
-        IconColorRole
-    };
+    void sizesRefresh();
 
     QObject *m_tooltip{};
-    QObject *m_tableView{};
+    QObject *m_listView{};
     QVariantHash m_completionSession{};
     QSet<QString > m_placeholderSet{};
-    QStandardItemModel *m_model{};
-    QStandardItemModel *m_detailModel{};
+    QVariantList m_model{};
+    QVariantList m_detailModel{};
+    QFont m_font{};
+    qreal m_rowHeight{24};
+    QSizeF m_contentSize{0, 0};
+    QSizeF m_detailContentSize{0, 0};
 
     enum CompletionKind {
         Text = 1,

@@ -162,7 +162,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"documentModuleSaveDialog", objects["documentModuleSaveDialog"]},
         {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]},
         {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
-        {"documentModuleCompletionTableView", objects["documentModuleCompletionTableView"]},
+        {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]},
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
         {"documentModuleDwellDiagnosticTextArea", objects["documentModuleDwellDiagnosticTextArea"]},
         {"documentModuleDwellHoverTextArea", objects["documentModuleDwellHoverTextArea"]},

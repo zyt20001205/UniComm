@@ -39,7 +39,7 @@ CodeAssistant::CodeAssistant(QWidget *parent)
 void CodeAssistant::propertySet(const QVariantHash &objects) const {
     m_completionWidget->propertySet(QVariantHash{
         {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
-        {"documentModuleCompletionTableView", objects["documentModuleCompletionTableView"]}
+        {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]}
     });
     m_dwellWidget->propertySet(QVariantHash{
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},

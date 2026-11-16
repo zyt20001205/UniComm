@@ -1,9 +1,7 @@
 #include "document/assistant/completionWidget.h"
 
 #include <QJsonArray>
-#include <QLabel>
-#include <QListView>
-#include <QTimer>
+#include <QtMath>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -15,26 +13,25 @@ CompletionWidget::CompletionWidget(QObject *parent)
       m_placeholderSet({
           "\"__PLACEHOLDER__PORTNAME__\"",
           "\"__PLACEHOLDER__PASSWORD__\""
-      }),
-      m_model(new QStandardItemModel(this)),
-      m_detailModel(new QStandardItemModel(this)) {
-    auto roles = m_model->roleNames();
-    roles[IconColorRole] = "iconColor";
-    m_model->setItemRoleNames(roles);
+      }) {
 }
 
 void CompletionWidget::propertySet(const QVariantHash &objects) {
     m_tooltip = qvariant_cast<QObject *>(objects["documentModuleCompletionToolTip"]);
-    m_tableView = qvariant_cast<QObject *>(objects["documentModuleCompletionTableView"]);
+    m_listView = qvariant_cast<QObject *>(objects["documentModuleCompletionListView"]);
+    m_font = m_tooltip->property("font").value<QFont>();
+    sizesRefresh();
     m_tooltip->setProperty("completionWidget", QVariant::fromValue(this));
 }
 
-void CompletionWidget::fontSet(const QString &family, const int pointSize) const {
+void CompletionWidget::fontSet(const QString &family, const int pointSize) {
     if (!m_tooltip) return;
     auto font = m_tooltip->property("font").value<QFont>();
     font.setFamily(family);
     font.setPointSize(pointSize);
     m_tooltip->setProperty("font", font);
+    m_font = font;
+    sizesRefresh();
 }
 
 bool CompletionWidget::isVisible() const {
@@ -45,7 +42,7 @@ bool CompletionWidget::isVisible() const {
 void CompletionWidget::completionShow(const QVariantHash &completionSession, const QJsonArray &items) {
     m_tooltip->setProperty("typed", QVariant::fromValue(completionSession["typed"]));
     m_completionSession = completionSession;
-    m_model->clear();
+    QVariantList model;
     int completionMode = Full;
     const auto *theme = g_globalManager->themeGet();
     const auto colors = theme->configGet()["lua"].toObject()["completion"].toObject();
@@ -67,145 +64,166 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
         const QString insertText = item["insertText"].toString(label);
         // placeholder check
         if (m_placeholderSet.contains(insertText)) {
-            placeholderExpand(insertText);
+            placeholderExpand(insertText, model);
             continue;
         }
         // duplicate item check
-        if (insertText != recordInsertText) {
+        if (model.isEmpty() || insertText != recordInsertText) {
             recordInsertText = insertText;
-            auto *standardItem = new QStandardItem(insertText); // NOLINT
+            QString iconColor;
             QUrl iconSource{};
             switch (kind) {
                 case Text: {
-                    standardItem->setData(colors["text"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["text"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolString.svg";
                 }
                 break;
                 case Method:
                 case Function: {
-                    standardItem->setData(colors[kind == Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors[kind == Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolMethod.svg";
                 }
                 break;
                 case Field: {
-                    standardItem->setData(colors["field"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["field"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
                 case Variable: {
-                    standardItem->setData(colors["variable"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["variable"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
                 case Enum: {
-                    standardItem->setData(colors["enum"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["enum"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEnum.svg";
                 }
                 break;
                 case Keyword: {
-                    standardItem->setData(colors["keyword"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["keyword"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
                 break;
                 case Snippet: {
-                    standardItem->setData(colors["snippet"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["snippet"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolSnippet.svg";
                 }
                 break;
                 case File: {
-                    standardItem->setData(colors["file"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["file"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolFile.svg";
                 }
                 break;
                 case EnumMember: {
-                    standardItem->setData(colors["enumMember"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["enumMember"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEnumMember.svg";
                 }
                 break;
                 case Event: {
-                    standardItem->setData(colors["event"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["event"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEvent.svg";
                 }
                 break;
                 case Class: {
-                    standardItem->setData(colors["class"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["class"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolMisc.svg";
                 }
                 break;
                 case Interface: {
-                    standardItem->setData(colors["interface"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["interface"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
                 case Property: {
-                    standardItem->setData(colors["property"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["property"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
                 case Value: {
-                    standardItem->setData(colors["value"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["value"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolConstant.svg";
                 }
                 break;
                 case Operator: {
-                    standardItem->setData(colors["operator"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
+                    iconColor = colors["operator"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
                 break;
                 default: {
-                    standardItem->setData(theme->foreGet(), IconColorRole);
+                    iconColor = theme->foreGet();
                     iconSource = "qrc:/icon/symbolMisc.svg";
                     emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported completion (kind:%1, text:%2)").arg(QString::number(kind), insertText));
                 }
                 break;
             }
-            standardItem->setData(iconSource, Qt::DecorationRole);
-            standardItem->setData(QStringList({label}), Qt::WhatsThisRole);
-            standardItem->setData(kind, KindRole);
-            m_model->appendRow(standardItem);
+            model.append(QVariantHash{
+                {"text", insertText},
+                {"source", iconSource},
+                {"iconColor", iconColor},
+                {"kind", kind},
+                {"labels", QStringList{label}}
+            });
         } else {
-            auto labelList = m_model->item(m_model->rowCount() - 1, 0)->data(Qt::WhatsThisRole).toStringList();
-            labelList.append(label);
-            m_model->item(m_model->rowCount() - 1, 0)->setData(labelList, Qt::WhatsThisRole);
+            auto item = model.last().toHash();
+            auto labels = item["labels"].toStringList();
+            labels.append(label);
+            item["labels"] = labels;
+            model.last() = item;
         }
     }
-    if (m_model->rowCount() > 0) {
+    m_model = model;
+    m_detailModel.clear();
+    sizesRefresh();
+    emit modelChanged();
+    emit detailModelChanged();
+    if (!m_model.isEmpty()) {
         const auto position = completionSession["position"].toPoint();
         m_tooltip->setProperty("position", position);
-        m_tableView->setProperty("selectedRow", 0);
+        m_listView->setProperty("currentIndex", 0);
         QMetaObject::invokeMethod(m_tooltip, "open");
     } else {
         completionHide();
     }
 }
 
-void CompletionWidget::completionHide() const {
+void CompletionWidget::completionHide() {
     QMetaObject::invokeMethod(m_tooltip, "close");
-    m_model->clear();
-    m_detailModel->clear();
+    if (m_model.isEmpty() && m_detailModel.isEmpty()) return;
+    m_model.clear();
+    m_detailModel.clear();
+    sizesRefresh();
+    emit modelChanged();
+    emit detailModelChanged();
 }
 
 void CompletionWidget::completionPrev() const {
-    QMetaObject::invokeMethod(m_tableView, "completionPrev");
+    QMetaObject::invokeMethod(m_listView, "completionPrev");
 }
 
 void CompletionWidget::completionNext() const {
-    QMetaObject::invokeMethod(m_tableView, "completionNext");
+    QMetaObject::invokeMethod(m_listView, "completionNext");
 }
 
-void CompletionWidget::detailReload(const int index) const {
-    m_detailModel->clear();
-    if (!m_model->item(index, 0)) return;
-    const auto labelList = m_model->item(index, 0)->data(Qt::WhatsThisRole).toStringList();
-    for (const auto &label: labelList) {
-        m_detailModel->appendRow(new QStandardItem(label));
+void CompletionWidget::detailReload(const int index) {
+    QVariantList model;
+    if (index >= 0 && index < m_model.size()) {
+        const auto labels = m_model[index].toHash()["labels"].toStringList();
+        for (const auto &label: labels) {
+            model.append(QVariantHash{{"text", label}});
+        }
     }
+    if (m_detailModel == model) return;
+    m_detailModel = model;
+    sizesRefresh();
+    emit detailModelChanged();
 }
 
 void CompletionWidget::textReplace() {
-    const int index = m_tableView->property("selectedRow").toInt();
-    const int kind = m_model->item(index, 0)->data(KindRole).toInt();
-    QString insertText = m_model->item(index, 0)->text();
+    const int index = m_listView->property("currentIndex").toInt();
+    if (index < 0 || index >= m_model.size()) return;
+    const auto item = m_model[index].toHash();
+    const int kind = item["kind"].toInt();
+    QString insertText = item["text"].toString();
     if (kind == Method || kind == Function) {
         insertText += "()";
     } else if (kind == Field) {
@@ -248,19 +266,40 @@ void CompletionWidget::textReplace() {
     completionHide();
 }
 
-void CompletionWidget::placeholderExpand(const QString &placeholder) const {
+void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantList &model) const {
     if (placeholder == "\"__PLACEHOLDER__PORTNAME__\"") {
-        const auto *model = g_globalManager->portModuleGet()->modelGet();
-        for (int i = 0; i < model->rowCount(); ++i) {
-            const QString insertText = "\"" + model->item(i, 0)->text() + "\"";
-            auto *standardItem = new QStandardItem(insertText); // NOLINT
-            standardItem->setData("qrc:/icon/symbolEnumMember.svg", Qt::DecorationRole);
-            const auto *theme = g_globalManager->themeGet();
-            standardItem->setData(theme->configGet()["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(theme->foreGet()), IconColorRole);
-            standardItem->setData(insertText, Qt::WhatsThisRole);
-            standardItem->setData(EnumMember, KindRole);
-            m_model->appendRow(standardItem);
+        const auto *ports = g_globalManager->portModuleGet()->modelGet();
+        const auto *theme = g_globalManager->themeGet();
+        const auto color = theme->configGet()["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(theme->foreGet());
+        for (int i = 0; i < ports->rowCount(); ++i) {
+            const QString insertText = "\"" + ports->item(i, 0)->text() + "\"";
+            model.append(QVariantHash{
+                {"text", insertText},
+                {"source", QUrl("qrc:/icon/symbolEnumMember.svg")},
+                {"iconColor", color},
+                {"kind", EnumMember},
+                {"labels", QStringList{insertText}}
+            });
         }
     } else if (placeholder == "\"__PLACEHOLDER__PASSWORD__\"") {
     }
+}
+
+void CompletionWidget::sizesRefresh() {
+    const QFontMetricsF metrics(m_font);
+    const qreal rowHeight = qMax<qreal>(24, qCeil(metrics.height()) + 4);
+    const auto measure = [&metrics, rowHeight](const QVariantList &model) {
+        qreal width = 0;
+        for (const auto &value: model) {
+            width = qMax(width, metrics.horizontalAdvance(value.toHash()["text"].toString()));
+        }
+        return QSizeF(qCeil(width), model.size() * rowHeight);
+    };
+    const auto contentSize = measure(m_model);
+    const auto detailContentSize = measure(m_detailModel);
+    if (m_rowHeight == rowHeight && m_contentSize == contentSize && m_detailContentSize == detailContentSize) return;
+    m_rowHeight = rowHeight;
+    m_contentSize = contentSize;
+    m_detailContentSize = detailContentSize;
+    emit sizesChanged();
 }

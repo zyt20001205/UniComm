@@ -1174,9 +1174,11 @@ Item {
         id: documentModuleCompletionToolTip
         parent: Overlay.overlay
         closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
+        padding: 6
         property point position
         property var completionWidget
         property int typed
+        readonly property real rowHeight: completionWidget ? completionWidget.rowHeight : 24
 
         onOpened: {
             mainWindow.overlayFlagSet(false, false)
@@ -1185,6 +1187,7 @@ Item {
         onClosed: {
             widgetCount -= 1
             documentModuleCompletionDetailTimer.stop()
+            documentModuleCompletionDetailToolTip.close()
             completionWidget.completionHide()
         }
         onAboutToShow: {
@@ -1195,19 +1198,17 @@ Item {
             documentModuleCompletionDetailTimer.restart()
         }
 
-        contentItem: TableView {
-            id: documentModuleCompletionTableView
-            model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.model : null
-            anchors.fill: parent
-            anchors.margins: 6
-            implicitWidth: Math.max(idealWidth, 200); implicitHeight: Math.min(idealHeight, 150)
-            alternatingRows: false
+        contentItem: ListView {
+            id: documentModuleCompletionListView
+            model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.model : []
+            implicitWidth: Math.max(200, documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.contentSize.width + 38 : 0)
+            implicitHeight: documentModuleCompletionToolTip.completionWidget ? Math.min(documentModuleCompletionToolTip.completionWidget.contentSize.height, 150) : 0
             clip: true
-            editTriggers: TableView.NoEditTriggers
+            focus: false
+            keyNavigationEnabled: false
+            highlightMoveDuration: 0
             flickableDirection: Flickable.VerticalFlick
-            property int idealWidth; property int idealHeight
-            property int hoveredRow: -1
-            property int selectedRow: -1
+            property int hoveredIndex: -1
 
             ScrollBar.vertical: ScrollBar {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
@@ -1218,89 +1219,72 @@ Item {
                 }
             }
 
-            delegate: Item {
-                implicitWidth: documentModuleCompletionTableView.width; implicitHeight: textMetrics.height + 4
-                required property int row
+            delegate: ItemDelegate {
+                id: completionDelegate
+                required property int index
+                required property var modelData
+                width: documentModuleCompletionListView.width
+                height: documentModuleCompletionToolTip.rowHeight
+                font: documentModuleCompletionToolTip.font
+                leftPadding: 4; rightPadding: 10; topPadding: 0; bottomPadding: 0
+                focusPolicy: Qt.NoFocus
+                hoverEnabled: true
+                highlighted: documentModuleCompletionListView.currentIndex === index
 
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    color: global.theme.backHover
-                    opacity: hoverHandler.hovered ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
-                    }
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    color: documentModuleCompletionTableView.selectedRow === row ? global.theme.backSelected : "transparent"
-                }
-
-                TextMetrics {
-                    id: textMetrics
-                    font: documentModuleCompletionToolTip.font
-                    text: model.display
-                }
-
-                RowLayout {
-                    anchors.fill: parent
+                contentItem: RowLayout {
                     spacing: 0
 
                     Item {
-                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                        Layout.preferredWidth: 24
+                        Layout.fillHeight: true
 
                         IconImage {
                             anchors.centerIn: parent
                             width: 16; height: 16
-                            source: model.decoration
-                            color: model.iconColor
+                            source: completionDelegate.modelData.source
+                            color: completionDelegate.modelData.iconColor
                         }
                     }
 
                     Label {
-                        font: documentModuleCompletionToolTip.font
+                        font: completionDelegate.font
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: model.display ? "<span style='color: " + global.theme.brandBack + ";'>" + model.display.substring(0, documentModuleCompletionToolTip.typed) + "</span>" + model.display.substring(documentModuleCompletionToolTip.typed) : ""
+                        text: completionDelegate.modelData.text ? "<span style='color: " + global.theme.brandBack + ";'>" + completionDelegate.modelData.text.substring(0, documentModuleCompletionToolTip.typed) + "</span>" + completionDelegate.modelData.text.substring(documentModuleCompletionToolTip.typed) : ""
                         textFormat: Text.RichText
                         elide: Text.ElideRight
-                        Layout.fillWidth: true; Layout.preferredHeight: 24
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                     }
                 }
 
-                HoverHandler {
-                    id: hoverHandler
-
-                    onPointChanged: documentModuleCompletionTableView.hoveredRow = row
-                    onHoveredChanged: {
-                        if (!hovered) {
-                            documentModuleCompletionTableView.hoveredRow = -1
-                            documentModuleCompletionDetailTimer.restart()
-                        }
+                onHoveredChanged: {
+                    if (hovered) {
+                        documentModuleCompletionListView.hoveredIndex = index
+                    } else if (documentModuleCompletionListView.hoveredIndex === index) {
+                        documentModuleCompletionListView.hoveredIndex = -1
                     }
                 }
-
-                TapHandler {
-                    acceptedButtons: Qt.LeftButton
-
-                    onTapped: documentModuleCompletionTableView.selectedRow = row
-                    onDoubleTapped: documentModuleCompletionToolTip.completionWidget.textReplace()
-                }
-
-                Component.onCompleted: {
-                    documentModuleCompletionTableView.idealWidth = Math.max(24 + textMetrics.width + 4 + 10, documentModuleCompletionTableView.idealWidth)
-                    documentModuleCompletionTableView.idealHeight = textMetrics.height + 4 + documentModuleCompletionTableView.idealHeight
+                onClicked: documentModuleCompletionListView.currentIndex = index
+                onDoubleClicked: {
+                    documentModuleCompletionListView.currentIndex = index
+                    documentModuleCompletionToolTip.completionWidget.textReplace()
                 }
             }
 
-            onHoveredRowChanged: documentModuleCompletionDetailTimer.restart()
-
-            onSelectedRowChanged: {
-                positionViewAtRow(selectedRow, TableView.Contain, 0, Qt.rect(0, 0, 0, 0))
-                documentModuleCompletionDetailTimer.restart()
+            onModelChanged: {
+                hoveredIndex = -1
+                positionViewAtBeginning()
+                if (documentModuleCompletionToolTip.visible) documentModuleCompletionDetailTimer.restart()
+            }
+            onHoveredIndexChanged: {
+                if (documentModuleCompletionToolTip.visible) documentModuleCompletionDetailTimer.restart()
+            }
+            onCurrentIndexChanged: {
+                if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+                if (documentModuleCompletionToolTip.visible) documentModuleCompletionDetailTimer.restart()
+            }
+            onContentYChanged: {
+                if (documentModuleCompletionToolTip.visible) documentModuleCompletionDetailTimer.restart()
             }
 
             Timer {
@@ -1308,101 +1292,65 @@ Item {
                 interval: 150
 
                 onTriggered: {
-                    var interestRow
-                    if (documentModuleCompletionTableView.hoveredRow !== -1) {
-                        interestRow = documentModuleCompletionTableView.hoveredRow
-                    } else {
-                        interestRow = documentModuleCompletionTableView.selectedRow
-                    }
-                    documentModuleCompletionToolTip.completionWidget.detailReload(interestRow)
-                    const index = documentModuleCompletionTableView.index(interestRow, 0);
-                    const item = documentModuleCompletionTableView.itemAtIndex(index);
-                    if (item) {
-                        let idealY = item.mapToItem(documentModuleCompletionTableView, 0, 0).y
-                        idealY = Math.max(0, idealY)
-                        idealY = Math.min(documentModuleCompletionTableView.height - item.height, idealY)
-                        documentModuleCompletionDetailToolTip.y = idealY - 6
-                    }
+                    const completion = documentModuleCompletionToolTip.completionWidget
+                    if (!documentModuleCompletionToolTip.visible || !completion) return
+                    const interestIndex = documentModuleCompletionListView.hoveredIndex !== -1
+                        ? documentModuleCompletionListView.hoveredIndex : documentModuleCompletionListView.currentIndex
+                    completion.detailReload(interestIndex)
+                    if (interestIndex < 0 || interestIndex >= documentModuleCompletionListView.count) return
+                    const rowHeight = documentModuleCompletionToolTip.rowHeight
+                    let idealY = interestIndex * rowHeight - documentModuleCompletionListView.contentY
+                    idealY = Math.max(0, Math.min(documentModuleCompletionListView.height - rowHeight, idealY))
+                    documentModuleCompletionDetailToolTip.y = idealY - 6
                 }
             }
 
             function completionPrev() {
-                if (selectedRow > 0) {
-                    selectedRow = selectedRow - 1
-                }
-                // else {
-                //     selectedRow = model.rowCount() - 1
-                // }
+                if (currentIndex > 0) currentIndex -= 1
             }
 
             function completionNext() {
-                if (selectedRow < model.rowCount() - 1) {
-                    selectedRow = selectedRow + 1
-                }
-                // else {
-                //     selectedRow = 0
-                // }
-            }
-
-            Connections {
-                target: documentModuleCompletionTableView.model
-
-                function onModelReset() {
-                    documentModuleCompletionTableView.idealWidth = 0
-                    documentModuleCompletionTableView.idealHeight = 0
-                    documentModuleCompletionDetailTimer.restart()
-                }
+                if (currentIndex < count - 1) currentIndex += 1
             }
         }
 
         ToolTip {
             id: documentModuleCompletionDetailToolTip
             x: documentModuleCompletionToolTip.width - 5
+            padding: 6
 
-            contentItem: TableView {
-                id: documentModuleCompletionDetailTableView
-                model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.detailModel : null
-                anchors.fill: parent
-                anchors.margins: 6
-                implicitWidth: idealWidth; implicitHeight: idealHeight
-                alternatingRows: false
+            contentItem: ListView {
+                id: documentModuleCompletionDetailListView
+                model: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.detailModel : []
+                implicitWidth: documentModuleCompletionToolTip.completionWidget ? documentModuleCompletionToolTip.completionWidget.detailContentSize.width + 4 : 0
+                implicitHeight: documentModuleCompletionToolTip.completionWidget ? Math.min(documentModuleCompletionToolTip.completionWidget.detailContentSize.height, 150) : 0
                 clip: true
-                editTriggers: TableView.NoEditTriggers
+                focus: false
+                keyNavigationEnabled: false
+                currentIndex: -1
                 flickableDirection: Flickable.VerticalFlick
-                property int idealWidth; property int idealHeight
 
-                delegate: Item {
-                    implicitWidth: documentModuleCompletionDetailTableView.width; implicitHeight: textMetrics.height + 4
-
-                    TextMetrics {
-                        id: textMetrics
-                        font: documentModuleCompletionToolTip.font
-                        text: model.display
-                    }
-
-                    Label {
-                        id: documentModuleCompletionDetailLabel
-                        anchors.fill: parent
-                        font: documentModuleCompletionToolTip.font
-                        horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: model.display
-                        elide: Text.ElideRight
-                    }
-
-                    Component.onCompleted: {
-                        documentModuleCompletionDetailTableView.idealWidth = Math.max(textMetrics.width + 4, documentModuleCompletionDetailTableView.idealWidth)
-                        documentModuleCompletionDetailTableView.idealHeight = textMetrics.height + 4 + documentModuleCompletionDetailTableView.idealHeight
+                ScrollBar.vertical: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    policy: ScrollBar.AsNeeded
+                    palette {
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
-                Connections {
-                    target: documentModuleCompletionDetailTableView.model
-
-                    function onModelReset() {
-                        documentModuleCompletionDetailTableView.idealWidth = 0
-                        documentModuleCompletionDetailTableView.idealHeight = 0
-                    }
+                delegate: Label {
+                    required property var modelData
+                    width: documentModuleCompletionDetailListView.width
+                    height: documentModuleCompletionToolTip.rowHeight
+                    font: documentModuleCompletionToolTip.font
+                    horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
+                    text: modelData.text
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
                 }
+
+                onModelChanged: positionViewAtBeginning()
             }
         }
     }
@@ -4789,7 +4737,7 @@ Item {
             "documentModuleSaveDialog": documentModuleSaveDialog,
             "documentModuleEditorMenu": documentModuleEditorMenu,
             "documentModuleCompletionToolTip": documentModuleCompletionToolTip,
-            "documentModuleCompletionTableView": documentModuleCompletionTableView,
+            "documentModuleCompletionListView": documentModuleCompletionListView,
             "documentModuleDwellToolTip": documentModuleDwellToolTip,
             "documentModuleDwellDiagnosticTextArea": documentModuleDwellDiagnosticTextArea,
             "documentModuleDwellHoverTextArea": documentModuleDwellHoverTextArea,
