@@ -1,52 +1,84 @@
 {
+  "general": {
+    "fore": "#ffffff",
+    "foreHover": "#ffffff",
+    "forePressed": "#ffffff",
+    "foreSelected": "#ffffff",
+    "foreDisabled": "#5c5c5c",
+    "back": "#292929",
+    "backHover": "#3d3d3d",
+    "backPressed": "#1f1f1f",
+    "backSelected": "#383838",
+    "stroke": "#666666",
+    "strokePressed": "#6b6b6b",
+    "brandFore": "#ffffff",
+    "brandBack": "#115ea3",
+    "brandBackSelected": "#0f548c",
+    "brandStroke": "#479ef5",
+    "brandLink": "#479ef5",
+    "successFore2": "#9fd89f",
+    "successBack2": "#094509",
+    "successFore3": "#9fd89f",
+    "successBack3": "#107c10",
+    "warningFore2": "#fdcfb4",
+    "warningBack2": "#8a3707",
+    "warningFore3": "#f98845",
+    "warningBack3": "#f7630c",
+    "dangerFore2": "#eeacb2",
+    "dangerBack2": "#6e0811",
+    "dangerFore3": "#eeacb2",
+    "dangerBack3": "#c50f1f"
+  },
   "lsp": {
-    "namespace": {
-      "fore": "#b5b6e3"
-    },
-    "class": {
-      "fore": "#b5b6e3"
-    },
-    "type": {
-      "fore": "#cf8e6d"
-    },
-    "parameter": {
-      "fore": "#bcbec4"
-    },
-    "variable": {
-      "fore": "#bcbec4"
-    },
-    "property": {
-      "fore": "#9373a5"
-    },
-    "enumMember": {
-      "fore": "#c77dbb"
-    },
-    "functionCall": {
-      "fore": "#bcbec4"
-    },
-    "functionDeclaration": {
-      "fore": "#56a8f5"
-    },
-    "method": {
-      "fore": "#bcbec4"
-    },
-    "macro": {
-      "fore": "#908b25"
-    },
-    "keyword": {
-      "fore": "#cf8e6d"
-    },
-    "comment": {
-      "fore": "#7a7e85"
-    },
-    "string": {
-      "fore": "#6aab73"
-    },
-    "number": {
-      "fore": "#2aacb8"
-    },
-    "operator": {
-      "fore": "#bcbec4"
+    "semantics": {
+      "namespace": {
+        "fore": "#b5b6e3"
+      },
+      "class": {
+        "fore": "#b5b6e3"
+      },
+      "type": {
+        "fore": "#cf8e6d"
+      },
+      "parameter": {
+        "fore": "#bcbec4"
+      },
+      "variable": {
+        "fore": "#bcbec4"
+      },
+      "property": {
+        "fore": "#9373a5"
+      },
+      "enumMember": {
+        "fore": "#c77dbb"
+      },
+      "functionCall": {
+        "fore": "#bcbec4"
+      },
+      "functionDeclaration": {
+        "fore": "#56a8f5"
+      },
+      "method": {
+        "fore": "#bcbec4"
+      },
+      "macro": {
+        "fore": "#908b25"
+      },
+      "keyword": {
+        "fore": "#cf8e6d"
+      },
+      "comment": {
+        "fore": "#7a7e85"
+      },
+      "string": {
+        "fore": "#6aab73"
+      },
+      "number": {
+        "fore": "#2aacb8"
+      },
+      "operator": {
+        "fore": "#bcbec4"
+      }
     }
   },
   "html": {

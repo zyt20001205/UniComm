@@ -9,10 +9,6 @@
 #include "terminal/terminalModule.h"
 #include "terminal/terminalPage.h"
 
-namespace {
-int f_theme{};
-}
-
 KDDockWidgets::Core::DockWidget *dockWidgetFactory(const QString &uniqueName) {
     const QUrl url(uniqueName);
     // file
@@ -24,10 +20,6 @@ KDDockWidgets::Core::DockWidget *dockWidgetFactory(const QString &uniqueName) {
         if (auto *page = g_globalManager->terminalModuleGet()->terminalConstruct(url)) return page->dockWidget();
     }
     return nullptr;
-}
-
-CustomWidgetFactory::CustomWidgetFactory() {
-    f_theme = g_mainConfig["theme"].toInt();
 }
 
 KDDockWidgets::Core::View * CustomWidgetFactory::createStack(KDDockWidgets::Core::Stack *controller, KDDockWidgets::Core::View *parent) const {
@@ -51,8 +43,7 @@ MyStack::MyStack(KDDockWidgets::Core::Stack *controller, QWidget *parent)
 
 void MyStack::paintEvent(QPaintEvent *event) {
     QPainter p(this);
-    if (f_theme == Theme::Light) p.fillRect(QWidget::rect(), "#ffffff");
-    else p.fillRect(QWidget::rect(), "#292929");
+    p.fillRect(QWidget::rect(), QColor(g_globalManager->themeGet()->backGet()));
 }
 
 MyTabBar::MyTabBar(KDDockWidgets::Core::TabBar *controller, QWidget *parent)
@@ -74,8 +65,7 @@ MySeparator::MySeparator(KDDockWidgets::Core::Separator *controller, KDDockWidge
 
 void MySeparator::paintEvent(QPaintEvent *event) {
     QPainter p(this);
-    if (f_theme == Theme::Light) p.fillRect(QWidget::rect(), "#ffffff");
-    else p.fillRect(QWidget::rect(), "#292929");
+    p.fillRect(QWidget::rect(), QColor(g_globalManager->themeGet()->backGet()));
 
     auto line = QWidget::rect();
     if (line.width() > line.height()) {
@@ -85,6 +75,5 @@ void MySeparator::paintEvent(QPaintEvent *event) {
         line.setWidth(1);
         line.moveLeft((width() - line.width()) / 2);
     }
-    if (f_theme == Theme::Light) p.fillRect(line, "#d1d1d1");
-    else p.fillRect(line, "#666666");
+    p.fillRect(line, QColor(g_globalManager->themeGet()->strokeGet()));
 }

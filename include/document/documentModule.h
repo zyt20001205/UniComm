@@ -286,7 +286,6 @@ private:
     void didDeleteFilesNotification(const QUrl &documentUrl);
 
     QJsonObject m_config{};
-    QJsonObject m_theme{};
     ToastModule *m_toast{};
     QObject *m_toolTip{};
     QObject *m_breakpointEditDialog{};

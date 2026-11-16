@@ -11,7 +11,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     TableView {
@@ -30,14 +30,14 @@ Item {
             minimumSize: Math.min(1, 20 / Math.max(1, height))
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.stroke
-                dark: global.strokePressed
+                mid: global.theme.stroke
+                dark: global.theme.strokePressed
             }
         }
 
         Rectangle {
             anchors.fill: parent
-            color: global.stroke
+            color: global.theme.stroke
         }
 
         delegate: DatabaseCell {}
@@ -64,14 +64,14 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            color: global.back
+            color: global.theme.back
         }
 
         Rectangle {
             id: highlight
             anchors.fill: parent
             radius: 6
-            color: global.backHover
+            color: global.theme.backHover
             opacity: 0
         }
 

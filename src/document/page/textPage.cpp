@@ -20,7 +20,6 @@ TextPage::TextPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
 
 void TextPage::propertySet(const QVariantHash &objects) const {
     m_editorWidget->propertySet(QVariantHash{
-        {"theme", objects["theme"]},
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},

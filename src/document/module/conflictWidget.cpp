@@ -86,7 +86,7 @@ void ConflictWidget::indicatorInit() const {
         ScintillaIndicator::ConflictStart,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->successFore2Get())},
+            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->successFore2Get())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -95,7 +95,7 @@ void ConflictWidget::indicatorInit() const {
         ScintillaIndicator::ConflictSeparator,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->brandBackGet())},
+            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->brandBackGet())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -104,7 +104,7 @@ void ConflictWidget::indicatorInit() const {
         ScintillaIndicator::ConflictEnd,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->warningFore2Get())},
+            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->warningFore2Get())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -117,13 +117,13 @@ void ConflictWidget::markerInit() const {
         ScintillaMarker::ConflictCurrent,
         QVariantHash{
             {"symbol", SC_MARK_BACKGROUND},
-            {"back", ScintillaWidget::colorGet(g_globalManager->successBack2Get())}
+            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->successBack2Get())}
         });
     m_scintillaWidget->markerDefine(
         ScintillaMarker::ConflictIncoming,
         QVariantHash{
             {"symbol", SC_MARK_BACKGROUND},
-            {"back", ScintillaWidget::colorGet(g_globalManager->warningBack2Get())}
+            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->warningBack2Get())}
         });
 }
 

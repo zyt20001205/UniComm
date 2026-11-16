@@ -14,7 +14,7 @@ class CustomWidgetFactory final : public KDDockWidgets::QtWidgets::ViewFactory {
     Q_OBJECT
 
 public:
-    explicit CustomWidgetFactory();
+    explicit CustomWidgetFactory() = default;
 
     KDDockWidgets::Core::View *createStack(KDDockWidgets::Core::Stack *controller, KDDockWidgets::Core::View *parent) const override;
 

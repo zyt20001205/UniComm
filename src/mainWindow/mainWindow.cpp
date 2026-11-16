@@ -395,7 +395,6 @@ void MainWindow::moduleInit() {
     qDebug() << QString("[%1] %2").arg(timestamp, "initializing module");
 
     m_configManager = new ConfigManager(this);
-    g_globalManager = new GlobalManager(qApp);
     g_globalManager->mainWindowSet(this);
     g_globalManager->networkAccessManagerSet(new QNetworkAccessManager(qApp));
     m_serviceModule = new ServiceModule();

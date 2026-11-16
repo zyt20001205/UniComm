@@ -8,7 +8,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -193,8 +193,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
@@ -213,7 +213,7 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.back
+                        color: global.theme.back
                     }
 
                     Rectangle {
@@ -223,7 +223,7 @@ Item {
                         bottomLeftRadius: column === 0 ? radius : 0
                         topRightRadius: column === tableView.columns - 1 ? radius : 0
                         bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                        color: global.backHover
+                        color: global.theme.backHover
                         opacity: tableView.hoveredRow === row ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -239,7 +239,7 @@ Item {
                         bottomLeftRadius: column === 0 ? radius : 0
                         topRightRadius: column === tableView.columns - 1 ? radius : 0
                         bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                        color: tableView.selectedRow === row ? global.backSelected : "transparent"
+                        color: tableView.selectedRow === row ? global.theme.backSelected : "transparent"
                     }
 
                     TextMetrics {

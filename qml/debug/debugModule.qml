@@ -8,7 +8,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -167,14 +167,14 @@ Item {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.stroke
-                    dark: global.strokePressed
+                    mid: global.theme.stroke
+                    dark: global.theme.strokePressed
                 }
             }
 
             Rectangle {
                 anchors.fill: parent
-                color: global.stroke
+                color: global.theme.stroke
             }
 
             delegate: Item {
@@ -194,13 +194,13 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.back
+                    color: global.theme.back
                 }
 
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
-                    color: global.backHover
+                    color: global.theme.backHover
                     opacity: hoverHandler.hovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {

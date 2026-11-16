@@ -20,9 +20,9 @@ LogModule::LogModule()
       m_config(g_workspaceConfig["logConfig"].toObject()),
       m_widget(new QQuickWidget()),
       m_textDocument(new QTextDocument(this)),
-      m_errorFore(g_globalManager->dangerFore3Get()),
-      m_warningFore(g_globalManager->warningFore3Get()),
-      m_infoFore(g_globalManager->foreGet()) {
+      m_errorFore(g_globalManager->themeGet()->dangerFore3Get()),
+      m_warningFore(g_globalManager->themeGet()->warningFore3Get()),
+      m_infoFore(g_globalManager->themeGet()->foreGet()) {
     setWidget(m_widget);
 }
 

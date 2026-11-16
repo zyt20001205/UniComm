@@ -17,7 +17,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -68,7 +68,7 @@ Item {
                         visible: source !== ""
                         source: sourceGet()
                         sourceSize: Qt.size(80, 80)
-                        color: global.fore
+                        color: global.theme.fore
                         Layout.preferredWidth: 80; Layout.preferredHeight: 80
                         Layout.alignment: Qt.AlignHCenter
 
@@ -158,8 +158,8 @@ Item {
                         height: portSettingsScrollView.availableHeight
                         policy: ScrollBar.AsNeeded
                         palette {
-                            mid: global.stroke
-                            dark: global.strokePressed
+                            mid: global.theme.stroke
+                            dark: global.theme.strokePressed
                         }
                     }
 
@@ -471,7 +471,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -607,7 +607,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -724,7 +724,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -861,7 +861,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -1121,14 +1121,14 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 6
-                                    color: global.backHover
+                                    color: global.theme.backHover
                                     visible: bluetoothTreeHoverHandler.hovered
                                 }
 
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 6
-                                    color: global.backSelected
+                                    color: global.theme.backSelected
                                     visible: bluetoothTreeView.selectedRow === bluetoothTreeDelegate.row
                                 }
 
@@ -1150,7 +1150,7 @@ Item {
                                             anchors.centerIn: parent
                                             width: 16; height: 16
                                             source: bluetoothTreeDelegate.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                            color: global.fore
+                                            color: global.theme.fore
                                             visible: bluetoothTreeDelegate.isTreeNode && bluetoothTreeDelegate.hasChildren
                                         }
 
@@ -1180,7 +1180,7 @@ Item {
                                             textFormat: Text.PlainText
                                             font.pointSize: 12
                                             font.weight: bluetoothTreeDelegate.depth === 0 ? Font.DemiBold : Font.Normal
-                                            color: global.fore
+                                            color: global.theme.fore
                                             wrapMode: Text.NoWrap
                                             verticalAlignment: Text.AlignVCenter
                                             Layout.minimumWidth: implicitWidth
@@ -1216,16 +1216,16 @@ Item {
                                                         textFormat: Text.PlainText
                                                         font.pointSize: 10
                                                         font.weight: Font.DemiBold
-                                                        color: global.fore
+                                                        color: global.theme.fore
                                                         horizontalAlignment: Text.AlignHCenter
                                                         verticalAlignment: Text.AlignVCenter
                                                     }
 
                                                     background: Rectangle {
                                                         radius: 4 // Fluent borderRadiusMedium.
-                                                        color: global.backSelected
+                                                        color: global.theme.backSelected
                                                         border.width: 1
-                                                        border.color: global.stroke
+                                                        border.color: global.theme.stroke
                                                     }
                                                 }
                                             }
@@ -1262,8 +1262,8 @@ Item {
                             ScrollBar.vertical: ScrollBar {
                                 id: bluetoothTreeScrollBar
                                 palette {
-                                    mid: global.stroke
-                                    dark: global.strokePressed
+                                    mid: global.theme.stroke
+                                    dark: global.theme.strokePressed
                                 }
                             }
 
@@ -1390,7 +1390,7 @@ Item {
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: 1
-                            color: global.stroke
+                            color: global.theme.stroke
                         }
                     }
 
@@ -1407,16 +1407,16 @@ Item {
                                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                                 policy: ScrollBar.AsNeeded
                                 palette {
-                                    mid: global.stroke
-                                    dark: global.strokePressed
+                                    mid: global.theme.stroke
+                                    dark: global.theme.strokePressed
                                 }
                             }
                             ScrollBar.horizontal: ScrollBar {
                                 minimumSize: Math.min(1, 20 / Math.max(1, width))
                                 policy: ScrollBar.AsNeeded
                                 palette {
-                                    mid: global.stroke
-                                    dark: global.strokePressed
+                                    mid: global.theme.stroke
+                                    dark: global.theme.strokePressed
                                 }
                             }
 
@@ -1428,7 +1428,7 @@ Item {
                             Rectangle {
                                 id: roiSelection
                                 anchors.fill: videoOutput
-                                color: global.stroke
+                                color: global.theme.stroke
                                 opacity: 0.3
                                 visible: step !== 0
                                 property int step: 0
@@ -1567,7 +1567,7 @@ Item {
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 height: 1
-                                color: global.stroke
+                                color: global.theme.stroke
                             }
                         }
 
@@ -1623,7 +1623,7 @@ Item {
 
                                         IconImage {
                                             source: "qrc:/icon/rectangle.svg"
-                                            color: global.fore
+                                            color: global.theme.fore
                                             Layout.alignment: Qt.AlignVCenter
                                         }
                                     }
@@ -1648,12 +1648,12 @@ Item {
 
                                             contentItem: Rectangle {
                                                 width: 24; height: 24
-                                                color: global.back
+                                                color: global.theme.back
 
                                                 IconImage {
                                                     anchors.centerIn: parent
                                                     width: 16; height: 16
-                                                    color: global.fore
+                                                    color: global.theme.fore
                                                     source: "qrc:/icon/drag.svg"
                                                 }
                                             }
@@ -1666,7 +1666,7 @@ Item {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.stroke
+                                            color: global.theme.stroke
                                         }
 
                                         Timer {
@@ -1716,14 +1716,14 @@ Item {
                                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
-                                                mid: global.stroke
-                                                dark: global.strokePressed
+                                                mid: global.theme.stroke
+                                                dark: global.theme.strokePressed
                                             }
                                         }
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.stroke
+                                            color: global.theme.stroke
                                         }
 
                                         delegate: Item {
@@ -1732,13 +1732,13 @@ Item {
 
                                             Rectangle {
                                                 anchors.fill: parent
-                                                color: global.back
+                                                color: global.theme.back
                                             }
 
                                             Rectangle {
                                                 anchors.fill: parent
                                                 radius: 6
-                                                color: global.backHover
+                                                color: global.theme.backHover
                                                 opacity: roiTableView.hoveredRow === row ? 1 : 0
                                                 Behavior on opacity {
                                                     NumberAnimation {
@@ -1750,7 +1750,7 @@ Item {
                                             Rectangle {
                                                 anchors.fill: parent
                                                 radius: 6
-                                                color: roiTableView.selectedRow === row ? global.backSelected : "transparent"
+                                                color: roiTableView.selectedRow === row ? global.theme.backSelected : "transparent"
                                             }
 
                                             Label {
@@ -1901,12 +1901,12 @@ Item {
 
                                             contentItem: Rectangle {
                                                 width: 24; height: 24
-                                                color: global.back
+                                                color: global.theme.back
 
                                                 IconImage {
                                                     anchors.centerIn: parent
                                                     width: 16; height: 16
-                                                    color: global.fore
+                                                    color: global.theme.fore
                                                     source: "qrc:/icon/drag.svg"
                                                 }
                                             }
@@ -1919,7 +1919,7 @@ Item {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.stroke
+                                            color: global.theme.stroke
                                         }
 
                                         Timer {
@@ -1966,14 +1966,14 @@ Item {
                                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
-                                                mid: global.stroke
-                                                dark: global.strokePressed
+                                                mid: global.theme.stroke
+                                                dark: global.theme.strokePressed
                                             }
                                         }
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.stroke
+                                            color: global.theme.stroke
                                         }
 
                                         delegate: DelegateChooser {
@@ -2000,7 +2000,7 @@ Item {
 
                                                 Rectangle {
                                                     anchors.fill: parent
-                                                    color: global.back
+                                                    color: global.theme.back
                                                 }
 
                                                 ColumnLayout {
@@ -2105,7 +2105,7 @@ Item {
 
                                                 Rectangle {
                                                     anchors.fill: parent
-                                                    color: global.back
+                                                    color: global.theme.back
                                                 }
 
                                                 ColumnLayout {
@@ -2366,16 +2366,16 @@ Item {
                                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                                     policy: ScrollBar.AsNeeded
                                     palette {
-                                        mid: global.stroke
-                                        dark: global.strokePressed
+                                        mid: global.theme.stroke
+                                        dark: global.theme.strokePressed
                                     }
                                 }
                                 ScrollBar.horizontal: ScrollBar {
                                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                                     policy: ScrollBar.AsNeeded
                                     palette {
-                                        mid: global.stroke
-                                        dark: global.strokePressed
+                                        mid: global.theme.stroke
+                                        dark: global.theme.strokePressed
                                     }
                                 }
 
@@ -2401,17 +2401,17 @@ Item {
                                                 visible: !recognitionDelegate.point
                                                 color: "transparent"
                                                 border.width: 2
-                                                border.color: global.dangerFore3
+                                                border.color: global.theme.dangerFore3
 
                                                 Label {
                                                     width: parent.width
                                                     leftPadding: 2; rightPadding: 2
-                                                    color: global.fore
+                                                    color: global.theme.fore
                                                     font.pixelSize: 11
                                                     text: recognitionDelegate.modelData.text + "\n" + Number(recognitionDelegate.modelData.confidence).toFixed(1) + "%"
                                                     elide: Text.ElideRight
                                                     background: Rectangle {
-                                                        color: global.back
+                                                        color: global.theme.back
                                                         opacity: 0.8
                                                     }
                                                 }
@@ -2423,7 +2423,7 @@ Item {
                                                 width: 16
                                                 height: 2
                                                 visible: recognitionDelegate.point
-                                                color: global.dangerFore3
+                                                color: global.theme.dangerFore3
                                             }
 
                                             Rectangle {
@@ -2432,7 +2432,7 @@ Item {
                                                 width: 2
                                                 height: 16
                                                 visible: recognitionDelegate.point
-                                                color: global.dangerFore3
+                                                color: global.theme.dangerFore3
                                             }
                                         }
                                     }
@@ -2766,8 +2766,8 @@ Item {
 
         Rectangle {
             id: indicatorRect
-            color: roiTableView.selectedRow === index ? Qt.alpha(global.brandBackSelected, 0.3) : "transparent"
-            border.color: global.brandStroke
+            color: roiTableView.selectedRow === index ? Qt.alpha(global.theme.brandBackSelected, 0.3) : "transparent"
+            border.color: global.theme.brandStroke
             border.width: 1
             property int index
 
@@ -2809,8 +2809,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 
@@ -2849,8 +2849,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 
@@ -2904,8 +2904,8 @@ Item {
             property int index
 
             ShapePath {
-                fillColor: roiTableView.selectedRow === index ? Qt.alpha(global.brandBackSelected, 0.3) : "transparent"
-                strokeColor: global.brandStroke
+                fillColor: roiTableView.selectedRow === index ? Qt.alpha(global.theme.brandBackSelected, 0.3) : "transparent"
+                strokeColor: global.theme.brandStroke
                 strokeWidth: 1
                 startX: x0; startY: y0
 
@@ -2990,8 +2990,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3028,8 +3028,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3066,8 +3066,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3104,8 +3104,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.brandBackSelected
-                border.color: global.brandStroke
+                color: global.theme.brandBackSelected
+                border.color: global.theme.brandStroke
                 border.width: 1
                 z: 1
 

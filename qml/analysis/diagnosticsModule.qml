@@ -12,7 +12,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     Item {
@@ -30,7 +30,7 @@ Item {
 
             IconImage {
                 source: "qrc:/icon/checkmarkCircle.svg"
-                color: global.successBack3
+                color: global.theme.successBack3
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -91,7 +91,7 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.back
+                        color: global.theme.back
                     }
 
                     Label {
@@ -145,7 +145,7 @@ Item {
                 Rectangle {
                     parent: tableView.contentItem
                     anchors.fill: parent
-                    color: global.stroke
+                    color: global.theme.stroke
                 }
 
                 ScrollBar.vertical: ScrollBar {
@@ -155,8 +155,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
@@ -166,8 +166,8 @@ Item {
                     anchors.left: tableView.left; anchors.right: tableView.right; anchors.top: tableView.bottom
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
@@ -183,13 +183,13 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.back
+                        color: global.theme.back
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: global.backHover
+                        color: global.theme.backHover
                         opacity: hoverHandler.hovered ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -203,10 +203,10 @@ Item {
                         width: 16; height: 16
                         visible: cell.column === 0
                         source: cell.decoration ?? ""
-                        color: cell.severity === 1 ? global.dangerBack3
-                               : cell.severity === 2 ? global.warningBack3
-                               : cell.severity === 3 ? global.brandBack
-                               : global.fore
+                        color: cell.severity === 1 ? global.theme.dangerBack3
+                               : cell.severity === 2 ? global.theme.warningBack3
+                               : cell.severity === 3 ? global.theme.brandBack
+                               : global.theme.fore
                     }
 
                     Label {

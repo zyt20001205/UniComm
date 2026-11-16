@@ -50,8 +50,8 @@ VtermWidget::VtermWidget(const int rows, const int cols, QObject *parent)
     vterm_state_set_selection_callbacks(m_state, &m_selectionCallbacks, this, m_selectionBuffer.data(), static_cast<size_t>(m_selectionBuffer.size()));
     vterm_screen_enable_altscreen(m_screen, 1);
 
-    const auto defaultForeground = uni_cast<VTermColor>(QColor(g_globalManager->foreGet()));
-    const auto defaultBackground = uni_cast<VTermColor>(QColor(g_globalManager->backGet()));
+    const auto defaultForeground = uni_cast<VTermColor>(QColor(g_globalManager->themeGet()->foreGet()));
+    const auto defaultBackground = uni_cast<VTermColor>(QColor(g_globalManager->themeGet()->backGet()));
     vterm_screen_set_default_colors(m_screen, &defaultForeground, &defaultBackground);
 
     vterm_screen_set_damage_merge(m_screen, VTERM_DAMAGE_SCROLL);

@@ -10,7 +10,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -82,12 +82,12 @@ Item {
 
                     contentItem: Rectangle {
                         width: 32; height: 32
-                        color: global.back
+                        color: global.theme.back
 
                         IconImage {
                             anchors.centerIn: parent
                             width: 16; height: 16
-                            color: global.fore
+                            color: global.theme.fore
                             source: "qrc:/icon/drag.svg"
                         }
                     }
@@ -100,7 +100,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.stroke
+                    color: global.theme.stroke
                 }
 
                 Timer {
@@ -149,14 +149,14 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.stroke
+                    color: global.theme.stroke
                 }
 
                 delegate: Item {
@@ -165,13 +165,13 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.back
+                        color: global.theme.back
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: global.backHover
+                        color: global.theme.backHover
                         opacity: tableView.hoveredRow === row ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -183,7 +183,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: tableView.selectedRow === row ? global.backSelected : "transparent"
+                        color: tableView.selectedRow === row ? global.theme.backSelected : "transparent"
                     }
 
                     Label {
@@ -231,7 +231,7 @@ Item {
                         text: session.name || ""
                         selectByMouse: true
                         background: Rectangle {
-                            color: global.backSelected
+                            color: global.theme.backSelected
                             radius: 6
                         }
 

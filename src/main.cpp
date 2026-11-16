@@ -8,6 +8,7 @@
 #include <QStyleFactory>
 
 #include "core/configManager.h"
+#include "core/globalManager.h"
 #include "mainWindow/kddwCustom.h"
 
 int main(int argc, char *argv[]) {
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
     KDDockWidgets::Config::self().setSeparatorThickness(5);
     // config init
     if (ConfigManager::mainConfigLoad()) return 1;
+    g_globalManager = new GlobalManager(&app);
     KDDockWidgets::Config::self().setViewFactory(new CustomWidgetFactory());
     KDDockWidgets::Config::self().setDockWidgetFactoryFunc(dockWidgetFactory);
     new MainWindow();

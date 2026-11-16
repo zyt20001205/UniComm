@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     TreeView {
@@ -23,8 +23,8 @@ Item {
             minimumSize: Math.min(1, 20 / Math.max(1, height))
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.stroke
-                dark: global.strokePressed
+                mid: global.theme.stroke
+                dark: global.theme.strokePressed
             }
         }
 
@@ -40,7 +40,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: global.backHover
+                color: global.theme.backHover
                 opacity: hoverHandler.hovered ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
@@ -52,7 +52,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: treeView.selectedRow === row ? global.backSelected : "transparent"
+                color: treeView.selectedRow === row ? global.theme.backSelected : "transparent"
             }
 
             RowLayout {
@@ -70,7 +70,7 @@ Item {
                         anchors.centerIn: parent
                         width: 16; height: 16
                         source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                        color: global.fore
+                        color: global.theme.fore
                         visible: isTreeNode && hasChildren
                     }
 
@@ -94,7 +94,7 @@ Item {
                         anchors.centerIn: parent
                         width: 20; height: 20
                         source: model.decoration
-                        color: global.fore
+                        color: global.theme.fore
                     }
                 }
 

@@ -54,8 +54,8 @@ void TerminalWidget::paint(QPainter *painter) {
 
     painter->setFont(m_font);
     QFont currentFont = m_font;
-    const QColor selectionForeground(g_globalManager->foreSelectedGet());
-    const QColor selectionBackground(g_globalManager->backSelectedGet());
+    const QColor selectionForeground(g_globalManager->themeGet()->foreSelectedGet());
+    const QColor selectionBackground(g_globalManager->themeGet()->backSelectedGet());
 
     for (int row = firstRow; row < endRow; ++row) {
         const qreal y = row * m_cellHeight + m_ascent;

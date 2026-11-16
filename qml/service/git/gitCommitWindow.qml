@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -38,7 +38,7 @@ Item {
                         anchors.fill: parent
                         color: "transparent"
                         border.width: 2
-                        border.color: global.stroke
+                        border.color: global.theme.stroke
                         radius: 6
                     }
 
@@ -55,8 +55,8 @@ Item {
                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                             policy: ScrollBar.AsNeeded
                             palette {
-                                mid: global.stroke
-                                dark: global.strokePressed
+                                mid: global.theme.stroke
+                                dark: global.theme.strokePressed
                             }
                         }
 
@@ -71,7 +71,7 @@ Item {
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 6
-                                color: global.backHover
+                                color: global.theme.backHover
                                 opacity: hoverHandler.hovered ? 1 : 0
                                 Behavior on opacity {
                                     NumberAnimation {
@@ -83,7 +83,7 @@ Item {
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 6
-                                color: workingTreeView.selectedRow === row ? global.backSelected : "transparent"
+                                color: workingTreeView.selectedRow === row ? global.theme.backSelected : "transparent"
                             }
 
                             RowLayout {
@@ -101,7 +101,7 @@ Item {
                                         anchors.centerIn: parent
                                         width: 16; height: 16
                                         source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                        color: global.fore
+                                        color: global.theme.fore
                                         visible: isTreeNode && hasChildren
                                     }
 
@@ -137,19 +137,19 @@ Item {
                                     color: {
                                         switch (model.status) {
                                             case 0:
-                                                return global.successFore3
+                                                return global.theme.successFore3
                                             case 3:
-                                                return global.brandBack
+                                                return global.theme.brandBack
                                             case 5:
-                                                return global.successFore2
+                                                return global.theme.successFore2
                                             case 6:
-                                                return global.stroke
+                                                return global.theme.stroke
                                             case 7:
-                                                return global.warningFore3
+                                                return global.theme.warningFore3
                                             case 9:
-                                                return global.dangerFore3
+                                                return global.theme.dangerFore3
                                             default:
-                                                return global.fore
+                                                return global.theme.fore
                                         }
                                     }
                                     Layout.fillWidth: true; Layout.preferredHeight: 24
@@ -349,7 +349,7 @@ Item {
                         anchors.fill: parent
                         color: "transparent"
                         border.width: 2
-                        border.color: global.stroke
+                        border.color: global.theme.stroke
                         radius: 6
                     }
 
@@ -366,8 +366,8 @@ Item {
                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                             policy: ScrollBar.AsNeeded
                             palette {
-                                mid: global.stroke
-                                dark: global.strokePressed
+                                mid: global.theme.stroke
+                                dark: global.theme.strokePressed
                             }
                         }
 
@@ -382,7 +382,7 @@ Item {
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 6
-                                color: global.backHover
+                                color: global.theme.backHover
                                 opacity: hoverHandler.hovered ? 1 : 0
                                 Behavior on opacity {
                                     NumberAnimation {
@@ -394,7 +394,7 @@ Item {
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 6
-                                color: indexTreeView.selectedRow === row ? global.backSelected : "transparent"
+                                color: indexTreeView.selectedRow === row ? global.theme.backSelected : "transparent"
                             }
 
                             RowLayout {
@@ -412,7 +412,7 @@ Item {
                                         anchors.centerIn: parent
                                         width: 16; height: 16
                                         source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                        color: global.fore
+                                        color: global.theme.fore
                                         visible: isTreeNode && hasChildren
                                     }
 
@@ -448,19 +448,19 @@ Item {
                                     color: {
                                         switch (model.status) {
                                             case 0:
-                                                return global.successFore3
+                                                return global.theme.successFore3
                                             case 3:
-                                                return global.brandBack
+                                                return global.theme.brandBack
                                             case 5:
-                                                return global.successFore2
+                                                return global.theme.successFore2
                                             case 6:
-                                                return global.stroke
+                                                return global.theme.stroke
                                             case 7:
-                                                return global.warningFore3
+                                                return global.theme.warningFore3
                                             case 9:
-                                                return global.dangerFore3
+                                                return global.theme.dangerFore3
                                             default:
-                                                return global.fore
+                                                return global.theme.fore
                                         }
                                     }
                                     Layout.fillWidth: true; Layout.preferredHeight: 24

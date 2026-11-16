@@ -29,7 +29,6 @@ MarkupPage::MarkupPage(const QJsonObject &documentConfig, const QUrl &documentUr
 
 void MarkupPage::propertySet(const QVariantHash &objects) const {
     m_editorWidget->propertySet(QVariantHash{
-        {"theme", objects["theme"]},
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},

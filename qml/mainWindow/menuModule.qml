@@ -8,7 +8,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     RowLayout {
@@ -123,12 +123,12 @@ Item {
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
             checkable: true
             icon.source: checked ? "qrc:/icon/checkmark.svg" :
-                global.theme === 0 ? "qrc:/icon/themeDark.svg" : "qrc:/icon/themeLight.svg"
+                global.theme.mode === 0 ? "qrc:/icon/themeDark.svg" : "qrc:/icon/themeLight.svg"
             icon.width: 16; icon.height: 16
 
             onToggled: {
                 if (!checked) {
-                    menuModule.themeSet(global.theme === 0 ? 1 : 0)
+                    menuModule.themeSet(global.theme.mode === 0 ? 1 : 0)
                 }
             }
 

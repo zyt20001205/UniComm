@@ -19,7 +19,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     SplitView {
@@ -33,12 +33,12 @@ Item {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: 1
-                color: global.stroke
+                color: global.theme.stroke
             }
         }
 
         Rectangle {
-            color: global.back
+            color: global.theme.back
             SplitView.preferredWidth: 180; SplitView.fillHeight: true
 
             ListView {
@@ -131,8 +131,8 @@ Item {
                         }
 
                         radius: 6
-                        color: global.backHover
-                        border.color: global.stroke
+                        color: global.theme.backHover
+                        border.color: global.theme.stroke
                         implicitHeight: providerLayout.implicitHeight + 32
                         Layout.fillWidth: true
 
@@ -144,7 +144,7 @@ Item {
 
                             Rectangle {
                                 radius: 6
-                                color: global.backSelected
+                                color: global.theme.backSelected
                                 Layout.preferredWidth: 42
                                 Layout.preferredHeight: 42
                                 Layout.alignment: Qt.AlignTop
@@ -215,7 +215,7 @@ Item {
 
                                     Label {
                                         text: qsTr("Base URL: %1").arg(providerCard.providerBaseUrl.toString())
-                                        color: global.stroke
+                                        color: global.theme.stroke
                                         elide: Text.ElideRight
                                     }
 
@@ -245,7 +245,7 @@ Item {
 
                                     Label {
                                         text: qsTr("Chat endpoint: %1").arg(providerCard.providerChatEndpoint)
-                                        color: global.stroke
+                                        color: global.theme.stroke
                                         elide: Text.ElideRight
                                     }
 
@@ -275,7 +275,7 @@ Item {
 
                                     Label {
                                         text: qsTr("Model endpoint: %1").arg(providerCard.providerModelEndpoint)
-                                        color: global.stroke
+                                        color: global.theme.stroke
                                         elide: Text.ElideRight
                                     }
 
@@ -301,7 +301,7 @@ Item {
                                 }
 
                                 Rectangle {
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 1
                                 }
@@ -334,7 +334,7 @@ Item {
                                 }
 
                                 Rectangle {
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 1
                                 }
@@ -442,7 +442,7 @@ Item {
                                             padding: 0
 
                                             background: Rectangle {
-                                                color: providerModelCell.row % 2 === 0 ? global.back : "transparent"
+                                                color: providerModelCell.row % 2 === 0 ? global.theme.back : "transparent"
                                             }
 
                                             contentItem: Loader {
@@ -476,7 +476,7 @@ Item {
 
                                                     Label {
                                                         text: providerModelCell.model.modelId
-                                                        color: global.stroke
+                                                        color: global.theme.stroke
                                                         font.pixelSize: 11
                                                         elide: Text.ElideRight
                                                         Layout.fillWidth: true
@@ -489,7 +489,7 @@ Item {
 
                                                 Label {
                                                     text: Number(providerModelCell.model.display).toLocaleString(Qt.locale(), "f", 0)
-                                                    color: global.stroke
+                                                    color: global.theme.stroke
                                                     horizontalAlignment: Text.AlignHCenter
                                                     verticalAlignment: Text.AlignVCenter
                                                 }
@@ -659,8 +659,8 @@ Item {
                         property url serverIcon: model.decoration || "qrc:/icon/mcp.svg"
 
                         radius: 6
-                        color: global.backHover
-                        border.color: global.stroke
+                        color: global.theme.backHover
+                        border.color: global.theme.stroke
                         Layout.fillWidth: true
                         Layout.preferredHeight: 168
 
@@ -671,7 +671,7 @@ Item {
 
                             Rectangle {
                                 radius: 6
-                                color: global.backSelected
+                                color: global.theme.backSelected
                                 Layout.preferredWidth: 42
                                 Layout.preferredHeight: 42
                                 Layout.alignment: Qt.AlignTop
@@ -681,7 +681,7 @@ Item {
                                     width: 24
                                     height: 24
                                     source: serverCard.serverIcon
-                                    color: model.decoration ? "transparent" : global.fore
+                                    color: model.decoration ? "transparent" : global.theme.fore
                                 }
                             }
 
@@ -704,20 +704,20 @@ Item {
                                     Label {
                                         visible: serverCard.serverVersion.length > 0
                                         text: serverCard.serverVersion
-                                        color: global.stroke
+                                        color: global.theme.stroke
                                     }
                                 }
 
                                 Label {
                                     text: serverCard.serverUrl.toString()
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                 }
 
                                 Label {
                                     text: serverCard.serverDescription
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     wrapMode: Text.Wrap
                                     maximumLineCount: 3
                                     elide: Text.ElideRight
@@ -783,8 +783,8 @@ Item {
                         property bool hookEnabled: model.enabled
                         property var hookScripts: model.scripts
                         radius: 6
-                        color: global.backHover
-                        border.color: global.stroke
+                        color: global.theme.backHover
+                        border.color: global.theme.stroke
                         implicitHeight: hookLayout.implicitHeight + 32
                         Layout.fillWidth: true
 
@@ -809,7 +809,7 @@ Item {
 
                                     Label {
                                         text: hookCard.hookDescription
-                                        color: global.stroke
+                                        color: global.theme.stroke
                                         wrapMode: Text.Wrap
                                         Layout.fillWidth: true
                                     }
@@ -823,7 +823,7 @@ Item {
                             }
 
                             Rectangle {
-                                color: global.stroke
+                                color: global.theme.stroke
                                 implicitHeight: 1
                                 Layout.fillWidth: true
                             }
@@ -831,7 +831,7 @@ Item {
                             Label {
                                 visible: hookCard.hookScripts.length === 0
                                 text: qsTr("No scripts configured.")
-                                color: global.stroke
+                                color: global.theme.stroke
                                 Layout.fillWidth: true
                             }
 
@@ -862,7 +862,7 @@ Item {
 
                                         Label {
                                             text: hookScript.modelData.documentUrl
-                                            color: global.stroke
+                                            color: global.theme.stroke
                                             elide: Text.ElideMiddle
                                             Layout.fillWidth: true
                                         }
@@ -911,8 +911,8 @@ Item {
 
                 Rectangle {
                     radius: 6
-                    color: global.backHover
-                    border.color: global.stroke
+                    color: global.theme.backHover
+                    border.color: global.theme.stroke
                     implicitHeight: contextLayout.implicitHeight + 32
                     Layout.fillWidth: true
 
@@ -936,7 +936,7 @@ Item {
 
                                 Label {
                                     text: qsTr("Compact earlier turns when context usage reaches this threshold.")
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
                                 }
@@ -966,7 +966,7 @@ Item {
 
                             Label {
                                 text: "50%"
-                                color: global.stroke
+                                color: global.theme.stroke
                             }
 
                             Item {
@@ -975,12 +975,12 @@ Item {
 
                             Label {
                                 text: "95%"
-                                color: global.stroke
+                                color: global.theme.stroke
                             }
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.fillWidth: true
                         }
@@ -993,13 +993,13 @@ Item {
                                 source: "qrc:/icon/info.svg"
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                color: global.stroke
+                                color: global.theme.stroke
                                 Layout.alignment: Qt.AlignTop
                             }
 
                             Label {
                                 text: qsTr("At %1%, earlier turns are summarized before the next request. Models without a known context limit are not compacted automatically.").arg(Math.round(compactThresholdSlider.value))
-                                color: global.stroke
+                                color: global.theme.stroke
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                             }
@@ -1014,8 +1014,8 @@ Item {
 
                 Rectangle {
                     radius: 6
-                    color: global.backHover
-                    border.color: global.stroke
+                    color: global.theme.backHover
+                    border.color: global.theme.stroke
                     implicitHeight: toolFailureLayout.implicitHeight + 32
                     Layout.fillWidth: true
 
@@ -1040,7 +1040,7 @@ Item {
 
                                 Label {
                                     text: qsTr("Stop the current turn when the same tool fails this many times in a row.")
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
                                 }
@@ -1057,7 +1057,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.fillWidth: true
                         }
@@ -1070,13 +1070,13 @@ Item {
                                 source: "qrc:/icon/info.svg"
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                color: global.stroke
+                                color: global.theme.stroke
                                 Layout.alignment: Qt.AlignTop
                             }
 
                             Label {
                                 text: qsTr("A successful call clears the counter. A failure from another tool starts a new counter.")
-                                color: global.stroke
+                                color: global.theme.stroke
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                             }
@@ -1086,8 +1086,8 @@ Item {
 
                 Rectangle {
                     radius: 6
-                    color: global.backHover
-                    border.color: global.stroke
+                    color: global.theme.backHover
+                    border.color: global.theme.stroke
                     implicitHeight: toolPlanLayout.implicitHeight + 32
                     Layout.fillWidth: true
 
@@ -1112,7 +1112,7 @@ Item {
 
                                 Label {
                                     text: qsTr("Append a plan_update reminder after this many tool calls.")
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
                                 }
@@ -1129,7 +1129,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.fillWidth: true
                         }
@@ -1142,13 +1142,13 @@ Item {
                                 source: "qrc:/icon/info.svg"
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                color: global.stroke
+                                color: global.theme.stroke
                                 Layout.alignment: Qt.AlignTop
                             }
 
                             Label {
                                 text: qsTr("Applies only when plan_update is available. Reminders are not stored in conversation history.")
-                                color: global.stroke
+                                color: global.theme.stroke
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                             }
@@ -1158,8 +1158,8 @@ Item {
 
                 Rectangle {
                     radius: 6
-                    color: global.backHover
-                    border.color: global.stroke
+                    color: global.theme.backHover
+                    border.color: global.theme.stroke
                     implicitHeight: toolCallLayout.implicitHeight + 32
                     Layout.fillWidth: true
 
@@ -1184,7 +1184,7 @@ Item {
 
                                 Label {
                                     text: qsTr("Stop the current turn after this many tool calls.")
-                                    color: global.stroke
+                                    color: global.theme.stroke
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
                                 }
@@ -1202,7 +1202,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.stroke
+                            color: global.theme.stroke
                             implicitHeight: 1
                             Layout.fillWidth: true
                         }
@@ -1215,13 +1215,13 @@ Item {
                                 source: "qrc:/icon/info.svg"
                                 sourceSize.width: 16
                                 sourceSize.height: 16
-                                color: global.stroke
+                                color: global.theme.stroke
                                 Layout.alignment: Qt.AlignTop
                             }
 
                             Label {
                                 text: qsTr("Plan updates and user input requests do not count toward this limit.")
-                                color: global.stroke
+                                color: global.theme.stroke
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
                             }
@@ -1268,8 +1268,8 @@ Item {
 
             Rectangle {
                 radius: 4
-                color: global.backHover
-                border.color: global.stroke
+                color: global.theme.backHover
+                border.color: global.theme.stroke
                 Layout.fillWidth: true
                 Layout.preferredHeight: 56
 
@@ -1294,7 +1294,7 @@ Item {
 
                         Label {
                             text: qsTr("Built-in OpenAI-compatible provider")
-                            color: global.stroke
+                            color: global.theme.stroke
                         }
                     }
 
@@ -1313,7 +1313,7 @@ Item {
             }
 
             Rectangle {
-                color: global.stroke
+                color: global.theme.stroke
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
             }
@@ -1564,7 +1564,7 @@ Item {
             Label {
                 id: errorLabel
                 visible: text.length > 0
-                color: global.dangerFore3
+                color: global.theme.dangerFore3
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
@@ -1632,7 +1632,7 @@ Item {
 
             Label {
                 text: settingsPage.description
-                color: global.stroke
+                color: global.theme.stroke
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
@@ -1654,8 +1654,8 @@ Item {
                     height: settingsPageScrollView.availableHeight
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 

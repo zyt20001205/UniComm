@@ -10,7 +10,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.back
+        color: global.theme.back
     }
 
     ColumnLayout {
@@ -80,8 +80,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
@@ -92,21 +92,21 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.stroke
-                        dark: global.strokePressed
+                        mid: global.theme.stroke
+                        dark: global.theme.strokePressed
                     }
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.stroke
+                    color: global.theme.stroke
                 }
 
                 delegate: Rectangle {
                     id: cell
                     implicitWidth: 120; implicitHeight: 32
                     required property var display
-                    color: global.back
+                    color: global.theme.back
 
                     Label {
                         anchors.fill: parent
@@ -124,7 +124,7 @@ Item {
         id: headerCell
         implicitWidth: 120; implicitHeight: 32
         required property string display
-        color: global.back
+        color: global.theme.back
 
         function flash() {
             flashAnimation.restart()
@@ -139,7 +139,7 @@ Item {
             id: highlight
             anchors.fill: parent
             radius: 6
-            color: global.backHover
+            color: global.theme.backHover
             opacity: 0
         }
 

@@ -48,10 +48,10 @@ Item {
                                                   : toastLevel === root.warningLevel ? "qrc:/icon/warning.svg"
                                                   : toastLevel === root.infoLevel ? "qrc:/icon/info.svg"
                                                   : "qrc:/icon/checkmarkCircle.svg"
-                readonly property color levelColor: toastLevel === root.errorLevel ? global.dangerBack3
-                                                    : toastLevel === root.warningLevel ? global.warningBack3
-                                                    : toastLevel === root.infoLevel ? global.brandBack
-                                                    : global.successBack3
+                readonly property color levelColor: toastLevel === root.errorLevel ? global.theme.dangerBack3
+                                                    : toastLevel === root.warningLevel ? global.theme.warningBack3
+                                                    : toastLevel === root.infoLevel ? global.theme.brandBack
+                                                    : global.theme.successBack3
 
                 Behavior on y {
                     NumberAnimation {
@@ -111,7 +111,7 @@ Item {
 
                                 Label {
                                     text: toastDelegate.toastTitle
-                                    color: global.fore
+                                    color: global.theme.fore
                                     font.bold: true
                                     textFormat: Text.PlainText
                                     wrapMode: Text.Wrap
@@ -121,7 +121,7 @@ Item {
 
                                 Label {
                                     text: toastDelegate.toastText
-                                    color: global.fore
+                                    color: global.theme.fore
                                     textFormat: Text.PlainText
                                     wrapMode: Text.Wrap
                                     visible: toastDelegate.toastText.length > 0
@@ -152,9 +152,9 @@ Item {
 
                                             contentItem: Label {
                                                 text: actionButton.text
-                                                color: actionButton.down ? global.brandBackSelected
-                                                                         : actionButton.hovered ? global.brandBack
-                                                                                                : global.brandLink
+                                                color: actionButton.down ? global.theme.brandBackSelected
+                                                                         : actionButton.hovered ? global.theme.brandBack
+                                                                                                : global.theme.brandLink
                                                 font.underline: actionButton.hovered
                                                 horizontalAlignment: Text.AlignLeft
                                                 verticalAlignment: Text.AlignVCenter

@@ -49,7 +49,6 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
 
 void CodePage::propertySet(const QVariantHash &objects) const {
     m_codeWidget->propertySet(QVariantHash{
-        {"theme", objects["theme"]},
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"breakpointModuleEditDialog", objects["breakpointModuleEditDialog"]},
