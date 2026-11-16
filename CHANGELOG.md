@@ -1,3 +1,71 @@
+# v0.3.2
+
+## Highlights
+
+- Added a local MCP server so external clients can discover UniComm APIs, manage ports, inspect diagnostics, and run Lua scripts.
+- Expanded communication workflows with MQTT, implicit FTPS, rebuilt Bluetooth LE support, and configurable TLS for SSL and WebSocket ports.
+- Added script-owned UI windows for prompts, file selection, images, key-value data, tables, and plots.
+- Added a vision agent for image analysis and visual verification, with dedicated model selection.
+- Added a unified Services panel for MCP, language servers, search, and network activity.
+- Improved terminal selection, clipboard actions, hyperlinks, and editor assistance.
+
+## Ports and Protocols
+
+- Reworked Bluetooth LE discovery, characteristic and descriptor reads/writes, notification subscriptions, and per-characteristic receive buffers.
+- Reworked WebSocket client/server handling and added configurable WS/WSS operation.
+- Added persisted TLS settings for CA certificates, certificate chains, private keys, and key passwords, including optional client-certificate verification on servers.
+- Added MQTT 3.1.1 connect, subscribe, publish, consume, and disconnect workflows. Publishing and consuming currently support QoS 0; automatic keep-alive heartbeats are not provided.
+- Added implicit FTPS with protected data connections and improved FTP reply handling and compatibility fallbacks.
+- Exposed UDP socket configuration to Lua and Agent tools.
+- Added non-consuming port reads through `peek` and `peekUntil`, and improved buffered protocol reads and HTTP streaming.
+- Expanded vision-port access from Lua and Agent tools, including OCR results, and increased the receive-buffer size limit to 64 MiB.
+- Reorganized port examples by transport and expanded API annotations.
+
+## Lua and Script UI
+
+- Added `ui.message`, `ui.input`, and `ui.file` for script-driven user interaction.
+- Added independent `ui.image`, `ui.database`, `ui.table`, and `ui.plot` windows, with handles for updating and closing them; tables also support export.
+- Added function-based `thread.start` with copied captures and independent interpreter globals.
+- Added JSON conversion, hashing, and encryption/decryption helpers to the `string` API.
+- Expanded keyboard and mouse automation with press/release, position, movement, button selection, and scrolling operations.
+
+## Agent
+
+- Added the vision role and `vision_analyze` tool, with image attachments passed to the selected vision model.
+- Added model input-modality display and separate primary, subagent, and vision model selection.
+- Improved conversation rendering, attachment history, follow-tail controls, and Markdown tables with copy actions.
+- Reworked conversation, turn, message, and tool models and simplified active terminal presentation.
+- Made Agent `line_set`, undo, and redo operations save document changes to disk.
+
+## Services
+
+- Added a loopback MCP endpoint at `http://127.0.0.1:32167/mcp` exposing API/demo lookup, port management, diagnostics, and script execution tools.
+- Added service status, uptime, event details, activity indicators, and context-menu actions.
+- Added network request monitoring with active-request counts, request sources, HTTP status codes, and errors.
+
+## Terminal and Editor
+
+- Added terminal drag selection, double-click word selection, and selection handling across wrapped lines.
+- Improved terminal copy/paste menus, bracketed paste, and OSC 8 hyperlink handling.
+- Reworked completion, symbol navigation, and signature widgets, including symbol colors and theme integration.
+- Refined diagnostics and port settings interfaces, including clearable, revealable, and file-browsing fields.
+
+## Fixes and Dependencies
+
+- Fixed delayed Scintilla callbacks accessing destroyed widgets.
+- Fixed WebView native-window leakage outside its host area and unloaded QML views during shutdown.
+- Fixed FTP handling of non-standard PWD responses and the MLST-to-SIZE fallback in `exists`.
+- Fixed SSE parsing and moved receive-buffer clearing from port close to port open.
+- Updated SimpleBLE from 1.0.0 to 1.4.0 and Lua Language Server from 3.18.2 to 3.19.2.
+
+## API Migration
+
+- Replace `io.message` with `ui.message`; review the new title, text, and button arguments.
+- Migrate the removed docked database, data-table, and plot workflows to script-owned `ui.database`, `ui.table`, and `ui.plot` windows. The old database/data-table Agent management tools and dedicated data-agent role were removed.
+- Replace `thread.start(path)` with `thread.start(function() ... end)`; captured values are copied, and globals are not shared between interpreters.
+- Replace `mouse.rightClick(x, y)` with `mouse.click(x, y, "right")`.
+- Review existing vision and BLE port scripts against the updated port annotations and transport-specific examples.
+
 # v0.3.1
 
 ## Highlights

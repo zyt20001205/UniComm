@@ -134,7 +134,7 @@ runtime directories next to `UniComm.exe`.
 
 ## Project status
 
-The current line is **v0.3.1** for Windows x64. The project is under active
+The current line is **v0.3.2** for Windows x64. The project is under active
 development, and pre-1.0 releases may contain incomplete or experimental features.
 They should not be treated as a safety-certified control system.
 
