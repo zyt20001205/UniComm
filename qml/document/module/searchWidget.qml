@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Item {
     id: rootItem
+    required property QtObject searchWidget
 
     Rectangle {
         anchors.fill: parent
@@ -26,7 +27,7 @@ Item {
                     rightPadding: 120
                     KeyNavigation.tab: replaceTextField
 
-                    onTextChanged: searchWidget.searchRequest()
+                    onTextChanged: rootItem.searchWidget.searchRequest()
                 }
 
                 RowLayout {
@@ -54,19 +55,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWidget.searchRequest()
+                            rootItem.searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWidget.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Match Case") : qsTr("Enable Match Case")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Match Case") : qsTr("Enable Match Case")
                             }
                         }
                     }
@@ -81,19 +82,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWidget.searchRequest()
+                            rootItem.searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWidget.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Whole Word") : qsTr("Enable Whole Word")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Whole Word") : qsTr("Enable Whole Word")
                             }
                         }
                     }
@@ -108,19 +109,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWidget.searchRequest()
+                            rootItem.searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWidget.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Word Start") : qsTr("Enable Word Start")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Word Start") : qsTr("Enable Word Start")
                             }
                         }
                     }
@@ -135,19 +136,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWidget.searchRequest()
+                            rootItem.searchWidget.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWidget.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Regular Expression") : qsTr("Enable Regular Expression")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Regular Expression") : qsTr("Enable Regular Expression")
                             }
                         }
                     }
@@ -163,17 +164,17 @@ Item {
                 icon.source: "qrc:/icon/arrowUp.svg"
                 icon.width: 16; icon.height: 16
 
-                onClicked: searchWidget.searchPrev()
+                onClicked: rootItem.searchWidget.searchPrev()
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Search Previous")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Search Previous")
                     }
                 }
             }
@@ -187,17 +188,17 @@ Item {
                 icon.source: "qrc:/icon/arrowDown.svg"
                 icon.width: 16; icon.height: 16
 
-                onClicked: searchWidget.searchNext()
+                onClicked: rootItem.searchWidget.searchNext()
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Search Next")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Search Next")
                     }
                 }
             }
@@ -254,17 +255,17 @@ Item {
                 icon.source: "qrc:/icon/replace.svg"
                 icon.width: 16; icon.height: 16
 
-                onClicked: searchWidget.textReplace()
+                onClicked: rootItem.searchWidget.textReplace()
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Replace")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Replace")
                     }
                 }
             }
@@ -278,17 +279,17 @@ Item {
                 icon.source: "qrc:/icon/replaceAll.svg"
                 icon.width: 16; icon.height: 16
 
-                onClicked: searchWidget.allReplace()
+                onClicked: rootItem.searchWidget.allReplace()
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Replace All")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Replace All")
                     }
                 }
             }
@@ -311,6 +312,6 @@ Item {
             "replaceTextButton": replaceTextButton,
             "replaceAllButton": replaceAllButton
         };
-        searchWidget.propertyGet(objects)
+        rootItem.searchWidget.propertyGet(objects)
     }
 }

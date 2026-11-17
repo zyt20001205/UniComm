@@ -25,6 +25,7 @@
 #include "document/page/markupPage.h"
 #include "document/page/welcomePage.h"
 #include "mainWindow/toastModule.h"
+#include "service/git/gitModule.h"
 #include "util/uniCast.h"
 
 // public

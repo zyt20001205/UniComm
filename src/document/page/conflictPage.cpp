@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "service/git/gitModule.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "document/module/conflictWidget.h"
 #include "document/module/resolveWidget.h"
 #include "document/module/scintillaWidget.h"

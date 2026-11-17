@@ -8,6 +8,7 @@
 #include <QMediaDevices>
 #include <QProcess>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQuickItem>
 #include <QScreen>
 #include <QShortcut>
@@ -118,6 +119,8 @@ void MainWindow::propertySet() {
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", objects["mainWindowToolTip"]);
+
     m_closeDialog = qvariant_cast<QObject *>(objects["mainWindowCloseDialog"]);
     m_quitDialog = qvariant_cast<QObject *>(objects["mainWindowQuitDialog"]);
 

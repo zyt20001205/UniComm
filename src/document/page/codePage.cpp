@@ -56,9 +56,7 @@ void CodePage::propertySet(const QVariantHash &objects) const {
         {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]},
         {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]}
     });
-    m_symbolWidget->propertySet(QVariantHash{
-        {"mainWindowToolTip", objects["mainWindowToolTip"]}
-    });
+    m_symbolWidget->propertySet();
 }
 
 QString CodePage::documentSave() {

@@ -3,19 +3,19 @@
 #include <QDir>
 #include <QHash>
 #include <QMovie>
-#include <QTime>
 #include <QUuid>
+#include <cmark-gfm.h>
+#include <cmark-gfm-core-extensions.h>
+#include <cmark-gfm-extension_api.h>
 #include <sol/state_view.hpp>
 #include <sol/table_core.hpp>
 #include <sol/utility/is_integer.hpp>
 #include <sol/variadic_args.hpp>
 #include <sol/userdata.hpp>
 
-#include "cmark-gfm.h"
-#include "cmark-gfm-core-extensions.h"
-#include "cmark-gfm-extension_api.h"
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 
 // lua -> qt
 template<>

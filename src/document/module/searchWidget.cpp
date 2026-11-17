@@ -1,21 +1,19 @@
 #include "document/module/searchWidget.h"
 
-#include <QQmlContext>
-
 #include "globals.h"
 #include "core/globalManager.h"
 
 // public
 SearchWidget::SearchWidget(QWidget *parent)
-    : QQuickWidget(parent) {
+    : QQuickWidget(g_globalManager->engineGet(), parent) {
     hide();
     installEventFilter(this);
 }
 
-void SearchWidget::propertySet(const QVariantHash &objects) {
-    rootContext()->setContextProperty("searchWidget", this);
-    rootContext()->setContextProperty("global", g_globalManager);
-    rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
+void SearchWidget::propertySet() {
+    setInitialProperties({
+        {"searchWidget", QVariant::fromValue(this)}
+    });
 
     setResizeMode(SizeRootObjectToView);
     setSource(QUrl("qrc:/qml/document/module/searchWidget.qml"));

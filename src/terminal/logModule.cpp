@@ -12,6 +12,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "mainWindow/toastModule.h"
 
 // public

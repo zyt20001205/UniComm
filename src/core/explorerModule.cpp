@@ -8,6 +8,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "service/git/gitModule.h"
 #include "util/uniCast.h"
 
 // public

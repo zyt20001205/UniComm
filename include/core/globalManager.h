@@ -2,28 +2,33 @@
 #define UNICOMM_GLOBALMANAGER_H
 
 #include "globals.h"
-#include "core/themeManager.h"
-#include "document/documentModule.h"
-#include "service/git/gitModule.h"
+
+class QNetworkAccessManager;
+class QQmlEngine;
 
 class AgentModule;
 class AudioService;
+class DocumentModule;
+class GitModule;
 class LogModule;
 class NuspellModule;
 class PortModule;
-class QNetworkAccessManager;
 class ServiceModule;
 class TerminalModule;
+class ThemeManager;
 class ThreadpoolModule;
 class UndoModule;
 class WatchModule;
 
 Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
+Q_MOC_INCLUDE("core/themeManager.h")
 Q_MOC_INCLUDE("core/undoModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
+Q_MOC_INCLUDE("document/documentModule.h")
 Q_MOC_INCLUDE("port/portModule.h")
 Q_MOC_INCLUDE("runtime/threadpoolModule.h")
+Q_MOC_INCLUDE("service/git/gitModule.h")
 Q_MOC_INCLUDE("service/serviceModule.h")
 Q_MOC_INCLUDE("terminal/logModule.h")
 Q_MOC_INCLUDE("terminal/terminalModule.h")
@@ -52,6 +57,10 @@ public:
 
     [[nodiscard]] ThemeManager *themeGet() const {
         return m_theme;
+    }
+
+    [[nodiscard]] QQmlEngine *engineGet() const {
+        return m_engine;
     }
 
     [[nodiscard]] DocumentModule *documentModuleGet() const {
@@ -167,6 +176,8 @@ public:
     }
 
 private:
+    ThemeManager *m_theme{};
+    QQmlEngine *m_engine{};
     // Non-owning references; MainWindow initializes these before loading QML.
     MainWindow *m_mainWindow{};
     QNetworkAccessManager *m_networkAccessManager{};
@@ -183,7 +194,6 @@ private:
     UndoModule *m_undoModule{};
     WatchModule *m_watchModule{};
 
-    ThemeManager *m_theme{};
 };
 
 #endif //UNICOMM_GLOBALMANAGER_H

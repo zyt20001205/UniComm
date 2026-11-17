@@ -10,7 +10,7 @@ class SymbolWidget final : public QQuickWidget {
 public:
     explicit SymbolWidget(QWidget *parent = nullptr);
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] QVariantList modelGet() const {
         return m_model;

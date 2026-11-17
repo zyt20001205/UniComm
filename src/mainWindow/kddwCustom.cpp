@@ -6,6 +6,7 @@
 #include "document/page/documentPage.h"
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "terminal/terminalModule.h"
 #include "terminal/terminalPage.h"
 

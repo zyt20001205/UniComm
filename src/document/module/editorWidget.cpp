@@ -11,6 +11,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "document/module/scintillaWidget.h"
 #include "document/module/searchWidget.h"
 #include "mainWindow/toastModule.h"
@@ -73,9 +74,7 @@ void EditorWidget::propertySet(const QVariantHash &objects) {
     m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
     m_propertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
     m_gotoDialog = qvariant_cast<QObject *>(objects["documentModuleGotoDialog"]);
-    m_searchWidget->propertySet(QVariantHash{
-        {"mainWindowToolTip", objects["mainWindowToolTip"]}
-    });
+    m_searchWidget->propertySet();
     shortcutInit();
     miscInit();
     indicatorInit();

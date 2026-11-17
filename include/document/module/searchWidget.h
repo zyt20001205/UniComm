@@ -9,7 +9,7 @@ class SearchWidget final : public QQuickWidget {
 public:
     explicit SearchWidget(QWidget *parent = nullptr);
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 

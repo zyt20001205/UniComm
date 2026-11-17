@@ -16,6 +16,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 
 namespace {
     template<typename Interface>

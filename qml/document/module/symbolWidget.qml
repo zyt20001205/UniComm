@@ -5,6 +5,7 @@ import QtQuick.Layouts
 
 Item {
     id: rootItem
+    required property QtObject symbolWidget
 
     Rectangle {
         anchors.fill: parent
@@ -24,7 +25,7 @@ Item {
 
         RowLayout {
             Repeater {
-                model: symbolWidget.model
+                model: rootItem.symbolWidget.model
 
                 delegate: RowLayout {
                     id: breadcrumbItem
@@ -49,17 +50,17 @@ Item {
                         text: breadcrumbItem.modelData.text
                         Layout.preferredWidth: breadcrumbButtonTextMetrics.width + 28; Layout.preferredHeight: 20
 
-                        onClicked: symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
+                        onClicked: rootItem.symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = breadcrumbItem.modelData.detail
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = breadcrumbItem.modelData.detail
                             }
                         }
 

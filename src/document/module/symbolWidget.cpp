@@ -1,21 +1,21 @@
 #include "document/module/symbolWidget.h"
 
 #include <QJsonArray>
-#include <QQmlContext>
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 
 // public
 SymbolWidget::SymbolWidget(QWidget *parent)
-    : QQuickWidget(parent) {
+    : QQuickWidget(g_globalManager->engineGet(), parent) {
     setFixedHeight(24);
 }
 
-void SymbolWidget::propertySet(const QVariantHash &objects) {
-    rootContext()->setContextProperty("symbolWidget", this);
-    rootContext()->setContextProperty("global", g_globalManager);
-    rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
+void SymbolWidget::propertySet() {
+    setInitialProperties({
+        {"symbolWidget", QVariant::fromValue(this)}
+    });
 
     setResizeMode(SizeRootObjectToView);
     setSource(QUrl("qrc:/qml/document/module/symbolWidget.qml"));

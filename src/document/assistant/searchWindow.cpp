@@ -13,6 +13,7 @@
 #include <QUrl>
 
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "globals.h"
 #include "mainWindow/mainWindow.h"
 

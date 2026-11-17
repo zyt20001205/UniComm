@@ -4,6 +4,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "core/themeManager.h"
 #include "util/uniCast.h"
 
 VtermWidget::VtermWidget(const int rows, const int cols, QObject *parent)
