@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "core/globalManager.h"
 #include "core/themeManager.h"
+#include "types/lspTypes.h"
 #include "types/scintillaTypes.h"
 
 // public

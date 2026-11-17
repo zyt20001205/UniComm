@@ -7,6 +7,7 @@
 #include "core/globalManager.h"
 #include "core/themeManager.h"
 #include "port/portModule.h"
+#include "types/lspTypes.h"
 
 // public
 CompletionWidget::CompletionWidget(QObject *parent)
@@ -60,7 +61,7 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
     for (const auto &value: items) {
         QJsonObject item = value.toObject();
         const int kind = item["kind"].toInt();
-        if (completionMode == Simple && kind != EnumMember) continue;
+        if (completionMode == Simple && kind != LspCompletionKind::EnumMember) continue;
         const QString label = item["label"].toString();
         const QString insertText = item["insertText"].toString(label);
         // placeholder check
@@ -74,78 +75,78 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
             QString iconColor;
             QUrl iconSource{};
             switch (kind) {
-                case Text: {
+                case LspCompletionKind::Text: {
                     iconColor = colors["text"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolString.svg";
                 }
                 break;
-                case Method:
-                case Function: {
-                    iconColor = colors[kind == Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet());
+                case LspCompletionKind::Method:
+                case LspCompletionKind::Function: {
+                    iconColor = colors[kind == LspCompletionKind::Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolMethod.svg";
                 }
                 break;
-                case Field: {
+                case LspCompletionKind::Field: {
                     iconColor = colors["field"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
-                case Variable: {
+                case LspCompletionKind::Variable: {
                     iconColor = colors["variable"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
-                case Enum: {
+                case LspCompletionKind::Enum: {
                     iconColor = colors["enum"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEnum.svg";
                 }
                 break;
-                case Keyword: {
+                case LspCompletionKind::Keyword: {
                     iconColor = colors["keyword"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
                 break;
-                case Snippet: {
+                case LspCompletionKind::Snippet: {
                     iconColor = colors["snippet"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolSnippet.svg";
                 }
                 break;
-                case File: {
+                case LspCompletionKind::File: {
                     iconColor = colors["file"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolFile.svg";
                 }
                 break;
-                case EnumMember: {
+                case LspCompletionKind::EnumMember: {
                     iconColor = colors["enumMember"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEnumMember.svg";
                 }
                 break;
-                case Event: {
+                case LspCompletionKind::Event: {
                     iconColor = colors["event"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolEvent.svg";
                 }
                 break;
-                case Class: {
+                case LspCompletionKind::Class: {
                     iconColor = colors["class"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolMisc.svg";
                 }
                 break;
-                case Interface: {
+                case LspCompletionKind::Interface: {
                     iconColor = colors["interface"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
-                case Property: {
+                case LspCompletionKind::Property: {
                     iconColor = colors["property"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
-                case Value: {
+                case LspCompletionKind::Value: {
                     iconColor = colors["value"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolConstant.svg";
                 }
                 break;
-                case Operator: {
+                case LspCompletionKind::Operator: {
                     iconColor = colors["operator"].toObject()["fore"].toString(theme->foreGet());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
@@ -230,11 +231,11 @@ void CompletionWidget::textReplace() {
     const auto item = m_model[index].toHash();
     const int kind = item["kind"].toInt();
     QString insertText = item["text"].toString();
-    if (kind == Method || kind == Function) {
+    if (kind == LspCompletionKind::Method || kind == LspCompletionKind::Function) {
         insertText += "()";
-    } else if (kind == Field) {
+    } else if (kind == LspCompletionKind::Field) {
         insertText += ".";
-    } else if (kind == EnumMember) {
+    } else if (kind == LspCompletionKind::EnumMember) {
         if (insertText == "\"__PLACEHOLDER__GETPOSITION__\"") {
             const QVariantMap gotoSession = {
                 {"documentUrl", m_completionSession["documentUrl"].toUrl()},
@@ -255,7 +256,7 @@ void CompletionWidget::textReplace() {
         m_completionSession["endLine"].toInt(),
         m_completionSession["endCharacter"].toInt());
     int cursorPosition = 0;
-    if (kind == Method || kind == Function) {
+    if (kind == LspCompletionKind::Method || kind == LspCompletionKind::Function) {
         cursorPosition = m_completionSession["startCharacter"].toInt() + insertText.size() - 1;
     } else {
         cursorPosition = m_completionSession["startCharacter"].toInt() + insertText.size();
@@ -264,9 +265,9 @@ void CompletionWidget::textReplace() {
         m_completionSession["documentUrl"].toUrl(),
         m_completionSession["startLine"].toInt(),
         cursorPosition);
-    if (kind == Method || kind == Function) {
+    if (kind == LspCompletionKind::Method || kind == LspCompletionKind::Function) {
         emit addChar(m_completionSession["documentUrl"].toUrl(), '(');
-    } else if (kind == Field) {
+    } else if (kind == LspCompletionKind::Field) {
         emit addChar(m_completionSession["documentUrl"].toUrl(), '.');
     }
     completionHide();
@@ -289,7 +290,7 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
                 {"displayText", displayText},
                 {"source", QUrl("qrc:/icon/symbolEnumMember.svg")},
                 {"iconColor", color},
-                {"kind", EnumMember},
+                {"kind", LspCompletionKind::EnumMember},
                 {"labels", QStringList{insertText}}
             });
         }
