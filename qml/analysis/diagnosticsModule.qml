@@ -393,7 +393,7 @@ Item {
                         acceptedButtons: Qt.LeftButton
                         onTapped: {
                             root.diagnosticsModule.setIndex(cell.documentUrl, cell.startLine, cell.startCharacter)
-                            root.diagnosticsModule.fillIndicator(cell.documentUrl, 6, cell.startLine, cell.startCharacter, cell.endLine, cell.endCharacter, 1000)
+                            root.diagnosticsModule.fillIndicator(cell.documentUrl, ScintillaIndicator.Highlight, cell.startLine, cell.startCharacter, cell.endLine, cell.endCharacter, 1000)
                         }
                     }
 
@@ -467,7 +467,7 @@ Item {
 
             onTriggered: {
                 root.diagnosticsModule.setIndex(contextMenu.documentUrl, contextMenu.startLine, contextMenu.startCharacter)
-                root.diagnosticsModule.fillIndicator(contextMenu.documentUrl, 6, contextMenu.startLine, contextMenu.startCharacter, contextMenu.endLine, contextMenu.endCharacter, 1000)
+                root.diagnosticsModule.fillIndicator(contextMenu.documentUrl, ScintillaIndicator.Highlight, contextMenu.startLine, contextMenu.startCharacter, contextMenu.endLine, contextMenu.endCharacter, 1000)
             }
         }
     }

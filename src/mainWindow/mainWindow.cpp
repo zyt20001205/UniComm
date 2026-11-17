@@ -233,11 +233,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_statusModule->propertySet(statusObjects);
 
-    const QVariantHash structureObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"structureModuleRootMenu", objects["structureModuleRootMenu"]}
-    };
-    m_structureModule->propertySet(structureObjects);
+    m_structureModule->propertySet();
 
     const QVariantHash fileObjects = {
         {"mainWindowToast", QVariant::fromValue(m_toastModule)}
@@ -498,7 +494,6 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
-    connect(m_documentModule, &DocumentModule::focusDocument, m_structureModule, &StructureModule::documentFocus);
     connect(m_documentModule, &DocumentModule::changeSelection, m_statusModule, &StatusModule::selectionChange);
     connect(m_documentModule, &DocumentModule::insertBreakpoint, m_breakpointModule, &BreakpointModule::breakpointInsert);
     connect(m_documentModule, &DocumentModule::removeBreakpoint, m_breakpointModule, &BreakpointModule::breakpointRemove);

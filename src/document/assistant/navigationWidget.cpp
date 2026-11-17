@@ -7,6 +7,7 @@
 #include "core/globalManager.h"
 #include "core/themeManager.h"
 #include "document/documentModule.h"
+#include "types/scintillaTypes.h"
 #include "util/uniCast.h"
 
 // public

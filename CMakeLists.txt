@@ -200,6 +200,7 @@ target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}
         ${UNICOMM_INCLUDE}/analysis
         ${UNICOMM_INCLUDE}/qml
+        ${UNICOMM_INCLUDE}/types
         ${CMARK_INCLUDE}
         ${DRMINGW_INCLUDE}
         ${ICU_INCLUDE}

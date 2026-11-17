@@ -26,6 +26,7 @@
 #include "document/page/welcomePage.h"
 #include "mainWindow/toastModule.h"
 #include "service/git/gitModule.h"
+#include "types/scintillaTypes.h"
 #include "util/uniCast.h"
 
 // public

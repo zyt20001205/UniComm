@@ -1,21 +1,19 @@
 #include "document/assistant/searchWindow.h"
 
-#include <QCoreApplication>
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QQmlContext>
 #include <QProcess>
 #include <QQuickView>
 #include <QRegularExpression>
-#include <QStringList>
 #include <QUrl>
 
+#include "globals.h"
 #include "core/globalManager.h"
 #include "core/themeManager.h"
-#include "globals.h"
 #include "mainWindow/mainWindow.h"
+#include "types/scintillaTypes.h"
 
 // public
 SearchWindow::SearchWindow(QObject *parent)

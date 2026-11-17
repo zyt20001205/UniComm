@@ -12,6 +12,7 @@
 #include "core/globalManager.h"
 #include "runtime/luaInterpreter.h"
 #include "document/documentModule.h"
+#include "types/scintillaTypes.h"
 
 // public
 DebugModule::DebugModule()

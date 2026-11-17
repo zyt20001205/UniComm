@@ -15,6 +15,7 @@
 #include "document/module/scintillaWidget.h"
 #include "document/module/searchWidget.h"
 #include "mainWindow/toastModule.h"
+#include "types/scintillaTypes.h"
 
 // public
 EditorWidget::EditorWidget(const QJsonObject &documentConfig, const QUrl &documentUrl, QWidget *parent)

@@ -9,6 +9,7 @@
 #include "core/globalManager.h"
 #include "core/themeManager.h"
 #include "document/module/scintillaWidget.h"
+#include "types/scintillaTypes.h"
 
 // public
 ConflictWidget::ConflictWidget(const QJsonObject &documentConfig, const QUrl &documentUrl, QWidget *parent)

@@ -5,7 +5,7 @@
 #include <QFile>
 #include <QTimer>
 
-#include "globals.h"
+#include "types/scintillaTypes.h"
 
 using namespace Scintilla;
 

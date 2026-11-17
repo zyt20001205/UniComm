@@ -4219,40 +4219,6 @@ Item {
         }
     }
 
-    // structure module
-    Menu {
-        id: structureModuleRootMenu
-        property var treeView
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        Menu {
-            title: qsTr("Folding")
-            icon.source: "qrc:/icon/fold.svg"
-            icon.width: 16; icon.height: 16
-
-            MenuItem {
-                text: qsTr("Collapse All")
-                icon.source: "qrc:/icon/collapse.svg"
-                icon.width: 16; icon.height: 16
-
-                onTriggered: structureModuleRootMenu.treeView.collapseRecursively()
-            }
-
-            MenuItem {
-                text: qsTr("Expand All")
-                icon.source: "qrc:/icon/expand.svg"
-                icon.width: 16; icon.height: 16
-
-                onTriggered: structureModuleRootMenu.treeView.expandRecursively()
-            }
-        }
-    }
-
     // terminal module
     Menu {
         id: terminalModuleContextMenu
@@ -4689,8 +4655,6 @@ Item {
             "statusModuleEolModeMenu": statusModuleEolModeMenu,
             "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip,
             "statusModuleThreadToolTip": statusModuleThreadToolTip,
-
-            "structureModuleRootMenu": structureModuleRootMenu,
 
             "terminalModuleContextMenu": terminalModuleContextMenu,
             "terminalModuleTerminalMenu": terminalModuleTerminalMenu,

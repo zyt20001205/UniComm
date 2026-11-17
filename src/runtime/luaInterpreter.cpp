@@ -28,6 +28,7 @@
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
 #include "debug/watchModule.h"
+#include "types/scintillaTypes.h"
 #include "util/luaUtils.h"
 #include "util/uniCast.h"
 

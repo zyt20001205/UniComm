@@ -8,6 +8,7 @@
 #include "core/globalManager.h"
 #include "core/themeManager.h"
 #include "document/module/scintillaWidget.h"
+#include "types/scintillaTypes.h"
 #include "util/uniCast.h"
 
 // public

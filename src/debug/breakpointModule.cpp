@@ -6,6 +6,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "types/scintillaTypes.h"
 
 // public
 BreakpointModule::BreakpointModule()

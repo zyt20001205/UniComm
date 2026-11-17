@@ -5,6 +5,8 @@
 #include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "types/scintillaTypes.h"
+
 class QJsonArray;
 class QQuickWidget;
 class QStandardItemModel;
@@ -51,7 +53,7 @@ signals:
 
     void setIndex(const QUrl &documentUrl, int startLine, int startCharacter);
 
-    void fillIndicator(const QUrl &documentUrl, int type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
+    void fillIndicator(const QUrl &documentUrl, ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
 
 private:
     static void diagnosticsSet(QStandardItemModel *model, const QUrl &documentUrl, const QJsonArray &diagnostics);
