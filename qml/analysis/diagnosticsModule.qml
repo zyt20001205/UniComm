@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
+import QtQml.Models
 
 import UniComm
 
@@ -11,7 +12,12 @@ Item {
     id: root
     anchors.fill: parent
     required property DiagnosticsModule diagnosticsModule
+    property int severityLimit: DiagnosticsModule.Level.Hint
+    onSeverityLimitChanged: filterModel.invalidate()
     readonly property var selectedDiagnostic: root.diagnosticsModule.diagnostics[tabBar.currentIndex] ?? null
+    onSelectedDiagnosticChanged: {
+        if (selectedDiagnostic) filterModel.model = selectedDiagnostic.model
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -39,35 +45,171 @@ Item {
         }
     }
 
+    SortFilterProxyModel {
+        id: filterModel
+        onModelChanged: {
+            tableView.contentX = 0
+            tableView.contentY = 0
+        }
+        sorters: RoleSorter {
+            id: severitySorter
+            roleName: "severity"
+            column: DiagnosticsModule.Col.Severity
+            sortOrder: Qt.AscendingOrder
+        }
+        filters: FunctionFilter {
+            column: DiagnosticsModule.Col.Severity
+            enabled: root.severityLimit !== DiagnosticsModule.Level.Hint
+            component RoleData: QtObject {
+                property int severity
+            }
+
+            function filter(data: RoleData): bool {
+                return data.severity <= root.severityLimit
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
         visible: root.diagnosticsModule.diagnostics.length !== 0
 
-        TabBar {
-            id: tabBar
-            contentHeight: 24
+        SplitView {
             Layout.fillWidth: true; Layout.preferredHeight: 32
-            currentIndex: {
-                const diagnostics = root.diagnosticsModule.diagnostics
-                const focusedUrl = global.documentModule.focusedUrl
-                // Wait for the Repeater to finish rebuilding its tabs.
-                if (count !== diagnostics.length)
-                    return -1
-                for (let i = 0; i < diagnostics.length; ++i) {
-                    if (diagnostics[i].documentUrl === focusedUrl)
-                        return i
+            orientation: Qt.Horizontal
+
+            handle: Item {
+                implicitWidth: 5
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top; anchors.bottom: parent.bottom
+                    width: 1
+                    color: global.theme.stroke
                 }
-                return diagnostics.length ? 0 : -1
             }
 
-            Repeater {
-                model: root.diagnosticsModule.diagnostics
+            TabBar {
+                id: tabBar
+                contentHeight: 24
+                SplitView.fillWidth: true; SplitView.minimumWidth: 120
+                clip: true
+                currentIndex: {
+                    const diagnostics = root.diagnosticsModule.diagnostics
+                    const focusedUrl = global.documentModule.focusedUrl
+                    // Wait for the Repeater to finish rebuilding its tabs.
+                    if (count !== diagnostics.length)
+                        return -1
+                    for (let i = 0; i < diagnostics.length; ++i) {
+                        if (diagnostics[i].documentUrl === focusedUrl)
+                            return i
+                    }
+                    return diagnostics.length ? 0 : -1
+                }
 
-                delegate: TabButton {
-                    required property var modelData
-                    text: modelData.name
-                    width: contentItem.implicitWidth + 24; height: 24
+                Repeater {
+                    model: root.diagnosticsModule.diagnostics
+
+                    delegate: TabButton {
+                        required property var modelData
+                        text: modelData.name
+                        width: contentItem.implicitWidth + 24; height: 24
+                    }
+                }
+            }
+
+            Item {
+                SplitView.preferredWidth: toolbar.implicitWidth; SplitView.minimumWidth: toolbar.implicitWidth
+
+                RowLayout {
+                    id: toolbar
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+
+                    RowLayout {
+                        Layout.rightMargin: 8
+
+                        Repeater {
+                            model: [
+                                {field: "errors", icon: "error", color: global.theme.dangerBack3},
+                                {field: "warnings", icon: "warning", color: global.theme.warningBack3},
+                                {field: "infos", icon: "info", color: global.theme.brandBack},
+                                {field: "hints", icon: "hint", color: global.theme.fore}
+                            ]
+
+                            delegate: RowLayout {
+                                id: statistic
+                                required property var modelData
+                                readonly property int count: root.selectedDiagnostic?.[modelData.field] ?? 0
+                                visible: count > 0
+
+                                IconImage {
+                                    source: "qrc:/icon/" + statistic.modelData.icon + ".svg"
+                                    color: statistic.modelData.color
+                                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                                }
+
+                                Label {
+                                    text: statistic.count
+                                }
+                            }
+                        }
+                    }
+
+                    Button {
+                        id: sortButton
+                        flat: true
+                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                        icon.source: severitySorter.sortOrder === Qt.AscendingOrder
+                            ? "qrc:/icon/arrowSortUpLines.svg" : "qrc:/icon/arrowSortDownLines.svg"
+                        icon.width: 16; icon.height: 16
+
+                        onClicked: {
+                            mainTooltip.text = ""
+                            severitySorter.sortOrder = severitySorter.sortOrder === Qt.AscendingOrder
+                                ? Qt.DescendingOrder : Qt.AscendingOrder
+                        }
+
+                        HoverHandler {
+                            onHoveredChanged: {
+                                if (!hovered) mainTooltip.text = ""
+                            }
+                            onPointChanged: {
+                                mainTooltip.position = sortButton.mapToGlobal(point.position)
+                                mainTooltip.text = severitySorter.sortOrder === Qt.AscendingOrder
+                                    ? qsTr("Ascending") : qsTr("Descending")
+                            }
+                        }
+                    }
+
+                    Button {
+                        id: filterButton
+                        flat: true
+                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                        icon.source: "qrc:/icon/filter.svg"
+                        icon.color: global.theme.fore
+                        icon.width: 16; icon.height: 16
+
+                        onClicked: {
+                            mainTooltip.text = ""
+                            const position = filterButton.mapToGlobal(0, filterButton.height)
+                            const localPosition = mainOverlay.mapFromGlobal(position)
+                            filterMenu.popup(localPosition.x, localPosition.y)
+                        }
+
+                        HoverHandler {
+                            enabled: !filterMenu.visible
+                            onHoveredChanged: {
+                                if (!hovered) mainTooltip.text = ""
+                            }
+                            onPointChanged: {
+                                mainTooltip.position = filterButton.mapToGlobal(point.position)
+                                mainTooltip.text = qsTr("Filter")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -113,7 +255,7 @@ Item {
                 anchors.top: horizontalHeaderView.bottom; anchors.bottom: parent.bottom
                 anchors.rightMargin: verticalScrollBar.width
                 anchors.bottomMargin: horizontalScrollBar.height
-                model: root.selectedDiagnostic ? root.selectedDiagnostic.model : null
+                model: root.selectedDiagnostic ? filterModel : null
                 rowSpacing: 1; columnSpacing: 0
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -141,10 +283,6 @@ Item {
                 }
 
                 onWidthChanged: forceLayout()
-                onModelChanged: {
-                    contentX = 0
-                    contentY = 0
-                }
 
                 Rectangle {
                     parent: tableView.contentItem
@@ -262,14 +400,35 @@ Item {
                     TapHandler {
                         acceptedButtons: Qt.RightButton
                         onTapped: {
-                            diagnosticMenu.documentUrl = cell.documentUrl
-                            diagnosticMenu.startLine = cell.startLine
-                            diagnosticMenu.startCharacter = cell.startCharacter
-                            diagnosticMenu.endLine = cell.endLine
-                            diagnosticMenu.endCharacter = cell.endCharacter
-                            diagnosticMenu.diagnostic = cell.message
-                            diagnosticMenu.popup()
+                            contextMenu.documentUrl = cell.documentUrl
+                            contextMenu.startLine = cell.startLine
+                            contextMenu.startCharacter = cell.startCharacter
+                            contextMenu.endLine = cell.endLine
+                            contextMenu.endCharacter = cell.endCharacter
+                            contextMenu.diagnostic = cell.message
+                            contextMenu.popup()
                         }
+                    }
+                }
+            }
+
+            Item {
+                anchors.fill: tableView
+                visible: tableView.rows === 0
+
+                RowLayout {
+                    anchors.centerIn: parent
+
+                    Label {
+                        text: qsTr("No diagnostics match the filter.")
+                        font.pixelSize: 16
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    IconImage {
+                        source: "qrc:/icon/filter.svg"
+                        color: global.theme.fore
+                        Layout.alignment: Qt.AlignVCenter
                     }
                 }
             }
@@ -277,7 +436,7 @@ Item {
     }
 
     Menu {
-        id: diagnosticMenu
+        id: contextMenu
         parent: mainOverlay
         popupType: Popup.Item
         property string diagnostic
@@ -298,7 +457,7 @@ Item {
             icon.source: "qrc:/icon/copy.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: global.fileModule.copyToClipboard(diagnosticMenu.diagnostic)
+            onTriggered: global.fileModule.copyToClipboard(contextMenu.diagnostic)
         }
 
         MenuItem {
@@ -307,9 +466,69 @@ Item {
             icon.width: 16; icon.height: 16
 
             onTriggered: {
-                root.diagnosticsModule.setIndex(diagnosticMenu.documentUrl, diagnosticMenu.startLine, diagnosticMenu.startCharacter)
-                root.diagnosticsModule.fillIndicator(diagnosticMenu.documentUrl, 6, diagnosticMenu.startLine, diagnosticMenu.startCharacter, diagnosticMenu.endLine, diagnosticMenu.endCharacter, 1000)
+                root.diagnosticsModule.setIndex(contextMenu.documentUrl, contextMenu.startLine, contextMenu.startCharacter)
+                root.diagnosticsModule.fillIndicator(contextMenu.documentUrl, 6, contextMenu.startLine, contextMenu.startCharacter, contextMenu.endLine, contextMenu.endCharacter, 1000)
             }
+        }
+    }
+
+    Menu {
+        id: filterMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        ButtonGroup {
+            id: filterGroup
+        }
+
+        MenuItem {
+            text: qsTr("Only")
+            icon.source: "qrc:/icon/error.svg"
+            icon.color: global.theme.dangerBack3
+            icon.width: 16; icon.height: 16
+            checkable: true
+            checked: root.severityLimit === DiagnosticsModule.Level.Error
+            ButtonGroup.group: filterGroup
+            onTriggered: root.severityLimit = DiagnosticsModule.Level.Error
+        }
+
+        MenuItem {
+            text: qsTr("Above")
+            icon.source: "qrc:/icon/warning.svg"
+            icon.color: global.theme.warningBack3
+            icon.width: 16; icon.height: 16
+            checkable: true
+            checked: root.severityLimit === DiagnosticsModule.Level.Warning
+            ButtonGroup.group: filterGroup
+            onTriggered: root.severityLimit = DiagnosticsModule.Level.Warning
+        }
+
+        MenuItem {
+            text: qsTr("Above")
+            icon.source: "qrc:/icon/info.svg"
+            icon.color: global.theme.brandBack
+            icon.width: 16; icon.height: 16
+            checkable: true
+            checked: root.severityLimit === DiagnosticsModule.Level.Information
+            ButtonGroup.group: filterGroup
+            onTriggered: root.severityLimit = DiagnosticsModule.Level.Information
+        }
+
+        MenuItem {
+            text: qsTr("All")
+            icon.source: "qrc:/icon/filter.svg"
+            icon.color: global.theme.fore
+            icon.width: 16; icon.height: 16
+            checkable: true
+            checked: root.severityLimit === DiagnosticsModule.Level.Hint
+            ButtonGroup.group: filterGroup
+            onTriggered: root.severityLimit = DiagnosticsModule.Level.Hint
         }
     }
 }

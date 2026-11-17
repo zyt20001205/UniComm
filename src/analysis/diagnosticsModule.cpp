@@ -31,10 +31,15 @@ QVariantList DiagnosticsModule::diagnosticsGet() const {
     diagnostics.reserve(m_diagnosticsModelHash.size());
     for (auto it = m_diagnosticsModelHash.cbegin(); it != m_diagnosticsModelHash.cend(); ++it) {
         const auto &documentUrl = it.key();
+        const auto *model = it.value();
         diagnostics.append(QVariantHash{
             {"documentUrl", documentUrl},
             {"name", documentUrl.fileName()},
-            {"model", QVariant::fromValue<QAbstractItemModel *>(it.value())}
+            {"model", QVariant::fromValue<QAbstractItemModel *>(it.value())},
+            {"errors", model->property("errors")},
+            {"warnings", model->property("warnings")},
+            {"infos", model->property("infos")},
+            {"hints", model->property("hints")}
         });
     }
     return diagnostics;
@@ -46,9 +51,9 @@ void DiagnosticsModule::diagnosticsNotification(const QUrl &documentUrl, const Q
         diagnosticsSet(diagnosticsModel, documentUrl, diagnostics);
         if (diagnosticsModel->rowCount() == 0) {
             m_diagnosticsModelHash.remove(documentUrl);
-            emit changeDiagnostics();
             diagnosticsModel->deleteLater();
         }
+        emit changeDiagnostics();
         return;
     }
     if (diagnostics.isEmpty()) return;
@@ -81,6 +86,10 @@ void DiagnosticsModule::diagnosticsNotification(const QUrl &documentUrl, const Q
 
 // private
 void DiagnosticsModule::diagnosticsSet(QStandardItemModel *model, const QUrl &documentUrl, const QJsonArray &diagnostics) {
+    int errors = 0;
+    int warnings = 0;
+    int infos = 0;
+    int hints = 0;
     model->setRowCount(0);
     for (const auto &value: diagnostics) {
         const auto diagnostic = value.toObject();
@@ -95,7 +104,18 @@ void DiagnosticsModule::diagnosticsSet(QStandardItemModel *model, const QUrl &do
         const auto endLine = end["line"].toInt();
         const auto endCharacter = end["character"].toInt();
         // information
-        const auto severity =diagnostic["severity"].toInt();
+        const auto severity = diagnostic["severity"].toInt();
+        switch (severity) {
+            case Error: ++errors;
+                break;
+            case Warning: ++warnings;
+                break;
+            case Information: ++infos;
+                break;
+            case Hint: ++hints;
+                break;
+            default: ;
+        }
         const auto source = diagnostic["source"].toString();
         QList<QStandardItem *> row(Count);
         row[Severity] = new QStandardItem(); // NOLINT
@@ -116,4 +136,8 @@ void DiagnosticsModule::diagnosticsSet(QStandardItemModel *model, const QUrl &do
         }
         model->appendRow(row);
     }
+    model->setProperty("errors", errors);
+    model->setProperty("warnings", warnings);
+    model->setProperty("infos", infos);
+    model->setProperty("hints", hints);
 }
