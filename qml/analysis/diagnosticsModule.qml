@@ -75,25 +75,14 @@ Item {
         spacing: 0
         visible: root.diagnosticsModule.diagnostics.length !== 0
 
-        SplitView {
+        RowLayout {
             Layout.fillWidth: true; Layout.preferredHeight: 32
-            orientation: Qt.Horizontal
-
-            handle: Item {
-                implicitWidth: 5
-
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top; anchors.bottom: parent.bottom
-                    width: 1
-                    color: global.theme.general.stroke
-                }
-            }
 
             TabBar {
                 id: tabBar
                 contentHeight: 24
-                SplitView.fillWidth: true; SplitView.minimumWidth: 120
+                Layout.fillWidth: true; Layout.minimumWidth: 0
+                Layout.preferredHeight: 24
                 clip: true
                 currentIndex: {
                     const diagnostics = root.diagnosticsModule.diagnostics
@@ -119,95 +108,91 @@ Item {
                 }
             }
 
-            Item {
-                SplitView.preferredWidth: toolbar.implicitWidth; SplitView.minimumWidth: toolbar.implicitWidth
+            RowLayout {
+                id: toolbar
+                Layout.alignment: Qt.AlignVCenter
 
                 RowLayout {
-                    id: toolbar
-                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                    Layout.rightMargin: 8
 
-                    RowLayout {
-                        Layout.rightMargin: 8
+                    Repeater {
+                        model: [
+                            {field: "errors", icon: "error", color: global.theme.general.dangerBack3},
+                            {field: "warnings", icon: "warning", color: global.theme.general.warningBack3},
+                            {field: "infos", icon: "info", color: global.theme.general.brandBack},
+                            {field: "hints", icon: "hint", color: global.theme.general.fore}
+                        ]
 
-                        Repeater {
-                            model: [
-                                {field: "errors", icon: "error", color: global.theme.general.dangerBack3},
-                                {field: "warnings", icon: "warning", color: global.theme.general.warningBack3},
-                                {field: "infos", icon: "info", color: global.theme.general.brandBack},
-                                {field: "hints", icon: "hint", color: global.theme.general.fore}
-                            ]
+                        delegate: RowLayout {
+                            id: statistic
+                            required property var modelData
+                            readonly property int count: root.selectedDiagnostic?.[modelData.field] ?? 0
+                            visible: count > 0
 
-                            delegate: RowLayout {
-                                id: statistic
-                                required property var modelData
-                                readonly property int count: root.selectedDiagnostic?.[modelData.field] ?? 0
-                                visible: count > 0
+                            IconImage {
+                                source: "qrc:/icon/" + statistic.modelData.icon + ".svg"
+                                color: statistic.modelData.color
+                                Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                            }
 
-                                IconImage {
-                                    source: "qrc:/icon/" + statistic.modelData.icon + ".svg"
-                                    color: statistic.modelData.color
-                                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
-                                }
-
-                                Label {
-                                    text: statistic.count
-                                }
+                            Label {
+                                text: statistic.count
                             }
                         }
                     }
+                }
 
-                    Button {
-                        id: sortButton
-                        flat: true
-                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                        icon.source: severitySorter.sortOrder === Qt.AscendingOrder
-                            ? "qrc:/icon/arrowSortUpLines.svg" : "qrc:/icon/arrowSortDownLines.svg"
-                        icon.width: 16; icon.height: 16
+                Button {
+                    id: sortButton
+                    flat: true
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    icon.source: severitySorter.sortOrder === Qt.AscendingOrder
+                        ? "qrc:/icon/arrowSortUpLines.svg" : "qrc:/icon/arrowSortDownLines.svg"
+                    icon.width: 16; icon.height: 16
 
-                        onClicked: {
-                            mainTooltip.text = ""
-                            severitySorter.sortOrder = severitySorter.sortOrder === Qt.AscendingOrder
-                                ? Qt.DescendingOrder : Qt.AscendingOrder
-                        }
-
-                        HoverHandler {
-                            onHoveredChanged: {
-                                if (!hovered) mainTooltip.text = ""
-                            }
-                            onPointChanged: {
-                                mainTooltip.position = sortButton.mapToGlobal(point.position)
-                                mainTooltip.text = severitySorter.sortOrder === Qt.AscendingOrder
-                                    ? qsTr("Ascending") : qsTr("Descending")
-                            }
-                        }
+                    onClicked: {
+                        mainTooltip.text = ""
+                        severitySorter.sortOrder = severitySorter.sortOrder === Qt.AscendingOrder
+                            ? Qt.DescendingOrder : Qt.AscendingOrder
                     }
 
-                    Button {
-                        id: filterButton
-                        flat: true
-                        Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                        icon.source: "qrc:/icon/filter.svg"
-                        icon.color: global.theme.general.fore
-                        icon.width: 16; icon.height: 16
-
-                        onClicked: {
-                            mainTooltip.text = ""
-                            const position = filterButton.mapToGlobal(0, filterButton.height)
-                            const localPosition = mainOverlay.mapFromGlobal(position)
-                            filterMenu.popup(localPosition.x, localPosition.y)
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
                         }
+                        onPointChanged: {
+                            mainTooltip.position = sortButton.mapToGlobal(point.position)
+                            mainTooltip.text = severitySorter.sortOrder === Qt.AscendingOrder
+                                ? qsTr("Ascending") : qsTr("Descending")
+                        }
+                    }
+                }
 
-                        HoverHandler {
-                            enabled: !filterMenu.visible
-                            onHoveredChanged: {
-                                if (!hovered) mainTooltip.text = ""
-                            }
-                            onPointChanged: {
-                                mainTooltip.position = filterButton.mapToGlobal(point.position)
-                                mainTooltip.text = qsTr("Filter")
-                            }
+                Button {
+                    id: filterButton
+                    flat: true
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    icon.source: "qrc:/icon/filter.svg"
+                    icon.color: global.theme.general.fore
+                    icon.width: 16; icon.height: 16
+
+                    onClicked: {
+                        mainTooltip.text = ""
+                        const position = filterButton.mapToGlobal(0, filterButton.height)
+                        const localPosition = mainOverlay.mapFromGlobal(position)
+                        filterMenu.popup(localPosition.x, localPosition.y)
+                    }
+
+                    HoverHandler {
+                        enabled: !filterMenu.visible
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = filterButton.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Filter")
                         }
                     }
                 }
