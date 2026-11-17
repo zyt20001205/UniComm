@@ -10,7 +10,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 
 TerminalWidget::TerminalWidget(QQuickItem *parent)
     : QQuickPaintedItem(parent),
@@ -42,6 +41,7 @@ void TerminalWidget::paste() {
 }
 
 void TerminalWidget::paint(QPainter *painter) {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     if (m_rows < 1 || m_cols < 1 || m_cells.size() < m_rows * m_cols) return;
 
     QRectF paintRect = painter->hasClipping() ? painter->clipBoundingRect() : boundingRect();
@@ -55,8 +55,8 @@ void TerminalWidget::paint(QPainter *painter) {
 
     painter->setFont(m_font);
     QFont currentFont = m_font;
-    const QColor selectionForeground(g_globalManager->themeGet()->foreSelectedGet());
-    const QColor selectionBackground(g_globalManager->themeGet()->backSelectedGet());
+    const QColor selectionForeground(general["foreSelected"].toString());
+    const QColor selectionBackground(general["backSelected"].toString());
 
     for (int row = firstRow; row < endRow; ++row) {
         const qreal y = row * m_cellHeight + m_ascent;

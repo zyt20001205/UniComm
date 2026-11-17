@@ -4,7 +4,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "types/lspTypes.h"
 #include "types/scintillaTypes.h"
 
@@ -46,8 +45,9 @@ void SymbolWidget::indicatorFill(const QVariantHash &position) {
 
 QVariantList SymbolWidget::symbolParse(const QJsonArray &result, const int line, const int character) {
     QVariantList symbolList{};
-    const auto *theme = g_globalManager->themeGet();
-    const auto colors = theme->configGet()["lua"].toObject()["structure"].toObject();
+    const auto theme = g_globalManager->themeGet();
+    const auto general = theme["general"].toObject();
+    const auto colors = theme["lua"].toObject()["structure"].toObject();
     for (const auto &value: result) {
         const auto symbol = value.toObject();
         const auto kind = symbol["kind"].toInt();
@@ -66,51 +66,51 @@ QVariantList SymbolWidget::symbolParse(const QJsonArray &result, const int line,
             {"endCharacter", end["character"].toInt()}
         };
         QUrl source{};
-        QString iconColor = theme->foreGet();
+        QString iconColor = general["fore"].toString();
         switch (kind) {
             case LspSymbolKind::Package: {
-                iconColor = colors["package"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["package"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolPackage.svg";
             }
             break;
             case LspSymbolKind::Method:
             case LspSymbolKind::Function: {
-                iconColor = colors[kind == LspSymbolKind::Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors[kind == LspSymbolKind::Method ? "method" : "function"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolMethod.svg";
             }
             break;
             case LspSymbolKind::Variable: {
-                iconColor = colors["variable"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["variable"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolVariable.svg";
             }
             break;
             case LspSymbolKind::Constant: {
-                iconColor = colors["constant"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["constant"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolConstant.svg";
             }
             break;
             case LspSymbolKind::String: {
-                iconColor = colors["string"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["string"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolString.svg";
             }
             break;
             case LspSymbolKind::Number: {
-                iconColor = colors["number"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["number"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolNumeric.svg";
             }
             break;
             case LspSymbolKind::Boolean: {
-                iconColor = colors["boolean"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["boolean"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolBoolean.svg";
             }
             break;
             case LspSymbolKind::Array: {
-                iconColor = colors["array"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["array"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolArray.svg";
             }
             break;
             case LspSymbolKind::Object: {
-                iconColor = colors["object"].toObject()["fore"].toString(theme->foreGet());
+                iconColor = colors["object"].toObject()["fore"].toString(general["fore"].toString());
                 source = "qrc:/icon/symbolMisc.svg";
             }
             break;

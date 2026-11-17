@@ -5,7 +5,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "document/documentModule.h"
 #include "types/scintillaTypes.h"
 #include "util/uniCast.h"
@@ -105,7 +104,7 @@ void NavigationWidget::detailReload(const int index) {
     auto text = g_globalManager->documentModuleGet()->textGet(position["documentUrl"].toUrl(), firstLine, 0, startLine + 2, -1);
     QString hintText;
     if (!text.isNull()) {
-        const auto *theme = g_globalManager->themeGet();
+        const auto general = g_globalManager->themeGet()["general"].toObject();
         text.replace("\r\n", "\n");
         text.replace('\r', '\n');
         auto lines = text.split('\n', Qt::KeepEmptyParts);
@@ -119,7 +118,7 @@ void NavigationWidget::detailReload(const int index) {
                 const auto endCharacter = lineNumber == endLine ? position["endCharacter"].toInt() : line.size();
                 content = QString("%1<span style='color: %2;'>%3</span>%4").arg(
                     line.left(startCharacter).toHtmlEscaped(),
-                    theme->warningFore3Get(),
+                    general["warningFore3"].toString(),
                     line.mid(startCharacter, endCharacter - startCharacter).toHtmlEscaped(),
                     line.mid(endCharacter).toHtmlEscaped());
             } else {

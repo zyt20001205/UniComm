@@ -7,7 +7,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     Item {
@@ -32,8 +32,8 @@ Item {
 
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.theme.stroke
-                dark: global.theme.strokePressed
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
             }
             size: vtermWidget.scrollSize
             position: vtermWidget.scrollPosition

@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ColumnLayout {
@@ -32,8 +32,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -48,7 +48,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: global.theme.backHover
+                        color: global.theme.general.backHover
                         opacity: hoverHandler.hovered ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -60,7 +60,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: commitTreeView.selectedRow === row ? global.theme.backSelected : "transparent"
+                        color: commitTreeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
                     }
 
                     RowLayout {
@@ -78,7 +78,7 @@ Item {
                                 anchors.centerIn: parent
                                 width: 16; height: 16
                                 source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                color: global.theme.fore
+                                color: global.theme.general.fore
                                 visible: isTreeNode && hasChildren
                             }
 
@@ -159,8 +159,8 @@ Item {
                         minimumSize: Math.min(1, 20 / Math.max(1, height))
                         policy: ScrollBar.AsNeeded
                         palette {
-                            mid: global.theme.stroke
-                            dark: global.theme.strokePressed
+                            mid: global.theme.general.stroke
+                            dark: global.theme.general.strokePressed
                         }
                     }
 
@@ -175,7 +175,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: 6
-                            color: global.theme.backHover
+                            color: global.theme.general.backHover
                             opacity: hoverHandler.hovered ? 1 : 0
                             Behavior on opacity {
                                 NumberAnimation {
@@ -187,7 +187,7 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: 6
-                            color: showTreeView.selectedRow === row ? global.theme.backSelected : "transparent"
+                            color: showTreeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
                         }
 
                         RowLayout {
@@ -205,7 +205,7 @@ Item {
                                     anchors.centerIn: parent
                                     width: 16; height: 16
                                     source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                     visible: isTreeNode && hasChildren
                                 }
 
@@ -241,15 +241,15 @@ Item {
                                 color: {
                                     switch (model.status) {
                                         case 3:
-                                            return global.theme.brandBack
+                                            return global.theme.general.brandBack
                                         case 5:
-                                            return global.theme.successFore2
+                                            return global.theme.general.successFore2
                                         case 6:
-                                            return global.theme.stroke
+                                            return global.theme.general.stroke
                                         case 7:
-                                            return global.theme.warningFore3
+                                            return global.theme.general.warningFore3
                                         default:
-                                            return global.theme.fore
+                                            return global.theme.general.fore
                                     }
                                 }
                                 Layout.preferredHeight: 24; Layout.fillWidth: true

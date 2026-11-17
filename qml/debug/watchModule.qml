@@ -10,7 +10,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     Timer {
@@ -36,7 +36,7 @@ Item {
 
             IconImage {
                 source: "qrc:/icon/eye.svg"
-                color: global.theme.fore
+                color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -96,12 +96,12 @@ Item {
 
                     contentItem: Rectangle {
                         width: 24; height: 24
-                        color: global.theme.back
+                        color: global.theme.general.back
 
                         IconImage {
                             anchors.centerIn: parent
                             width: 16; height: 16
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             source: "qrc:/icon/drag.svg"
                         }
                     }
@@ -114,7 +114,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 Timer {
@@ -161,14 +161,14 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 delegate: Item {
@@ -189,13 +189,13 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.theme.back
+                        color: global.theme.general.back
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: global.theme.backHover
+                        color: global.theme.general.backHover
                         opacity: {
                             if (column === 0 && hoverHandler.hovered) {
                                 return 1

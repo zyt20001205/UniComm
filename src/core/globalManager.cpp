@@ -12,3 +12,7 @@ GlobalManager::GlobalManager(QObject *parent)
       m_engine(new QQmlEngine(this)) {
     m_engine->rootContext()->setContextProperty("global", this);
 }
+
+QJsonObject GlobalManager::themeGet() const {
+    return m_theme->configGet();
+}

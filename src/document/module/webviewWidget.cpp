@@ -16,7 +16,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 
 namespace {
     template<typename Interface>
@@ -276,7 +275,7 @@ void WebviewWidget::themeApply() const {
     if (SUCCEEDED(m_webView->QueryInterface(IID_ICoreWebView2_13, reinterpret_cast<void **>(&webView13)))) {
         ICoreWebView2Profile *profile{};
         if (SUCCEEDED(webView13->get_Profile(&profile))) {
-            const auto colorScheme = g_globalManager->themeGet()->modeGet() == Theme::Light
+            const auto colorScheme = g_globalManager->themeGet()["mode"].toInt() == Theme::Light
                                          ? COREWEBVIEW2_PREFERRED_COLOR_SCHEME_LIGHT
                                          : COREWEBVIEW2_PREFERRED_COLOR_SCHEME_DARK;
             profile->put_PreferredColorScheme(colorScheme);
@@ -287,7 +286,7 @@ void WebviewWidget::themeApply() const {
 
     ICoreWebView2Controller2 *controller2{};
     if (SUCCEEDED(m_controller->QueryInterface(IID_ICoreWebView2Controller2, reinterpret_cast<void **>(&controller2)))) {
-        const QColor background(g_globalManager->themeGet()->backGet());
+        const QColor background(g_globalManager->themeGet()["general"].toObject()["back"].toString());
         const COREWEBVIEW2_COLOR color{
             255,
             static_cast<BYTE>(background.red()),

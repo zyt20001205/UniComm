@@ -5,7 +5,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "port/portModule.h"
 #include "types/lspTypes.h"
 
@@ -45,8 +44,9 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
     m_completionSession = completionSession;
     QVariantList model;
     int completionMode = Full;
-    const auto *theme = g_globalManager->themeGet();
-    const auto colors = theme->configGet()["lua"].toObject()["completion"].toObject();
+    const auto theme = g_globalManager->themeGet();
+    const auto general = theme["general"].toObject();
+    const auto colors = theme["lua"].toObject()["completion"].toObject();
     const int typed = completionSession["typed"].toInt();
     for (const auto &value: items) {
         QJsonObject item = value.toObject();
@@ -76,90 +76,90 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
             QUrl iconSource{};
             switch (kind) {
                 case LspCompletionKind::Text: {
-                    iconColor = colors["text"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["text"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolString.svg";
                 }
                 break;
                 case LspCompletionKind::Method:
                 case LspCompletionKind::Function: {
-                    iconColor = colors[kind == LspCompletionKind::Method ? "method" : "function"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors[kind == LspCompletionKind::Method ? "method" : "function"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolMethod.svg";
                 }
                 break;
                 case LspCompletionKind::Field: {
-                    iconColor = colors["field"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["field"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
                 case LspCompletionKind::Variable: {
-                    iconColor = colors["variable"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["variable"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
                 case LspCompletionKind::Enum: {
-                    iconColor = colors["enum"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["enum"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolEnum.svg";
                 }
                 break;
                 case LspCompletionKind::Keyword: {
-                    iconColor = colors["keyword"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["keyword"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
                 break;
                 case LspCompletionKind::Snippet: {
-                    iconColor = colors["snippet"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["snippet"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolSnippet.svg";
                 }
                 break;
                 case LspCompletionKind::File: {
-                    iconColor = colors["file"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["file"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolFile.svg";
                 }
                 break;
                 case LspCompletionKind::EnumMember: {
-                    iconColor = colors["enumMember"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["enumMember"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolEnumMember.svg";
                 }
                 break;
                 case LspCompletionKind::Event: {
-                    iconColor = colors["event"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["event"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolEvent.svg";
                 }
                 break;
                 case LspCompletionKind::Class: {
-                    iconColor = colors["class"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["class"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolMisc.svg";
                 }
                 break;
                 case LspCompletionKind::Interface: {
-                    iconColor = colors["interface"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["interface"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolVariable.svg";
                 }
                 break;
                 case LspCompletionKind::Property: {
-                    iconColor = colors["property"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["property"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolField.svg";
                 }
                 break;
                 case LspCompletionKind::Value: {
-                    iconColor = colors["value"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["value"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolConstant.svg";
                 }
                 break;
                 case LspCompletionKind::Operator: {
-                    iconColor = colors["operator"].toObject()["fore"].toString(theme->foreGet());
+                    iconColor = colors["operator"].toObject()["fore"].toString(general["fore"].toString());
                     iconSource = "qrc:/icon/symbolKeyword.svg";
                 }
                 break;
                 default: {
-                    iconColor = theme->foreGet();
+                    iconColor = general["fore"].toString();
                     iconSource = "qrc:/icon/symbolMisc.svg";
                     emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported completion (kind:%1, text:%2)").arg(QString::number(kind), insertText));
                 }
                 break;
             }
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
-                theme->foreDisabledGet(),
+                general["foreDisabled"].toString(),
                 insertText.left(typed).toHtmlEscaped(),
                 insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{
@@ -276,13 +276,14 @@ void CompletionWidget::textReplace() {
 void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantList &model) const {
     if (placeholder == "\"__PLACEHOLDER__PORTNAME__\"") {
         const auto *ports = g_globalManager->portModuleGet()->modelGet();
-        const auto *theme = g_globalManager->themeGet();
-        const auto color = theme->configGet()["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(theme->foreGet());
+        const auto theme = g_globalManager->themeGet();
+        const auto general = theme["general"].toObject();
+        const auto color = theme["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(general["fore"].toString());
         const int typed = m_completionSession["typed"].toInt();
         for (int i = 0; i < ports->rowCount(); ++i) {
             const QString insertText = "\"" + ports->item(i, 0)->text() + "\"";
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
-                theme->foreDisabledGet(),
+                general["foreDisabled"].toString(),
                 insertText.left(typed).toHtmlEscaped(),
                 insertText.mid(typed).toHtmlEscaped());
             model.append(QVariantHash{

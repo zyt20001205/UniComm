@@ -21,13 +21,13 @@ Item {
     function statusColor(status: int): color {
         switch (status) {
             case 2:
-                return global.theme.successBack3
+                return global.theme.general.successBack3
             case 3:
-                return global.theme.warningBack3
+                return global.theme.general.warningBack3
             case 4:
-                return global.theme.dangerBack3
+                return global.theme.general.dangerBack3
             default:
-                return global.theme.brandBack
+                return global.theme.general.brandBack
         }
     }
 
@@ -50,7 +50,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ScrollView {
@@ -68,8 +68,8 @@ Item {
             active: scrollView.ScrollBar.horizontal.active
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.theme.stroke
-                dark: global.theme.strokePressed
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
             }
         }
 
@@ -81,8 +81,8 @@ Item {
             active: scrollView.ScrollBar.vertical.active
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.theme.stroke
-                dark: global.theme.strokePressed
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
             }
         }
 
@@ -108,7 +108,7 @@ Item {
                             .arg(summary.provider)
                             .arg(summary.model)
                             .arg(summary.runCount)
-                    color: global.theme.foreDisabled
+                    color: global.theme.general.foreDisabled
                 }
             }
 
@@ -344,7 +344,7 @@ Item {
                     spacing: 0
 
                     Rectangle {
-                        color: global.theme.back
+                        color: global.theme.general.back
                         Layout.fillWidth: true; Layout.preferredHeight: 24
 
                         RowLayout {
@@ -417,8 +417,8 @@ Item {
                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                             policy: ScrollBar.AsNeeded
                             palette {
-                                mid: global.theme.stroke
-                                dark: global.theme.strokePressed
+                                mid: global.theme.general.stroke
+                                dark: global.theme.general.strokePressed
                             }
                         }
 
@@ -445,7 +445,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: global.theme.backHover
+                                        color: global.theme.general.backHover
                                         opacity: turnHistory.hoveredNodeId === turnDelegate.nodeId ? 1 : 0
 
                                         Behavior on opacity {
@@ -457,7 +457,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: turnHistory.selectedNodeId === turnDelegate.nodeId ? global.theme.backSelected : "transparent"
+                                        color: turnHistory.selectedNodeId === turnDelegate.nodeId ? global.theme.general.backSelected : "transparent"
                                     }
 
                                     RowLayout {
@@ -486,7 +486,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 width: 16; height: 16
                                                 source: turnDelegate.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                                color: global.theme.fore
+                                                color: global.theme.general.fore
                                                 visible: turnDelegate.isTreeNode && turnDelegate.hasChildren
                                             }
 
@@ -569,7 +569,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: global.theme.backHover
+                                        color: global.theme.general.backHover
                                         opacity: turnHistory.hoveredNodeId === messageDelegate.nodeId ? 1 : 0
 
                                         Behavior on opacity {
@@ -581,7 +581,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: turnHistory.selectedNodeId === messageDelegate.nodeId ? global.theme.backSelected : "transparent"
+                                        color: turnHistory.selectedNodeId === messageDelegate.nodeId ? global.theme.general.backSelected : "transparent"
                                     }
 
                                     RowLayout {
@@ -603,7 +603,7 @@ Item {
                                                 anchors.centerIn: parent
                                                 width: 16; height: 16
                                                 source: messageDelegate.decoration
-                                                color: global.theme.fore
+                                                color: global.theme.general.fore
                                             }
                                         }
 
@@ -662,7 +662,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: global.theme.backHover
+                                        color: global.theme.general.backHover
                                         opacity: turnHistory.hoveredNodeId === valueDelegate.nodeId ? 1 : 0
 
                                         Behavior on opacity {
@@ -674,7 +674,7 @@ Item {
 
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: turnHistory.selectedNodeId === valueDelegate.nodeId ? global.theme.backSelected : "transparent"
+                                        color: turnHistory.selectedNodeId === valueDelegate.nodeId ? global.theme.general.backSelected : "transparent"
                                     }
 
                                     Label {
@@ -719,8 +719,8 @@ Item {
         required property string value
         required property string detail
         implicitHeight: 92
-        color: global.theme.back
-        border.color: global.theme.stroke
+        color: global.theme.general.back
+        border.color: global.theme.general.stroke
         radius: 6
 
         ColumnLayout {
@@ -730,7 +730,7 @@ Item {
 
             Label {
                 text: statCard.title
-                color: global.theme.foreDisabled
+                color: global.theme.general.foreDisabled
             }
 
             Label {
@@ -741,7 +741,7 @@ Item {
 
             Label {
                 text: statCard.detail
-                color: global.theme.foreDisabled
+                color: global.theme.general.foreDisabled
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
@@ -753,8 +753,8 @@ Item {
         default property alias content: body.data
         required property string title
         required property string detail
-        color: global.theme.back
-        border.color: global.theme.stroke
+        color: global.theme.general.back
+        border.color: global.theme.general.stroke
         radius: 6
 
         ColumnLayout {
@@ -773,7 +773,7 @@ Item {
 
                 Label {
                     text: panel.detail
-                    color: global.theme.foreDisabled
+                    color: global.theme.general.foreDisabled
                 }
             }
 
@@ -798,12 +798,12 @@ Item {
 
         Label {
             text: legendItem.text
-            color: global.theme.foreDisabled
+            color: global.theme.general.foreDisabled
         }
     }
 
     component HeaderLabel: Label {
-        color: global.theme.foreDisabled
+        color: global.theme.general.foreDisabled
         leftPadding: 6
         verticalAlignment: Text.AlignVCenter
         Layout.fillHeight: true

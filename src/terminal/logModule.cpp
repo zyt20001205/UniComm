@@ -12,7 +12,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "mainWindow/toastModule.h"
 
 // public
@@ -21,9 +20,9 @@ LogModule::LogModule()
       m_config(g_workspaceConfig["logConfig"].toObject()),
       m_widget(new QQuickWidget()),
       m_textDocument(new QTextDocument(this)),
-      m_errorFore(g_globalManager->themeGet()->dangerFore3Get()),
-      m_warningFore(g_globalManager->themeGet()->warningFore3Get()),
-      m_infoFore(g_globalManager->themeGet()->foreGet()) {
+      m_errorFore(g_globalManager->themeGet()["general"].toObject()["dangerFore3"].toString()),
+      m_warningFore(g_globalManager->themeGet()["general"].toObject()["warningFore3"].toString()),
+      m_infoFore(g_globalManager->themeGet()["general"].toObject()["fore"].toString()) {
     setWidget(m_widget);
 }
 

@@ -15,7 +15,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 
 // lua -> qt
 template<>
@@ -425,8 +424,8 @@ QHtmlString uni_cast<QHtmlString, QString>(const QString &s, const int depth) {
     d.replace("<td ", R"(<td style='border: 1px solid @stroke; padding: 4px 8px;' )");
     d.replace("<th>", R"(<th style='border: 1px solid @stroke; padding: 4px 8px; background-color: @hover; font-weight: 600;'>)");
     d.replace("<th ", R"(<th style='border: 1px solid @stroke; padding: 4px 8px; background-color: @hover; font-weight: 600;' )");
-    d.replace("@hover", g_globalManager->themeGet()->backHoverGet());
-    d.replace("@stroke", g_globalManager->themeGet()->strokeGet());
+    d.replace("@hover", g_globalManager->themeGet()["general"].toObject()["backHover"].toString());
+    d.replace("@stroke", g_globalManager->themeGet()["general"].toObject()["stroke"].toString());
     return d;
 }
 
@@ -558,14 +557,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 </head>
 <body>@body</body>
 </html>)");
-    d.replace("@fore", g_globalManager->themeGet()->foreGet());
-    d.replace("@back", g_globalManager->themeGet()->backGet());
-    d.replace("@link", g_globalManager->themeGet()->brandLinkGet());
-    d.replace("@hover", g_globalManager->themeGet()->backHoverGet());
-    d.replace("@stroke", g_globalManager->themeGet()->strokeGet());
-    d.replace("@selected", g_globalManager->themeGet()->backSelectedGet());
-    d.replace("@mermaidTheme", g_globalManager->themeGet()->modeGet() == Theme::Light ? "default" : "dark");
-    d.replace("@highlightTheme", g_globalManager->themeGet()->modeGet() == Theme::Light ? "highlight-light.min.css" : "highlight-dark.min.css");
+    d.replace("@fore", g_globalManager->themeGet()["general"].toObject()["fore"].toString());
+    d.replace("@back", g_globalManager->themeGet()["general"].toObject()["back"].toString());
+    d.replace("@link", g_globalManager->themeGet()["general"].toObject()["brandLink"].toString());
+    d.replace("@hover", g_globalManager->themeGet()["general"].toObject()["backHover"].toString());
+    d.replace("@stroke", g_globalManager->themeGet()["general"].toObject()["stroke"].toString());
+    d.replace("@selected", g_globalManager->themeGet()["general"].toObject()["backSelected"].toString());
+    d.replace("@mermaidTheme", g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? "default" : "dark");
+    d.replace("@highlightTheme", g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? "highlight-light.min.css" : "highlight-dark.min.css");
     d.replace("@body", body);
     return d;
 }

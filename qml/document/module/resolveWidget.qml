@@ -9,7 +9,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.margins: 6
-        color: global.theme.stroke
+        color: global.theme.general.stroke
         opacity: 0.3
         radius: 6
     }

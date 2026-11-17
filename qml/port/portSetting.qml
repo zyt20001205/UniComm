@@ -17,7 +17,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ColumnLayout {
@@ -68,7 +68,7 @@ Item {
                         visible: source !== ""
                         source: sourceGet()
                         sourceSize: Qt.size(80, 80)
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         Layout.preferredWidth: 80; Layout.preferredHeight: 80
                         Layout.alignment: Qt.AlignHCenter
 
@@ -158,8 +158,8 @@ Item {
                         height: portSettingsScrollView.availableHeight
                         policy: ScrollBar.AsNeeded
                         palette {
-                            mid: global.theme.stroke
-                            dark: global.theme.strokePressed
+                            mid: global.theme.general.stroke
+                            dark: global.theme.general.strokePressed
                         }
                     }
 
@@ -471,7 +471,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.theme.stroke
+                            color: global.theme.general.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -607,7 +607,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.theme.stroke
+                            color: global.theme.general.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -724,7 +724,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.theme.stroke
+                            color: global.theme.general.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -861,7 +861,7 @@ Item {
                         }
 
                         Rectangle {
-                            color: global.theme.stroke
+                            color: global.theme.general.stroke
                             implicitHeight: 1
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
@@ -1121,14 +1121,14 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 6
-                                    color: global.theme.backHover
+                                    color: global.theme.general.backHover
                                     visible: bluetoothTreeHoverHandler.hovered
                                 }
 
                                 Rectangle {
                                     anchors.fill: parent
                                     radius: 6
-                                    color: global.theme.backSelected
+                                    color: global.theme.general.backSelected
                                     visible: bluetoothTreeView.selectedRow === bluetoothTreeDelegate.row
                                 }
 
@@ -1150,7 +1150,7 @@ Item {
                                             anchors.centerIn: parent
                                             width: 16; height: 16
                                             source: bluetoothTreeDelegate.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                                            color: global.theme.fore
+                                            color: global.theme.general.fore
                                             visible: bluetoothTreeDelegate.isTreeNode && bluetoothTreeDelegate.hasChildren
                                         }
 
@@ -1180,7 +1180,7 @@ Item {
                                             textFormat: Text.PlainText
                                             font.pointSize: 12
                                             font.weight: bluetoothTreeDelegate.depth === 0 ? Font.DemiBold : Font.Normal
-                                            color: global.theme.fore
+                                            color: global.theme.general.fore
                                             wrapMode: Text.NoWrap
                                             verticalAlignment: Text.AlignVCenter
                                             Layout.minimumWidth: implicitWidth
@@ -1216,16 +1216,16 @@ Item {
                                                         textFormat: Text.PlainText
                                                         font.pointSize: 10
                                                         font.weight: Font.DemiBold
-                                                        color: global.theme.fore
+                                                        color: global.theme.general.fore
                                                         horizontalAlignment: Text.AlignHCenter
                                                         verticalAlignment: Text.AlignVCenter
                                                     }
 
                                                     background: Rectangle {
                                                         radius: 4 // Fluent borderRadiusMedium.
-                                                        color: global.theme.backSelected
+                                                        color: global.theme.general.backSelected
                                                         border.width: 1
-                                                        border.color: global.theme.stroke
+                                                        border.color: global.theme.general.stroke
                                                     }
                                                 }
                                             }
@@ -1262,8 +1262,8 @@ Item {
                             ScrollBar.vertical: ScrollBar {
                                 id: bluetoothTreeScrollBar
                                 palette {
-                                    mid: global.theme.stroke
-                                    dark: global.theme.strokePressed
+                                    mid: global.theme.general.stroke
+                                    dark: global.theme.general.strokePressed
                                 }
                             }
 
@@ -1390,7 +1390,7 @@ Item {
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
                             width: 1
-                            color: global.theme.stroke
+                            color: global.theme.general.stroke
                         }
                     }
 
@@ -1407,16 +1407,16 @@ Item {
                                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                                 policy: ScrollBar.AsNeeded
                                 palette {
-                                    mid: global.theme.stroke
-                                    dark: global.theme.strokePressed
+                                    mid: global.theme.general.stroke
+                                    dark: global.theme.general.strokePressed
                                 }
                             }
                             ScrollBar.horizontal: ScrollBar {
                                 minimumSize: Math.min(1, 20 / Math.max(1, width))
                                 policy: ScrollBar.AsNeeded
                                 palette {
-                                    mid: global.theme.stroke
-                                    dark: global.theme.strokePressed
+                                    mid: global.theme.general.stroke
+                                    dark: global.theme.general.strokePressed
                                 }
                             }
 
@@ -1428,7 +1428,7 @@ Item {
                             Rectangle {
                                 id: roiSelection
                                 anchors.fill: videoOutput
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                                 opacity: 0.3
                                 visible: step !== 0
                                 property int step: 0
@@ -1567,7 +1567,7 @@ Item {
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 height: 1
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                             }
                         }
 
@@ -1623,7 +1623,7 @@ Item {
 
                                         IconImage {
                                             source: "qrc:/icon/rectangle.svg"
-                                            color: global.theme.fore
+                                            color: global.theme.general.fore
                                             Layout.alignment: Qt.AlignVCenter
                                         }
                                     }
@@ -1648,12 +1648,12 @@ Item {
 
                                             contentItem: Rectangle {
                                                 width: 24; height: 24
-                                                color: global.theme.back
+                                                color: global.theme.general.back
 
                                                 IconImage {
                                                     anchors.centerIn: parent
                                                     width: 16; height: 16
-                                                    color: global.theme.fore
+                                                    color: global.theme.general.fore
                                                     source: "qrc:/icon/drag.svg"
                                                 }
                                             }
@@ -1666,7 +1666,7 @@ Item {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.theme.stroke
+                                            color: global.theme.general.stroke
                                         }
 
                                         Timer {
@@ -1716,14 +1716,14 @@ Item {
                                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
-                                                mid: global.theme.stroke
-                                                dark: global.theme.strokePressed
+                                                mid: global.theme.general.stroke
+                                                dark: global.theme.general.strokePressed
                                             }
                                         }
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.theme.stroke
+                                            color: global.theme.general.stroke
                                         }
 
                                         delegate: Item {
@@ -1732,13 +1732,13 @@ Item {
 
                                             Rectangle {
                                                 anchors.fill: parent
-                                                color: global.theme.back
+                                                color: global.theme.general.back
                                             }
 
                                             Rectangle {
                                                 anchors.fill: parent
                                                 radius: 6
-                                                color: global.theme.backHover
+                                                color: global.theme.general.backHover
                                                 opacity: roiTableView.hoveredRow === row ? 1 : 0
                                                 Behavior on opacity {
                                                     NumberAnimation {
@@ -1750,7 +1750,7 @@ Item {
                                             Rectangle {
                                                 anchors.fill: parent
                                                 radius: 6
-                                                color: roiTableView.selectedRow === row ? global.theme.backSelected : "transparent"
+                                                color: roiTableView.selectedRow === row ? global.theme.general.backSelected : "transparent"
                                             }
 
                                             Label {
@@ -1901,12 +1901,12 @@ Item {
 
                                             contentItem: Rectangle {
                                                 width: 24; height: 24
-                                                color: global.theme.back
+                                                color: global.theme.general.back
 
                                                 IconImage {
                                                     anchors.centerIn: parent
                                                     width: 16; height: 16
-                                                    color: global.theme.fore
+                                                    color: global.theme.general.fore
                                                     source: "qrc:/icon/drag.svg"
                                                 }
                                             }
@@ -1919,7 +1919,7 @@ Item {
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.theme.stroke
+                                            color: global.theme.general.stroke
                                         }
 
                                         Timer {
@@ -1966,14 +1966,14 @@ Item {
                                             minimumSize: Math.min(1, 20 / Math.max(1, height))
                                             policy: ScrollBar.AsNeeded
                                             palette {
-                                                mid: global.theme.stroke
-                                                dark: global.theme.strokePressed
+                                                mid: global.theme.general.stroke
+                                                dark: global.theme.general.strokePressed
                                             }
                                         }
 
                                         Rectangle {
                                             anchors.fill: parent
-                                            color: global.theme.stroke
+                                            color: global.theme.general.stroke
                                         }
 
                                         delegate: DelegateChooser {
@@ -2000,7 +2000,7 @@ Item {
 
                                                 Rectangle {
                                                     anchors.fill: parent
-                                                    color: global.theme.back
+                                                    color: global.theme.general.back
                                                 }
 
                                                 ColumnLayout {
@@ -2105,7 +2105,7 @@ Item {
 
                                                 Rectangle {
                                                     anchors.fill: parent
-                                                    color: global.theme.back
+                                                    color: global.theme.general.back
                                                 }
 
                                                 ColumnLayout {
@@ -2366,16 +2366,16 @@ Item {
                                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                                     policy: ScrollBar.AsNeeded
                                     palette {
-                                        mid: global.theme.stroke
-                                        dark: global.theme.strokePressed
+                                        mid: global.theme.general.stroke
+                                        dark: global.theme.general.strokePressed
                                     }
                                 }
                                 ScrollBar.horizontal: ScrollBar {
                                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                                     policy: ScrollBar.AsNeeded
                                     palette {
-                                        mid: global.theme.stroke
-                                        dark: global.theme.strokePressed
+                                        mid: global.theme.general.stroke
+                                        dark: global.theme.general.strokePressed
                                     }
                                 }
 
@@ -2401,17 +2401,17 @@ Item {
                                                 visible: !recognitionDelegate.point
                                                 color: "transparent"
                                                 border.width: 2
-                                                border.color: global.theme.dangerFore3
+                                                border.color: global.theme.general.dangerFore3
 
                                                 Label {
                                                     width: parent.width
                                                     leftPadding: 2; rightPadding: 2
-                                                    color: global.theme.fore
+                                                    color: global.theme.general.fore
                                                     font.pixelSize: 11
                                                     text: recognitionDelegate.modelData.text + "\n" + Number(recognitionDelegate.modelData.confidence).toFixed(1) + "%"
                                                     elide: Text.ElideRight
                                                     background: Rectangle {
-                                                        color: global.theme.back
+                                                        color: global.theme.general.back
                                                         opacity: 0.8
                                                     }
                                                 }
@@ -2423,7 +2423,7 @@ Item {
                                                 width: 16
                                                 height: 2
                                                 visible: recognitionDelegate.point
-                                                color: global.theme.dangerFore3
+                                                color: global.theme.general.dangerFore3
                                             }
 
                                             Rectangle {
@@ -2432,7 +2432,7 @@ Item {
                                                 width: 2
                                                 height: 16
                                                 visible: recognitionDelegate.point
-                                                color: global.theme.dangerFore3
+                                                color: global.theme.general.dangerFore3
                                             }
                                         }
                                     }
@@ -2766,8 +2766,8 @@ Item {
 
         Rectangle {
             id: indicatorRect
-            color: roiTableView.selectedRow === index ? Qt.alpha(global.theme.brandBackSelected, 0.3) : "transparent"
-            border.color: global.theme.brandStroke
+            color: roiTableView.selectedRow === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+            border.color: global.theme.general.brandStroke
             border.width: 1
             property int index
 
@@ -2809,8 +2809,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 
@@ -2849,8 +2849,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 
@@ -2904,8 +2904,8 @@ Item {
             property int index
 
             ShapePath {
-                fillColor: roiTableView.selectedRow === index ? Qt.alpha(global.theme.brandBackSelected, 0.3) : "transparent"
-                strokeColor: global.theme.brandStroke
+                fillColor: roiTableView.selectedRow === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+                strokeColor: global.theme.general.brandStroke
                 strokeWidth: 1
                 startX: x0; startY: y0
 
@@ -2990,8 +2990,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3028,8 +3028,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3066,8 +3066,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 
@@ -3104,8 +3104,8 @@ Item {
                 width: 10
                 height: 10
                 radius: width / 2
-                color: global.theme.brandBackSelected
-                border.color: global.theme.brandStroke
+                color: global.theme.general.brandBackSelected
+                border.color: global.theme.general.brandStroke
                 border.width: 1
                 z: 1
 

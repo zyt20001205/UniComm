@@ -31,7 +31,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "transparent"
-                border.color: global.theme.dangerFore3
+                border.color: global.theme.general.dangerFore3
                 border.width: 3
             }
 
@@ -40,13 +40,13 @@ Item {
 
                 Label {
                     text: Application.styleHints.colorScheme === Qt.Light ? "Light" : "Dark"
-                    color: global.theme.dangerFore3
+                    color: global.theme.general.dangerFore3
                     font.pointSize: 16
                 }
 
                 Label {
                     id: debugWidgetCount
-                    color: global.theme.dangerFore3
+                    color: global.theme.general.dangerFore3
                     font.pointSize: 16
                 }
             }
@@ -267,8 +267,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -281,8 +281,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -427,7 +427,7 @@ Item {
                     spacing: 10
 
                     IconImage {
-                        color: modeItem.index === 3 ? global.theme.warningFore3 : global.theme.fore
+                        color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
                         source: modeItem.modelData.icon
                         sourceSize.width: 18; sourceSize.height: 18
                         Layout.preferredWidth: 20; Layout.preferredHeight: 20
@@ -439,7 +439,7 @@ Item {
 
                         Label {
                             text: modeItem.modelData.title
-                            color: modeItem.index === 3 ? global.theme.warningFore3 : global.theme.fore
+                            color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
                             font.bold: true
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -447,7 +447,7 @@ Item {
 
                         Label {
                             text: modeItem.modelData.description
-                            color: modeItem.index === 3 ? global.theme.warningFore3 : global.theme.stroke
+                            color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.stroke
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
@@ -455,7 +455,7 @@ Item {
 
                     IconImage {
                         visible: agentModuleModeMenu.selectedIndex === modeItem.index
-                        color: modeItem.index === 3 ? global.theme.warningFore3 : global.theme.fore
+                        color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
                         source: "qrc:/icon/checkmark.svg"
                         sourceSize.width: 16; sourceSize.height: 16
                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -894,7 +894,7 @@ Item {
                     source: "qrc:/icon/play.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.successFore3
+                    color: global.theme.general.successFore3
                 }
 
                 Label {
@@ -922,7 +922,7 @@ Item {
                     source: "qrc:/icon/bug.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.successFore3
+                    color: global.theme.general.successFore3
                 }
 
                 Label {
@@ -983,7 +983,7 @@ Item {
                     source: "qrc:/icon/brush.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -1185,8 +1185,8 @@ Item {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 
@@ -1298,8 +1298,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1360,8 +1360,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1374,8 +1374,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1419,8 +1419,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1433,8 +1433,8 @@ Item {
                     policy: ScrollBar.AsNeeded
                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1619,8 +1619,8 @@ Item {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 
@@ -2302,7 +2302,7 @@ Item {
             }
 
             Rectangle {
-                color: global.theme.stroke
+                color: global.theme.general.stroke
                 Layout.fillWidth: true; Layout.preferredHeight: 1
             }
 
@@ -2335,7 +2335,7 @@ Item {
             }
 
             Rectangle {
-                color: global.theme.stroke
+                color: global.theme.general.stroke
                 Layout.fillWidth: true; Layout.preferredHeight: 1
             }
 
@@ -2379,7 +2379,7 @@ Item {
             }
 
             Rectangle {
-                color: global.theme.stroke
+                color: global.theme.general.stroke
                 Layout.fillWidth: true; Layout.preferredHeight: 1
             }
 
@@ -2407,7 +2407,7 @@ Item {
                         visible: parent.activeFocus
                         color: "transparent"
                         border.width: 2
-                        border.color: global.theme.warningBack3
+                        border.color: global.theme.general.warningBack3
                         radius: 7
                     }
                 }
@@ -2961,7 +2961,7 @@ Item {
                     source: "qrc:/icon/document.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -2998,7 +2998,7 @@ Item {
                     source: "qrc:/icon/home.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3033,7 +3033,7 @@ Item {
                     source: "qrc:/icon/save.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3068,7 +3068,7 @@ Item {
                     source: "qrc:/icon/saveAs.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3182,7 +3182,7 @@ Item {
                     source: "qrc:/icon/cut.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleEditCutItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleEditCutItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3213,7 +3213,7 @@ Item {
                     source: "qrc:/icon/copy.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleEditCopyItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleEditCopyItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3244,7 +3244,7 @@ Item {
                     source: "qrc:/icon/paste.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleEditPasteItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleEditPasteItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3275,7 +3275,7 @@ Item {
                     source: "qrc:/icon/search.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3303,7 +3303,7 @@ Item {
                     source: "qrc:/icon/replace.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3498,7 +3498,7 @@ Item {
                     source: "qrc:/icon/arrowLeft.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleNavPrevItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleNavPrevItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3534,7 +3534,7 @@ Item {
                     source: "qrc:/icon/arrowRight.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleNavNextItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleNavNextItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3677,7 +3677,7 @@ Item {
                     source: "qrc:/icon/completion.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3715,7 +3715,7 @@ Item {
                     source: "qrc:/icon/brush.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                 }
 
                 Label {
@@ -3802,7 +3802,7 @@ Item {
                     source: "qrc:/icon/play.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.successFore3
+                    color: global.theme.general.successFore3
                 }
 
                 Label {
@@ -3840,7 +3840,7 @@ Item {
                     source: "qrc:/icon/bug.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: global.theme.successFore3
+                    color: global.theme.general.successFore3
                 }
 
                 Label {
@@ -3888,7 +3888,7 @@ Item {
                     source: "qrc:/icon/gitFetch.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleFetchItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleFetchItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3914,7 +3914,7 @@ Item {
                     source: "qrc:/icon/gitCommit.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModuleCommitItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModuleCommitItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -3940,7 +3940,7 @@ Item {
                     source: "qrc:/icon/gitPush.svg"
                     sourceSize.width: 16
                     sourceSize.height: 16
-                    color: menuModulePushItem.enabled ? global.theme.fore : global.theme.foreDisabled
+                    color: menuModulePushItem.enabled ? global.theme.general.fore : global.theme.general.foreDisabled
                 }
 
                 Label {
@@ -4124,14 +4124,14 @@ Item {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.stroke
+                color: global.theme.general.stroke
             }
 
             delegate: Item {
@@ -4140,7 +4140,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.theme.back
+                    color: global.theme.general.back
                 }
 
                 ColumnLayout {

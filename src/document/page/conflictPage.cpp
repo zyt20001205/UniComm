@@ -8,7 +8,6 @@
 #include "globals.h"
 #include "service/git/gitModule.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "document/module/conflictWidget.h"
 #include "document/module/resolveWidget.h"
 #include "document/module/scintillaWidget.h"
@@ -19,7 +18,7 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
       m_widget(new QWidget(this)),
       m_conflictWidget(new ConflictWidget(documentConfig, documentUrl, m_widget)),
       m_resolveWidget(new ResolveWidget(m_widget)) {
-    setIcon(g_globalManager->themeGet()->modeGet() == Theme::Light ? QIcon(":/icon/gitBranchConflictLight.svg") : QIcon(":/icon/gitBranchConflictDark.svg"));
+    setIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? QIcon(":/icon/gitBranchConflictLight.svg") : QIcon(":/icon/gitBranchConflictDark.svg"));
     auto *layout = new QGridLayout(m_widget); // NOLINT
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(m_conflictWidget, 0, 0);

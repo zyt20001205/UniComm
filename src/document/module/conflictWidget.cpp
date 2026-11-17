@@ -7,7 +7,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "document/module/scintillaWidget.h"
 #include "types/scintillaTypes.h"
 
@@ -83,12 +82,13 @@ bool ConflictWidget::eventFilter(QObject *watched, QEvent *event) {
 
 // protected
 void ConflictWidget::indicatorInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     EditorWidget::indicatorInit();
     m_scintillaWidget->indicatorDefine(
         ScintillaIndicator::ConflictStart,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->successFore2Get())},
+            {"fore", ScintillaWidget::colorGet(general["successFore2"].toString())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -97,7 +97,7 @@ void ConflictWidget::indicatorInit() const {
         ScintillaIndicator::ConflictSeparator,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->brandBackGet())},
+            {"fore", ScintillaWidget::colorGet(general["brandBack"].toString())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -106,7 +106,7 @@ void ConflictWidget::indicatorInit() const {
         ScintillaIndicator::ConflictEnd,
         QVariantHash{
             {"style", INDIC_TEXTFORE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->warningFore2Get())},
+            {"fore", ScintillaWidget::colorGet(general["warningFore2"].toString())},
             {"alpha", 255},
             {"outlineAlpha", 255},
             {"setUnder", false}
@@ -114,18 +114,19 @@ void ConflictWidget::indicatorInit() const {
 }
 
 void ConflictWidget::markerInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     EditorWidget::markerInit();
     m_scintillaWidget->markerDefine(
         ScintillaMarker::ConflictCurrent,
         QVariantHash{
             {"symbol", SC_MARK_BACKGROUND},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->successBack2Get())}
+            {"back", ScintillaWidget::colorGet(general["successBack2"].toString())}
         });
     m_scintillaWidget->markerDefine(
         ScintillaMarker::ConflictIncoming,
         QVariantHash{
             {"symbol", SC_MARK_BACKGROUND},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->warningBack2Get())}
+            {"back", ScintillaWidget::colorGet(general["warningBack2"].toString())}
         });
 }
 

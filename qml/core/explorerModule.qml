@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ColumnLayout {
@@ -90,8 +90,8 @@ Item {
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 
@@ -105,7 +105,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
-                    color: global.theme.backHover
+                    color: global.theme.general.backHover
                     opacity: hoverHandler.hovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
@@ -117,7 +117,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
-                    color: treeView.selectedRow === row ? global.theme.backSelected : "transparent"
+                    color: treeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
                 }
 
                 RowLayout {
@@ -135,7 +135,7 @@ Item {
                             anchors.centerIn: parent
                             width: 16; height: 16
                             source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             visible: model.isDir === true
                         }
 
@@ -168,15 +168,15 @@ Item {
 
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        color: !model.git ? global.theme.fore
-                            : model.git.indexStatus === 0 ? global.theme.successFore3
-                                : model.git.indexStatus === 1 ? global.theme.stroke
-                                    : model.git.indexStatus === 5 ? global.theme.successFore2
-                                        : model.git.indexStatus === 7 ? global.theme.warningFore3
-                                            : model.git.workingTreeStatus === 2 ? global.theme.fore
-                                                : model.git.workingTreeStatus === 3 ? global.theme.brandBack
-                                                    : model.git.workingTreeStatus === 9 ? global.theme.dangerFore3
-                                                        : global.theme.fore
+                        color: !model.git ? global.theme.general.fore
+                            : model.git.indexStatus === 0 ? global.theme.general.successFore3
+                                : model.git.indexStatus === 1 ? global.theme.general.stroke
+                                    : model.git.indexStatus === 5 ? global.theme.general.successFore2
+                                        : model.git.indexStatus === 7 ? global.theme.general.warningFore3
+                                            : model.git.workingTreeStatus === 2 ? global.theme.general.fore
+                                                : model.git.workingTreeStatus === 3 ? global.theme.general.brandBack
+                                                    : model.git.workingTreeStatus === 9 ? global.theme.general.dangerFore3
+                                                        : global.theme.general.fore
                         text: model.display || ""
                         elide: Text.ElideRight
                         Layout.fillWidth: true; Layout.preferredHeight: 24

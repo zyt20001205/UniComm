@@ -8,7 +8,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     Item {
@@ -26,7 +26,7 @@ Item {
 
             IconImage {
                 source: "qrc:/icon/snooze.svg"
-                color: global.theme.fore
+                color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -76,14 +76,14 @@ Item {
             minimumSize: Math.min(1, 20 / Math.max(1, height))
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.theme.stroke
-                dark: global.theme.strokePressed
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
             }
         }
 
         Rectangle {
             anchors.fill: parent
-            color: global.theme.stroke
+            color: global.theme.general.stroke
         }
 
         delegate: DelegateChooser {
@@ -105,14 +105,14 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.theme.back
+                    color: global.theme.general.back
                 }
 
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
                     topRightRadius: 0; bottomRightRadius: 0
-                    color: global.theme.backHover
+                    color: global.theme.general.backHover
                     opacity: tableView.hoveredRow === row ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
@@ -126,9 +126,9 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 3; height: 14
                     radius: 1.5
-                    color: model.status === 0 ? global.theme.successBack3 :
-                           model.status === 1 ? global.theme.warningBack3 :
-                           model.status === 2 ? global.theme.brandBack : global.theme.dangerBack3
+                    color: model.status === 0 ? global.theme.general.successBack3 :
+                           model.status === 1 ? global.theme.general.warningBack3 :
+                           model.status === 2 ? global.theme.general.brandBack : global.theme.general.dangerBack3
                 }
 
                 HoverHandler {
@@ -167,7 +167,7 @@ Item {
                     topLeftRadius: 0; bottomLeftRadius: 0
                     topRightRadius: column === tableView.columns - 1 ? radius : 0
                     bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: global.theme.back
+                    color: global.theme.general.back
                 }
 
                 Rectangle {
@@ -176,7 +176,7 @@ Item {
                     topLeftRadius: 0; bottomLeftRadius: 0
                     topRightRadius: column === tableView.columns - 1 ? radius : 0
                     bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: global.theme.backHover
+                    color: global.theme.general.backHover
                     opacity: tableView.hoveredRow === row ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {

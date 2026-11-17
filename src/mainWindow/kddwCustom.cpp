@@ -6,7 +6,6 @@
 #include "document/page/documentPage.h"
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "terminal/terminalModule.h"
 #include "terminal/terminalPage.h"
 
@@ -44,7 +43,7 @@ MyStack::MyStack(KDDockWidgets::Core::Stack *controller, QWidget *parent)
 
 void MyStack::paintEvent(QPaintEvent *event) {
     QPainter p(this);
-    p.fillRect(QWidget::rect(), QColor(g_globalManager->themeGet()->backGet()));
+    p.fillRect(QWidget::rect(), QColor(g_globalManager->themeGet()["general"].toObject()["back"].toString()));
 }
 
 MyTabBar::MyTabBar(KDDockWidgets::Core::TabBar *controller, QWidget *parent)
@@ -65,8 +64,9 @@ MySeparator::MySeparator(KDDockWidgets::Core::Separator *controller, KDDockWidge
 }
 
 void MySeparator::paintEvent(QPaintEvent *event) {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     QPainter p(this);
-    p.fillRect(QWidget::rect(), QColor(g_globalManager->themeGet()->backGet()));
+    p.fillRect(QWidget::rect(), QColor(general["back"].toString()));
 
     auto line = QWidget::rect();
     if (line.width() > line.height()) {
@@ -76,5 +76,5 @@ void MySeparator::paintEvent(QPaintEvent *event) {
         line.setWidth(1);
         line.moveLeft((width() - line.width()) / 2);
     }
-    p.fillRect(line, QColor(g_globalManager->themeGet()->strokeGet()));
+    p.fillRect(line, QColor(general["stroke"].toString()));
 }

@@ -5,7 +5,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 
 // public
 SignatureWidget::SignatureWidget(QObject *parent)
@@ -32,7 +31,7 @@ bool SignatureWidget::isVisible() const {
 
 void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const QJsonArray &signatures) {
     m_signatureSession = signatureSession;
-    const auto *theme = g_globalManager->themeGet();
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     QString helpText{};
     bool reposition = false;
     for (const auto &value: signatures) {
@@ -54,7 +53,7 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
             const int endIndex = range[1].toInt();
             QString param = label.mid(startIndex, endIndex - startIndex).toHtmlEscaped();
             if (index == activeParameter) {
-                param = QString("<span style='color: %1; font-weight: 600;'>%2</span>").arg(theme->warningFore3Get(), param);
+                param = QString("<span style='color: %1; font-weight: 600;'>%2</span>").arg(general["warningFore3"].toString(), param);
             }
             helpText += param;
             helpText += ", ";

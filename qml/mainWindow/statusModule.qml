@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     RowLayout {
@@ -36,7 +36,7 @@ Item {
                     property string text
 
                     IconImage {
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         source: "qrc:/icon/arrowCollapse.svg"
                         sourceSize.width: 16
                         sourceSize.height: 16

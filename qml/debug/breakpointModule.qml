@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     Item {
@@ -27,7 +27,7 @@ Item {
 
             IconImage {
                 source: "qrc:/icon/activateBreakpoints.svg"
-                color: global.theme.fore
+                color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -45,8 +45,8 @@ Item {
             minimumSize: Math.min(1, 20 / Math.max(1, height))
             policy: ScrollBar.AsNeeded
             palette {
-                mid: global.theme.stroke
-                dark: global.theme.strokePressed
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
             }
         }
 
@@ -62,7 +62,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: global.theme.backHover
+                color: global.theme.general.backHover
                 opacity: hoverHandler.hovered ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
@@ -74,7 +74,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 6
-                color: treeView.selectedRow === row ? global.theme.backSelected : "transparent"
+                color: treeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
             }
 
             RowLayout {
@@ -92,7 +92,7 @@ Item {
                         anchors.centerIn: parent
                         width: 16; height: 16
                         source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         visible: isTreeNode && hasChildren
                     }
 
@@ -119,7 +119,7 @@ Item {
                         source: !model.enable ? "qrc:/icon/breakpointDisabled.svg" :
                             model.condition ? "qrc:/icon/breakpointConditional.svg" :
                                 "qrc:/icon/breakpoint.svg"
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                     }
                 }
 
@@ -190,4 +190,3 @@ Item {
         breakpointModule.propertyGet(objects)
     }
 }
-

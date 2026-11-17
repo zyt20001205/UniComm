@@ -11,7 +11,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "document/module/scintillaWidget.h"
 #include "document/module/searchWidget.h"
 #include "mainWindow/toastModule.h"
@@ -222,23 +221,24 @@ bool EditorWidget::symbolPair(const QChar ch) {
 }
 
 void EditorWidget::miscInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     // annotation
     m_scintillaWidget->send(SCI_ANNOTATIONSETVISIBLE, ANNOTATION_STANDARD); // NOLINT
     m_scintillaWidget->send(SCI_EOLANNOTATIONSETVISIBLE, ANNOTATION_STANDARD); // NOLINT
     // folding
     m_scintillaWidget->send(SCI_SETAUTOMATICFOLD, SC_AUTOMATICFOLD_SHOW | SC_AUTOMATICFOLD_CLICK | SC_AUTOMATICFOLD_CHANGE); // NOLINT
-    m_scintillaWidget->send(SCI_SETFOLDMARGINCOLOUR, true, ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())); // NOLINT
-    m_scintillaWidget->send(SCI_SETFOLDMARGINHICOLOUR, true, ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())); // NOLINT
+    m_scintillaWidget->send(SCI_SETFOLDMARGINCOLOUR, true, ScintillaWidget::colorGet(general["back"].toString())); // NOLINT
+    m_scintillaWidget->send(SCI_SETFOLDMARGINHICOLOUR, true, ScintillaWidget::colorGet(general["back"].toString())); // NOLINT
     m_scintillaWidget->send(SCI_FOLDDISPLAYTEXTSETSTYLE, SC_FOLDDISPLAYTEXT_STANDARD); // NOLINT
     m_scintillaWidget->send(SCI_SETDEFAULTFOLDDISPLAYTEXT, 0, reinterpret_cast<sptr_t>("...")); // NOLINT
     // scrollbar
     m_scintillaWidget->send(SCI_SETSCROLLWIDTH, 1); // NOLINT
     m_scintillaWidget->send(SCI_SETSCROLLWIDTHTRACKING, true); // NOLINT
     // selection
-    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_SELECTION_BACK, ScintillaWidget::colorGet(g_globalManager->themeGet()->brandBackGet(), 128)); // NOLINT
+    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_SELECTION_BACK, ScintillaWidget::colorGet(general["brandBack"].toString(), 128)); // NOLINT
     m_scintillaWidget->send(SCI_SETSELECTIONLAYER, SC_LAYER_UNDER_TEXT); // NOLINT
-    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_CARET, ScintillaWidget::colorGet(g_globalManager->themeGet()->foreGet(), 255)); // NOLINT
-    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_CARET_LINE_BACK, ScintillaWidget::colorGet(g_globalManager->themeGet()->backSelectedGet(), 128)); // NOLINT
+    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_CARET, ScintillaWidget::colorGet(general["fore"].toString(), 255)); // NOLINT
+    m_scintillaWidget->send(SCI_SETELEMENTCOLOUR, SC_ELEMENT_CARET_LINE_BACK, ScintillaWidget::colorGet(general["backSelected"].toString(), 128)); // NOLINT
     m_scintillaWidget->send(SCI_SETCARETLINELAYER, SC_LAYER_UNDER_TEXT); // NOLINT
     // tab
     m_scintillaWidget->send(SCI_SETUSETABS, false); // NOLINT
@@ -249,11 +249,12 @@ void EditorWidget::miscInit() const {
 }
 
 void EditorWidget::indicatorInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     m_scintillaWidget->indicatorDefine(
         ScintillaIndicator::Result,
         QVariantHash{
             {"style", INDIC_STRAIGHTBOX},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->brandBackGet())},
+            {"fore", ScintillaWidget::colorGet(general["brandBack"].toString())},
             {"alpha", 128},
             {"outlineAlpha", 128},
             {"setUnder", true}
@@ -262,7 +263,7 @@ void EditorWidget::indicatorInit() const {
         ScintillaIndicator::Current,
         QVariantHash{
             {"style", INDIC_STRAIGHTBOX},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->foreGet())},
+            {"fore", ScintillaWidget::colorGet(general["fore"].toString())},
             {"strokeWidth", 200},
             {"alpha", 0},
             {"outlineAlpha", 255},
@@ -284,7 +285,7 @@ void EditorWidget::marginInit() const {
             {"width", 16},
             {"mask", static_cast<int>(SC_MASK_FOLDERS)},
             {"sensitive", true},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())}
+            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()["general"].toObject()["back"].toString())}
         });
     m_scintillaWidget->marginDefine(
         2,
@@ -296,84 +297,86 @@ void EditorWidget::marginInit() const {
 }
 
 void EditorWidget::markerInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDEREND,
         QVariantHash{
             {"symbol", SC_MARK_BOXPLUSCONNECTED},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDEROPENMID,
         QVariantHash{
             {"symbol", SC_MARK_BOXMINUSCONNECTED},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDERMIDTAIL,
         QVariantHash{
             {"symbol", SC_MARK_TCORNER},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDERTAIL,
         QVariantHash{
             {"symbol", SC_MARK_LCORNER},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDERSUB,
         QVariantHash{
             {"symbol", SC_MARK_VLINE},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDER,
         QVariantHash{
             {"symbol", SC_MARK_BOXPLUS},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         SC_MARKNUM_FOLDEROPEN,
         QVariantHash{
             {"symbol", SC_MARK_BOXMINUS},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())}
+            {"fore", ScintillaWidget::colorGet(general["back"].toString())},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
 }
 
 void EditorWidget::styleInit() const {
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     m_scintillaWidget->styleDefine(
         CustomStyle::Default,
         QVariantHash{
             {"font", m_config["fontFamily"].toString()},
             {"size", m_config["fontSize"].toInt()},
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->foreGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())}
+            {"fore", ScintillaWidget::colorGet(general["fore"].toString())},
+            {"back", ScintillaWidget::colorGet(general["back"].toString())}
         });
     m_scintillaWidget->styleClearAll();
     m_scintillaWidget->styleDefine(
         CustomStyle::LineNumber,
         QVariantHash{
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())}
+            {"fore", ScintillaWidget::colorGet(general["stroke"].toString())},
+            {"back", ScintillaWidget::colorGet(general["back"].toString())}
         });
     m_scintillaWidget->styleDefine(
         CustomStyle::FoldDisplayText,
         QVariantHash{
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->foreGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->backSelectedGet())}
+            {"fore", ScintillaWidget::colorGet(general["fore"].toString())},
+            {"back", ScintillaWidget::colorGet(general["backSelected"].toString())}
         });
     m_scintillaWidget->styleDefine(
         CustomStyle::Annotation,
         QVariantHash{
-            {"fore", ScintillaWidget::colorGet(g_globalManager->themeGet()->strokeGet())},
-            {"back", ScintillaWidget::colorGet(g_globalManager->themeGet()->backGet())}
+            {"fore", ScintillaWidget::colorGet(general["stroke"].toString())},
+            {"back", ScintillaWidget::colorGet(general["back"].toString())}
         });
 }
 
@@ -383,7 +386,7 @@ void EditorWidget::lexerInit() const {
     const auto fileName = documentInfo.fileName().toLower();
     // html
     if (suffix == "html") {
-        const auto htmlTheme = g_globalManager->themeGet()->configGet()["html"].toObject();
+        const auto htmlTheme = g_globalManager->themeGet()["html"].toObject();
         m_scintillaWidget->lexerSet("hypertext");
         m_scintillaWidget->send(SCI_SETPROPERTY, reinterpret_cast<sptr_t>("lexer.html.allow.php"), reinterpret_cast<sptr_t>("0"));
         m_scintillaWidget->send(SCI_SETPROPERTY, reinterpret_cast<sptr_t>("lexer.html.allow.asp"), reinterpret_cast<sptr_t>("0"));
@@ -451,7 +454,7 @@ void EditorWidget::lexerInit() const {
     }
     // json
     else if (suffix == "json") {
-        const auto jsonTheme = g_globalManager->themeGet()->configGet()["json"].toObject();
+        const auto jsonTheme = g_globalManager->themeGet()["json"].toObject();
         m_scintillaWidget->lexerSet("json");
         m_scintillaWidget->send(SCI_SETPROPERTY, reinterpret_cast<sptr_t>("lexer.json.escape.sequence"), reinterpret_cast<sptr_t>("1"));
         m_scintillaWidget->send(SCI_SETPROPERTY, reinterpret_cast<sptr_t>("lexer.json.allow.comments"), reinterpret_cast<sptr_t>("1"));
@@ -525,7 +528,7 @@ void EditorWidget::lexerInit() const {
     }
     // markdown
     else if (suffix == "md") {
-        const auto markdownTheme = g_globalManager->themeGet()->configGet()["markdown"].toObject();
+        const auto markdownTheme = g_globalManager->themeGet()["markdown"].toObject();
         m_scintillaWidget->lexerSet("markdown");
         m_scintillaWidget->styleDefine(
             SCE_MARKDOWN_STRONG1,
@@ -625,7 +628,7 @@ void EditorWidget::lexerInit() const {
     }
     // powershell
     else if (suffix == "ps1") {
-        const auto powershellTheme = g_globalManager->themeGet()->configGet()["powershell"].toObject();
+        const auto powershellTheme = g_globalManager->themeGet()["powershell"].toObject();
         m_scintillaWidget->lexerSet("powershell");
         m_scintillaWidget->styleDefine(
             SCE_POWERSHELL_COMMENT,
@@ -710,7 +713,7 @@ void EditorWidget::lexerInit() const {
     }
     // toml
     else if (suffix == "toml") {
-        const auto tomlTheme = g_globalManager->themeGet()->configGet()["toml"].toObject();
+        const auto tomlTheme = g_globalManager->themeGet()["toml"].toObject();
         m_scintillaWidget->lexerSet("toml");
         m_scintillaWidget->styleDefine(
             SCE_TOML_COMMENT,

@@ -5,7 +5,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "util/uniCast.h"
 
 // public
@@ -32,7 +31,7 @@ void DocumentPage::permissionGet() {
     const QString documentPath = m_documentUrl.toLocalFile();
     const QFileInfo documentInfo(documentPath);
     documentInfo.isWritable() ? setIcon(uni_cast<QIcon>(m_documentUrl)) :
-    g_globalManager->themeGet()->modeGet() == Theme::Light ? setIcon(QIcon(":/icon/lockLight.svg")) :
+    g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? setIcon(QIcon(":/icon/lockLight.svg")) :
     setIcon(QIcon(":/icon/lockDark.svg"));
 }
 

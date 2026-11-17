@@ -11,7 +11,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     RowLayout {
@@ -172,8 +172,8 @@ Item {
                 active: parent.ScrollBar.horizontal.active
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 
@@ -185,8 +185,8 @@ Item {
                 active: parent.ScrollBar.vertical.active
                 policy: ScrollBar.AsNeeded
                 palette {
-                    mid: global.theme.stroke
-                    dark: global.theme.strokePressed
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
                 }
             }
 

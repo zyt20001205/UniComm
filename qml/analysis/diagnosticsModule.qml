@@ -21,7 +21,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     Item {
@@ -39,7 +39,7 @@ Item {
 
             IconImage {
                 source: "qrc:/icon/checkmarkCircle.svg"
-                color: global.theme.successBack3
+                color: global.theme.general.successBack3
                 Layout.alignment: Qt.AlignVCenter
             }
         }
@@ -86,7 +86,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top; anchors.bottom: parent.bottom
                     width: 1
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
             }
 
@@ -131,10 +131,10 @@ Item {
 
                         Repeater {
                             model: [
-                                {field: "errors", icon: "error", color: global.theme.dangerBack3},
-                                {field: "warnings", icon: "warning", color: global.theme.warningBack3},
-                                {field: "infos", icon: "info", color: global.theme.brandBack},
-                                {field: "hints", icon: "hint", color: global.theme.fore}
+                                {field: "errors", icon: "error", color: global.theme.general.dangerBack3},
+                                {field: "warnings", icon: "warning", color: global.theme.general.warningBack3},
+                                {field: "infos", icon: "info", color: global.theme.general.brandBack},
+                                {field: "hints", icon: "hint", color: global.theme.general.fore}
                             ]
 
                             delegate: RowLayout {
@@ -189,7 +189,7 @@ Item {
                         Layout.preferredWidth: 24; Layout.preferredHeight: 24
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                         icon.source: "qrc:/icon/filter.svg"
-                        icon.color: global.theme.fore
+                        icon.color: global.theme.general.fore
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
@@ -236,7 +236,7 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.theme.back
+                        color: global.theme.general.back
                     }
 
                     Label {
@@ -287,7 +287,7 @@ Item {
                 Rectangle {
                     parent: tableView.contentItem
                     anchors.fill: parent
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 ScrollBar.vertical: ScrollBar {
@@ -297,8 +297,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -308,8 +308,8 @@ Item {
                     anchors.left: tableView.left; anchors.right: tableView.right; anchors.top: tableView.bottom
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -328,13 +328,13 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.theme.back
+                        color: global.theme.general.back
                     }
 
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: global.theme.backHover
+                        color: global.theme.general.backHover
                         opacity: hoverHandler.hovered ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
@@ -364,13 +364,13 @@ Item {
                         color: {
                             switch (cell.severity) {
                                 case DiagnosticsModule.Level.Error:
-                                    return global.theme.dangerBack3
+                                    return global.theme.general.dangerBack3
                                 case DiagnosticsModule.Level.Warning:
-                                    return global.theme.warningBack3
+                                    return global.theme.general.warningBack3
                                 case DiagnosticsModule.Level.Information:
-                                    return global.theme.brandBack
+                                    return global.theme.general.brandBack
                                 default:
-                                    return global.theme.fore
+                                    return global.theme.general.fore
                             }
                         }
                     }
@@ -427,7 +427,7 @@ Item {
 
                     IconImage {
                         source: "qrc:/icon/filter.svg"
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }
@@ -490,7 +490,7 @@ Item {
         MenuItem {
             text: qsTr("Only")
             icon.source: "qrc:/icon/error.svg"
-            icon.color: global.theme.dangerBack3
+            icon.color: global.theme.general.dangerBack3
             icon.width: 16; icon.height: 16
             checkable: true
             checked: root.severityLimit === DiagnosticsModule.Level.Error
@@ -501,7 +501,7 @@ Item {
         MenuItem {
             text: qsTr("Above")
             icon.source: "qrc:/icon/warning.svg"
-            icon.color: global.theme.warningBack3
+            icon.color: global.theme.general.warningBack3
             icon.width: 16; icon.height: 16
             checkable: true
             checked: root.severityLimit === DiagnosticsModule.Level.Warning
@@ -512,7 +512,7 @@ Item {
         MenuItem {
             text: qsTr("Above")
             icon.source: "qrc:/icon/info.svg"
-            icon.color: global.theme.brandBack
+            icon.color: global.theme.general.brandBack
             icon.width: 16; icon.height: 16
             checkable: true
             checked: root.severityLimit === DiagnosticsModule.Level.Information
@@ -523,7 +523,7 @@ Item {
         MenuItem {
             text: qsTr("All")
             icon.source: "qrc:/icon/filter.svg"
-            icon.color: global.theme.fore
+            icon.color: global.theme.general.fore
             icon.width: 16; icon.height: 16
             checkable: true
             checked: root.severityLimit === DiagnosticsModule.Level.Hint

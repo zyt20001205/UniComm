@@ -23,7 +23,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ListView {
@@ -54,9 +54,9 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 8; height: 8
                 radius: 4
-                color: serviceDelegate.modelData.status === 1 ? global.theme.successFore3
-                    : serviceDelegate.modelData.status === 2 ? global.theme.dangerFore3
-                    : global.theme.stroke
+                color: serviceDelegate.modelData.status === 1 ? global.theme.general.successFore3
+                    : serviceDelegate.modelData.status === 2 ? global.theme.general.dangerFore3
+                    : global.theme.general.stroke
 
                 SequentialAnimation {
                     id: flashAnimation
@@ -88,7 +88,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top; anchors.bottom: parent.bottom
                 width: 1
-                color: global.theme.stroke
+                color: global.theme.general.stroke
             }
         }
 
@@ -101,7 +101,7 @@ Item {
                 height: visible ? implicitHeight : 0
                 visible: rootItem.selectedService ? rootItem.selectedService.status === 1 : false
                 text: visible ? qsTr("Uptime: %1").arg(rootItem.uptimeFormat(rootItem.currentTime - rootItem.selectedService.createdAt)) : ""
-                color: global.theme.fore
+                color: global.theme.general.fore
                 wrapMode: Text.Wrap
             }
 
@@ -123,8 +123,8 @@ Item {
                     height: parent.availableHeight
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -137,7 +137,7 @@ Item {
                     ContextMenu.menu: null
                     verticalAlignment: TextEdit.AlignTop
                     wrapMode: TextEdit.Wrap
-                    color: global.theme.fore
+                    color: global.theme.general.fore
                     background: null
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
 
@@ -196,7 +196,7 @@ Item {
                     Label {
                         anchors.fill: parent
                         text: headerCell.display
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         font.bold: true
                         leftPadding: 6; rightPadding: 6
                         verticalAlignment: Text.AlignVCenter
@@ -206,7 +206,7 @@ Item {
                     Rectangle {
                         anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                         height: 1
-                        color: global.theme.stroke
+                        color: global.theme.general.stroke
                     }
                 }
             }
@@ -239,7 +239,7 @@ Item {
                 Rectangle {
                     parent: eventTable.contentItem
                     anchors.fill: parent
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 ScrollBar.vertical: ScrollBar {
@@ -248,8 +248,8 @@ Item {
                     anchors.left: eventTable.right; anchors.top: eventTable.top; anchors.bottom: eventTable.bottom
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -259,8 +259,8 @@ Item {
                     anchors.left: eventTable.left; anchors.right: eventTable.right; anchors.top: eventTable.bottom
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -272,14 +272,14 @@ Item {
 
                     Rectangle {
                         anchors.fill: parent
-                        color: global.theme.back
+                        color: global.theme.general.back
                     }
 
                     Label {
                         anchors.fill: parent
                         text: eventCell.display ?? ""
                         textFormat: Text.PlainText
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         leftPadding: 6; rightPadding: 6
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight

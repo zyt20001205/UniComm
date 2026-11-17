@@ -11,7 +11,6 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "core/themeManager.h"
 #include "mainWindow/mainWindow.h"
 #include "types/scintillaTypes.h"
 
@@ -98,7 +97,7 @@ void SearchWindow::searchRequest() const {
             if (startByte < offset || endByte <= startByte || endByte > bytes.size()) continue;
             richText += QString::fromUtf8(bytes.mid(offset, startByte - offset)).toHtmlEscaped();
             richText += QString("<span style=\"background-color:%1;\">%2</span>")
-                .arg(g_globalManager->themeGet()->warningBack2Get(), QString::fromUtf8(bytes.mid(startByte, endByte - startByte)).toHtmlEscaped());
+                .arg(g_globalManager->themeGet()["general"].toObject()["warningBack2"].toString(), QString::fromUtf8(bytes.mid(startByte, endByte - startByte)).toHtmlEscaped());
             offset = endByte;
         }
         richText += QString::fromUtf8(bytes.mid(offset)).toHtmlEscaped();

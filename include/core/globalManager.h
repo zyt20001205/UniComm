@@ -1,6 +1,8 @@
 #ifndef UNICOMM_GLOBALMANAGER_H
 #define UNICOMM_GLOBALMANAGER_H
 
+#include <QJsonObject>
+
 #include "globals.h"
 
 class QNetworkAccessManager;
@@ -24,7 +26,6 @@ class WatchModule;
 Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
 Q_MOC_INCLUDE("core/fileModule.h")
-Q_MOC_INCLUDE("core/themeManager.h")
 Q_MOC_INCLUDE("core/undoModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
 Q_MOC_INCLUDE("document/documentModule.h")
@@ -38,7 +39,7 @@ Q_MOC_INCLUDE("terminal/terminalModule.h")
 class GlobalManager final : public QObject {
     Q_OBJECT
     Q_PROPERTY(MainWindow* mainWindow READ mainWindowGet CONSTANT)
-    Q_PROPERTY(ThemeManager* theme READ themeGet CONSTANT)
+    Q_PROPERTY(QJsonObject theme READ themeGet CONSTANT)
 
     // modules
     Q_PROPERTY(AgentModule* agentModule READ agentModuleGet CONSTANT)
@@ -59,9 +60,7 @@ public:
 
     ~GlobalManager() override = default;
 
-    [[nodiscard]] ThemeManager *themeGet() const {
-        return m_theme;
-    }
+    [[nodiscard]] QJsonObject themeGet() const;
 
     [[nodiscard]] QQmlEngine *engineGet() const {
         return m_engine;

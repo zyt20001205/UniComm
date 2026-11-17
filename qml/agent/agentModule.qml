@@ -43,7 +43,7 @@ Item {
     component FlipLabel: Flipable {
         id: flipLabel
         property string text
-        property color color: global.theme.stroke
+        property color color: global.theme.general.stroke
         property string frontText
         property string backText
         Layout.preferredWidth: Math.max(frontLabel.implicitWidth, backLabel.implicitWidth)
@@ -126,7 +126,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ToolTip {
@@ -150,7 +150,7 @@ Item {
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 wrapMode: Text.NoWrap
-                color: global.theme.fore
+                color: global.theme.general.fore
                 font.bold: true
                 Layout.fillWidth: true
             }
@@ -164,7 +164,7 @@ Item {
                 wrapMode: TextEdit.Wrap
                 verticalAlignment: TextEdit.AlignTop
                 clip: true
-                color: global.theme.stroke
+                color: global.theme.general.stroke
                 background: null
                 ContextMenu.menu: null
                 Layout.fillWidth: true
@@ -330,8 +330,8 @@ Item {
                         height: 2
                         radius: 1
                         color: turnListView.hoveredIndex < 0
-                            ? turnListView.currentIndex === turnDelegate.index ? global.theme.fore : global.theme.stroke
-                            : hoverHandler.hovered ? global.theme.fore : global.theme.stroke
+                            ? turnListView.currentIndex === turnDelegate.index ? global.theme.general.fore : global.theme.general.stroke
+                            : hoverHandler.hovered ? global.theme.general.fore : global.theme.general.stroke
                         opacity: turnListView.hoveredIndex < 0 ? 1 : 1 - turnDelegate.hoverDistance * 0.15
 
                         Behavior on width {
@@ -390,8 +390,8 @@ Item {
                     height: parent.height
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
 
                     onPositionChanged: {
@@ -440,8 +440,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -511,7 +511,7 @@ Item {
                     spacing: 4
 
                     IconImage {
-                        color: global.theme.stroke
+                        color: global.theme.general.stroke
                         source: "qrc:/icon/clock.svg"
                         sourceSize.width: 16; sourceSize.height: 16
                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -531,7 +531,7 @@ Item {
 
                     Label {
                         text: ":"
-                        color: global.theme.stroke
+                        color: global.theme.general.stroke
                     }
 
                     SpinBox {
@@ -548,7 +548,7 @@ Item {
                     Label {
                         visible: goalCard.goalState !== goalCard.idleState
                         text: goalCard.remainingText()
-                        color: goalCard.goalState === goalCard.pausedState ? global.theme.warningFore3 : global.theme.stroke
+                        color: goalCard.goalState === goalCard.pausedState ? global.theme.general.warningFore3 : global.theme.general.stroke
                         Layout.leftMargin: 4
                     }
 
@@ -635,8 +635,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -652,7 +652,7 @@ Item {
                     spacing: 8
 
                     IconImage {
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         source: "qrc:/icon/taskList.svg"
                         sourceSize.width: 16; sourceSize.height: 16
                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -666,7 +666,7 @@ Item {
 
                     Label {
                         text: planCard.completedCount + " / " + planCard.steps.length
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                     }
                 }
 
@@ -681,7 +681,7 @@ Item {
 
                     Label {
                         text: planCard.explanation
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         opacity: 0.72
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
@@ -711,7 +711,7 @@ Item {
 
                                 IconImage {
                                     anchors.fill: parent
-                                    color: stepDelegate.stepStatus === "in_progress" ? global.theme.fore : global.theme.stroke
+                                    color: stepDelegate.stepStatus === "in_progress" ? global.theme.general.fore : global.theme.general.stroke
                                     source: stepDelegate.stepStatus === "completed" ? "qrc:/icon/taskCompleted.svg" :
                                             stepDelegate.stepStatus === "in_progress" ? "qrc:/icon/taskInProgress.svg" :
                                             "qrc:/icon/taskPending.svg"
@@ -721,7 +721,7 @@ Item {
 
                             Label {
                                 text: stepDelegate.modelData.step
-                                color: stepDelegate.stepStatus === "in_progress" ? global.theme.fore : global.theme.stroke
+                                color: stepDelegate.stepStatus === "in_progress" ? global.theme.general.fore : global.theme.general.stroke
                                 font.bold: stepDelegate.stepStatus === "in_progress"
                                 wrapMode: Text.Wrap
                                 Layout.fillWidth: true
@@ -743,8 +743,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -752,7 +752,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "transparent"
-                border.color: global.theme.fore
+                border.color: global.theme.general.fore
                 border.width: 1
                 radius: 6
                 opacity: 0.2
@@ -814,7 +814,7 @@ Item {
                                     spacing: 8
 
                                     IconImage {
-                                        color: global.theme.fore
+                                        color: global.theme.general.fore
                                         source: "qrc:/icon/shield.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -831,7 +831,7 @@ Item {
                                         text: permissionPage.role === "hardware" ? qsTr("Hardware") :
                                                 permissionPage.role === "software" ? qsTr("Software") :
                                                     permissionPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                     }
 
                                     Button {
@@ -866,7 +866,7 @@ Item {
 
                                     Label {
                                         text: permissionPage.message
-                                        color: global.theme.fore
+                                        color: global.theme.general.fore
                                         wrapMode: Text.Wrap
                                         Layout.fillWidth: true
                                     }
@@ -903,8 +903,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -912,7 +912,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "transparent"
-                border.color: global.theme.fore
+                border.color: global.theme.general.fore
                 border.width: 1
                 radius: 6
                 opacity: 0.2
@@ -981,7 +981,7 @@ Item {
                                     spacing: 8
 
                                     IconImage {
-                                        color: global.theme.fore
+                                        color: global.theme.general.fore
                                         source: "qrc:/icon/chat.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -997,13 +997,13 @@ Item {
                                         text: userInputPage.role === "hardware" ? qsTr("Hardware") :
                                                 userInputPage.role === "software" ? qsTr("Software") :
                                                     userInputPage.role === "supervisor" ? qsTr("Supervisor") : qsTr("Agent")
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                     }
                                 }
 
                                 Label {
                                     text: userInputPage.question
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                     wrapMode: Text.Wrap
                                     Layout.fillWidth: true
                                     Layout.leftMargin: 24
@@ -1121,8 +1121,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -1138,7 +1138,7 @@ Item {
                     spacing: 8
 
                     IconImage {
-                        color: global.theme.fore
+                        color: global.theme.general.fore
                         source: "qrc:/icon/edit.svg"
                         sourceSize.width: 16; sourceSize.height: 16
                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1198,8 +1198,8 @@ Item {
                         height: parent.availableHeight
                         policy: ScrollBar.AsNeeded
                         palette {
-                            mid: global.theme.stroke
-                            dark: global.theme.strokePressed
+                            mid: global.theme.general.stroke
+                            dark: global.theme.general.strokePressed
                         }
                     }
 
@@ -1211,7 +1211,7 @@ Item {
                         Label {
                             visible: changeCard.error.length > 0
                             text: changeCard.error
-                            color: global.theme.dangerFore3
+                            color: global.theme.general.dangerFore3
                             wrapMode: Text.Wrap
                             Layout.fillWidth: true
                         }
@@ -1219,7 +1219,7 @@ Item {
                         Label {
                             visible: changeCard.fileCount > 0
                             text: qsTr("Files")
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             font.bold: true
                             Layout.fillWidth: true
                         }
@@ -1239,19 +1239,19 @@ Item {
 
                                 Label {
                                     text: fileDiff.path
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                     elide: Text.ElideMiddle
                                     Layout.fillWidth: true
                                 }
 
                                 Label {
                                     text: "+" + fileDiff.additions
-                                    color: global.theme.successFore3
+                                    color: global.theme.general.successFore3
                                 }
 
                                 Label {
                                     text: "-" + fileDiff.deletions
-                                    color: global.theme.dangerFore3
+                                    color: global.theme.general.dangerFore3
                                 }
                             }
                         }
@@ -1259,7 +1259,7 @@ Item {
                         Label {
                             visible: changeCard.steps.length > 0
                             text: qsTr("Operations")
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             font.bold: true
                             Layout.fillWidth: true
                         }
@@ -1278,7 +1278,7 @@ Item {
 
                                 Label {
                                     text: modelData
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                     elide: Text.ElideMiddle
                                     Layout.fillWidth: true
                                 }
@@ -1298,8 +1298,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -1321,7 +1321,7 @@ Item {
                         spacing: 8
 
                         IconImage {
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             source: "qrc:/icon/taskList.svg"
                             sourceSize.width: 16; sourceSize.height: 16
                             Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1348,7 +1348,7 @@ Item {
                         spacing: 8
 
                         IconImage {
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             source: "qrc:/icon/edit.svg"
                             sourceSize.width: 16; sourceSize.height: 16
                             Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1356,27 +1356,27 @@ Item {
 
                         FlipLabel {
                             text: changeCard.changeCount.toString()
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             Layout.preferredHeight: 24
                         }
 
                         Label {
                             text: qsTr("changes")
-                            color: global.theme.fore
+                            color: global.theme.general.fore
                             Layout.preferredWidth: implicitWidth
                         }
 
                         FlipLabel {
                             visible: changeCard.fileCount > 0
                             text: "+" + changeCard.additions
-                            color: global.theme.successFore3
+                            color: global.theme.general.successFore3
                             Layout.preferredHeight: 24
                         }
 
                         FlipLabel {
                             visible: changeCard.fileCount > 0
                             text: "-" + changeCard.deletions
-                            color: global.theme.dangerFore3
+                            color: global.theme.general.dangerFore3
                             Layout.preferredHeight: 24
                         }
                     }
@@ -1405,8 +1405,8 @@ Item {
 
             Rectangle {
                 anchors.fill: parent
-                color: global.theme.backSelected
-                border.color: global.theme.stroke
+                color: global.theme.general.backSelected
+                border.color: global.theme.general.stroke
                 border.width: 1
                 radius: 6
             }
@@ -1457,8 +1457,8 @@ Item {
                         required property var iconSource
                         implicitWidth: Math.min(attachmentContent.implicitWidth, 220)
                         implicitHeight: 24
-                        color: global.theme.backSelected
-                        border.color: global.theme.stroke
+                        color: global.theme.general.backSelected
+                        border.color: global.theme.general.stroke
                         border.width: 1
                         radius: 4
 
@@ -1523,8 +1523,8 @@ Item {
                     height: parent.availableHeight
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -1604,9 +1604,9 @@ Item {
                             mode === 1 ? "qrc:/icon/eye.svg" :
                                 mode === 2 ? "qrc:/icon/edit.svg" :
                                     mode === 3 ? "qrc:/icon/lockOpen.svg" : ""
-                    icon.color: !enabled ? global.theme.foreDisabled : mode === 3 ? global.theme.warningFore3 : global.theme.fore
+                    icon.color: !enabled ? global.theme.general.foreDisabled : mode === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
                     icon.width: 16; icon.height: 16
-                    palette.buttonText: !enabled ? global.theme.foreDisabled : mode === 3 ? global.theme.warningFore3 : global.theme.fore
+                    palette.buttonText: !enabled ? global.theme.general.foreDisabled : mode === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
                     implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
                     Layout.preferredHeight: 28
 
@@ -1674,14 +1674,14 @@ Item {
 
                             Label {
                                 text: "/"
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                                 verticalAlignment: Text.AlignVCenter
                                 Layout.preferredHeight: 28
                             }
 
                             Label {
                                 text: usageLayout.formatTokens(usageLayout.contextWindow)
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                                 verticalAlignment: Text.AlignVCenter
                                 Layout.preferredHeight: 28
                             }
@@ -1694,7 +1694,7 @@ Item {
                         spacing: 5
 
                         IconImage {
-                            color: global.theme.warningFore3
+                            color: global.theme.general.warningFore3
                             source: "qrc:/icon/arrowMinimize.svg"
                             sourceSize.width: 16; sourceSize.height: 16
                             Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1703,7 +1703,7 @@ Item {
                         Label {
                             id: compactLabel
                             text: qsTr("Compact")
-                            color: global.theme.warningFore3
+                            color: global.theme.general.warningFore3
                         }
                     }
 
@@ -1809,7 +1809,7 @@ Item {
                 anchors.centerIn: parent
                 width: 16; height: 16
                 visible: agentModule.state === 0
-                color: global.theme.fore
+                color: global.theme.general.fore
                 source: "qrc:/icon/arrowDown.svg"
                 sourceSize.width: 16; sourceSize.height: 16
             }
@@ -1829,7 +1829,7 @@ Item {
                         y: 6
                         width: 4; height: 4
                         radius: 2
-                        color: global.theme.fore
+                        color: global.theme.general.fore
 
                         SequentialAnimation on y {
                             running: dotsIndicator.visible && followTailButton.visible
@@ -1845,8 +1845,8 @@ Item {
         }
 
         background: Rectangle {
-            color: followTailButton.hovered ? global.theme.backHover : global.theme.backSelected
-            border.color: global.theme.stroke
+            color: followTailButton.hovered ? global.theme.general.backHover : global.theme.general.backSelected
+            border.color: global.theme.general.stroke
             border.width: 1
             radius: width / 2
         }
@@ -1905,7 +1905,7 @@ Item {
             }
 
             Rectangle {
-                color: global.theme.stroke
+                color: global.theme.general.stroke
                 Layout.fillWidth: true; Layout.preferredHeight: 1
             }
 
@@ -1935,7 +1935,7 @@ Item {
                                     spacing: 4
 
                                     IconImage {
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                         source: "qrc:/icon/team.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1944,11 +1944,11 @@ Item {
                                     Label {
                                         text: subagentGroup.subagent.count === 1
                                               ? qsTr("1 action") : qsTr("%1 actions").arg(subagentGroup.subagent.count)
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                     }
 
                                     IconImage {
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                         source: subagentGroup.subagent.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -1975,7 +1975,7 @@ Item {
                                             required property string modelData
                                             text: modelData
                                             textFormat: Text.PlainText
-                                            color: global.theme.stroke
+                                            color: global.theme.general.stroke
                                             elide: Text.ElideRight
                                             wrapMode: Text.NoWrap
                                             Layout.fillWidth: true; Layout.preferredHeight: 24
@@ -2000,7 +2000,7 @@ Item {
                                     spacing: 4
 
                                     IconImage {
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                         source: "qrc:/icon/wrenchScrewdriver.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2008,11 +2008,11 @@ Item {
 
                                     Label {
                                         text: toolGroup.group.count === 1 ? qsTr("Used 1 tool") : qsTr("Used %1 tools").arg(toolGroup.group.count)
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                     }
 
                                     IconImage {
-                                        color: global.theme.stroke
+                                        color: global.theme.general.stroke
                                         source: toolGroup.group.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
                                         sourceSize.width: 16; sourceSize.height: 16
                                         Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2068,7 +2068,7 @@ Item {
                             spacing: 6
 
                             IconImage {
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                                 source: turnItem.turn.activityIcon
                                 sourceSize.width: 16; sourceSize.height: 16
                                 Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2076,7 +2076,7 @@ Item {
 
                             Label {
                                 text: turnItem.turn.activity
-                                color: global.theme.stroke
+                                color: global.theme.general.stroke
                             }
                         }
 
@@ -2091,7 +2091,7 @@ Item {
                                 spacing: 6
 
                                 IconImage {
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                     source: turnItem.turn.activityIcon
                                     sourceSize.width: 16; sourceSize.height: 16
                                     Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2099,7 +2099,7 @@ Item {
 
                                 Label {
                                     text: turnItem.turn.activity
-                                    color: global.theme.fore
+                                    color: global.theme.general.fore
                                 }
                             }
                         }
@@ -2223,9 +2223,9 @@ Item {
                 Layout.alignment: chatItem.role === "user" || chatItem.role === "steering" ? Qt.AlignRight : Qt.AlignLeft
 
                 background: Rectangle {
-                    color: chatItem.role === "user" || chatItem.role === "steering" ? global.theme.backSelected :
+                    color: chatItem.role === "user" || chatItem.role === "steering" ? global.theme.general.backSelected :
                             chatItem.role === "comment" || chatItem.role === "assistant" ? "transparent" :
-                                chatItem.role === "tool" ? "transparent" : global.theme.dangerBack2
+                                chatItem.role === "tool" ? "transparent" : global.theme.general.dangerBack2
                     radius: 16
                 }
 
@@ -2247,7 +2247,7 @@ Item {
                                     textFormat: TextEdit.MarkdownText
                                     wrapMode: Text.Wrap
                                     ContextMenu.menu: null
-                                    color: chatItem.role === "tool" ? global.theme.stroke : global.theme.fore
+                                    color: chatItem.role === "tool" ? global.theme.general.stroke : global.theme.general.fore
                                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                                     background: null
                                     Layout.fillWidth: true
@@ -2287,7 +2287,7 @@ Item {
                                     Layout.fillWidth: true
 
                                     background: Rectangle {
-                                        color: global.theme.backSelected
+                                        color: global.theme.general.backSelected
                                         radius: 16
                                     }
 
@@ -2300,7 +2300,7 @@ Item {
                                             spacing: 4
 
                                             IconImage {
-                                                color: global.theme.fore
+                                                color: global.theme.general.fore
                                                 source: "qrc:/icon/code.svg"
                                                 sourceSize.width: 16; sourceSize.height: 16
                                                 Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2339,8 +2339,8 @@ Item {
                                                 id: codeScrollBar
                                                 policy: ScrollBar.AsNeeded
                                                 palette {
-                                                    mid: global.theme.stroke
-                                                    dark: global.theme.strokePressed
+                                                    mid: global.theme.general.stroke
+                                                    dark: global.theme.general.strokePressed
                                                 }
                                             }
 
@@ -2353,7 +2353,7 @@ Item {
                                                 textFormat: TextEdit.PlainText
                                                 wrapMode: TextEdit.NoWrap
                                                 ContextMenu.menu: null
-                                                color: global.theme.fore
+                                                color: global.theme.general.fore
                                                 leftPadding: 12; rightPadding: 12; topPadding: 8; bottomPadding: 8
                                                 background: null
                                             }
@@ -2374,7 +2374,7 @@ Item {
                                     Layout.fillWidth: true
 
                                     background: Rectangle {
-                                        color: global.theme.backSelected
+                                        color: global.theme.general.backSelected
                                         radius: 16
                                     }
 
@@ -2387,7 +2387,7 @@ Item {
                                             spacing: 4
 
                                             IconImage {
-                                                color: global.theme.fore
+                                                color: global.theme.general.fore
                                                 source: "qrc:/icon/table.svg"
                                                 sourceSize.width: 16; sourceSize.height: 16
                                                 Layout.preferredWidth: 16; Layout.preferredHeight: 16
@@ -2412,7 +2412,7 @@ Item {
                                         }
 
                                         Rectangle {
-                                            color: global.theme.backSelected
+                                            color: global.theme.general.backSelected
                                             Layout.fillWidth: true
                                             Layout.leftMargin: 12; Layout.rightMargin: 12
                                             Layout.topMargin: 8; Layout.bottomMargin: 8
@@ -2436,12 +2436,12 @@ Item {
                                                         padding: 0
 
                                                         background: Rectangle {
-                                                            color: global.theme.backHover
+                                                            color: global.theme.general.backHover
 
                                                             Rectangle {
                                                                 anchors.right: parent.right
                                                                 width: 1; height: parent.height
-                                                                color: global.theme.stroke
+                                                                color: global.theme.general.stroke
                                                                 visible: tableHeaderDelegate.column < tableBlock.tableModel.columns - 1
                                                             }
                                                         }
@@ -2450,7 +2450,7 @@ Item {
                                                             id: tableHeaderText
                                                             text: tableHeaderDelegate.model.display
                                                             textFormat: Text.MarkdownText
-                                                            color: global.theme.fore
+                                                            color: global.theme.general.fore
                                                             font.bold: true
                                                             leftPadding: 8; rightPadding: 8
                                                             horizontalAlignment: tableHeaderDelegate.model.alignment
@@ -2505,8 +2505,8 @@ Item {
                                                         id: tableScrollBar
                                                         policy: ScrollBar.AsNeeded
                                                         palette {
-                                                            mid: global.theme.stroke
-                                                            dark: global.theme.strokePressed
+                                                            mid: global.theme.general.stroke
+                                                            dark: global.theme.general.strokePressed
                                                         }
                                                     }
 
@@ -2516,12 +2516,12 @@ Item {
                                                         padding: 0
 
                                                         background: Rectangle {
-                                                            color: tableCell.row % 2 === 0 ? global.theme.backSelected : global.theme.backHover
+                                                            color: tableCell.row % 2 === 0 ? global.theme.general.backSelected : global.theme.general.backHover
 
                                                             Rectangle {
                                                                 anchors.right: parent.right
                                                                 width: 1; height: parent.height
-                                                                color: global.theme.stroke
+                                                                color: global.theme.general.stroke
                                                                 visible: tableCell.column < tableBlock.tableModel.columns - 1
                                                             }
                                                         }
@@ -2530,7 +2530,7 @@ Item {
                                                             id: tableCellText
                                                             text: tableCell.model.display
                                                             textFormat: Text.MarkdownText
-                                                            color: global.theme.fore
+                                                            color: global.theme.general.fore
                                                             leftPadding: 8; rightPadding: 8
                                                             horizontalAlignment: tableCell.model.alignment
                                                             verticalAlignment: Text.AlignVCenter
@@ -2587,8 +2587,8 @@ Item {
                         required property var modelData
                         implicitWidth: Math.min(messageAttachmentButton.implicitWidth, 220)
                         implicitHeight: 24
-                        color: global.theme.backSelected
-                        border.color: global.theme.stroke
+                        color: global.theme.general.backSelected
+                        border.color: global.theme.general.stroke
                         border.width: 1
                         radius: 4
 
@@ -2631,7 +2631,7 @@ Item {
 
                 Label {
                     text: Qt.formatDateTime(new Date(chatItem.role === "user" ? chatItem.turn.startedAt : chatItem.turn.finishedAt), "HH:mm")
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 Button {

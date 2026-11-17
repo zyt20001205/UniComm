@@ -10,7 +10,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: global.theme.back
+        color: global.theme.general.back
     }
 
     ColumnLayout {
@@ -80,8 +80,8 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
@@ -92,21 +92,21 @@ Item {
                     minimumSize: Math.min(1, 20 / Math.max(1, width))
                     policy: ScrollBar.AsNeeded
                     palette {
-                        mid: global.theme.stroke
-                        dark: global.theme.strokePressed
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    color: global.theme.stroke
+                    color: global.theme.general.stroke
                 }
 
                 delegate: Rectangle {
                     id: cell
                     implicitWidth: 120; implicitHeight: 32
                     required property var display
-                    color: global.theme.back
+                    color: global.theme.general.back
 
                     Label {
                         anchors.fill: parent
@@ -124,7 +124,7 @@ Item {
         id: headerCell
         implicitWidth: 120; implicitHeight: 32
         required property string display
-        color: global.theme.back
+        color: global.theme.general.back
 
         function flash() {
             flashAnimation.restart()
@@ -139,7 +139,7 @@ Item {
             id: highlight
             anchors.fill: parent
             radius: 6
-            color: global.theme.backHover
+            color: global.theme.general.backHover
             opacity: 0
         }
 
