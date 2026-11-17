@@ -89,7 +89,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("agentModule", m_agentModule);
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
-    m_overlay->rootContext()->setContextProperty("diagnosticsModule", m_diagnosticsModule);
     m_overlay->rootContext()->setContextProperty("documentModule", m_documentModule);
     m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
@@ -119,6 +118,7 @@ void MainWindow::propertySet() {
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", objects["mainWindowToolTip"]);
 
     m_closeDialog = qvariant_cast<QObject *>(objects["mainWindowCloseDialog"]);
@@ -149,10 +149,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_debugModule->propertySet(debugObjects);
 
-    const QVariantHash diagnosticsObjects = {
-        {"diagnosticsModuleDiagnosticMenu", objects["diagnosticsModuleDiagnosticMenu"]}
-    };
-    m_diagnosticsModule->propertySet(diagnosticsObjects);
+    m_diagnosticsModule->propertySet();
 
     const QVariantHash documentObjects = {
         {"mainWindowToast", QVariant::fromValue(m_toastModule)},
@@ -447,6 +444,7 @@ void MainWindow::moduleInit() {
     m_mainConfig = g_workspaceConfig["mainConfig"].toObject();
     g_globalManager->agentModuleSet(m_agentModule);
     g_globalManager->documentModuleSet(m_documentModule);
+    g_globalManager->fileModuleSet(m_fileModule);
     g_globalManager->gitModuleSet(m_gitModule);
     g_globalManager->logModuleSet(m_logModule);
     g_globalManager->nuspellModuleSet(m_nuspellModule);

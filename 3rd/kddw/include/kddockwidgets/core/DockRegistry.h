@@ -52,8 +52,10 @@ class MainWindowMDI;
 class DOCKS_EXPORT DockRegistry : public QObject, public Core::EventFilterInterface
 {
     Q_OBJECT
+#ifdef KDDW_FRONTEND_QTQUICK
     QML_ELEMENT
     QML_UNCREATABLE("Created by the framework only.")
+#endif
 public:
     enum class DockByNameFlag {
         None = 0,

@@ -38,10 +38,6 @@
 
 #ifdef KDDW_FRONTEND_QTQUICK
 #include <QQmlEngine>
-#else
-// So QWidget builds don't break
-#define QML_ELEMENT
-#define QML_UNCREATABLE(x) static_assert(true, "");
 #endif
 
 
@@ -57,7 +53,9 @@ namespace KDDockWidgets::Flutter {
 namespace KDDockWidgets {
 QT_DOCKS_EXPORT
 Q_NAMESPACE
+#ifdef KDDW_FRONTEND_QTQUICK
 QML_ELEMENT
+#endif
 
 namespace QtWidgets {
 class DockWidget;

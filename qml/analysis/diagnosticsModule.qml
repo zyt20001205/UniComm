@@ -5,10 +5,13 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import UniComm
+
 Item {
-    id: rootItem
+    id: root
     anchors.fill: parent
-    readonly property var selectedDiagnostic: diagnosticsModule.diagnostics[tabBar.currentIndex] ?? null
+    required property DiagnosticsModule diagnosticsModule
+    readonly property var selectedDiagnostic: root.diagnosticsModule.diagnostics[tabBar.currentIndex] ?? null
 
     Rectangle {
         anchors.fill: parent
@@ -17,7 +20,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: diagnosticsModule.diagnostics.length === 0
+        visible: root.diagnosticsModule.diagnostics.length === 0
 
         RowLayout {
             anchors.centerIn: parent
@@ -39,27 +42,27 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
-        visible: diagnosticsModule.diagnostics.length !== 0
+        visible: root.diagnosticsModule.diagnostics.length !== 0
 
         TabBar {
             id: tabBar
             contentHeight: 24
             Layout.fillWidth: true; Layout.preferredHeight: 32
             currentIndex: {
-                const diagnostics = diagnosticsModule.diagnostics
-                const focusedUrl = String(global.documentModule.focusedUrl)
+                const diagnostics = root.diagnosticsModule.diagnostics
+                const focusedUrl = global.documentModule.focusedUrl
                 // Wait for the Repeater to finish rebuilding its tabs.
                 if (count !== diagnostics.length)
                     return -1
                 for (let i = 0; i < diagnostics.length; ++i) {
-                    if (String(diagnostics[i].documentUrl) === focusedUrl)
+                    if (diagnostics[i].documentUrl === focusedUrl)
                         return i
                 }
                 return diagnostics.length ? 0 : -1
             }
 
             Repeater {
-                model: diagnosticsModule.diagnostics
+                model: root.diagnosticsModule.diagnostics
 
                 delegate: TabButton {
                     required property var modelData
@@ -110,30 +113,31 @@ Item {
                 anchors.top: horizontalHeaderView.bottom; anchors.bottom: parent.bottom
                 anchors.rightMargin: verticalScrollBar.width
                 anchors.bottomMargin: horizontalScrollBar.height
-                model: rootItem.selectedDiagnostic ? rootItem.selectedDiagnostic.model : null
+                model: root.selectedDiagnostic ? root.selectedDiagnostic.model : null
                 rowSpacing: 1; columnSpacing: 0
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 editTriggers: TableView.NoEditTriggers
 
-                readonly property int iconWidth: 24
-                readonly property int sourceWidth: 120
-                readonly property int codeWidth: 100
-                readonly property int dataWidth: 120
+                readonly property var defaultColumnWidths: ({
+                    [DiagnosticsModule.Col.Severity]: 24,
+                    [DiagnosticsModule.Col.Source]: 120,
+                    [DiagnosticsModule.Col.Code]: 100,
+                    [DiagnosticsModule.Col.Data]: 120
+                })
 
-                columnWidthProvider: function(column: int): real {
-                    const resizedWidth = explicitColumnWidth(column)
-                    if (resizedWidth >= 0) return resizedWidth
-
-                    const defaultWidths = [iconWidth, sourceWidth, codeWidth, dataWidth]
-                    if (column < defaultWidths.length) return defaultWidths[column]
-
-                    let usedWidth = 0
-                    for (let i = 0; i < defaultWidths.length; ++i) {
-                        const explicitWidth = explicitColumnWidth(i)
-                        usedWidth += explicitWidth >= 0 ? explicitWidth : defaultWidths[i]
+                columnWidthProvider: function (column: int): real {
+                    if (column !== DiagnosticsModule.Col.Message) {
+                        const explicitWidth = explicitColumnWidth(column)
+                        return explicitWidth >= 0 ? explicitWidth : defaultColumnWidths[column]
                     }
-                    return Math.max(160, Math.floor(width) - usedWidth)
+
+                    let remainingWidth = Math.floor(width)
+                    for (let i = DiagnosticsModule.Col.Severity; i < DiagnosticsModule.Col.Message; ++i) {
+                        const explicitWidth = explicitColumnWidth(i)
+                        remainingWidth -= explicitWidth >= 0 ? explicitWidth : defaultColumnWidths[i]
+                    }
+                    return Math.max(160, remainingWidth)
                 }
 
                 onWidthChanged: forceLayout()
@@ -175,9 +179,12 @@ Item {
                     id: cell
                     required property int column
                     required property var display
-                    required property var decoration
                     required property int severity
-                    required property var position
+                    required property url documentUrl
+                    required property int startLine
+                    required property int startCharacter
+                    required property int endLine
+                    required property int endCharacter
                     required property string message
                     implicitWidth: 120; implicitHeight: 24
 
@@ -201,19 +208,40 @@ Item {
                     IconImage {
                         anchors.centerIn: parent
                         width: 16; height: 16
-                        visible: cell.column === 0
-                        source: cell.decoration ?? ""
-                        color: cell.severity === 1 ? global.theme.dangerBack3
-                               : cell.severity === 2 ? global.theme.warningBack3
-                               : cell.severity === 3 ? global.theme.brandBack
-                               : global.theme.fore
+                        visible: cell.column === DiagnosticsModule.Col.Severity
+                        source: {
+                            switch (cell.severity) {
+                                case DiagnosticsModule.Level.Error:
+                                    return "qrc:/icon/error.svg"
+                                case DiagnosticsModule.Level.Warning:
+                                    return "qrc:/icon/warning.svg"
+                                case DiagnosticsModule.Level.Information:
+                                    return "qrc:/icon/info.svg"
+                                case DiagnosticsModule.Level.Hint:
+                                    return "qrc:/icon/hint.svg"
+                                default:
+                                    return ""
+                            }
+                        }
+                        color: {
+                            switch (cell.severity) {
+                                case DiagnosticsModule.Level.Error:
+                                    return global.theme.dangerBack3
+                                case DiagnosticsModule.Level.Warning:
+                                    return global.theme.warningBack3
+                                case DiagnosticsModule.Level.Information:
+                                    return global.theme.brandBack
+                                default:
+                                    return global.theme.fore
+                            }
+                        }
                     }
 
                     Label {
                         anchors.fill: parent
-                        visible: cell.column !== 0
+                        visible: cell.column !== DiagnosticsModule.Col.Severity
                         text: String(cell.display ?? "")
-                        textFormat: cell.column === 4 ? Text.RichText : Text.PlainText
+                        textFormat: cell.column === DiagnosticsModule.Col.Message ? Text.RichText : Text.PlainText
                         leftPadding: 6; rightPadding: 6
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -225,18 +253,62 @@ Item {
 
                     TapHandler {
                         acceptedButtons: Qt.LeftButton
-                        onTapped: diagnosticsModule.indicatorFill(cell.position)
+                        onTapped: {
+                            root.diagnosticsModule.setIndex(cell.documentUrl, cell.startLine, cell.startCharacter)
+                            root.diagnosticsModule.fillIndicator(cell.documentUrl, 6, cell.startLine, cell.startCharacter, cell.endLine, cell.endCharacter, 1000)
+                        }
                     }
 
                     TapHandler {
                         acceptedButtons: Qt.RightButton
                         onTapped: {
-                            diagnosticMenu.position = cell.position
+                            diagnosticMenu.documentUrl = cell.documentUrl
+                            diagnosticMenu.startLine = cell.startLine
+                            diagnosticMenu.startCharacter = cell.startCharacter
+                            diagnosticMenu.endLine = cell.endLine
+                            diagnosticMenu.endCharacter = cell.endCharacter
                             diagnosticMenu.diagnostic = cell.message
                             diagnosticMenu.popup()
                         }
                     }
                 }
+            }
+        }
+    }
+
+    Menu {
+        id: diagnosticMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property string diagnostic
+        property url documentUrl
+        property int startLine
+        property int startCharacter
+        property int endLine
+        property int endCharacter
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Copy")
+            icon.source: "qrc:/icon/copy.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.copyToClipboard(diagnosticMenu.diagnostic)
+        }
+
+        MenuItem {
+            text: qsTr("View")
+            icon.source: "qrc:/icon/eye.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: {
+                root.diagnosticsModule.setIndex(diagnosticMenu.documentUrl, diagnosticMenu.startLine, diagnosticMenu.startCharacter)
+                root.diagnosticsModule.fillIndicator(diagnosticMenu.documentUrl, 6, diagnosticMenu.startLine, diagnosticMenu.startCharacter, diagnosticMenu.endLine, diagnosticMenu.endCharacter, 1000)
             }
         }
     }

@@ -9,6 +9,7 @@ class QQmlEngine;
 class AgentModule;
 class AudioService;
 class DocumentModule;
+class FileModule;
 class GitModule;
 class LogModule;
 class NuspellModule;
@@ -22,6 +23,7 @@ class WatchModule;
 
 Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
+Q_MOC_INCLUDE("core/fileModule.h")
 Q_MOC_INCLUDE("core/themeManager.h")
 Q_MOC_INCLUDE("core/undoModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
@@ -35,11 +37,13 @@ Q_MOC_INCLUDE("terminal/terminalModule.h")
 
 class GlobalManager final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(MainWindow* mainWindow READ mainWindowGet CONSTANT)
     Q_PROPERTY(ThemeManager* theme READ themeGet CONSTANT)
 
     // modules
     Q_PROPERTY(AgentModule* agentModule READ agentModuleGet CONSTANT)
     Q_PROPERTY(DocumentModule* documentModule READ documentModuleGet CONSTANT)
+    Q_PROPERTY(FileModule* fileModule READ fileModuleGet CONSTANT)
     Q_PROPERTY(GitModule* gitModule READ gitModuleGet CONSTANT)
     Q_PROPERTY(LogModule* logModule READ logModuleGet CONSTANT)
     Q_PROPERTY(NuspellModule* nuspellModule READ nuspellModuleGet CONSTANT)
@@ -69,6 +73,14 @@ public:
 
     void documentModuleSet(DocumentModule *module) {
         m_documentModule = module;
+    }
+
+    [[nodiscard]] FileModule *fileModuleGet() const {
+        return m_fileModule;
+    }
+
+    void fileModuleSet(FileModule *module) {
+        m_fileModule = module;
     }
 
     [[nodiscard]] MainWindow *mainWindowGet() const {
@@ -185,6 +197,7 @@ private:
     ServiceModule *m_serviceModule{};
     AgentModule *m_agentModule{};
     DocumentModule *m_documentModule{};
+    FileModule *m_fileModule{};
     GitModule *m_gitModule{};
     LogModule *m_logModule{};
     NuspellModule *m_nuspellModule{};

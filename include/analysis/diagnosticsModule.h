@@ -2,15 +2,17 @@
 #define UNICOMM_DIAGNOSTICS_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
-#include <QStandardItemModel>
 #include <QUrl>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 class QJsonArray;
 class QQuickWidget;
-class DiagnosticsModel;
+class QStandardItemModel;
 
-class DiagnosticsModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class DiagnosticsModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("DiagnosticsModule is created by C++.")
     Q_PROPERTY(QVariantList diagnostics READ diagnosticsGet NOTIFY changeDiagnostics)
 
 public:
@@ -18,13 +20,31 @@ public:
 
     ~DiagnosticsModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] QVariantList diagnosticsGet() const;
 
     void diagnosticsNotification(const QUrl &documentUrl, const QJsonArray &diagnostics);
 
-    Q_INVOKABLE void indicatorFill(const QVariantHash &position);
+    enum Col {
+        Severity = 0,
+        Source,
+        Code,
+        Data,
+        Message,
+        Count
+    };
+
+    Q_ENUM(Col)
+
+    enum Level {
+        Error = 1,
+        Warning = 2,
+        Information = 3,
+        Hint = 4
+    };
+
+    Q_ENUM(Level)
 
 signals:
     void changeDiagnostics();
@@ -34,34 +54,19 @@ signals:
     void fillIndicator(const QUrl &documentUrl, int type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
 
 private:
+    static void diagnosticsSet(QStandardItemModel *model, const QUrl &documentUrl, const QJsonArray &diagnostics);
+
     QQuickWidget *m_widget{};
-    QHash<QUrl, DiagnosticsModel *> m_diagnosticsModelHash{};
-};
-
-class DiagnosticsModel final : public QStandardItemModel {
-    Q_OBJECT
-
-public:
-    explicit DiagnosticsModel(QObject *parent = nullptr);
+    QHash<QUrl, QStandardItemModel *> m_diagnosticsModelHash{};
 
     enum Role {
         SeverityRole = Qt::UserRole + 1,
-        PositionRole,
+        DocumentUrlRole,
+        StartLineRole,
+        StartCharacterRole,
+        EndLineRole,
+        EndCharacterRole,
         MessageRole
-    };
-
-    void diagnosticsSet(const QUrl &documentUrl, const QJsonArray &diagnostics);
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
-
-private:
-    enum {
-        LEVEL_ERROR = 1,
-        LEVEL_WARNING,
-        LEVEL_INFO,
-        LEVEL_HINT
     };
 };
 

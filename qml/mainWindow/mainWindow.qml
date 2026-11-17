@@ -753,35 +753,6 @@ Item {
         onClosed: widgetCount -= 1
     }
 
-    // diagnostics module
-    Menu {
-        id: diagnosticsModuleDiagnosticMenu
-        property string diagnostic
-        property var position
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("Copy")
-            icon.source: "qrc:/icon/copy.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: fileModule.copyToClipboard(diagnosticsModuleDiagnosticMenu.diagnostic)
-        }
-
-        MenuItem {
-            text: qsTr("View")
-            icon.source: "qrc:/icon/eye.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: diagnosticsModule.indicatorFill(diagnosticsModuleDiagnosticMenu.position)
-        }
-    }
-
     // document module
     Dialog {
         id: documentModuleGotoDialog
@@ -4654,6 +4625,7 @@ Item {
 
     Component.onCompleted: {
         const objects = {
+            "mainOverlay": mainItem,
             "mainWindowCloseDialog": mainWindowCloseDialog,
             "mainWindowMessageDialog": mainWindowMessageDialog,
             "mainWindowQuitDialog": mainWindowQuitDialog,
@@ -4671,8 +4643,6 @@ Item {
             "breakpointModuleRootMenu": breakpointModuleRootMenu,
 
             "debugModuleErrorDialog": debugModuleErrorDialog,
-
-            "diagnosticsModuleDiagnosticMenu": diagnosticsModuleDiagnosticMenu,
 
             "documentModuleGotoDialog": documentModuleGotoDialog,
             "documentModuleRenameDialog": documentModuleRenameDialog,
