@@ -175,7 +175,8 @@ Item {
                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     icon.source: "qrc:/icon/filter.svg"
-                    icon.color: global.theme.general.fore
+                    icon.color: root.severityLimit !== DiagnosticsModule.Level.Hint
+                        ? global.theme.general.warningBack3 : global.theme.general.fore
                     icon.width: 16; icon.height: 16
 
                     onClicked: {

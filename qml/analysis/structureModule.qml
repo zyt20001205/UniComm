@@ -6,6 +6,8 @@ import QtQuick.Controls.impl
 import QtQuick.Layouts
 import QtQml.Models
 
+import "../util"
+
 import UniComm
 
 Item {
@@ -18,10 +20,23 @@ Item {
     onSelectedStructureChanged: {
         if (selectedStructure) filterModel.model = selectedStructure.model
     }
-    onSelectedKindsChanged: {
+    onSelectedKindsChanged: filterRefresh()
+
+    Keys.onEscapePressed: event => {
+        if (!searchBox.expanded) {
+            event.accepted = false
+            return
+        }
+        searchBox.expanded = false
+        treeView.forceActiveFocus()
+    }
+
+    function filterRefresh() {
         filterModel.invalidate()
         treeView.selectedRow = -1
         treeView.contentY = 0
+        if (searchField.query.length > 0)
+            Qt.callLater(() => treeView.expandRecursively())
     }
 
     function kindIcon(kind: int): string {
@@ -90,15 +105,19 @@ Item {
         onModelChanged: {
             treeView.selectedRow = -1
             treeView.contentY = 0
+            if (searchField.query.length > 0)
+                Qt.callLater(() => treeView.expandRecursively())
         }
         filters: FunctionFilter {
             column: 0
             component RoleData: QtObject {
                 property int kind
+                property string display
             }
 
             function filter(data: RoleData): bool {
-                return root.selectedKinds === null || root.selectedKinds.includes(data.kind)
+                return (root.selectedKinds === null || root.selectedKinds.includes(data.kind))
+                    && data.display.toLowerCase().includes(searchField.query)
             }
         }
     }
@@ -113,7 +132,7 @@ Item {
 
         RowLayout {
             id: toolBar
-            Layout.fillWidth: true
+            Layout.fillWidth: true; Layout.preferredHeight: 32
             spacing: 0
 
             Item {
@@ -167,7 +186,7 @@ Item {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                 flat: true
                 icon.source: "qrc:/icon/filter.svg"
-                icon.color: global.theme.general.fore
+                icon.color: root.selectedKinds !== null ? global.theme.general.warningBack3 : global.theme.general.fore
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
@@ -186,6 +205,74 @@ Item {
                     onPointChanged: {
                         mainTooltip.position = filterButton.mapToGlobal(point.position)
                         mainTooltip.text = qsTr("Filter")
+                    }
+                }
+            }
+
+            Item {
+                id: searchBox
+                property bool expanded: false
+                readonly property real expandedWidth: Math.max(24, toolBar.width - collapseButton.width - expandButton.width - filterButton.width)
+                implicitWidth: expanded ? expandedWidth : 24
+                implicitHeight: 32
+                Layout.preferredWidth: implicitWidth
+                Layout.minimumWidth: 24; Layout.maximumWidth: implicitWidth
+                clip: true
+
+                Behavior on implicitWidth {
+                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                }
+
+                LineEdit {
+                    id: searchField
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.max(0, searchBox.width - searchButton.width - 4); height: 32
+                    visible: searchBox.expanded || opacity > 0
+                    enabled: searchBox.expanded
+                    opacity: searchBox.expanded ? 1 : 0
+                    clearable: true
+                    buttonSize: 24
+                    tooltip: mainTooltip
+                    placeholderText: qsTr("Search symbols")
+                    readonly property string query: text.trim().toLowerCase()
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 150 }
+                    }
+
+                    onQueryChanged: root.filterRefresh()
+                }
+
+                Button {
+                    id: searchButton
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                    width: 24; height: 24
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/search.svg"
+                    icon.color: searchField.query.length > 0 ? global.theme.general.warningBack3 : global.theme.general.fore
+                    icon.width: 16; icon.height: 16
+
+                    onClicked: {
+                        mainTooltip.text = ""
+                        searchBox.expanded = !searchBox.expanded
+                        if (searchBox.expanded) {
+                            searchField.forceActiveFocus()
+                            searchField.selectAll()
+                        } else {
+                            treeView.forceActiveFocus()
+                        }
+                    }
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = searchButton.mapToGlobal(point.position)
+                            mainTooltip.text = searchField.query.length > 0 ? searchField.text : qsTr("Search")
+                        }
                     }
                 }
             }
@@ -267,6 +354,7 @@ Item {
                             gesturePolicy: TapHandler.DragWithinBounds
 
                             onTapped: {
+                                treeView.forceActiveFocus()
                                 treeView.selectedRow = node.row
                                 if (node.isTreeNode && node.hasChildren) {
                                     treeView.toggleExpanded(node.row)
@@ -313,6 +401,7 @@ Item {
                     gesturePolicy: TapHandler.DragWithinBounds
 
                     onTapped: {
+                        treeView.forceActiveFocus()
                         treeView.selectedRow = node.row
                         const documentUrl = global.documentModule.focusedUrl
                         root.structureModule.setFocus(documentUrl, true)
@@ -336,7 +425,10 @@ Item {
             TapHandler {
                 acceptedButtons: Qt.LeftButton
 
-                onTapped: treeView.selectedRow = -1
+                onTapped: {
+                    treeView.forceActiveFocus()
+                    treeView.selectedRow = -1
+                }
             }
 
         }

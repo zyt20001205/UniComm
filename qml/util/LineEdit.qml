@@ -8,6 +8,7 @@ TextField {
 
     property bool revealable: false
     property bool clearable: false
+    property QtObject tooltip: mainToolTip
     property bool browsable: false
     property alias fileMode: fileDialog.fileMode
     property alias nameFilters: fileDialog.nameFilters
@@ -47,10 +48,10 @@ TextField {
             Accessible.name: checked ? qsTr("Hide password") : qsTr("Show password")
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) mainToolTip.text = "" }
+                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
                 onPointChanged: {
-                    mainToolTip.position = parent.mapToGlobal(point.position)
-                    mainToolTip.text = parent.Accessible.name
+                    control.tooltip.position = parent.mapToGlobal(point.position)
+                    control.tooltip.text = parent.Accessible.name
                 }
             }
         }
@@ -73,10 +74,10 @@ TextField {
             }
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) mainToolTip.text = "" }
+                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
                 onPointChanged: {
-                    mainToolTip.position = parent.mapToGlobal(point.position)
-                    mainToolTip.text = parent.Accessible.name
+                    control.tooltip.position = parent.mapToGlobal(point.position)
+                    control.tooltip.text = parent.Accessible.name
                 }
             }
         }
@@ -101,10 +102,10 @@ TextField {
             }
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) mainToolTip.text = "" }
+                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
                 onPointChanged: {
-                    mainToolTip.position = parent.mapToGlobal(point.position)
-                    mainToolTip.text = parent.Accessible.name
+                    control.tooltip.position = parent.mapToGlobal(point.position)
+                    control.tooltip.text = parent.Accessible.name
                 }
             }
         }
