@@ -3,7 +3,7 @@
 -- Covers all ten symbol kinds emitted by the bundled LuaLS.
 -- LSP defines more kinds, but this LuaLS document-symbol provider emits only these ten.
 -- Expand and collapse the tree, then try Copy Name and Copy Detail.
--- Menu selections currently preview check states without filtering the tree.
+-- Toggle kinds, All, or None to filter the tree immediately while the menu stays open.
 
 -- Variable: an uninitialized local has no detail text.
 local pending

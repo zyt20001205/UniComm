@@ -19,6 +19,31 @@ Item {
         if (selectedDiagnostic) filterModel.model = selectedDiagnostic.model
     }
 
+    SortFilterProxyModel {
+        id: filterModel
+        onModelChanged: {
+            tableView.contentX = 0
+            tableView.contentY = 0
+        }
+        sorters: RoleSorter {
+            id: severitySorter
+            roleName: "severity"
+            column: DiagnosticsModule.Col.Severity
+            sortOrder: Qt.AscendingOrder
+        }
+        filters: FunctionFilter {
+            column: DiagnosticsModule.Col.Severity
+            enabled: root.severityLimit !== DiagnosticsModule.Level.Hint
+            component RoleData: QtObject {
+                property int severity
+            }
+
+            function filter(data: RoleData): bool {
+                return data.severity <= root.severityLimit
+            }
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: global.theme.general.back
@@ -41,31 +66,6 @@ Item {
                 source: "qrc:/icon/checkmarkCircle.svg"
                 color: global.theme.general.successBack3
                 Layout.alignment: Qt.AlignVCenter
-            }
-        }
-    }
-
-    SortFilterProxyModel {
-        id: filterModel
-        onModelChanged: {
-            tableView.contentX = 0
-            tableView.contentY = 0
-        }
-        sorters: RoleSorter {
-            id: severitySorter
-            roleName: "severity"
-            column: DiagnosticsModule.Col.Severity
-            sortOrder: Qt.AscendingOrder
-        }
-        filters: FunctionFilter {
-            column: DiagnosticsModule.Col.Severity
-            enabled: root.severityLimit !== DiagnosticsModule.Level.Hint
-            component RoleData: QtObject {
-                property int severity
-            }
-
-            function filter(data: RoleData): bool {
-                return data.severity <= root.severityLimit
             }
         }
     }

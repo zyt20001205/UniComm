@@ -3,59 +3,56 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QStandardItemModel>
+#include <QtQmlIntegration/qqmlintegration.h>
+#include <set>
+
+#include "types/scintillaTypes.h"
 
 class QQuickWidget;
 class QStandardItem;
-class QTreeView;
 
-class StructureModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class StructureModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
-    Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
+    QML_ELEMENT
+    QML_UNCREATABLE("StructureModule is created by C++.")
+    Q_PROPERTY(QVariantHash models READ modelsGet NOTIFY changeModels)
 
 public:
     explicit StructureModule();
 
     ~StructureModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
-    [[nodiscard]] QStandardItemModel *modelGet() const {
-        return m_model;
-    }
-
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    [[nodiscard]] QVariantHash modelsGet() const;
 
     void documentSymbolResponse(const QUrl &documentUrl, const QJsonArray &result);
-
-    void documentFocus(const QUrl &documentUrl, const QVariantHash &session);
-
-    Q_INVOKABLE void markerAdd(const QVariantHash &position);
 
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void changeModels();
+
+    void clearSelection();
 
     void setFocus(const QUrl &documentUrl, bool status);
 
     void setIndex(const QUrl &documentUrl, int startLine, int startCharacter);
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
 
 private:
+    void documentSymbolSet(const QJsonArray &result, QStandardItem *parentItem, std::set<int> &kinds);
+
     enum Role {
-        DetailRole = Qt::UserRole + 1,
-        PositionRole,
-        IconColorRole
+        KindRole = Qt::UserRole + 1,
+        DetailRole,
+        StartLineRole,
+        StartCharacterRole
     };
 
-    void documentSymbolPublish(const QJsonArray &result, QStandardItem *parentItem);
-
-    QUrl m_documentUrl{};
     QQuickWidget *m_widget{};
-    QObject *m_treeView{};
-    QStandardItemModel *m_model{};
-    QHash<QUrl, QJsonArray> m_documentSymbolHash{};
+    QHash<QUrl, QStandardItemModel *> m_documentSymbolModelHash{};
 };
 
 #endif //UNICOMM_STRUCTUREMODULE_H
