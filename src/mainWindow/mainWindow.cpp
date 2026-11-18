@@ -472,7 +472,6 @@ void MainWindow::moduleInit() {
     connect(lspManager, &LspManager::responseSignatureHelp, m_documentModule, &DocumentModule::signatureHelpResponse);
     connect(lspManager, &LspManager::responseTypeDefinition, m_documentModule, &DocumentModule::typeDefinitionResponse);
 
-    connect(m_breakpointModule, &BreakpointModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_breakpointModule, &BreakpointModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_breakpointModule, &BreakpointModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_breakpointModule, &BreakpointModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);

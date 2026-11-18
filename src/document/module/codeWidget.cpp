@@ -736,7 +736,7 @@ void CodeWidget::breakpointLoad() const {
     const auto rows = g_globalManager->breakpointModuleGet()->breakpointsGet();
     for (const auto &row : rows) {
         const auto breakpoint = row.toHash();
-        if (breakpoint.value("documentUrl").toUrl() != m_documentUrl || !breakpoint.contains("line")) continue;
+        if (breakpoint.value("documentUrl").toUrl() != m_documentUrl) continue;
         const bool enabled = breakpoint.value("enabled").toBool();
         m_scintillaWidget->markerAdd(enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, breakpoint.value("line").toInt());
     }

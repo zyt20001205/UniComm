@@ -23,11 +23,11 @@ Item {
     onSelectedKindsChanged: filterRefresh()
 
     Keys.onEscapePressed: event => {
-        if (!searchBox.expanded) {
+        if (!toolBar.searchExpanded) {
             event.accepted = false
             return
         }
-        searchBox.expanded = false
+        toolBar.searchExpanded = false
         treeView.forceActiveFocus()
     }
 
@@ -130,124 +130,95 @@ Item {
     ColumnLayout {
         anchors.fill: parent
 
-        RowLayout {
+        Item {
             id: toolBar
+            property bool searchExpanded: false
             Layout.fillWidth: true; Layout.preferredHeight: 32
-            spacing: 0
+            clip: true
 
-            Item {
-                Layout.fillWidth: true
-            }
+            RowLayout {
+                id: buttons
+                anchors.verticalCenter: parent.verticalCenter
+                x: toolBar.searchExpanded ? 0 : toolBar.width - width
+                spacing: 0
 
-            Button {
-                id: collapseButton
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                flat: true
-                icon.source: "qrc:/icon/collapse.svg"
-                icon.width: 16; icon.height: 16
-                Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                onClicked: treeView.collapseRecursively()
-
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (!hovered) mainTooltip.text = ""
-                    }
-                    onPointChanged: {
-                        mainTooltip.position = collapseButton.mapToGlobal(point.position)
-                        mainTooltip.text = qsTr("Collapse All")
-                    }
-                }
-            }
-
-            Button {
-                id: expandButton
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                flat: true
-                icon.source: "qrc:/icon/expand.svg"
-                icon.width: 16; icon.height: 16
-                Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                onClicked: treeView.expandRecursively()
-
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (!hovered) mainTooltip.text = ""
-                    }
-                    onPointChanged: {
-                        mainTooltip.position = expandButton.mapToGlobal(point.position)
-                        mainTooltip.text = qsTr("Expand All")
-                    }
-                }
-            }
-
-            Button {
-                id: filterButton
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                flat: true
-                icon.source: "qrc:/icon/filter.svg"
-                icon.color: root.selectedKinds !== null ? global.theme.general.warningBack3 : global.theme.general.fore
-                icon.width: 16; icon.height: 16
-                Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                onClicked: {
-                    mainTooltip.text = ""
-                    const position = filterButton.mapToGlobal(0, filterButton.height)
-                    const localPosition = mainOverlay.mapFromGlobal(position)
-                    filterMenu.popup(localPosition.x, localPosition.y)
-                }
-
-                HoverHandler {
-                    enabled: !filterMenu.visible
-                    onHoveredChanged: {
-                        if (!hovered) mainTooltip.text = ""
-                    }
-                    onPointChanged: {
-                        mainTooltip.position = filterButton.mapToGlobal(point.position)
-                        mainTooltip.text = qsTr("Filter")
-                    }
-                }
-            }
-
-            Item {
-                id: searchBox
-                property bool expanded: false
-                readonly property real expandedWidth: Math.max(24, toolBar.width - collapseButton.width - expandButton.width - filterButton.width)
-                implicitWidth: expanded ? expandedWidth : 24
-                implicitHeight: 32
-                Layout.preferredWidth: implicitWidth
-                Layout.minimumWidth: 24; Layout.maximumWidth: implicitWidth
-                clip: true
-
-                Behavior on implicitWidth {
+                Behavior on x {
                     NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                 }
 
-                LineEdit {
-                    id: searchField
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.max(0, searchBox.width - searchButton.width - 4); height: 32
-                    visible: searchBox.expanded || opacity > 0
-                    enabled: searchBox.expanded
-                    opacity: searchBox.expanded ? 1 : 0
-                    clearable: true
-                    buttonSize: 24
-                    tooltip: mainTooltip
-                    placeholderText: qsTr("Search symbols")
-                    readonly property string query: text.trim().toLowerCase()
+                Button {
+                    id: collapseButton
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/collapse.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                    Behavior on opacity {
-                        NumberAnimation { duration: 150 }
+                    onClicked: treeView.collapseRecursively()
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = collapseButton.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Collapse All")
+                        }
+                    }
+                }
+
+                Button {
+                    id: expandButton
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/expand.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+
+                    onClicked: treeView.expandRecursively()
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = expandButton.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Expand All")
+                        }
+                    }
+                }
+
+                Button {
+                    id: filterButton
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/filter.svg"
+                    icon.color: root.selectedKinds !== null ? global.theme.general.warningBack3 : global.theme.general.fore
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+
+                    onClicked: {
+                        mainTooltip.text = ""
+                        const position = filterButton.mapToGlobal(0, filterButton.height)
+                        const localPosition = mainOverlay.mapFromGlobal(position)
+                        filterMenu.popup(localPosition.x, localPosition.y)
                     }
 
-                    onQueryChanged: root.filterRefresh()
+                    HoverHandler {
+                        enabled: !filterMenu.visible
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = filterButton.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Filter")
+                        }
+                    }
                 }
 
                 Button {
                     id: searchButton
-                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                    width: 24; height: 24
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     flat: true
                     icon.source: "qrc:/icon/search.svg"
@@ -256,8 +227,8 @@ Item {
 
                     onClicked: {
                         mainTooltip.text = ""
-                        searchBox.expanded = !searchBox.expanded
-                        if (searchBox.expanded) {
+                        toolBar.searchExpanded = !toolBar.searchExpanded
+                        if (toolBar.searchExpanded) {
                             searchField.forceActiveFocus()
                             searchField.selectAll()
                         } else {
@@ -275,6 +246,28 @@ Item {
                         }
                     }
                 }
+            }
+
+            LineEdit {
+                id: searchField
+                anchors.left: buttons.right; anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                height: 32
+                clip: true
+                visible: toolBar.searchExpanded || opacity > 0
+                enabled: toolBar.searchExpanded
+                opacity: toolBar.searchExpanded ? 1 : 0
+                clearable: true
+                buttonSize: 24
+                tooltip: mainTooltip
+                placeholderText: qsTr("Search symbols")
+                readonly property string query: text.trim().toLowerCase()
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 150 }
+                }
+
+                onQueryChanged: root.filterRefresh()
             }
         }
 

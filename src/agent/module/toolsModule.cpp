@@ -918,7 +918,7 @@ void ToolsModule::initialize() {
             {
                 "function", QJsonObject{
                     {"name", "debug_breakpoint_list"},
-                    {"description", "List workspace breakpoints with document_url, zero-based line, enabled and condition. Returns [] if none exist."},
+                    {"description", "List workspace breakpoints with document_url, file name (name), zero-based line, enabled and condition. Returns [] if none exist."},
                     {
                         "parameters", QJsonObject{
                             {"type", "object"},
@@ -1452,7 +1452,6 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         const auto rows = g_globalManager->breakpointModuleGet()->breakpointsGet();
         for (const auto &row: rows) {
             auto breakpoint = QJsonObject::fromVariantHash(row.toHash());
-            if (!breakpoint.contains("line")) continue;
             breakpoint["document_url"] = breakpoint.take("documentUrl");
             result.append(breakpoint);
         }

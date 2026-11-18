@@ -49,19 +49,17 @@ void BreakpointModule::breakpointConfigSave() const {
 QVariantList BreakpointModule::breakpointsGet() const {
     QReadLocker locker(&m_lock);
     QVariantList breakpoints;
-    auto urls = m_breakpoints.keys();
-    for (const auto &url: urls) {
-        breakpoints.append(QVariantHash{
-            {"documentUrl", url},
-            {"name", url.fileName()}
-        });
-        const auto &file = m_breakpoints.constFind(url).value();
+    for (auto it = m_breakpoints.cbegin(); it != m_breakpoints.cend(); ++it) {
+        const auto &url = it.key();
+        const auto name = url.fileName();
+        const auto &file = it.value();
         auto lines = file.keys();
         std::ranges::sort(lines);
         for (const int line: lines) {
             const auto &session = file.constFind(line).value();
             breakpoints.append(QVariantHash{
                 {"documentUrl", url},
+                {"name", name},
                 {"line", line},
                 {"enabled", session.value("enabled").toBool()},
                 {"condition", session.value("condition").toString()}

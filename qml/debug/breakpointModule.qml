@@ -12,8 +12,10 @@ import UniComm
 Item {
     id: root
     required property BreakpointModule breakpointModule
+    readonly property var selectedBreakpoint: listView.model[listView.currentIndex] ?? null
     anchors.fill: parent
 
+    onSelectedBreakpointChanged: conditionField.text = selectedBreakpoint?.condition ?? ""
     Component.onCompleted: listView.reload()
 
     Connections {
@@ -86,6 +88,11 @@ Item {
                 keyNavigationEnabled: true
                 highlightMoveDuration: 0
 
+                Keys.onDeletePressed: {
+                    const breakpoint = root.selectedBreakpoint
+                    if (breakpoint) root.breakpointModule.breakpointDelete(breakpoint.documentUrl, breakpoint.line)
+                }
+
                 function rowIndex(rows, url, line) {
                     return rows.findIndex(row => row.documentUrl.toString() === url.toString() && row.line === line)
                 }
@@ -95,7 +102,7 @@ Item {
                     const rows = root.breakpointModule.breakpoints
                     const index = old ? rowIndex(rows, old.documentUrl, old.line) : -1
                     const next = rows[index]
-                    const keepDraft = next && next.line !== undefined && old.condition === next.condition
+                    const keepDraft = next && old.condition === next.condition
                     const text = conditionField.text
                     model = Array.from(rows)
                     currentIndex = index
@@ -115,10 +122,9 @@ Item {
                     id: row
                     required property var modelData
                     required property int index
-                    readonly property bool fileRow: modelData.name !== undefined
                     width: listView.width
                     height: 24
-                    leftPadding: fileRow ? 6 : 16
+                    leftPadding: 6
                     rightPadding: 6; topPadding: 0; bottomPadding: 0
                     focusPolicy: Qt.ClickFocus
                     highlighted: ListView.isCurrentItem
@@ -127,15 +133,17 @@ Item {
                         spacing: 4
 
                         Label {
-                            text: row.fileRow ? row.modelData.name : row.modelData.line + 1
-                            font.bold: row.fileRow
+                            text: row.modelData.name
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
 
+                        Label {
+                            text: row.modelData.line + 1
+                        }
+
                         CheckBox {
-                            visible: !row.fileRow
-                            checked: !row.fileRow && row.modelData.enabled
+                            checked: row.modelData.enabled
                             padding: 0
                             focusPolicy: Qt.ClickFocus
                             Layout.preferredWidth: 24; Layout.preferredHeight: 24
@@ -148,20 +156,14 @@ Item {
                         }
                     }
 
-                    onClicked: {
-                        if (!fileRow) listView.currentIndex = index
-                    }
+                    onClicked: listView.currentIndex = index
 
                     onDoubleClicked: {
                         const url = modelData.documentUrl
-                        if (fileRow) {
-                            root.breakpointModule.openDocument(url)
-                        } else {
-                            const line = modelData.line
-                            listView.currentIndex = index
-                            root.breakpointModule.setIndex(url, line, 0)
-                            root.breakpointModule.addMarker(url, ScintillaMarker.Hint, line, 1000)
-                        }
+                        const line = modelData.line
+                        listView.currentIndex = index
+                        root.breakpointModule.setIndex(url, line, 0)
+                        root.breakpointModule.addMarker(url, ScintillaMarker.Hint, line, 1000)
                     }
                 }
             }
@@ -175,17 +177,8 @@ Item {
             contentWidth: availableWidth
 
             ColumnLayout {
-                id: settings
                 width: settingsView.availableWidth
-                readonly property var breakpoint: {
-                    const row = listView.model[listView.currentIndex]
-                    return row && row.line !== undefined ? row : null
-                }
-                visible: breakpoint !== null
-
-                onBreakpointChanged: {
-                    conditionField.text = breakpoint?.condition ?? ""
-                }
+                visible: root.selectedBreakpoint !== null
 
                 Label {
                     text: qsTr("Condition")
@@ -200,7 +193,7 @@ Item {
                     Layout.fillWidth: true
 
                     onValueCommitted: {
-                        const breakpoint = settings.breakpoint
+                        const breakpoint = root.selectedBreakpoint
                         if (breakpoint && text !== breakpoint.condition)
                             root.breakpointModule.breakpointConfigure(breakpoint.documentUrl, breakpoint.line, { condition: text })
                     }

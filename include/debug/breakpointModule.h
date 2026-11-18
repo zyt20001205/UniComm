@@ -32,7 +32,7 @@ public:
 
     void breakpointAdd(const QUrl &documentUrl, int line);
 
-    void breakpointDelete(const QUrl &documentUrl, int line);
+    Q_INVOKABLE void breakpointDelete(const QUrl &documentUrl, int line);
 
     Q_INVOKABLE void breakpointConfigure(const QUrl &documentUrl, int line, const QVariantHash &session);
 
@@ -42,8 +42,6 @@ signals:
     void breakpointsChanged();
 
     void showBreakpoint(const QUrl &documentUrl, int line);
-
-    void openDocument(const QUrl &documentUrl);
 
     void setIndex(const QUrl &documentUrl, int line, int character);
 
