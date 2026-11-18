@@ -160,9 +160,11 @@ Rectangle {
                 }
 
                 onClicked: {
-                    stackView.currentIndex = index
-                    if (modelData.line >= 0 && modelData.documentUrl.toString().length > 0)
+                    stackView.currentIndex = frame.index
+                    if (frame.modelData.line >= 0 && frame.modelData.documentUrl != ""){
+                        root.debugModule.setIndex(frame.modelData.documentUrl, frame.modelData.line, 0)
                         root.debugModule.addMarker(modelData.documentUrl, ScintillaMarker.Hint, modelData.line, 1000)
+                    }
                 }
             }
         }

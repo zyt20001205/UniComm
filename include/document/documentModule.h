@@ -126,6 +126,10 @@ public:
 
     void markerDelete(const QUrl &documentUrl, ScintillaMarker::Value type, int line = -1) const;
 
+    void eolAnnotationClear(const QUrl &documentUrl) const;
+
+    void eolAnnotationSet(const QUrl &documentUrl, int line, const QString &text) const;
+
     [[nodiscard]] QJsonArray diagnosticsGet(const QUrl &documentUrl) const;
 
     void diagnosticsNotification(const QUrl &documentUrl, const QJsonArray &diagnostics);

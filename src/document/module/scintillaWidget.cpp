@@ -81,6 +81,7 @@ void ScintillaWidget::eolAnnotationClear() const {
 
 void ScintillaWidget::eolAnnotationSet(const int line, const QString &annotation) const {
     send(SCI_EOLANNOTATIONSETTEXT, line, reinterpret_cast<sptr_t>(annotation.toUtf8().constData()));
+    send(SCI_EOLANNOTATIONSETSTYLE, line, CustomStyle::EolAnnotation); // NOLINT
 }
 
 void ScintillaWidget::focusSet(const bool status) const {
@@ -267,7 +268,8 @@ void ScintillaWidget::markerDefine(const ScintillaMarker::Value type, const QVar
 
 void ScintillaWidget::markerAdd(const ScintillaMarker::Value type, const int line, const int time) const {
     send(SCI_MARKERADD, line, type); // NOLINT
-    send(SCI_ENSUREVISIBLE, line); // NOLINT
+    if (type != ScintillaMarker::Debug && type != ScintillaMarker::DebugLine)
+        send(SCI_ENSUREVISIBLE, line); // NOLINT
     if (time == -1) return;
     QTimer::singleShot(time, this, [this, type, line] { markerDelete(type, line); });
 }
@@ -369,7 +371,7 @@ void ScintillaWidget::styleDefine(const int type, const QVariantHash &session) c
     // if (session.contains("bold")) send(SCI_STYLESETBOLD, type, session["bold"].toBool()); // NOLINT
     // if (session.contains("weight")) send(SCI_STYLESETWEIGHT, type, session["weight"].toInt()); // NOLINT
     // if (session.contains("stretch")) send(SCI_STYLESETSTRETCH, type, session["stretch"].toInt()); // NOLINT
-    // if (session.contains("italic")) send(SCI_STYLESETITALIC, type, session["italic"].toBool()); // NOLINT
+    if (session.contains("italic")) send(SCI_STYLESETITALIC, type, session["italic"].toBool()); // NOLINT
     if (session.contains("underline")) send(SCI_STYLESETUNDERLINE, type, session["underline"].toBool()); // NOLINT
     if (session.contains("fore")) send(SCI_STYLESETFORE, type, session["fore"].toInt()); // NOLINT    if (session.contains("fore")) send(SCI_STYLESETFORE, type, session["fore"].toInt()); // NOLINT
     if (session.contains("back")) send(SCI_STYLESETBACK, type, session["back"].toInt()); // NOLINT

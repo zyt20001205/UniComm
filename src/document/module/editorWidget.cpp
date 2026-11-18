@@ -377,6 +377,12 @@ void EditorWidget::styleInit() const {
             {"fore", ScintillaWidget::colorGet(general["stroke"].toString())},
             {"back", ScintillaWidget::colorGet(general["back"].toString())}
         });
+    m_scintillaWidget->styleDefine(
+        CustomStyle::EolAnnotation,
+        QVariantHash{
+            {"fore", ScintillaWidget::colorGet(general["warningFore2"].toString())},
+            {"italic", true}
+        });
 }
 
 void EditorWidget::lexerInit() const {

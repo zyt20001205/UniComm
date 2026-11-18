@@ -581,17 +581,17 @@ void CodeWidget::markerInit() const {
             {"back", ScintillaWidget::colorGet(general["back"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        ScintillaMarker::Navigation,
-        QVariantHash{
-            {"symbol", SC_MARK_ARROWS},
-            {"fore", ScintillaWidget::colorGet(general["fore"].toString())}
-        });
-    m_scintillaWidget->markerDefine(
         ScintillaMarker::Debug,
         QVariantHash{
             {"symbol", SC_MARK_ARROW},
             {"fore", ScintillaWidget::colorGet(general["warningFore2"].toString())},
             {"back", ScintillaWidget::colorGet(general["warningFore2"].toString())}
+        });
+    m_scintillaWidget->markerDefine(
+        ScintillaMarker::DebugLine,
+        QVariantHash{
+            {"symbol", SC_MARK_BACKGROUND},
+            {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
         ScintillaMarker::Hint,

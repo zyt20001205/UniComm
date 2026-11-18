@@ -687,6 +687,14 @@ void DocumentModule::markerDelete(const QUrl &documentUrl, const ScintillaMarker
     if (const auto *handler = handlerGet(documentUrl)) handler->markerDelete(type, line);
 }
 
+void DocumentModule::eolAnnotationClear(const QUrl &documentUrl) const {
+    if (const auto *handler = handlerGet(documentUrl)) handler->eolAnnotationClear();
+}
+
+void DocumentModule::eolAnnotationSet(const QUrl &documentUrl, const int line, const QString &text) const {
+    if (const auto *handler = handlerGet(documentUrl)) handler->eolAnnotationSet(line, text);
+}
+
 QJsonArray DocumentModule::diagnosticsGet(const QUrl &documentUrl) const {
     return m_diagnosticsHash.value(documentUrl);
 }

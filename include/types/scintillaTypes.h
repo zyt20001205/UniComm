@@ -38,8 +38,8 @@ namespace ScintillaMarker {
     enum Value {
         BreakpointEnabled,
         BreakpointDisabled,
-        Navigation,
         Debug,
+        DebugLine,
         Hint,
         ConflictCurrent,
         ConflictIncoming,
@@ -103,7 +103,8 @@ namespace CustomStyle {
         CallTip,
         FoldDisplayText,
         LastPredefined,
-        Annotation = 40
+        Annotation,
+        EolAnnotation
     };
 
     Q_ENUM_NS(Value)

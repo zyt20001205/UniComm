@@ -6,7 +6,6 @@
 #include <QStandardItemModel>
 
 #include "types/debugTypes.h"
-#include "types/scintillaTypes.h"
 
 class QTableWidget;
 class QQuickWidget;
@@ -50,12 +49,6 @@ signals:
     void trackQuit(float secondaryProgress, const QString &secondaryLog) const;
 
     void refreshThread(int run, int debug, int agent);
-
-    void openDocument(const QUrl &documentUrl);
-
-    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
-
-    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
     void setCallStack(const QString &threadId, const QVariantList &frames);
 

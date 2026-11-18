@@ -472,8 +472,13 @@ void MainWindow::moduleInit() {
     connect(m_breakpointModule, &BreakpointModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_breakpointModule, &BreakpointModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
 
+    connect(m_debugModule, &DebugModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_debugModule, &DebugModule::getIndex, m_documentModule, &DocumentModule::indexGet);
+    connect(m_debugModule, &DebugModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_debugModule, &DebugModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
+    connect(m_debugModule, &DebugModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
+    connect(m_debugModule, &DebugModule::clearEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationClear);
+    connect(m_debugModule, &DebugModule::setEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationSet);
     connect(m_debugModule, &DebugModule::setState, m_threadpoolModule, &ThreadpoolModule::stateSet);
 
     connect(m_diagnosticsModule, &DiagnosticsModule::setIndex, m_documentModule, &DocumentModule::indexSet);
@@ -521,9 +526,6 @@ void MainWindow::moduleInit() {
 
     connect(m_threadpoolModule, &ThreadpoolModule::trackQuit, this, &MainWindow::quitTrack);
     connect(m_threadpoolModule, &ThreadpoolModule::refreshThread, m_statusModule, &StatusModule::threadRefresh);
-    connect(m_threadpoolModule, &ThreadpoolModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
-    connect(m_threadpoolModule, &ThreadpoolModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
-    connect(m_threadpoolModule, &ThreadpoolModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
     connect(m_threadpoolModule, &ThreadpoolModule::setCallStack, m_debugModule, &DebugModule::callStackSet);
     connect(m_threadpoolModule, &ThreadpoolModule::startDebug, m_debugModule, &DebugModule::debugStart);
     connect(m_threadpoolModule, &ThreadpoolModule::stopDebug, m_debugModule, &DebugModule::debugStop);

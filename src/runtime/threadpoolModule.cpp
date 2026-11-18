@@ -80,15 +80,11 @@ QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const int mode, v
     luaSession.insert("documentUrl", documentUrl);
     luaSession.insert("threadId", threadId);
     if (mode == InterpreterMode::Debug) {
-        luaSession.insert("currentUrl", documentUrl);
         luaSession.insert("state", QVariant::fromValue(Debug::Resume));
         luaSession.insert("baseDepth", 0);
         luaSession.insert("currentDepth", 0);
     }
     auto *interpreter = new LuaInterpreter(luaSession); // NOLINT
-    connect(interpreter, &LuaInterpreter::openDocument, this, &ThreadpoolModule::openDocument);
-    connect(interpreter, &LuaInterpreter::addMarker, this, &ThreadpoolModule::addMarker);
-    connect(interpreter, &LuaInterpreter::deleteMarker, this, &ThreadpoolModule::deleteMarker);
     connect(interpreter, &LuaInterpreter::setCallStack, this, &ThreadpoolModule::setCallStack);
     connect(interpreter, &LuaInterpreter::writeTerminal, this, &ThreadpoolModule::writeTerminal);
     connect(interpreter, &LuaInterpreter::appendLog, this, &ThreadpoolModule::appendLog);

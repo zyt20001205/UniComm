@@ -6,7 +6,6 @@
 
 #include "api/thread.h"
 #include "types/debugTypes.h"
-#include "types/scintillaTypes.h"
 
 class QJsonObject;
 class IO;
@@ -37,12 +36,6 @@ public:
 
 signals:
     void writeTerminal(const QString &id, const QByteArray &data);
-
-    void openDocument(const QUrl &documentUrl);
-
-    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
-
-    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
     void setCallStack(const QString &threadId, const QVariantList &frames);
 

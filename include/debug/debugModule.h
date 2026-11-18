@@ -3,7 +3,9 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QHash>
+#include <QSet>
 #include <QStringList>
+#include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/debugTypes.h"
@@ -49,17 +51,30 @@ signals:
 
     void callStackChanged();
 
+    void openDocument(const QUrl &documentUrl);
+
     void getIndex();
 
+    void setIndex(const QUrl &documentUrl, int line, int character);
+
     void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
+
+    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
+
+    void clearEolAnnotation(const QUrl &documentUrl);
+
+    void setEolAnnotation(const QUrl &documentUrl, int line, const QString &text);
 
     void setState(const QString &threadId, Debug::Value state);
 
 private:
+    void debugRefresh();
+
     QQuickWidget *m_widget{};
     QStringList m_threads{};
     QString m_currentThread{};
     QHash<QString, QVariantList> m_callStacks{};
+    QSet<QUrl> m_markedUrls{};
 };
 
 #endif //UNICOMM_DEBUG_H

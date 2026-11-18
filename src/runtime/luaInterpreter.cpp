@@ -29,7 +29,6 @@
 #include "core/globalManager.h"
 #include "debug/breakpointModule.h"
 #include "debug/watchModule.h"
-#include "types/scintillaTypes.h"
 #include "util/luaUtils.h"
 #include "util/uniCast.h"
 
@@ -445,8 +444,6 @@ QJsonObject LuaInterpreter::start(const std::variant<QString, LuaClosure> &entry
         // set debug hook
         lua_sethook(L, &luaDebugHook, LUA_MASKCALL | LUA_MASKRET | LUA_MASKLINE, 0);
     }
-    // frontend
-    emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
 
     sol::protected_function_result result{};
     if (const auto *script = std::get_if<QString>(&entry)) {
@@ -463,8 +460,6 @@ QJsonObject LuaInterpreter::start(const std::variant<QString, LuaClosure> &entry
         const sol::error err = result;
         m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');
     }
-    // frontend
-    emit deleteMarker(m_luaSession["documentUrl"].toUrl(), ScintillaMarker::Debug, -1);
     // remove terminate hook
     lua_sethook(L, nullptr, 0, 0);
     return m_io->finish();
@@ -478,8 +473,8 @@ void LuaInterpreter::inputWrite(const QByteArray &data) const {
     m_io->stdIn(data);
 }
 
-void LuaInterpreter::stateSet(const int state) {
-    m_luaSession["state"] = state;
+void LuaInterpreter::stateSet(const Debug::Value state) {
+    m_luaSession["state"] = QVariant::fromValue(state);
     if (state == Debug::StepOver || state == Debug::StepOut) {
         m_luaSession["baseDepth"] = m_luaSession["currentDepth"].toInt();
     }
@@ -490,24 +485,26 @@ void LuaInterpreter::stackSet(lua_State *L, lua_Debug *ar) {
     sol::state_view lua(L);
     QVariantMap &session = *lua["session"].get<QVariantMap *>();
     auto *This = qvariant_cast<LuaInterpreter *>(session["this"]);
-    auto *callStackModel = new QStandardItemModel(); // NOLINT
+    QVariantList frames{};
     int level = 0;
     while (lua_getstack(L, level, ar)) {
         lua_getinfo(L, "nSl", ar);
-        const QUrl documentUrl = QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1));
-        const int line = ar->currentline;
-        const QVariantHash position = {
+        const QUrl documentUrl = ar->source[0] == '@' ? QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1)) : QUrl{};
+        frames.prepend(QVariantHash{
             {"documentUrl", documentUrl},
-            {"line", line}
-        };
-        auto *fileItem = new QStandardItem(documentUrl.fileName()); // NOLINT
-        fileItem->setData(position, Qt::WhatsThisRole);
-        auto *lineItem = new QStandardItem(QString::number(line)); // NOLINT
-        auto *nameItem = new QStandardItem(ar->name ? ar->name : "main"); // NOLINT
-        callStackModel->insertRow(0, {fileItem, lineItem, nameItem});
+            {"name", documentUrl.isEmpty() ? QString::fromUtf8(ar->short_src) : documentUrl.fileName()},
+            {"line", ar->currentline > 0 ? ar->currentline - 1 : -1},
+            {
+                "functionName", QString::fromUtf8(ar->name
+                                                      ? ar->name
+                                                      : std::string_view{ar->what} == "main"
+                                                            ? "main"
+                                                            : "")
+            }
+        });
         level++;
     }
-    emit This->insertCallStack(session["threadId"].toString(), callStackModel);
+    emit This->setCallStack(session["threadId"].toString(), frames);
 }
 
 void LuaInterpreter::watchSet(lua_State *L, lua_Debug *ar) {
@@ -586,7 +583,6 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
     sol::state_view lua(L);
     QVariantMap &session = *lua["session"].get<QVariantMap *>();
     auto *This = qvariant_cast<LuaInterpreter *>(session["this"]);
-    emit This->deleteMarker(session["currentUrl"].toUrl(), ScintillaMarker::Debug, -1);
     if (ar->event == LUA_HOOKCALL) {
         session["currentDepth"] = session["currentDepth"].toInt() + 1;
     } else if (ar->event == LUA_HOOKRET) {
@@ -605,7 +601,8 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
             g_globalManager->watchModuleGet()->refreshSet(false);
         }
         // debug state machine
-        if (session["state"].toInt() == Debug::Resume) {
+        const auto state = session.value("state").value<Debug::Value>();
+        if (state == Debug::Resume) {
             const auto breakpoint = g_globalManager->breakpointModuleGet()->breakpointGet(currentUrl, currentLine);
             if (!breakpoint.isEmpty()) {
                 // enabled check
@@ -614,7 +611,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                 {
                     QString condition = breakpoint.value("condition").toString();
                     if (condition.isEmpty()) {
-                        session["state"] = Debug::Pause;
+                        This->stateSet(Debug::Pause);
                     } else {
                         const int base = lua_gettop(L);
                         if (!condition.trimmed().startsWith("return ")) condition = "return " + condition;
@@ -650,7 +647,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                         );
                         if (condition_result.valid()) {
                             const sol::object result = condition_result;
-                            if (result.as<bool>()) session["state"] = Debug::Pause;
+                            if (result.as<bool>()) This->stateSet(Debug::Pause);
                         } else {
                             const sol::error err = condition_result;
                             This->m_io->stdErr(QString::fromStdString(err.what()).toUtf8() + '\n');
@@ -660,17 +657,12 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                 }
                 // TODO: log/count
             }
-        } else if (session["state"].toInt() == Debug::StepOver && session["currentDepth"].toInt() == session["baseDepth"].toInt()) session["state"] = Debug::Pause;
-        else if (session["state"].toInt() == Debug::StepOut && session["currentDepth"].toInt() < session["baseDepth"].toInt()) session["state"] = Debug::Pause;
-        else if (session["state"].toInt() == Debug::StepInto) session["state"] = Debug::Pause;
-        else if (session["state"].toInt() == Debug::RunToCursor && g_cursorPosition["url"].toUrl() == currentUrl && g_cursorPosition["line"].toInt() == currentLine)
-            session["state"] = Debug::Pause;
-        if (session["state"].toInt() == Debug::Pause) {
-            // url handle
-            emit This->openDocument(currentUrl);
-            if (currentUrl != session["currentUrl"].toUrl()) session["currentUrl"] = currentUrl;
-            // line handle
-            emit This->addMarker(currentUrl, ScintillaMarker::Debug, currentLine, -1);
+        } else if (state == Debug::StepOver && session["currentDepth"].toInt() == session["baseDepth"].toInt()) This->stateSet(Debug::Pause);
+        else if (state == Debug::StepOut && session["currentDepth"].toInt() < session["baseDepth"].toInt()) This->stateSet(Debug::Pause);
+        else if (state == Debug::StepInto) This->stateSet(Debug::Pause);
+        else if (state == Debug::RunToCursor && g_cursorPosition["url"].toUrl() == currentUrl && g_cursorPosition["line"].toInt() == currentLine)
+            This->stateSet(Debug::Pause);
+        if (session.value("state").value<Debug::Value>() == Debug::Pause) {
             // call stack handle
             stackSet(L, ar);
             // watch handle
@@ -730,6 +722,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                         }
                     });
             loop.exec();
+            emit This->setCallStack(session["threadId"].toString(), {});
         }
         if (QThread::currentThread()->isInterruptionRequested()) {
             luaL_error(L, "terminated");

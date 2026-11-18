@@ -29,6 +29,7 @@ void DebugModule::currentThreadSet(const QString &threadId) {
     m_currentThread = threadId;
     emit currentThreadChanged();
     emit callStackChanged();
+    debugRefresh();
 }
 
 void DebugModule::debugStart(const QString &threadId) {
@@ -40,8 +41,9 @@ void DebugModule::debugStart(const QString &threadId) {
 
 void DebugModule::debugStop(const QString &threadId) {
     if (!m_threads.removeOne(threadId)) return;
-    m_callStacks.remove(threadId);
+    const bool wasPaused = m_callStacks.remove(threadId);
     if (m_currentThread == threadId) currentThreadSet(m_threads.value(0));
+    else if (wasPaused) debugRefresh();
     emit threadsChanged();
 }
 
@@ -53,6 +55,46 @@ void DebugModule::stateSet(const Debug::Value state) {
 
 void DebugModule::callStackSet(const QString &threadId, const QVariantList &frames) {
     if (!m_threads.contains(threadId)) return;
-    m_callStacks.insert(threadId, frames);
+    if (frames.isEmpty()) {
+        m_callStacks.remove(threadId);
+    } else {
+        m_callStacks.insert(threadId, frames);
+        const auto url = frames.constLast().toHash().value("documentUrl").toUrl();
+        if (!url.isEmpty()) emit openDocument(url);
+    }
     if (threadId == m_currentThread) emit callStackChanged();
+    debugRefresh();
+}
+
+// private
+void DebugModule::debugRefresh() {
+    for (const auto &url: m_markedUrls) {
+        emit clearEolAnnotation(url);
+        emit deleteMarker(url, ScintillaMarker::Debug, -1);
+        emit deleteMarker(url, ScintillaMarker::DebugLine, -1);
+    }
+    m_markedUrls.clear();
+    QHash<QUrl, QHash<int, QStringList>> lines{};
+    for (const auto &threadId: m_threads) {
+        const auto stack = m_callStacks.constFind(threadId);
+        if (stack == m_callStacks.cend()) continue;
+        const auto frame = stack->constLast().toHash();
+        const auto url = frame.value("documentUrl").toUrl();
+        const int line = frame.value("line").toInt();
+        if (url.isEmpty() || line < 0) continue;
+        auto &threads = lines[url][line];
+        if (threadId == m_currentThread) threads.prepend(threadId);
+        else threads.append(threadId);
+    }
+    for (const auto &[url, fileLines]: lines.asKeyValueRange()) {
+        m_markedUrls.insert(url);
+        for (const auto &[line, threads]: fileLines.asKeyValueRange()) {
+            emit addMarker(url, ScintillaMarker::Debug, line, -1);
+            if (threads.first() == m_currentThread) {
+                emit addMarker(url, ScintillaMarker::DebugLine, line, -1);
+                emit setIndex(url, line, 0);
+            }
+            emit setEolAnnotation(url, line, threads.join(", "));
+        }
+    }
 }
