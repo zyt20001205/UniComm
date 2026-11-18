@@ -34,7 +34,11 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "port_create",
                   "port_delete",
                   "vision_analyze",
-                  "script_exec"
+                  "script_exec",
+                  // debug toolset
+                  "debug_breakpoint_list",
+                  "debug_breakpoint_set",
+                  "debug_breakpoint_delete"
               }
           },
           {
@@ -84,7 +88,11 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "grep_search",
                   "line_get",
                   "line_set",
-                  "script_exec"
+                  "script_exec",
+                  // debug toolset
+                  "debug_breakpoint_list",
+                  "debug_breakpoint_set",
+                  "debug_breakpoint_delete"
               }
           }
       } {
