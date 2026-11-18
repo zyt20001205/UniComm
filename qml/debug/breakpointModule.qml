@@ -124,7 +124,7 @@ Item {
                     required property int index
                     width: listView.width
                     height: 24
-                    leftPadding: 6
+                    leftPadding: 11
                     rightPadding: 6; topPadding: 0; bottomPadding: 0
                     focusPolicy: Qt.ClickFocus
                     highlighted: ListView.isCurrentItem
