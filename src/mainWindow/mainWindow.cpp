@@ -136,12 +136,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_agentModule->propertySet(agentObjects);
 
-    const QVariantHash breakpointObjects = {
-        {"breakpointModuleLineMenu", objects["breakpointModuleLineMenu"]},
-        {"breakpointModuleFileMenu", objects["breakpointModuleFileMenu"]},
-        {"breakpointModuleRootMenu", objects["breakpointModuleRootMenu"]}
-    };
-    m_breakpointModule->propertySet(breakpointObjects);
+    m_breakpointModule->propertySet();
 
     const QVariantHash debugObjects = {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
@@ -378,7 +373,7 @@ void MainWindow::workspaceOpen() {
 
 void MainWindow::workspaceSave(const QUrl &configUrl) {
     m_agentModule->agentConfigSave();
-    BreakpointModule::breakpointConfigSave();
+    m_breakpointModule->breakpointConfigSave();
     m_documentModule->documentConfigSave();
     m_logModule->logConfigSave();
     m_portModule->portConfigSave();
@@ -439,6 +434,7 @@ void MainWindow::moduleInit() {
 
     m_mainConfig = g_workspaceConfig["mainConfig"].toObject();
     g_globalManager->agentModuleSet(m_agentModule);
+    g_globalManager->breakpointModuleSet(m_breakpointModule);
     g_globalManager->documentModuleSet(m_documentModule);
     g_globalManager->fileModuleSet(m_fileModule);
     g_globalManager->gitModuleSet(m_gitModule);
@@ -495,7 +491,7 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
     connect(m_documentModule, &DocumentModule::changeSelection, m_statusModule, &StatusModule::selectionChange);
-    connect(m_documentModule, &DocumentModule::insertBreakpoint, m_breakpointModule, &BreakpointModule::breakpointInsert);
+    connect(m_documentModule, &DocumentModule::insertBreakpoint, m_breakpointModule, &BreakpointModule::breakpointSet);
     connect(m_documentModule, &DocumentModule::removeBreakpoint, m_breakpointModule, &BreakpointModule::breakpointRemove);
 
     connect(m_explorerModule, &ExplorerModule::appendLog, m_logModule, &LogModule::logAppend);

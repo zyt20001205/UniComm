@@ -5,6 +5,8 @@
 #include <QSizeF>
 #include <QVariant>
 
+#include "types/scintillaTypes.h"
+
 class NavigationWidget final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
@@ -62,7 +64,7 @@ signals:
 
     void getText(const QUrl &documentUrl, int startLine, int startCharacter, int endLine, int endCharacter);
 
-    void insertIndicator(const QUrl &documentUrl, int type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
+    void insertIndicator(const QUrl &documentUrl, ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
 
     void recordNavigation(const QUrl &documentUrl, int line, int character);
 

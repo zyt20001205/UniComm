@@ -28,5 +28,3 @@ QHash<QChar, int> g_gitStatusCode = {
     {'C', GitStatusCode::Copied},
     {'U', GitStatusCode::UpdatedButUnmerged}
 };
-
-QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints = {};

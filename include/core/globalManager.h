@@ -1,8 +1,6 @@
 #ifndef UNICOMM_GLOBALMANAGER_H
 #define UNICOMM_GLOBALMANAGER_H
 
-#include <QJsonObject>
-
 #include "globals.h"
 
 class QNetworkAccessManager;
@@ -10,6 +8,7 @@ class QQmlEngine;
 
 class AgentModule;
 class AudioService;
+class BreakpointModule;
 class DocumentModule;
 class FileModule;
 class GitModule;
@@ -64,6 +63,14 @@ public:
 
     [[nodiscard]] QQmlEngine *engineGet() const {
         return m_engine;
+    }
+
+    [[nodiscard]] BreakpointModule *breakpointModuleGet() const {
+        return m_breakpointModule;
+    }
+
+    void breakpointModuleSet(BreakpointModule *module) {
+        m_breakpointModule = module;
     }
 
     [[nodiscard]] DocumentModule *documentModuleGet() const {
@@ -195,6 +202,7 @@ private:
     AudioService *m_audioService{};
     ServiceModule *m_serviceModule{};
     AgentModule *m_agentModule{};
+    BreakpointModule *m_breakpointModule{};
     DocumentModule *m_documentModule{};
     FileModule *m_fileModule{};
     GitModule *m_gitModule{};

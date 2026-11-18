@@ -23,6 +23,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &EditorWidget::changeSavepoint, this, &CodePage::savepointChange);
     connect(m_codeWidget, &EditorWidget::changeSelection, this, &CodePage::changeSelection);
     connect(m_codeWidget, &CodeWidget::insertBreakpoint, this, &CodePage::insertBreakpoint);
+    connect(m_codeWidget, &CodeWidget::removeBreakpoint, this, &CodePage::removeBreakpoint);
     connect(m_codeWidget, &CodeWidget::notificationJson, this, &CodePage::notificationJson);
     connect(m_codeWidget, &CodeWidget::requestCompletion, this, &CodePage::requestCompletion);
     connect(m_codeWidget, &CodeWidget::requestDefinition, this, &CodePage::requestDefinition);
@@ -51,7 +52,6 @@ void CodePage::propertySet(const QVariantHash &objects) const {
     m_codeWidget->propertySet(QVariantHash{
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"breakpointModuleEditDialog", objects["breakpointModuleEditDialog"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
         {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]},
         {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]}

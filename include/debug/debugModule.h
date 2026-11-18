@@ -4,6 +4,8 @@
 #include <qstandarditemmodel.h>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
+#include "types/scintillaTypes.h"
+
 class QQuickWidget;
 class QStandardItemModel;
 class QStringListModel;
@@ -44,7 +46,7 @@ public:
 signals:
     void getIndex();
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
 
     void setState(const QString &threadId, int state);
 

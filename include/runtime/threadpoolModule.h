@@ -5,6 +5,8 @@
 #include <QJsonObject>
 #include <QStandardItemModel>
 
+#include "types/scintillaTypes.h"
+
 class QTableWidget;
 class QQuickWidget;
 
@@ -50,9 +52,9 @@ signals:
 
     void openDocument(const QUrl &documentUrl);
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
 
-    void deleteMarker(const QUrl &documentUrl, int type, int line);
+    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
     void insertCallStack(const QString &threadId, QStandardItemModel *callStackModel);
 

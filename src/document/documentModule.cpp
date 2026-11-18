@@ -64,7 +64,6 @@ DocumentModule::~DocumentModule() {
 void DocumentModule::propertySet(const QVariantHash &objects) {
     m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
     m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    m_breakpointEditDialog = qvariant_cast<QObject *>(objects["breakpointModuleEditDialog"]);
     m_systemPropertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
     m_gotoDialog = qvariant_cast<QObject *>(objects["documentModuleGotoDialog"]);
     m_renameDialog = qvariant_cast<QObject *>(objects["documentModuleRenameDialog"]);
@@ -296,7 +295,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             codePage->propertySet(QVariantHash{
                 {"mainWindowToast", QVariant::fromValue(m_toast)},
                 {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"breakpointModuleEditDialog", QVariant::fromValue(m_breakpointEditDialog)},
                 {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)},
                 {"documentModuleEditorMenu", QVariant::fromValue(m_editorMenu)}
@@ -664,23 +662,23 @@ void DocumentModule::textSet(const QUrl &documentUrl, const QString &text, const
     if (const auto *handler = handlerGet(documentUrl)) handler->textSet(text, startLine, startCharacter, endLine, endCharacter);
 }
 
-void DocumentModule::indicatorFill(const QUrl &documentUrl, const int type, const int startLine, const int startCharacter, const int endLine, const int endCharacter,
+void DocumentModule::indicatorFill(const QUrl &documentUrl, const ScintillaIndicator::Value type, const int startLine, const int startCharacter, const int endLine, const int endCharacter,
                                    const int time) {
     if (!m_pageHash.contains(documentUrl)) documentOpen(documentUrl);
     if (const auto *handler = handlerGet(documentUrl)) handler->indicatorFill(type, startLine, startCharacter, endLine, endCharacter, time);
 }
 
-void DocumentModule::indicatorClear(const QUrl &documentUrl, const int type, const int startLine, const int startCharacter, const int endLine, const int endCharacter) const {
+void DocumentModule::indicatorClear(const QUrl &documentUrl, const ScintillaIndicator::Value type, const int startLine, const int startCharacter, const int endLine, const int endCharacter) const {
     if (!m_pageHash.contains(documentUrl)) return;
     if (const auto *handler = handlerGet(documentUrl)) handler->indicatorClear(type, startLine, startCharacter, endLine, endCharacter);
 }
 
-void DocumentModule::markerAdd(const QUrl &documentUrl, const int type, const int line, const int time) {
+void DocumentModule::markerAdd(const QUrl &documentUrl, const ScintillaMarker::Value type, const int line, const int time) {
     if (!m_pageHash.contains(documentUrl)) documentOpen(documentUrl);
     if (const auto *handler = handlerGet(documentUrl)) handler->markerAdd(type, line, time);
 }
 
-void DocumentModule::markerDelete(const QUrl &documentUrl, const int type, const int line) const {
+void DocumentModule::markerDelete(const QUrl &documentUrl, const ScintillaMarker::Value type, const int line) const {
     if (!m_pageHash.contains(documentUrl)) return;
     if (const auto *handler = handlerGet(documentUrl)) handler->markerDelete(type, line);
 }

@@ -3,6 +3,8 @@
 
 #include <QQuickWidget>
 
+#include "types/scintillaTypes.h"
+
 class SymbolWidget final : public QQuickWidget {
     Q_OBJECT
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
@@ -29,7 +31,7 @@ signals:
 
     void setIndex(int startLine, int startCharacter);
 
-    void fillIndicator(int type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
+    void fillIndicator(ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
 
 private:
     QVariantList symbolParse(const QJsonArray &result, int line, int character);

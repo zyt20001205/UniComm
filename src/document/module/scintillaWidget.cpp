@@ -122,7 +122,7 @@ void ScintillaWidget::indexSet(const int line, const int character) const {
 }
 
 // public: indicator
-void ScintillaWidget::indicatorDefine(const int type, const QVariantHash &session) const {
+void ScintillaWidget::indicatorDefine(const ScintillaIndicator::Value type, const QVariantHash &session) const {
     if (session.contains("style")) send(SCI_INDICSETSTYLE, type, session["style"].toInt()); // NOLINT
     if (session.contains("fore")) send(SCI_INDICSETFORE, type, session["fore"].toInt()); // NOLINT
     if (session.contains("strokeWidth")) send(SCI_INDICSETSTROKEWIDTH, type, session["strokeWidth"].toInt()); // NOLINT
@@ -134,7 +134,7 @@ void ScintillaWidget::indicatorDefine(const int type, const QVariantHash &sessio
     // if (session.contains("flags")) send(SCI_INDICSETFLAGS, type, session["flags"].toInt()); // NOLINT
 }
 
-void ScintillaWidget::indicatorFill(const int type, const int startLine, const int startCharacter, const int endLine, const int endCharacter, const int time) const {
+void ScintillaWidget::indicatorFill(const ScintillaIndicator::Value type, const int startLine, const int startCharacter, const int endLine, const int endCharacter, const int time) const {
     const Position start = positionResolve(startLine, startCharacter);
     const Position end = positionResolve(endLine, endCharacter);
     const Position length = end - start;
@@ -145,9 +145,9 @@ void ScintillaWidget::indicatorFill(const int type, const int startLine, const i
     QTimer::singleShot(time, this, [this, type, startLine, startCharacter, endLine, endCharacter] { indicatorClear(type, startLine, startCharacter, endLine, endCharacter); });
 }
 
-void ScintillaWidget::indicatorClear(const int type, const int startLine, const int startCharacter, const int endLine, const int endCharacter) const {
+void ScintillaWidget::indicatorClear(const ScintillaIndicator::Value type, const int startLine, const int startCharacter, const int endLine, const int endCharacter) const {
     Position start{};
-    Position lengthFill{};
+    Position lengthFill;
     if (startLine != -1) {
         start = positionResolve(startLine, startCharacter);
         lengthFill = positionResolve(endLine, endCharacter) - start;
@@ -251,7 +251,7 @@ int ScintillaWidget::marginWidthGet(const int col) const {
 }
 
 // public: marker
-void ScintillaWidget::markerDefine(const int type, const QVariantHash &session) const {
+void ScintillaWidget::markerDefine(const ScintillaMarker::Value type, const QVariantHash &session) const {
     if (session.contains("symbol")) send(SCI_MARKERDEFINE, type, session["symbol"].toInt()); // NOLINT
     if (session.contains("fore")) send(SCI_MARKERSETFORE, type, session["fore"].toInt()); // NOLINT
     // if (session.contains("foreTranslucent")) send(SCI_MARKERSETFORETRANSLUCENT, type, session["foreTranslucent"].toInt()); // NOLINT
@@ -265,14 +265,14 @@ void ScintillaWidget::markerDefine(const int type, const QVariantHash &session) 
     // if (session.contains("alpha")) send(SCI_MARKERSETALPHA, type, session["alpha"].toInt()); // NOLINT
 }
 
-void ScintillaWidget::markerAdd(const int type, const int line, const int time) const {
+void ScintillaWidget::markerAdd(const ScintillaMarker::Value type, const int line, const int time) const {
     send(SCI_MARKERADD, line, type); // NOLINT
     send(SCI_ENSUREVISIBLE, line); // NOLINT
     if (time == -1) return;
     QTimer::singleShot(time, this, [this, type, line] { markerDelete(type, line); });
 }
 
-void ScintillaWidget::markerDelete(const int type, const int line) const {
+void ScintillaWidget::markerDelete(const ScintillaMarker::Value type, const int line) const {
     if (line == -1) send(SCI_MARKERDELETEALL, type); // NOLINT
     else send(SCI_MARKERDELETE, line, type); // NOLINT
 }

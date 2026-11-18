@@ -6,6 +6,7 @@
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
 #include "document/page/welcomePage.h"
+#include "types/scintillaTypes.h"
 
 class QFileSystemWatcher;
 class QLabel;
@@ -115,13 +116,13 @@ public:
 
     void textSet(const QUrl &documentUrl, const QString &text, int startLine, int startCharacter, int endLine, int endCharacter);
 
-    void indicatorFill(const QUrl &documentUrl, int type, int startLine, int startCharacter, int endLine, int endCharacter, int time = -1);
+    void indicatorFill(const QUrl &documentUrl, ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time = -1);
 
-    void indicatorClear(const QUrl &documentUrl, int type, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1) const;
+    void indicatorClear(const QUrl &documentUrl, ScintillaIndicator::Value type, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1) const;
 
-    void markerAdd(const QUrl &documentUrl, int type, int line, int time = -1);
+    void markerAdd(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time = -1);
 
-    void markerDelete(const QUrl &documentUrl, int type, int line = -1) const;
+    void markerDelete(const QUrl &documentUrl, ScintillaMarker::Value type, int line = -1) const;
 
     [[nodiscard]] QJsonArray diagnosticsGet(const QUrl &documentUrl) const;
 
@@ -288,7 +289,6 @@ private:
     QJsonObject m_config{};
     ToastModule *m_toast{};
     QObject *m_toolTip{};
-    QObject *m_breakpointEditDialog{};
     QObject *m_systemPropertyDialog{};
     QObject *m_gotoDialog{};
     QObject *m_renameDialog{};

@@ -27,6 +27,7 @@
 #include "api/ui/table.h"
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
+#include "debug/breakpointModule.h"
 #include "debug/watchModule.h"
 #include "types/scintillaTypes.h"
 #include "util/luaUtils.h"
@@ -604,13 +605,14 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
             g_globalManager->watchModuleGet()->refreshSet(false);
         }
         // debug state machine
-        if (session["state"].toInt() == Debug::Resume && g_breakpoints.contains(currentUrl.toString())) {
-            if (g_breakpoints[currentUrl].contains(currentLine)) {
+        if (session["state"].toInt() == Debug::Resume) {
+            const auto breakpoint = g_globalManager->breakpointModuleGet()->breakpointGet(currentUrl, currentLine);
+            if (!breakpoint.isEmpty()) {
                 // enabled check
-                if (!g_breakpoints[currentUrl][currentLine]["enabled"].toBool()) return;
+                if (!breakpoint.value("enabled").toBool()) return;
                 // conditional breakpoint
                 {
-                    QString condition = g_breakpoints[currentUrl][currentLine]["condition"].toString();
+                    QString condition = breakpoint.value("condition").toString();
                     if (condition.isEmpty()) {
                         session["state"] = Debug::Pause;
                     } else {

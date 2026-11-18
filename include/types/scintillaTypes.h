@@ -42,7 +42,15 @@ namespace ScintillaMarker {
         Debug,
         Hint,
         ConflictCurrent,
-        ConflictIncoming
+        ConflictIncoming,
+        // Scintilla reserves marker slots 25–31 for folding.
+        FolderEnd = 25,
+        FolderOpenMid = 26,
+        FolderMidTail = 27,
+        FolderTail = 28,
+        FolderSub = 29,
+        Folder = 30,
+        FolderOpen = 31
     };
 
     Q_ENUM_NS(Value)

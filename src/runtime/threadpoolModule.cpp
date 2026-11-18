@@ -49,7 +49,7 @@ void ThreadpoolModule::quit() {
 
         QEventLoop eventLoop{};
         for (const auto &thread: m_threadHash) {
-            connect(thread, &QThread::finished, this, [this, &current, &total, &eventLoop] {
+            connect(thread, &QThread::finished, &eventLoop, [this, &current, &total, &eventLoop] {
                 current++;
                 emit trackQuit(static_cast<float>(current) / static_cast<float>(total),
                                QString(tr("Waiting for %1/%2 threads to terminate...")).arg(QString::number(current), QString::number(total)));

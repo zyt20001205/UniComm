@@ -3,6 +3,8 @@
 
 #include <QStandardItemModel>
 
+#include "types/scintillaTypes.h"
+
 class QQuickView;
 
 class SearchModel;
@@ -30,7 +32,7 @@ public:
 signals:
     void setIndex(const QUrl &documentUrl, int startLine, int startCharacter);
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
 
 private:
     struct SearchFlags {

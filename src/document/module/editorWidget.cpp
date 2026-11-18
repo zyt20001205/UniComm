@@ -2,7 +2,6 @@
 
 #include <QFileInfo>
 #include <QFile>
-#include <QKeyEvent>
 #include <QSaveFile>
 #include <QShortcut>
 #include <QTimer>
@@ -299,49 +298,49 @@ void EditorWidget::marginInit() const {
 void EditorWidget::markerInit() const {
     const auto general = g_globalManager->themeGet()["general"].toObject();
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDEREND,
+        ScintillaMarker::FolderEnd,
         QVariantHash{
             {"symbol", SC_MARK_BOXPLUSCONNECTED},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDEROPENMID,
+        ScintillaMarker::FolderOpenMid,
         QVariantHash{
             {"symbol", SC_MARK_BOXMINUSCONNECTED},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDERMIDTAIL,
+        ScintillaMarker::FolderMidTail,
         QVariantHash{
             {"symbol", SC_MARK_TCORNER},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDERTAIL,
+        ScintillaMarker::FolderTail,
         QVariantHash{
             {"symbol", SC_MARK_LCORNER},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDERSUB,
+        ScintillaMarker::FolderSub,
         QVariantHash{
             {"symbol", SC_MARK_VLINE},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDER,
+        ScintillaMarker::Folder,
         QVariantHash{
             {"symbol", SC_MARK_BOXPLUS},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},
             {"back", ScintillaWidget::colorGet(general["stroke"].toString())}
         });
     m_scintillaWidget->markerDefine(
-        SC_MARKNUM_FOLDEROPEN,
+        ScintillaMarker::FolderOpen,
         QVariantHash{
             {"symbol", SC_MARK_BOXMINUS},
             {"fore", ScintillaWidget::colorGet(general["back"].toString())},

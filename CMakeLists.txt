@@ -199,6 +199,7 @@ set(WHISPER_MODEL "${WHISPER_DIR}/model")
 target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}
         ${UNICOMM_INCLUDE}/analysis
+        ${UNICOMM_INCLUDE}/debug
         ${UNICOMM_INCLUDE}/qml
         ${UNICOMM_INCLUDE}/types
         ${CMARK_INCLUDE}

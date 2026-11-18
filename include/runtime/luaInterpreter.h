@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "api/thread.h"
+#include "types/scintillaTypes.h"
 
 class QJsonObject;
 class QStandardItemModel;
@@ -39,9 +40,9 @@ signals:
 
     void openDocument(const QUrl &documentUrl);
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
 
-    void deleteMarker(const QUrl &documentUrl, int type, int line);
+    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
     void insertCallStack(const QString &threadId, QStandardItemModel *callStackModel);
 

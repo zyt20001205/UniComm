@@ -1,9 +1,10 @@
 #ifndef UNICOMM_SCINTILLAWIDGET_H
 #define UNICOMM_SCINTILLAWIDGET_H
 
-#include "ScintillaEdit.h"
-#include <QStringList>
+#include <ScintillaEdit.h>
 #include <type_traits>
+
+#include "types/scintillaTypes.h"
 
 class QQuickWidget;
 
@@ -124,11 +125,11 @@ public:
 
     void indexSet(int line, int character) const;
 
-    void indicatorDefine(int type, const QVariantHash &session) const;
+    void indicatorDefine(ScintillaIndicator::Value type, const QVariantHash &session) const;
 
-    void indicatorFill(int type, int startLine, int startCharacter, int endLine, int endCharacter, int time = -1) const;
+    void indicatorFill(ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time = -1) const;
 
-    void indicatorClear(int type, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1) const;
+    void indicatorClear(ScintillaIndicator::Value type, int startLine = -1, int startCharacter = -1, int endLine = -1, int endCharacter = -1) const;
 
     [[nodiscard]] int indicatorGet(Scintilla::Position position) const;
 
@@ -154,11 +155,11 @@ public:
 
     [[nodiscard]] int marginWidthGet(int col = -1) const;
 
-    void markerDefine(int type, const QVariantHash &session) const;
+    void markerDefine(ScintillaMarker::Value type, const QVariantHash &session) const;
 
-    void markerAdd(int type, int line, int time = -1) const;
+    void markerAdd(ScintillaMarker::Value type, int line, int time = -1) const;
 
-    void markerDelete(int type, int line = -1) const;
+    void markerDelete(ScintillaMarker::Value type, int line = -1) const;
 
     [[nodiscard]] int markerGet(int line) const;
 

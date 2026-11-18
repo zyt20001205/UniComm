@@ -18,8 +18,6 @@ extern ViSession g_rm;
 extern QVariantMap g_cursorPosition;
 extern QHash<QChar, int> g_gitStatusCode;
 
-extern QHash<QUrl, QHash<int, QVariantHash> > g_breakpoints;
-
 namespace Theme {
     enum {
         Light,
