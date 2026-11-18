@@ -5,10 +5,10 @@
 #include <variant>
 
 #include "api/thread.h"
+#include "types/debugTypes.h"
 #include "types/scintillaTypes.h"
 
 class QJsonObject;
-class QStandardItemModel;
 class IO;
 class Key;
 class Mouse;
@@ -27,7 +27,7 @@ public:
 
     void inputWrite(const QByteArray &data) const;
 
-    void stateSet(int state);
+    void stateSet(Debug::Value state);
 
     static void stackSet(lua_State *L, lua_Debug *ar);
 
@@ -44,7 +44,7 @@ signals:
 
     void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
-    void insertCallStack(const QString &threadId, QStandardItemModel *callStackModel);
+    void setCallStack(const QString &threadId, const QVariantList &frames);
 
     void appendLog(int type, const QString &prefix, const QString &message);
 

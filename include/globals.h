@@ -92,18 +92,6 @@ namespace InterpreterMode {
     };
 }
 
-namespace Debug {
-    enum {
-        Terminate,
-        Resume,
-        Pause,
-        StepOver,
-        StepInto,
-        StepOut,
-        RunToCursor
-    };
-}
-
 namespace GitStatus {
     enum {
         Idle,

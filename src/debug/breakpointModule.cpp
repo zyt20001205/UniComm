@@ -34,10 +34,10 @@ void BreakpointModule::propertySet() {
 }
 
 void BreakpointModule::breakpointConfigSave() const {
-    QJsonObject config;
+    QJsonObject config{};
     QReadLocker locker(&m_lock);
     for (auto file = m_breakpoints.cbegin(); file != m_breakpoints.cend(); ++file) {
-        QJsonObject lines;
+        QJsonObject lines{};
         for (auto it = file->cbegin(); it != file->cend(); ++it) {
             lines.insert(QString::number(it.key()), QJsonObject::fromVariantHash(it.value()));
         }
@@ -48,7 +48,7 @@ void BreakpointModule::breakpointConfigSave() const {
 
 QVariantList BreakpointModule::breakpointsGet() const {
     QReadLocker locker(&m_lock);
-    QVariantList breakpoints;
+    QVariantList breakpoints{};
     for (auto it = m_breakpoints.cbegin(); it != m_breakpoints.cend(); ++it) {
         const auto &url = it.key();
         const auto name = url.fileName();

@@ -1448,7 +1448,7 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
     }
     // debug toolset
     if (name == "debug_breakpoint_list") {
-        QJsonArray result;
+        QJsonArray result{};
         const auto rows = g_globalManager->breakpointModuleGet()->breakpointsGet();
         for (const auto &row: rows) {
             auto breakpoint = QJsonObject::fromVariantHash(row.toHash());
@@ -1466,7 +1466,7 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         if (lineCount < 0) return {.content = "Breakpoint set failed: document does not exist or is not readable.", .success = false};
         if (line >= lineCount) return {.content = QString("Breakpoint set failed: line %1 is out of range (0..%2).").arg(line).arg(lineCount - 1), .success = false};
 
-        QVariantHash settings;
+        QVariantHash settings{};
         if (object.contains("enabled")) {
             if (!object.value("enabled").isBool()) return {.content = "Expected a boolean enabled.", .success = false};
             settings.insert("enabled", object.value("enabled").toBool());

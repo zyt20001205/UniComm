@@ -138,11 +138,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     m_breakpointModule->propertySet();
 
-    const QVariantHash debugObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"debugModuleErrorDialog", objects["debugModuleErrorDialog"]}
-    };
-    m_debugModule->propertySet(debugObjects);
+    m_debugModule->propertySet();
 
     m_diagnosticsModule->propertySet();
 
@@ -528,7 +524,7 @@ void MainWindow::moduleInit() {
     connect(m_threadpoolModule, &ThreadpoolModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_threadpoolModule, &ThreadpoolModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_threadpoolModule, &ThreadpoolModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
-    connect(m_threadpoolModule, &ThreadpoolModule::insertCallStack, m_debugModule, &DebugModule::callStackInsert);
+    connect(m_threadpoolModule, &ThreadpoolModule::setCallStack, m_debugModule, &DebugModule::callStackSet);
     connect(m_threadpoolModule, &ThreadpoolModule::startDebug, m_debugModule, &DebugModule::debugStart);
     connect(m_threadpoolModule, &ThreadpoolModule::stopDebug, m_debugModule, &DebugModule::debugStop);
     connect(m_threadpoolModule, &ThreadpoolModule::openTerminal, m_terminalModule, &TerminalModule::terminalOpen);

@@ -7,6 +7,8 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQml
 
+import UniComm
+
 Item {
     id: mainItem
     anchors.fill: parent
@@ -506,24 +508,6 @@ Item {
         }
     }
 
-    // debug module
-    Dialog {
-        id: debugModuleErrorDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Select a Thread First")
-        standardButtons: Dialog.Ok
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-    }
-
     // document module
     Dialog {
         id: documentModuleGotoDialog
@@ -871,7 +855,7 @@ Item {
                 }
             }
 
-            onTriggered: debugModule.stateSet("", 6)
+            onTriggered: debugModule.stateSet(Debug.RunToCursor)
         }
 
         MenuSeparator {
@@ -4299,20 +4283,17 @@ Item {
 
         MenuItem {
             text: qsTr("Hot Update")
+            enabled: debugModule.currentThread.length > 0
             icon.source: "qrc:/icon/edit.svg"
             icon.width: 16; icon.height: 16
 
             onTriggered: {
-                if (!debugModule.threadGet()) {
-                    debugModuleErrorDialog.open()
-                } else {
-                    watchModuleValueDialog.currentThread = debugModule.threadGet()
-                    watchModuleValueDialog.watchUrl = watchModuleValueMenu.watchUrl
-                    watchModuleValueDialog.watchExpression = watchModuleValueMenu.watchExpression
-                    watchModuleValueDialog.currentValue = watchModuleValueMenu.currentValue
-                    watchModuleValueDialog.currentType = watchModuleValueMenu.currentType
-                    watchModuleValueDialog.open()
-                }
+                watchModuleValueDialog.currentThread = debugModule.currentThread
+                watchModuleValueDialog.watchUrl = watchModuleValueMenu.watchUrl
+                watchModuleValueDialog.watchExpression = watchModuleValueMenu.watchExpression
+                watchModuleValueDialog.currentValue = watchModuleValueMenu.currentValue
+                watchModuleValueDialog.currentType = watchModuleValueMenu.currentType
+                watchModuleValueDialog.open()
             }
         }
 
@@ -4373,8 +4354,6 @@ Item {
             "agentModuleRenameDialog": agentModuleRenameDialog,
             "agentModuleModeMenu": agentModuleModeMenu,
             "agentModuleModelMenu": agentModuleModelMenu,
-
-            "debugModuleErrorDialog": debugModuleErrorDialog,
 
             "documentModuleGotoDialog": documentModuleGotoDialog,
             "documentModuleRenameDialog": documentModuleRenameDialog,

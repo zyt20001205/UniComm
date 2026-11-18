@@ -42,7 +42,7 @@ bool CompletionWidget::isVisible() const {
 
 void CompletionWidget::completionShow(const QVariantHash &completionSession, const QJsonArray &items) {
     m_completionSession = completionSession;
-    QVariantList model;
+    QVariantList model{};
     int completionMode = Full;
     const auto theme = g_globalManager->themeGet();
     const auto general = theme["general"].toObject();
@@ -72,7 +72,7 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
         // duplicate item check
         if (model.isEmpty() || insertText != recordInsertText) {
             recordInsertText = insertText;
-            QString iconColor;
+            QString iconColor{};
             QUrl iconSource{};
             switch (kind) {
                 case LspCompletionKind::Text: {
@@ -212,7 +212,7 @@ void CompletionWidget::completionNext() const {
 }
 
 void CompletionWidget::detailReload(const int index) {
-    QVariantList model;
+    QVariantList model{};
     if (index >= 0 && index < m_model.size()) {
         const auto labels = m_model[index].toHash()["labels"].toStringList();
         for (const auto &label: labels) {

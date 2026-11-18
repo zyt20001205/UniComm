@@ -27,7 +27,7 @@ void StructureModule::propertySet() {
 }
 
 QVariantHash StructureModule::modelsGet() const {
-    QVariantHash models;
+    QVariantHash models{};
     for (auto it = m_documentSymbolModelHash.cbegin(); it != m_documentSymbolModelHash.cend(); ++it)
         models.insert(it.key().toString(), QVariantHash{
             {"model", QVariant::fromValue<QAbstractItemModel *>(it.value())},
@@ -60,9 +60,9 @@ void StructureModule::documentSymbolResponse(const QUrl &documentUrl, const QJso
         m_documentSymbolModelHash.insert(documentUrl, model);
     }
 
-    std::set<int> kinds;
+    std::set<int> kinds{};
     documentSymbolSet(result, model->invisibleRootItem(), kinds);
-    QVariantList kindList;
+    QVariantList kindList{};
     for (const int kind: kinds) kindList.append(kind);
     model->setProperty("kinds", kindList);
     emit changeModels();

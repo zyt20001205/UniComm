@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QStandardItemModel>
 
+#include "types/debugTypes.h"
 #include "types/scintillaTypes.h"
 
 class QTableWidget;
@@ -33,7 +34,7 @@ public:
 
     void inputWrite(const QString &threadId, const QByteArray &data) const;
 
-    void stateSet(const QString &threadId, int state);
+    void stateSet(const QString &threadId, Debug::Value state);
 
     Q_INVOKABLE void valueSet(const QString &threadId, const QString &documentUrl, const QString &expression, const QString &value, const QString &type);
 
@@ -56,7 +57,7 @@ signals:
 
     void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
-    void insertCallStack(const QString &threadId, QStandardItemModel *callStackModel);
+    void setCallStack(const QString &threadId, const QVariantList &frames);
 
     void startDebug(const QString &threadId);
 

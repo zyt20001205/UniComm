@@ -53,8 +53,8 @@ private:
     void breakpointShow(const QUrl &documentUrl, int line);
 
     QQuickWidget *m_widget{};
-    mutable QReadWriteLock m_lock;
-    QHash<QUrl, QHash<int, QVariantHash>> m_breakpoints;
+    mutable QReadWriteLock m_lock{};
+    QHash<QUrl, QHash<int, QVariantHash>> m_breakpoints{};
 };
 
 #endif //UNICOMM_BREAKPOINTMODULE_H

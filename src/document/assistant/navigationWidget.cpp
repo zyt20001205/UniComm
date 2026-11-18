@@ -102,7 +102,7 @@ void NavigationWidget::detailReload(const int index) {
     const int endLine = position["endLine"].toInt();
     const int firstLine = qMax(0, startLine - 2);
     auto text = g_globalManager->documentModuleGet()->textGet(position["documentUrl"].toUrl(), firstLine, 0, startLine + 2, -1);
-    QString hintText;
+    QString hintText{};
     if (!text.isNull()) {
         const auto general = g_globalManager->themeGet()["general"].toObject();
         text.replace("\r\n", "\n");
@@ -112,7 +112,7 @@ void NavigationWidget::detailReload(const int index) {
         for (qsizetype i = 0; i < lines.size(); ++i) {
             const auto lineNumber = firstLine + i;
             const auto line = lines[i];
-            QString content;
+            QString content{};
             if (lineNumber >= startLine && lineNumber <= endLine) {
                 const auto startCharacter = lineNumber == startLine ? position["startCharacter"].toInt() : 0;
                 const auto endCharacter = lineNumber == endLine ? position["endCharacter"].toInt() : line.size();
