@@ -283,8 +283,8 @@ Item {
             }
 
             ScrollBar.vertical: ScrollBar {
+                id: treeScrollBar
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.theme.general.stroke
                     dark: global.theme.general.strokePressed
@@ -325,6 +325,7 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
+                    anchors.rightMargin: treeScrollBar.width
                     spacing: 0
 
                     Item {

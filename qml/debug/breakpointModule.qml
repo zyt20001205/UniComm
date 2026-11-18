@@ -110,8 +110,8 @@ Item {
                 }
 
                 ScrollBar.vertical: ScrollBar {
+                    id: breakpointScrollBar
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    policy: ScrollBar.AsNeeded
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -124,8 +124,8 @@ Item {
                     required property int index
                     width: listView.width
                     height: 24
-                    leftPadding: 11
-                    rightPadding: 6; topPadding: 0; bottomPadding: 0
+                    leftPadding: 11; rightPadding: 6 + breakpointScrollBar.width
+                    topPadding: 0; bottomPadding: 0
                     focusPolicy: Qt.ClickFocus
                     highlighted: ListView.isCurrentItem
 
@@ -174,7 +174,13 @@ Item {
             SplitView.fillWidth: true
             clip: true
             padding: 8
+            rightPadding: padding + ScrollBar.vertical.width
             contentWidth: availableWidth
+
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.vertical.height))
+            ScrollBar.vertical.palette.mid: global.theme.general.stroke
+            ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
             ColumnLayout {
                 width: settingsView.availableWidth

@@ -121,8 +121,8 @@ Rectangle {
             highlightMoveDuration: 0
 
             ScrollBar.vertical: ScrollBar {
+                id: stackScrollBar
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.theme.general.stroke
                     dark: global.theme.general.strokePressed
@@ -135,7 +135,8 @@ Rectangle {
                 required property var modelData
                 width: stackView.width
                 height: 24
-                leftPadding: 11; rightPadding: 6; topPadding: 0; bottomPadding: 0
+                leftPadding: 11; rightPadding: 6 + stackScrollBar.width
+                topPadding: 0; bottomPadding: 0
                 focusPolicy: Qt.ClickFocus
                 highlighted: ListView.isCurrentItem
 
@@ -145,11 +146,6 @@ Rectangle {
                     Label {
                         text: frame.modelData.name
                         elide: Text.ElideRight
-                        Layout.fillWidth: true
-                    }
-
-                    Label {
-                        text: frame.modelData.line >= 0 ? frame.modelData.line + 1 : ""
                     }
 
                     Label {
@@ -157,11 +153,15 @@ Rectangle {
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
+
+                    Label {
+                        text: frame.modelData.line >= 0 ? frame.modelData.line + 1 : ""
+                    }
                 }
 
                 onClicked: {
                     stackView.currentIndex = frame.index
-                    if (frame.modelData.line >= 0 && frame.modelData.documentUrl != ""){
+                    if (frame.modelData.line >= 0 && frame.modelData.documentUrl != "") {
                         root.debugModule.setIndex(frame.modelData.documentUrl, frame.modelData.line, 0)
                         root.debugModule.addMarker(modelData.documentUrl, ScintillaMarker.Hint, modelData.line, 1000)
                     }

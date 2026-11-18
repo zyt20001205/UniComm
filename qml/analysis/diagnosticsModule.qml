@@ -201,7 +201,6 @@ Item {
         }
 
         Item {
-            id: tablePane
             Layout.fillWidth: true; Layout.fillHeight: true
 
             HorizontalHeaderView {
@@ -239,8 +238,6 @@ Item {
                 id: tableView
                 anchors.left: parent.left; anchors.right: parent.right
                 anchors.top: horizontalHeaderView.bottom; anchors.bottom: parent.bottom
-                anchors.rightMargin: verticalScrollBar.width
-                anchors.bottomMargin: horizontalScrollBar.height
                 model: root.selectedDiagnostic ? filterModel : null
                 rowSpacing: 1; columnSpacing: 0
                 clip: true
@@ -278,10 +275,7 @@ Item {
 
                 ScrollBar.vertical: ScrollBar {
                     id: verticalScrollBar
-                    parent: tablePane
-                    anchors.left: tableView.right; anchors.top: tableView.top; anchors.bottom: tableView.bottom
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    policy: ScrollBar.AsNeeded
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -289,10 +283,7 @@ Item {
                 }
 
                 ScrollBar.horizontal: ScrollBar {
-                    id: horizontalScrollBar
-                    parent: tablePane
-                    anchors.left: tableView.left; anchors.right: tableView.right; anchors.top: tableView.bottom
-                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -366,7 +357,7 @@ Item {
                         visible: cell.column !== DiagnosticsModule.Col.Severity
                         text: String(cell.display ?? "")
                         textFormat: cell.column === DiagnosticsModule.Col.Message ? Text.RichText : Text.PlainText
-                        leftPadding: 6; rightPadding: 6
+                        leftPadding: 6; rightPadding: 6 + (cell.column === DiagnosticsModule.Col.Message ? verticalScrollBar.width : 0)
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                     }
