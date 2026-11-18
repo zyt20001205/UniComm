@@ -15,10 +15,10 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 4
+        enabled: root.debugModule.currentThread.length > 0
         spacing: 4
 
         RowLayout {
-            enabled: root.debugModule.currentThread.length > 0
             spacing: 0
 
             component DebugButton: Button {
