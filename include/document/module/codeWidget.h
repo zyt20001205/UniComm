@@ -47,9 +47,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void insertBreakpoint(const QUrl &documentUrl, int line, const QVariantHash &session);
-
-    void removeBreakpoint(const QUrl &documentUrl, int line);
+    void toggleBreakpoint(const QUrl &documentUrl, int line);
 
     void notificationJson(const QString &method, const QJsonObject &params);
 
@@ -107,14 +105,10 @@ protected:
 private:
     void charAdd(int ch);
 
-    void marginClick(Scintilla::Position position, int mouseButton, Scintilla::KeyMod modifiers, int margin);
-
     void dwellChange();
 
     // private: file
-    void breakpointGet() const;
-
-    void breakpointSet(int line) const;
+    void breakpointLoad() const;
 
     // private: lsp
     void didOpenNotification();
@@ -164,7 +158,6 @@ private:
     void navigationToggle(Scintilla::Position position = -1) const;
 
     QObject *m_toolTip{};
-    QObject *m_breakpointEditDialog{};
     QObject *m_editorMenu{};
 
     QTimer *m_dwellTimer{};

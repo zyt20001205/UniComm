@@ -1,192 +1,211 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import "../util"
+
+import UniComm
+
 Item {
-    id: rootItem
+    id: root
+    required property BreakpointModule breakpointModule
     anchors.fill: parent
+
+    Component.onCompleted: listView.reload()
+
+    Connections {
+        target: root.breakpointModule
+        function onBreakpointsChanged() { Qt.callLater(listView.reload) }
+        function onShowBreakpoint(documentUrl, line) {
+            Qt.callLater(function() {
+                const index = listView.rowIndex(listView.model, documentUrl, line)
+                if (index >= 0) {
+                    listView.forceActiveFocus()
+                    listView.currentIndex = index
+                    listView.positionViewAtIndex(index, ListView.Contain)
+                }
+            })
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
         color: global.theme.general.back
     }
 
-    Item {
+    SplitView {
         anchors.fill: parent
-        visible: standardItemModel.empty
+        orientation: Qt.Horizontal
 
-        RowLayout {
-            anchors.centerIn: parent
-
-            Label {
-                text: qsTr("No breakpoints.")
-                font.pixelSize: 16
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            IconImage {
-                source: "qrc:/icon/activateBreakpoints.svg"
-                color: global.theme.general.fore
-                Layout.alignment: Qt.AlignVCenter
-            }
-        }
-    }
-
-    TreeView {
-        id: treeView
-        anchors.fill: parent
-        clip: true
-        model: standardItemModel
-        visible: !standardItemModel.empty
-        property int selectedRow: -1
-
-        ScrollBar.vertical: ScrollBar {
-            minimumSize: Math.min(1, 20 / Math.max(1, height))
-            policy: ScrollBar.AsNeeded
-            palette {
-                mid: global.theme.general.stroke
-                dark: global.theme.general.strokePressed
-            }
-        }
-
-        delegate: Item {
-            implicitWidth: treeView.width; implicitHeight: 24
-            required property TreeView treeView
-            required property bool isTreeNode
-            required property bool expanded
-            required property bool hasChildren
-            required property int depth
-            required property int row
+        handle: Item {
+            implicitWidth: 5
 
             Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top; anchors.bottom: parent.bottom
+                width: 1
+                color: global.theme.general.stroke
+            }
+        }
+
+        Item {
+            SplitView.preferredWidth: Math.min(240, root.width / 2)
+            clip: true
+
+            Item {
                 anchors.fill: parent
-                radius: 6
-                color: global.theme.general.backHover
-                opacity: hoverHandler.hovered ? 1 : 0
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 150
+                visible: listView.count === 0
+
+                RowLayout {
+                    anchors.centerIn: parent
+
+                    Label {
+                        text: qsTr("No breakpoints.")
+                        font.pixelSize: 16
+                        Layout.alignment: Qt.AlignVCenter
                     }
-                }
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                radius: 6
-                color: treeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                spacing: 0
-
-                Item {
-                    Layout.preferredWidth: depth * 24; Layout.preferredHeight: 24
-                }
-
-                Item {
-                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
                     IconImage {
-                        anchors.centerIn: parent
-                        width: 16; height: 16
-                        source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
+                        source: "qrc:/icon/activateBreakpoints.svg"
                         color: global.theme.general.fore
-                        visible: isTreeNode && hasChildren
+                        Layout.alignment: Qt.AlignVCenter
                     }
+                }
+            }
 
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        gesturePolicy: TapHandler.DragWithinBounds
+            ListView {
+                id: listView
+                anchors.fill: parent
+                clip: true
+                model: []
+                currentIndex: -1
+                focusPolicy: Qt.ClickFocus
+                keyNavigationEnabled: true
+                highlightMoveDuration: 0
 
-                        onTapped: {
-                            treeView.selectedRow = row
-                            if (isTreeNode && hasChildren) {
-                                treeView.toggleExpanded(row)
+                function rowIndex(rows, url, line) {
+                    return rows.findIndex(row => row.documentUrl.toString() === url.toString() && row.line === line)
+                }
+
+                function reload() {
+                    const old = model[currentIndex]
+                    const rows = root.breakpointModule.breakpoints
+                    const index = old ? rowIndex(rows, old.documentUrl, old.line) : -1
+                    const next = rows[index]
+                    const keepDraft = next && next.line !== undefined && old.condition === next.condition
+                    const text = conditionField.text
+                    model = Array.from(rows)
+                    currentIndex = index
+                    if (keepDraft) conditionField.text = text
+                }
+
+                ScrollBar.vertical: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    policy: ScrollBar.AsNeeded
+                    palette {
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
+                    }
+                }
+
+                delegate: ItemDelegate {
+                    id: row
+                    required property var modelData
+                    required property int index
+                    readonly property bool fileRow: modelData.name !== undefined
+                    width: listView.width
+                    height: 24
+                    leftPadding: fileRow ? 6 : 16
+                    rightPadding: 6; topPadding: 0; bottomPadding: 0
+                    focusPolicy: Qt.ClickFocus
+                    highlighted: ListView.isCurrentItem
+
+                    contentItem: RowLayout {
+                        spacing: 4
+
+                        Label {
+                            text: row.fileRow ? row.modelData.name : row.modelData.line
+                            font.bold: row.fileRow
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+
+                        CheckBox {
+                            visible: !row.fileRow
+                            checked: !row.fileRow && row.modelData.enabled
+                            padding: 0
+                            focusPolicy: Qt.ClickFocus
+                            Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                            Accessible.name: qsTr("Enabled")
+
+                            onToggled: {
+                                listView.currentIndex = row.index
+                                root.breakpointModule.breakpointConfigure(row.modelData.documentUrl, row.modelData.line, { enabled: checked })
                             }
                         }
                     }
-                }
 
-                Item {
-                    visible: !(isTreeNode && hasChildren)
-                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                    IconImage {
-                        anchors.centerIn: parent
-                        width: 16; height: 16
-                        source: !model.enable ? "qrc:/icon/breakpointDisabled.svg" :
-                            model.condition ? "qrc:/icon/breakpointConditional.svg" :
-                                "qrc:/icon/breakpoint.svg"
-                        color: global.theme.general.fore
+                    onClicked: {
+                        if (!fileRow) listView.currentIndex = index
                     }
+
+                    onDoubleClicked: {
+                        const url = modelData.documentUrl
+                        if (fileRow) {
+                            root.breakpointModule.openDocument(url)
+                        } else {
+                            const line = modelData.line - 1
+                            listView.currentIndex = index
+                            root.breakpointModule.setIndex(url, line, 0)
+                            root.breakpointModule.addMarker(url, ScintillaMarker.Hint, line, 1000)
+                        }
+                    }
+                }
+            }
+        }
+
+        ScrollView {
+            id: settingsView
+            SplitView.fillWidth: true
+            clip: true
+            padding: 8
+            contentWidth: availableWidth
+
+            ColumnLayout {
+                id: settings
+                width: settingsView.availableWidth
+                readonly property var breakpoint: {
+                    const row = listView.model[listView.currentIndex]
+                    return row && row.line !== undefined ? row : null
+                }
+                visible: breakpoint !== null
+
+                onBreakpointChanged: {
+                    conditionField.text = breakpoint?.condition ?? ""
                 }
 
                 Label {
-                    horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                    text: model.display
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true; Layout.preferredHeight: 24
+                    text: qsTr("Condition")
                 }
-            }
 
-            HoverHandler {
-                id: hoverHandler
-            }
+                LineEdit {
+                    id: conditionField
+                    placeholderText: "true"
+                    clearable: true
+                    tooltip: mainTooltip
+                    buttonSize: 24
+                    Layout.fillWidth: true
 
-            TapHandler {
-                acceptedButtons: Qt.LeftButton
-                gesturePolicy: TapHandler.DragWithinBounds
-
-                onTapped: {
-                    treeView.selectedRow = row
-                    if (isTreeNode && hasChildren) {
-                        breakpointModule.documentOpen(model.documentUrl)
-                    } else {
-                        breakpointModule.markerAdd(model.documentUrl, model.display)
-                    }
-                }
-            }
-
-            TapHandler {
-                acceptedButtons: Qt.RightButton
-                gesturePolicy: TapHandler.DragWithinBounds
-
-                onTapped: {
-                    if (isTreeNode && hasChildren) {
-                        fileMenu.documentUrl = model.documentUrl
-                        fileMenu.treeView = treeView
-                        fileMenu.popup()
-                    } else {
-                        lineMenu.documentUrl = model.documentUrl
-                        lineMenu.line = model.display
-                        lineMenu.treeView = treeView
-                        lineMenu.popup()
+                    onValueCommitted: {
+                        const breakpoint = settings.breakpoint
+                        if (breakpoint && text !== breakpoint.condition)
+                            root.breakpointModule.breakpointConfigure(breakpoint.documentUrl, breakpoint.line, { condition: text })
                     }
                 }
             }
         }
-
-        TapHandler {
-            acceptedButtons: Qt.LeftButton
-
-            onTapped: treeView.selectedRow = -1
-        }
-
-        TapHandler {
-            acceptedButtons: Qt.RightButton
-
-            onTapped: {
-                rootMenu.treeView = treeView
-                rootMenu.popup()
-            }
-        }
-    }
-    Component.onCompleted: {
-        const objects = {
-            "treeView": treeView
-        };
-        breakpointModule.propertyGet(objects)
     }
 }

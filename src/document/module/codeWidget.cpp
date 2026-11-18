@@ -6,6 +6,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "debug/breakpointModule.h"
 #include "document/module/scintillaWidget.h"
 #include "types/lspTypes.h"
 #include "types/scintillaTypes.h"
@@ -19,6 +20,10 @@ CodeWidget::CodeWidget(const QJsonObject &documentConfig, const QUrl &documentUr
       m_formattingTrigger{'\n'},
       m_signatureHelpTrigger{'(', ','} {
     connect(m_scintillaWidget, &ScintillaEdit::charAdded, this, &CodeWidget::charAdd);
+    connect(m_scintillaWidget, &ScintillaEdit::notify, this, [this](const Scintilla::NotificationData *event) {
+        if (event->nmhdr.code == Scintilla::Notification::MarginClick && event->margin == 1)
+            emit toggleBreakpoint(m_documentUrl, m_scintillaWidget->lineGet(event->position) + 1);
+    });
     m_scintillaWidget->viewport()->installEventFilter(this);
     // 1000ms debounce for dwell change
     m_dwellTimer->setSingleShot(true);
@@ -28,7 +33,6 @@ CodeWidget::CodeWidget(const QJsonObject &documentConfig, const QUrl &documentUr
 
 void CodeWidget::propertySet(const QVariantHash &objects) {
     m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    m_breakpointEditDialog = qvariant_cast<QObject *>(objects["breakpointModuleEditDialog"]);
     m_editorMenu = qvariant_cast<QObject *>(objects["documentModuleEditorMenu"]);
     EditorWidget::propertySet(objects);
     QTimer::singleShot(0, [this] {
@@ -131,7 +135,7 @@ void CodeWidget::diagnosticsNotification(const QJsonArray &diagnostics) {
         const int startCharacter = start["character"].toInt();
         const int endLine = end["line"].toInt();
         const int endCharacter = end["character"].toInt();
-        int type{};
+        ScintillaIndicator::Value type{};
         switch (severity) {
             case 0: type = ScintillaIndicator::Password;
                 break;
@@ -389,7 +393,7 @@ void CodeWidget::selectionChange() {
 
 void CodeWidget::contentChange() {
     // status refresh
-    breakpointGet();
+    breakpointLoad();
     // lsp request
     didChangeNotification();
     documentHighlightRequest();
@@ -721,54 +725,21 @@ void CodeWidget::charAdd(const int ch) {
 }
 
 // private: slot
-void CodeWidget::marginClick(const Scintilla::Position position, const int mouseButton, const Scintilla::KeyMod modifiers, const int margin) {
-    const int line = m_scintillaWidget->lineGet(position);
-    if (margin == 1) {
-        if (mouseButton == Qt::LeftButton) {
-            if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointEnabled) {
-                emit removeBreakpoint(m_documentUrl, line + 1);
-                m_scintillaWidget->markerDelete(ScintillaMarker::BreakpointEnabled, line);
-            } else if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointDisabled) {
-                emit removeBreakpoint(m_documentUrl, line + 1);
-                m_scintillaWidget->markerDelete(ScintillaMarker::BreakpointDisabled, line);
-            } else if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::Navigation) {
-                // TODO: assembly interaction
-                // m_assemblyWidget->handler()->markerAdd(ScintillaMarker::Hint, m_l2aHash[line], 1000);
-            } else {
-                emit insertBreakpoint(m_documentUrl, line + 1, QVariantHash({
-                                          {"condition", ""},
-                                          {"enabled", true}
-                                      }));
-                if (modifiers == Scintilla::KeyMod::Ctrl) breakpointSet(line + 1);
-            }
-        } else if (mouseButton == Qt::RightButton) {
-            if (m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointEnabled || m_scintillaWidget->markerGet(line) & 1 << ScintillaMarker::BreakpointDisabled) {
-                breakpointSet(line + 1);
-            }
-        }
-    }
-}
-
 void CodeWidget::dwellChange() {
     hoverRequest();
 }
 
 // private: file
-void CodeWidget::breakpointGet() const {
+void CodeWidget::breakpointLoad() const {
     m_scintillaWidget->markerDelete(ScintillaMarker::BreakpointEnabled);
     m_scintillaWidget->markerDelete(ScintillaMarker::BreakpointDisabled);
-    if (g_breakpoints.contains(m_documentUrl)) {
-        for (const auto &line: g_breakpoints[m_documentUrl].keys()) {
-            if (g_breakpoints[m_documentUrl][line]["enabled"].toBool()) m_scintillaWidget->markerAdd(ScintillaMarker::BreakpointEnabled, line - 1);
-            else m_scintillaWidget->markerAdd(ScintillaMarker::BreakpointDisabled, line - 1);
-        }
+    const auto rows = g_globalManager->breakpointModuleGet()->breakpointsGet();
+    for (const auto &row : rows) {
+        const auto breakpoint = row.toHash();
+        if (breakpoint.value("documentUrl").toUrl() != m_documentUrl || !breakpoint.contains("line")) continue;
+        const bool enabled = breakpoint.value("enabled").toBool();
+        m_scintillaWidget->markerAdd(enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, breakpoint.value("line").toInt() - 1);
     }
-}
-
-void CodeWidget::breakpointSet(const int line) const {
-    m_breakpointEditDialog->setProperty("documentUrl", m_documentUrl);
-    m_breakpointEditDialog->setProperty("line", line);
-    QMetaObject::invokeMethod(m_breakpointEditDialog, "open");
 }
 
 // private: lsp

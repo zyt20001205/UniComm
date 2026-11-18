@@ -301,8 +301,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             });
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
             connect(codePage, &CodePage::changeSelection, this, &DocumentModule::changeSelection);
-            connect(codePage, &CodePage::insertBreakpoint, this, &DocumentModule::insertBreakpoint);
-            connect(codePage, &CodePage::removeBreakpoint, this, &DocumentModule::removeBreakpoint);
+            connect(codePage, &CodePage::toggleBreakpoint, this, &DocumentModule::toggleBreakpoint);
             connect(codePage, &CodePage::notificationJson, this, &DocumentModule::notificationJson);
             connect(codePage, &CodePage::requestCompletion, this, &DocumentModule::completionRequest);
             connect(codePage, &CodePage::requestDefinition, this, &DocumentModule::definitionRequest);

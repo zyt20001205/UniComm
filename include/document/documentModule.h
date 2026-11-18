@@ -209,9 +209,7 @@ signals:
 
     void changeSelection(const QHash<QString, int> &selection);
 
-    void insertBreakpoint(const QUrl &documentUrl, int line, const QVariantHash &session);
-
-    void removeBreakpoint(const QUrl &documentUrl, int line);
+    void toggleBreakpoint(const QUrl &documentUrl, int line);
 
     void requestJson(const QString &method, const QJsonObject &params);
 

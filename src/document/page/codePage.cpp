@@ -22,8 +22,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &EditorWidget::appendLog, this, &CodePage::appendLog);
     connect(m_codeWidget, &EditorWidget::changeSavepoint, this, &CodePage::savepointChange);
     connect(m_codeWidget, &EditorWidget::changeSelection, this, &CodePage::changeSelection);
-    connect(m_codeWidget, &CodeWidget::insertBreakpoint, this, &CodePage::insertBreakpoint);
-    connect(m_codeWidget, &CodeWidget::removeBreakpoint, this, &CodePage::removeBreakpoint);
+    connect(m_codeWidget, &CodeWidget::toggleBreakpoint, this, &CodePage::toggleBreakpoint);
     connect(m_codeWidget, &CodeWidget::notificationJson, this, &CodePage::notificationJson);
     connect(m_codeWidget, &CodeWidget::requestCompletion, this, &CodePage::requestCompletion);
     connect(m_codeWidget, &CodeWidget::requestDefinition, this, &CodePage::requestDefinition);

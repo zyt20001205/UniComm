@@ -473,6 +473,7 @@ void MainWindow::moduleInit() {
     connect(lspManager, &LspManager::responseTypeDefinition, m_documentModule, &DocumentModule::typeDefinitionResponse);
 
     connect(m_breakpointModule, &BreakpointModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
+    connect(m_breakpointModule, &BreakpointModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_breakpointModule, &BreakpointModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_breakpointModule, &BreakpointModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
 
@@ -491,8 +492,7 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
     connect(m_documentModule, &DocumentModule::changeSelection, m_statusModule, &StatusModule::selectionChange);
-    connect(m_documentModule, &DocumentModule::insertBreakpoint, m_breakpointModule, &BreakpointModule::breakpointSet);
-    connect(m_documentModule, &DocumentModule::removeBreakpoint, m_breakpointModule, &BreakpointModule::breakpointRemove);
+    connect(m_documentModule, &DocumentModule::toggleBreakpoint, m_breakpointModule, &BreakpointModule::breakpointToggle);
 
     connect(m_explorerModule, &ExplorerModule::appendLog, m_logModule, &LogModule::logAppend);
     connect(m_explorerModule, &ExplorerModule::openDocument, m_documentModule, &DocumentModule::documentOpen);

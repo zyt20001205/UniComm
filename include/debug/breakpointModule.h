@@ -2,86 +2,61 @@
 #define UNICOMM_BREAKPOINTMODULE_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
-#include <QStandardItemModel>
+#include <QReadWriteLock>
+#include <QUrl>
+#include <QVariant>
+#include <QtQmlIntegration/qqmlintegration.h>
+
+#include "types/scintillaTypes.h"
 
 class QQuickWidget;
 
-class BreakpointModel;
-
-class BreakpointModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class BreakpointModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("BreakpointModule is created by C++.")
+    Q_PROPERTY(QVariantList breakpoints READ breakpointsGet NOTIFY breakpointsChanged)
 
 public:
     explicit BreakpointModule();
 
     ~BreakpointModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    void breakpointConfigSave() const;
 
-    static void breakpointConfigSave();
+    [[nodiscard]] QVariantList breakpointsGet() const;
 
-    void breakpointInsert(const QUrl &documentUrl, int line, const QVariantHash &session);
+    [[nodiscard]] QVariantHash breakpointGet(const QUrl &documentUrl, int line) const;
+
+    void breakpointInsert(const QUrl &documentUrl, int line);
 
     void breakpointRemove(const QUrl &documentUrl, int line);
 
-    Q_INVOKABLE void breakpointReload(const QUrl &documentUrl, int line);
+    Q_INVOKABLE void breakpointConfigure(const QUrl &documentUrl, int line, const QVariantHash &session);
 
-    Q_INVOKABLE void documentOpen(const QUrl &documentUrl);
-
-    Q_INVOKABLE void markerAdd(const QUrl &documentUrl, int line);
-
-    Q_INVOKABLE void breakpointDelete(const QUrl &documentUrl, int line);
-
-    Q_INVOKABLE void breakpointsDelete(const QUrl &documentUrl);
-
-    Q_INVOKABLE void allDelete();
-
-    Q_INVOKABLE [[nodiscard]] static bool enabledGet(const QUrl &documentUrl, int line);
-
-    Q_INVOKABLE static void enabledSet(const QUrl &documentUrl, int line, bool status);
-
-    Q_INVOKABLE [[nodiscard]] static QString conditionGet(const QUrl &documentUrl, int line);
-
-    Q_INVOKABLE static void conditionSet(const QUrl &documentUrl, int line, const QString &condition);
-
-    bool eventFilter(QObject *watched, QEvent *event) override;
+    void breakpointToggle(const QUrl &documentUrl, int line);
 
 signals:
+    void breakpointsChanged();
+
+    void showBreakpoint(const QUrl &documentUrl, int line);
+
     void openDocument(const QUrl &documentUrl);
 
-    void addMarker(const QUrl &documentUrl, int type, int line, int time);
+    void setIndex(const QUrl &documentUrl, int line, int character);
 
-    void deleteMarker(const QUrl &documentUrl, int type, int line);
+    void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
+
+    void deleteMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line);
 
 private:
+    void breakpointShow(const QUrl &documentUrl, int line);
+
     QQuickWidget *m_widget{};
-    QObject *m_treeView{};
-    BreakpointModel *m_standardItemModel{};
-};
-
-class BreakpointModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit BreakpointModel(QObject *parent = nullptr);
-
-    enum Role {
-        DocumentUrlRole = Qt::UserRole + 1,
-        EnableRole,
-        ConditionRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-signals:
-    void emptyChanged();
+    mutable QReadWriteLock m_lock;
+    QHash<QUrl, QHash<int, QVariantHash>> m_breakpoints;
 };
 
 #endif //UNICOMM_BREAKPOINTMODULE_H
