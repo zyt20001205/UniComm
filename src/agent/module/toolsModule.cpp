@@ -1463,6 +1463,9 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         const auto line = object.value("line").toInt(-1);
         if (!documentUrl.isValid() || !documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile())) return {.content = "Expected a local document_url.", .success = false};
         if (line < 0) return {.content = "Expected a zero-based integer line number.", .success = false};
+        const auto lineCount = g_globalManager->documentModuleGet()->lineCountGet(documentUrl);
+        if (lineCount < 0) return {.content = "Breakpoint set failed: document does not exist or is not readable.", .success = false};
+        if (line >= lineCount) return {.content = QString("Breakpoint set failed: line %1 is out of range (0..%2).").arg(line).arg(lineCount - 1), .success = false};
 
         QVariantHash settings;
         if (object.contains("enabled")) {

@@ -107,6 +107,8 @@ public:
 
     [[nodiscard]] QString transactionCommit(const QString &undoGroupId);
 
+    [[nodiscard]] int lineCountGet(const QUrl &documentUrl) const;
+
     [[nodiscard]] QString linesGet(const QUrl &documentUrl, int startLine, int lineCount) const;
 
     [[nodiscard]] QString linesSet(const QUrl &documentUrl, const QStringList &texts, const QList<int> &startLines, const QList<int> &lineCounts,

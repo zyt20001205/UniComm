@@ -567,6 +567,11 @@ QString DocumentModule::transactionCommit(const QString &undoGroupId) {
     return error;
 }
 
+int DocumentModule::lineCountGet(const QUrl &documentUrl) const {
+    if (const auto *handler = handlerGet(documentUrl)) return handler->lineCountGet();
+    return FileModule::lineCountGet(documentUrl);
+}
+
 QString DocumentModule::linesGet(const QUrl &documentUrl, const int startLine, const int lineCount) const {
     if (const auto *handler = handlerGet(documentUrl)) return handler->linesGet(startLine, lineCount);
     return FileModule::linesGet(documentUrl, startLine, lineCount);

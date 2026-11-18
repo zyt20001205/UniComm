@@ -116,6 +116,18 @@ void FileModule::copyToClipboard(const QString &text) const {
     m_toast->show(ToastLevel::Success, tr("Copied to clipboard"));
 }
 
+int FileModule::lineCountGet(const QUrl &documentUrl) {
+    QFile file(documentUrl.toLocalFile());
+    if (!QFileInfo(file).isFile() || !file.open(QIODevice::ReadOnly)) return -1;
+
+    QTextStream in(&file);
+    auto text = in.readAll();
+    if (file.error() != QFileDevice::NoError) return -1;
+    text.replace("\r\n", "\n");
+    text.replace('\r', '\n');
+    return static_cast<int>(text.count('\n') + 1);
+}
+
 QString FileModule::linesGet(const QUrl &documentUrl, const int startLine, const int lineCount) {
     QFile file(documentUrl.toLocalFile());
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return {};
