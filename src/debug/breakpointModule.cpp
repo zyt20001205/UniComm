@@ -77,7 +77,7 @@ QVariantHash BreakpointModule::breakpointGet(const QUrl &documentUrl, const int 
     return file == m_breakpoints.cend() ? QVariantHash{} : file->value(line);
 }
 
-void BreakpointModule::breakpointInsert(const QUrl &documentUrl, const int line) {
+void BreakpointModule::breakpointAdd(const QUrl &documentUrl, const int line) {
     {
         QWriteLocker locker(&m_lock);
         m_breakpoints[documentUrl].insert(line, {{"condition", ""}, {"enabled", true}});
@@ -88,7 +88,7 @@ void BreakpointModule::breakpointInsert(const QUrl &documentUrl, const int line)
     breakpointShow(documentUrl, line);
 }
 
-void BreakpointModule::breakpointRemove(const QUrl &documentUrl, const int line) {
+void BreakpointModule::breakpointDelete(const QUrl &documentUrl, const int line) {
     bool enabled;
     {
         QWriteLocker locker(&m_lock);
@@ -126,8 +126,8 @@ void BreakpointModule::breakpointConfigure(const QUrl &documentUrl, const int li
 }
 
 void BreakpointModule::breakpointToggle(const QUrl &documentUrl, const int line) {
-    if (breakpointGet(documentUrl, line).isEmpty()) breakpointInsert(documentUrl, line);
-    else breakpointRemove(documentUrl, line);
+    if (breakpointGet(documentUrl, line).isEmpty()) breakpointAdd(documentUrl, line);
+    else breakpointDelete(documentUrl, line);
 }
 
 // private

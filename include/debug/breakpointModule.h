@@ -30,9 +30,9 @@ public:
 
     [[nodiscard]] QVariantHash breakpointGet(const QUrl &documentUrl, int line) const;
 
-    void breakpointInsert(const QUrl &documentUrl, int line);
+    void breakpointAdd(const QUrl &documentUrl, int line);
 
-    void breakpointRemove(const QUrl &documentUrl, int line);
+    void breakpointDelete(const QUrl &documentUrl, int line);
 
     Q_INVOKABLE void breakpointConfigure(const QUrl &documentUrl, int line, const QVariantHash &session);
 
