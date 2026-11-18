@@ -22,7 +22,7 @@ CodeWidget::CodeWidget(const QJsonObject &documentConfig, const QUrl &documentUr
     connect(m_scintillaWidget, &ScintillaEdit::charAdded, this, &CodeWidget::charAdd);
     connect(m_scintillaWidget, &ScintillaEdit::notify, this, [this](const Scintilla::NotificationData *event) {
         if (event->nmhdr.code == Scintilla::Notification::MarginClick && event->margin == 1)
-            emit toggleBreakpoint(m_documentUrl, m_scintillaWidget->lineGet(event->position) + 1);
+            emit toggleBreakpoint(m_documentUrl, m_scintillaWidget->lineGet(event->position));
     });
     m_scintillaWidget->viewport()->installEventFilter(this);
     // 1000ms debounce for dwell change
@@ -738,7 +738,7 @@ void CodeWidget::breakpointLoad() const {
         const auto breakpoint = row.toHash();
         if (breakpoint.value("documentUrl").toUrl() != m_documentUrl || !breakpoint.contains("line")) continue;
         const bool enabled = breakpoint.value("enabled").toBool();
-        m_scintillaWidget->markerAdd(enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, breakpoint.value("line").toInt() - 1);
+        m_scintillaWidget->markerAdd(enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, breakpoint.value("line").toInt());
     }
 }
 

@@ -127,7 +127,7 @@ Item {
                         spacing: 4
 
                         Label {
-                            text: row.fileRow ? row.modelData.name : row.modelData.line
+                            text: row.fileRow ? row.modelData.name : row.modelData.line + 1
                             font.bold: row.fileRow
                             elide: Text.ElideRight
                             Layout.fillWidth: true
@@ -157,7 +157,7 @@ Item {
                         if (fileRow) {
                             root.breakpointModule.openDocument(url)
                         } else {
-                            const line = modelData.line - 1
+                            const line = modelData.line
                             listView.currentIndex = index
                             root.breakpointModule.setIndex(url, line, 0)
                             root.breakpointModule.addMarker(url, ScintillaMarker.Hint, line, 1000)

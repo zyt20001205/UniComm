@@ -598,7 +598,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
         if (ar->source[0] == '@' && ar->source[1] != '\0') {
             currentUrl = QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1));
         }
-        const int currentLine = ar->currentline;
+        const int currentLine = ar->currentline - 1;
         // watch refresh
         if (g_globalManager->watchModuleGet()->refreshGet()) {
             watchSet(L, ar);
@@ -670,7 +670,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
             emit This->openDocument(currentUrl);
             if (currentUrl != session["currentUrl"].toUrl()) session["currentUrl"] = currentUrl;
             // line handle
-            emit This->addMarker(currentUrl, ScintillaMarker::Debug, currentLine - 1, -1);
+            emit This->addMarker(currentUrl, ScintillaMarker::Debug, currentLine, -1);
             // call stack handle
             stackSet(L, ar);
             // watch handle

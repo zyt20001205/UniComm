@@ -83,7 +83,7 @@ void BreakpointModule::breakpointAdd(const QUrl &documentUrl, const int line) {
         m_breakpoints[documentUrl].insert(line, {{"condition", ""}, {"enabled", true}});
     }
 
-    emit addMarker(documentUrl, ScintillaMarker::BreakpointEnabled, line - 1, -1);
+    emit addMarker(documentUrl, ScintillaMarker::BreakpointEnabled, line, -1);
     emit breakpointsChanged();
     breakpointShow(documentUrl, line);
 }
@@ -101,7 +101,7 @@ void BreakpointModule::breakpointDelete(const QUrl &documentUrl, const int line)
         if (file->isEmpty()) m_breakpoints.erase(file);
     }
 
-    emit deleteMarker(documentUrl, enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line - 1);
+    emit deleteMarker(documentUrl, enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line);
     emit breakpointsChanged();
 }
 
@@ -119,8 +119,8 @@ void BreakpointModule::breakpointConfigure(const QUrl &documentUrl, const int li
     }
 
     if (wasEnabled != enabled) {
-        emit deleteMarker(documentUrl, wasEnabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line - 1);
-        emit addMarker(documentUrl, enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line - 1, -1);
+        emit deleteMarker(documentUrl, wasEnabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line);
+        emit addMarker(documentUrl, enabled ? ScintillaMarker::BreakpointEnabled : ScintillaMarker::BreakpointDisabled, line, -1);
     }
     emit breakpointsChanged();
 }
