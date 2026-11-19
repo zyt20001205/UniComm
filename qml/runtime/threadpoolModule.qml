@@ -85,11 +85,12 @@ Rectangle {
             contentItem: RowLayout {
                 spacing: 8
 
-                Rectangle {
-                    Layout.preferredWidth: 3; Layout.preferredHeight: 14
-                    radius: 1.5
-                    color: row.thread.status === ThreadStatus.Terminating ? global.theme.general.dangerBack3
-                        : row.thread.status === ThreadStatus.Paused ? global.theme.general.warningBack3 : global.theme.general.successBack3
+                IconImage {
+                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    source: row.thread.status === ThreadStatus.Paused ? "qrc:/icon/pause.svg"
+                          : row.thread.status === ThreadStatus.Terminating ? "qrc:/icon/stop.svg" : "qrc:/icon/play.svg"
+                    color: row.thread.status === ThreadStatus.Paused ? global.theme.general.warningBack3
+                         : row.thread.status === ThreadStatus.Terminating ? global.theme.general.dangerBack3 : global.theme.general.successBack3
                 }
                 Label {
                     text: row.threadId
