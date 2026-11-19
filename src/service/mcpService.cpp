@@ -5,6 +5,7 @@
 #include <QHttpServerConfiguration>
 #include <QHttpServerRequest>
 #include <QHttpServerResponse>
+#include <QSet>
 #include <QTcpServer>
 
 #include "globals.h"
@@ -18,9 +19,7 @@ McpService::McpService(QObject *parent)
     QHttpServerConfiguration configuration{};
     configuration.setMaximumBodySize(64 * 1024);
     m_httpServer.setConfiguration(configuration);
-    if (!m_httpServer.route("/mcp", this, [this](const QHttpServerRequest &request) {
-        return requestHandle(request);
-    })) {
+    if (!m_httpServer.route("/mcp", this, &McpService::requestHandle)) {
         const auto error = tr("Could not register the MCP endpoint.");
         detailSet(error.toHtmlEscaped());
         statusSet(Status::Error);
@@ -54,10 +53,13 @@ McpService::McpService(QObject *parent)
 QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest &request) {
     constexpr auto ModernVersion = "2026-07-28";
     constexpr auto LegacyVersion = "2025-11-25";
-    const QSet<QString> names{
+    static const QSet<QString> names{
         "api_list", "api_get", "demo_get",
         "port_list", "port_config_get", "port_create", "port_delete",
-        "diagnostics_get", "run_script"
+        "diagnostics_get", "run_script",
+        "debug_breakpoint_list", "debug_breakpoint_set", "debug_breakpoint_delete",
+        "debug_script", "debug_threads_get", "debug_call_stack_get",
+        "debug_resume", "debug_step_over", "debug_step_into", "debug_step_out"
     };
     const auto &headers = request.headers();
     const auto port = QByteArray::number(request.localPort());
