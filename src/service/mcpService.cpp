@@ -57,7 +57,7 @@ QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest 
     const QSet<QString> names{
         "api_list", "api_get", "demo_get",
         "port_list", "port_config_get", "port_create", "port_delete",
-        "diagnostics_get", "script_exec"
+        "diagnostics_get", "run_script"
     };
     const auto &headers = request.headers();
     const auto port = QByteArray::number(request.localPort());

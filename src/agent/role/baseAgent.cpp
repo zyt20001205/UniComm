@@ -34,13 +34,18 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "port_create",
                   "port_delete",
                   "vision_analyze",
-                  "script_exec",
+                  "run_script",
                   // debug toolset
-                  "debug_threads_get",
-                  "debug_call_stack_get",
                   "debug_breakpoint_list",
                   "debug_breakpoint_set",
-                  "debug_breakpoint_delete"
+                  "debug_breakpoint_delete",
+                  "debug_script",
+                  "debug_threads_get",
+                  "debug_call_stack_get",
+                  "debug_resume",
+                  "debug_step_over",
+                  "debug_step_into",
+                  "debug_step_out"
               }
           },
           {
@@ -59,7 +64,7 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   // "line_get",
                   // "line_set",
                   "memory_search",
-                  "script_exec"
+                  "run_script"
               }
           },
           {
@@ -90,13 +95,18 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "grep_search",
                   "line_get",
                   "line_set",
-                  "script_exec",
+                  "run_script",
                   // debug toolset
-                  "debug_threads_get",
-                  "debug_call_stack_get",
                   "debug_breakpoint_list",
                   "debug_breakpoint_set",
-                  "debug_breakpoint_delete"
+                  "debug_breakpoint_delete",
+                  "debug_script",
+                  "debug_threads_get",
+                  "debug_call_stack_get",
+                  "debug_resume",
+                  "debug_step_over",
+                  "debug_step_into",
+                  "debug_step_out"
               }
           }
       } {

@@ -38,7 +38,9 @@ ToolsModule::ToolsModule(McpModule *mcpModule, SqlModule *sqlModule, QObject *pa
       m_mcpModule(mcpModule),
       m_sqlModule(sqlModule),
       m_writeGroup{"directory_create", "directory_rename", "document_create", "document_rename", "line_set", "port_create", "debug_breakpoint_set", "debug_breakpoint_delete"},
-      m_fullAccessGroup{"directory_delete", "document_delete", "port_delete", "script_exec"} {
+      m_fullAccessGroup{
+          "directory_delete", "document_delete", "port_delete", "run_script", "debug_script", "debug_resume", "debug_step_over", "debug_step_into", "debug_step_out"
+      } {
 }
 
 void ToolsModule::initialize() {
@@ -880,12 +882,12 @@ void ToolsModule::initialize() {
                 }
             }
         },
-        // scriptExec
+        // runScript
         QJsonObject{
             {"type", "function"},
             {
                 "function", QJsonObject{
-                    {"name", "script_exec"},
+                    {"name", "run_script"},
                     {
                         "description",
                         "Execute the specified script and return a JSON object containing output (stdout), err (stderr), and truncated (whether either captured stream exceeded 64 KiB). Before execution, you must first call diagnostics_get to verify that there are no syntax errors or warnings. Use print or io.write to expose results; port communication logs remain in the Log panel."
@@ -914,40 +916,6 @@ void ToolsModule::initialize() {
             }
         },
         // debug toolset
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "debug_threads_get"},
-                    {"description", "List active debug threads with thread_id and status (Running, Paused, or Terminating). Paused threads include document_url and zero-based line when their top frame has a source location. Returns [] if none exist."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {"properties", QJsonObject{}},
-                            {"required", QJsonArray{}}
-                        }
-                    }
-                }
-            }
-        },
-        QJsonObject{
-            {"type", "function"},
-            {
-                "function", QJsonObject{
-                    {"name", "debug_call_stack_get"},
-                    {"description", "Get the saved call stack for one debug thread, outermost frame first and current frame last. Each frame has kind (Lua, C, or main), name, function_name (empty if unknown), document_url and zero-based line (-1 if unknown). Returns [] when the thread has no snapshot."},
-                    {
-                        "parameters", QJsonObject{
-                            {"type", "object"},
-                            {"properties", QJsonObject{
-                                {"thread_id", QJsonObject{{"type", "string"}, {"description", "Thread ID returned by debug_threads_get."}}}
-                            }},
-                            {"required", QJsonArray{"thread_id"}}
-                        }
-                    }
-                }
-            }
-        },
         QJsonObject{
             {"type", "function"},
             {
@@ -1011,6 +979,154 @@ void ToolsModule::initialize() {
                 }
             }
         },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_script"},
+                    {
+                        "description",
+                        "Start a Lua script in debug mode. Returns when the started thread first pauses or finishes. Set breakpoints before starting to stop at a specific line."
+                    },
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"document_url", QJsonObject{{"type", "string"}, {"description", "Local file URL of the Lua script."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"document_url"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_threads_get"},
+                    {
+                        "description",
+                        "List active debug threads with thread_id and status (Running, Paused, or Terminating). Paused threads include document_url and zero-based line when their top frame has a source location. Returns [] if none exist."
+                    },
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {"properties", QJsonObject{}},
+                            {"required", QJsonArray{}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_call_stack_get"},
+                    {
+                        "description",
+                        "Get the saved call stack for one debug thread, outermost frame first and current frame last. Each frame has kind (Lua, C, or main), name, function_name (empty if unknown), document_url and zero-based line (-1 if unknown). Returns [] when the thread has no snapshot."
+                    },
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"thread_id", QJsonObject{{"type", "string"}, {"description", "Thread ID returned by debug_threads_get."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_resume"},
+                    {"description", "Resume the specified paused debug thread. Returns its next pause location or its final output."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"thread_id", QJsonObject{{"type", "string"}, {"description", "Paused thread ID returned by debug_threads_get."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_step_over"},
+                    {"description", "Step over the current line in the specified paused debug thread, skipping nested calls. Returns its next pause location or its final output."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"thread_id", QJsonObject{{"type", "string"}, {"description", "Paused thread ID returned by debug_threads_get."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_step_into"},
+                    {
+                        "description",
+                        "Advance the specified paused debug thread to its next executable Lua line, entering a call if encountered. Returns its next pause location or its final output."
+                    },
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"thread_id", QJsonObject{{"type", "string"}, {"description", "Paused thread ID returned by debug_threads_get."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
+                    {"name", "debug_step_out"},
+                    {"description", "Run the specified paused debug thread until it returns to a shallower frame. Returns its next pause location or its final output."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {
+                                "properties", QJsonObject{
+                                    {"thread_id", QJsonObject{{"type", "string"}, {"description", "Paused thread ID returned by debug_threads_get."}}}
+                                }
+                            },
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
     };
 }
 
@@ -1059,9 +1175,6 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
     } else if (name == "demo_get") {
         const auto packageName = object.value("package_name").toString();
         chatText = QString("Read %1 demo").arg(packageName);
-    } else if (name == "grep_search") {
-        const auto pattern = object.value("pattern").toString();
-        chatText = QString("Grep \"%1\"").arg(pattern);
     } else if (name == "subagent_dispatch") {
         const auto tasks = object.value("tasks").toArray();
         chatText = tasks.size() == 1
@@ -1107,6 +1220,9 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
         const auto sourceName = QUrl(object.value("source_url").toString()).fileName();
         const auto targetName = QUrl(object.value("target_url").toString()).fileName();
         chatText = QString("Rename document %1 to %2").arg(sourceName, targetName);
+    } else if (name == "grep_search") {
+        const auto pattern = object.value("pattern").toString();
+        chatText = QString("Grep \"%1\"").arg(pattern);
     } else if (name == "line_get") {
         const auto documentName = QUrl(object.value("document_url").toString()).fileName();
         const auto startLine = object.value("start_line").toInt(-1);
@@ -1119,13 +1235,9 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
         chatText = QString("Apply %1 edits to %2").arg(object.value("edits").toArray().size()).arg(documentName);
     } else if (name == "memory_search") {
         chatText = QString("Search memory for \"%1\"").arg(object.value("query").toString());
-    } else if (name == "script_exec") {
+    } else if (name == "run_script") {
         const auto documentName = QUrl(object.value("document_url").toString()).fileName();
         chatText = QString("Run %1").arg(documentName);
-    } else if (name == "debug_threads_get") {
-        chatText = "List debug threads";
-    } else if (name == "debug_call_stack_get") {
-        chatText = QString("Get call stack for %1").arg(object.value("thread_id").toString());
     } else if (name == "debug_breakpoint_list") {
         chatText = "List breakpoints";
     } else if (name == "debug_breakpoint_set") {
@@ -1136,6 +1248,21 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
         const auto documentName = QUrl(object.value("document_url").toString()).fileName();
         const auto line = object.value("line").toInt(-1);
         chatText = QString("Delete breakpoint in %1 (line index %2)").arg(documentName, QString::number(line));
+    } else if (name == "debug_script") {
+        const auto documentName = QUrl(object.value("document_url").toString()).fileName();
+        chatText = QString("Debug %1").arg(documentName);
+    } else if (name == "debug_threads_get") {
+        chatText = "List debug threads";
+    } else if (name == "debug_call_stack_get") {
+        chatText = QString("Get call stack for %1").arg(object.value("thread_id").toString());
+    } else if (name == "debug_resume") {
+        chatText = QString("Resume thread %1").arg(object.value("thread_id").toString());
+    } else if (name == "debug_step_over") {
+        chatText = QString("Step over in thread %1").arg(object.value("thread_id").toString());
+    } else if (name == "debug_step_into") {
+        chatText = QString("Step into in thread %1").arg(object.value("thread_id").toString());
+    } else if (name == "debug_step_out") {
+        chatText = QString("Step out of the current frame in thread %1").arg(object.value("thread_id").toString());
     }
     return chatText.isEmpty() ? name : chatText;
 }
@@ -1197,7 +1324,7 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
         }
         return future;
     }
-    if (name == "script_exec") {
+    if (name == "run_script") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
         auto threadId = QSharedPointer<QString>::create();
         auto promise = QSharedPointer<QPromise<ToolResult> >::create();
@@ -1217,7 +1344,39 @@ QFuture<ToolResult> ToolsModule::toolExecute(const QString &name, const QString 
         *threadId = g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, RunMode::Run);
         return future;
     }
-    return QtFuture::makeReadyValueFuture(toolExecute(name, object, runtimeId));
+    // debug toolset
+    const auto debugResult = [](const QJsonObject &result) {
+        return ToolResult{
+            .content = QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact)),
+            .success = !result.contains("error") && result.value("output").toObject().value("err").toString().isEmpty()
+        };
+    };
+    if (name == "debug_script") {
+        const auto documentUrl = QUrl(object.value("document_url").toString());
+        if (!documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile()))
+            return QtFuture::makeReadyValueFuture(ToolResult{.content = "Expected a local document_url.", .success = false});
+        if (g_globalManager->documentModuleGet()->lineCountGet(documentUrl) < 0)
+            return QtFuture::makeReadyValueFuture(ToolResult{.content = "Script does not exist or is not readable.", .success = false});
+        const auto threadId = g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, RunMode::Debug);
+        if (threadId.isEmpty()) return QtFuture::makeReadyValueFuture(ToolResult{.content = "Could not start debug thread.", .success = false});
+        return g_globalManager->debugModuleGet()->debugWait(threadId).then(this, debugResult);
+    }
+    InterpreterState::Value state;
+    if (name == "debug_resume") state = InterpreterState::Resume;
+    else if (name == "debug_step_over") state = InterpreterState::StepOver;
+    else if (name == "debug_step_into") state = InterpreterState::StepInto;
+    else if (name == "debug_step_out") state = InterpreterState::StepOut;
+    else return QtFuture::makeReadyValueFuture(toolExecute(name, object, runtimeId));
+
+    const auto threadId = object.value("thread_id").toString();
+    auto *pool = g_globalManager->threadpoolModuleGet();
+    const auto thread = pool->threadsGet().value(threadId).toHash();
+    if (thread.value("status").value<ThreadStatus::Value>() != ThreadStatus::Paused)
+        return QtFuture::makeReadyValueFuture(ToolResult{.content = "Expected a paused debug thread_id.", .success = false});
+
+    auto wait = g_globalManager->debugModuleGet()->debugWait(threadId);
+    if (!wait.isFinished()) pool->interpreterStateSet(threadId, state);
+    return wait.then(this, debugResult);
 }
 
 ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &object, const QString &runtimeId) const {
@@ -1516,7 +1675,9 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
     if (name == "debug_breakpoint_set") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
         const auto line = object.value("line").toInt(-1);
-        if (!documentUrl.isValid() || !documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile())) return {.content = "Expected a local document_url.", .success = false};
+        if (!documentUrl.isValid() || !documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile())) return {
+            .content = "Expected a local document_url.", .success = false
+        };
         if (line < 0) return {.content = "Expected a zero-based integer line number.", .success = false};
         const auto lineCount = g_globalManager->documentModuleGet()->lineCountGet(documentUrl);
         if (lineCount < 0) return {.content = "Breakpoint set failed: document does not exist or is not readable.", .success = false};
@@ -1542,7 +1703,9 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
     if (name == "debug_breakpoint_delete") {
         const auto documentUrl = QUrl(object.value("document_url").toString());
         const auto line = object.value("line").toInt(-1);
-        if (!documentUrl.isValid() || !documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile())) return {.content = "Expected a local document_url.", .success = false};
+        if (!documentUrl.isValid() || !documentUrl.isLocalFile() || !QDir::isAbsolutePath(documentUrl.toLocalFile())) return {
+            .content = "Expected a local document_url.", .success = false
+        };
         if (line < 0) return {.content = "Expected a zero-based integer line number.", .success = false};
 
         auto *module = g_globalManager->breakpointModuleGet();
