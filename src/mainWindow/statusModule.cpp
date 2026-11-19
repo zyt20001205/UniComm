@@ -128,10 +128,9 @@ void StatusModule::selectionChange(const QHash<QString, int> &selection) const {
     m_positionButton->setProperty("text", QString("%1%2%3").arg(current, charsText, linesText));
 }
 
-void StatusModule::threadRefresh(const int run, const int debug, const int agent) const {
+void StatusModule::threadRefresh(const int run, const int debug) const {
     m_threadTooltip->setProperty("runCount", run);
     m_threadTooltip->setProperty("debugCount", debug);
-    m_threadTooltip->setProperty("agentCount", agent);
 }
 
 // private

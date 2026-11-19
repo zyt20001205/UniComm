@@ -3942,7 +3942,6 @@ Item {
         property point position
         property int runCount: 0
         property int debugCount: 0
-        property int agentCount: 0
 
         onOpened: {
             mainWindow.overlayFlagSet(false, false)
@@ -3963,10 +3962,6 @@ Item {
 
             Label {
                 text: qsTr("Debug: %1").arg(statusModuleThreadToolTip.debugCount)
-            }
-
-            Label {
-                text: qsTr("Agent: %1").arg(statusModuleThreadToolTip.agentCount)
             }
         }
     }

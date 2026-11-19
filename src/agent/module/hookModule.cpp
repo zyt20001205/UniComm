@@ -84,7 +84,7 @@ void HookModule::hookRun(const int event) const {
             m_toast->show(ToastLevel::Warning, tr("Hook"), tr("Hook script does not exist: %1").arg(documentUrl.toLocalFile()));
             continue;
         }
-        g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, RunMode::Agent);
+        g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, RunMode::Run);
     }
 }
 

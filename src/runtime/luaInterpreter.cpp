@@ -36,7 +36,7 @@
 LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
     : QObject(parent),
       m_luaSession(luaSession),
-      m_io(new IO(luaSession.value("threadId").toString(), luaSession.value("mode").value<RunMode::Value>() == RunMode::Agent, this)),
+      m_io(new IO(luaSession.value("threadId").toString(), this)),
       m_key(new Key(this)),
       m_mouse(new Mouse(this)),
       m_string(new String(this)),

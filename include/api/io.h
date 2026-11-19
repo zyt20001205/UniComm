@@ -19,7 +19,7 @@ class IO final : public QObject {
     Q_OBJECT
 
 public:
-    explicit IO(const QString &threadId, bool capture, QObject *parent = nullptr);
+    explicit IO(const QString &threadId, QObject *parent = nullptr);
 
     ~IO() override;
 
@@ -63,7 +63,6 @@ private:
     static constexpr qsizetype MaxStreamSize = 64 * 1024;
 
     QString m_threadId{};
-    bool m_capture{};
     void *m_inputWrite{};
     void *m_stdoutRead{};
     void *m_stderrRead{};
@@ -72,7 +71,7 @@ private:
     void *m_stderr{};
     QThread *m_stdoutThread{};
     QThread *m_stderrThread{};
-    QMutex m_outputMutex{};
+    QMutex m_mutex{};
     OutputBuffer m_output{};
 };
 

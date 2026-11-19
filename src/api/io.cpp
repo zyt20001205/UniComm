@@ -11,10 +11,9 @@
 #include "globals.h"
 #include "util/uniCast.h"
 
-IO::IO(const QString &threadId, const bool capture, QObject *parent)
+IO::IO(const QString &threadId, QObject *parent)
     : QObject(parent),
-      m_threadId(threadId),
-      m_capture(capture) {
+      m_threadId(threadId) {
 }
 
 IO::~IO() {
@@ -146,7 +145,7 @@ QJsonObject IO::finish() {
     }
     handleClose(m_stdoutRead);
     handleClose(m_stderrRead);
-    const QMutexLocker locker(&m_outputMutex);
+    const QMutexLocker locker(&m_mutex);
     return {
         {"output", QString::fromUtf8(m_output.output)},
         {"err", QString::fromUtf8(m_output.error)},
@@ -223,9 +222,7 @@ void IO::speak(const std::string &text) {
 
 // private
 void IO::append(const Stream stream, const QByteArray &data) {
-    if (!m_capture) return;
-
-    const QMutexLocker locker(&m_outputMutex);
+    const QMutexLocker locker(&m_mutex);
     auto &buffer = stream == Stream::Output ? m_output.output : m_output.error;
     const auto available = MaxStreamSize - buffer.size();
     if (available <= 0) {

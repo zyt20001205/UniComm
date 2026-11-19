@@ -163,7 +163,7 @@ Item {
             id: threadButton
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            text: qsTr("Threads: %1").arg(threadTooltip.runCount + threadTooltip.debugCount + threadTooltip.agentCount)
+            text: qsTr("Threads: %1").arg(threadTooltip.runCount + threadTooltip.debugCount)
             Layout.preferredWidth: threadButtonTextMetrics.width + 8; Layout.preferredHeight: 20
 
             onClicked: {

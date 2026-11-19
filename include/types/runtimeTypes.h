@@ -11,8 +11,7 @@ namespace RunMode {
 
     enum Value {
         Run,
-        Debug,
-        Agent
+        Debug
     };
 
     Q_ENUM_NS(Value)

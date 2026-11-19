@@ -22,7 +22,7 @@ ui = {}
 ---Pass nil for title to use the current threadId. The default button list is {"ok"}.
 ---OK or Enter returns true. Cancel, Escape, or closing the window returns false.
 ---Enter accepts only when an OK button is present.
----In Run/Agent mode, stopping the script closes its window and terminates the wait.
+---In Run mode, stopping the script closes its window and terminates the wait.
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param text string Plain text to display. Newlines are supported.
@@ -38,7 +38,7 @@ function ui.message(title, text, button) end
 ---OK or Enter in the input field returns the text, including an empty string.
 ---Cancel, Escape, or closing the window returns nil. No whitespace is trimmed.
 ---The result is always text; use tonumber or other Lua functions to convert it.
----In Run/Agent mode, stopping the script closes its window and terminates the wait.
+---In Run mode, stopping the script closes its window and terminates the wait.
 ---
 ---@param title? string (default: current threadId) Window title. Pass nil to use the default.
 ---@param text string Plain-text prompt. Newlines are supported.
@@ -57,7 +57,7 @@ function ui.input(title, text, value) end
 ---This only selects a path: it does not read, create, or overwrite file contents.
 ---Use standard Lua io to read or write the selected path yourself.
 ---Only the calling script waits; GUI event processing and other scripts continue.
----In Run/Agent mode, stopping the script closes the dialog and terminates the wait.
+---In Run mode, stopping the script closes the dialog and terminates the wait.
 ---
 ---@param title? string (default: current threadId) Dialog title. Pass nil to use the default.
 ---@param mode? FileDialogMode (default: "open") File selection mode.
