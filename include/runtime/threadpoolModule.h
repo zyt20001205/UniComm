@@ -37,7 +37,11 @@ public:
 
     void interpreterStateSet(const QString &threadId, InterpreterState::Value state) const;
 
-    Q_INVOKABLE void valueSet(const QString &threadId, const QString &documentUrl, const QString &expression, const QString &value, const QString &type) const;
+    void watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) const;
+
+    Q_INVOKABLE void watchResultRefresh(const QString &threadId) const;
+
+    Q_INVOKABLE void watchResultSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const;
 
 signals:
     void threadsChanged();

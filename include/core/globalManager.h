@@ -27,6 +27,7 @@ Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
 Q_MOC_INCLUDE("core/fileModule.h")
 Q_MOC_INCLUDE("core/undoModule.h")
+Q_MOC_INCLUDE("debug/debugModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
 Q_MOC_INCLUDE("document/documentModule.h")
 Q_MOC_INCLUDE("port/portModule.h")
@@ -43,6 +44,7 @@ class GlobalManager final : public QObject {
 
     // modules
     Q_PROPERTY(AgentModule* agentModule READ agentModuleGet CONSTANT)
+    Q_PROPERTY(DebugModule* debugModule READ debugModuleGet CONSTANT)
     Q_PROPERTY(DocumentModule* documentModule READ documentModuleGet CONSTANT)
     Q_PROPERTY(FileModule* fileModule READ fileModuleGet CONSTANT)
     Q_PROPERTY(GitModule* gitModule READ gitModuleGet CONSTANT)

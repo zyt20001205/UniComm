@@ -10,6 +10,7 @@
 #include "core/globalManager.h"
 #include "runtime/luaInterpreter.h"
 #include "document/documentModule.h"
+#include "debug/watchModule.h"
 #include "terminal/terminalPage.h"
 
 // public
@@ -66,11 +67,13 @@ QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const RunMode::Va
         luaSession.insert("state", QVariant::fromValue(InterpreterState::Resume));
         luaSession.insert("baseDepth", 0);
         luaSession.insert("currentDepth", 0);
+        luaSession.insert("expressions", QVariant::fromValue(g_globalManager->watchModuleGet()->watchExpressionsGet()));
     }
     auto *interpreter = new LuaInterpreter(luaSession); // NOLINT
     interpreter->moveToThread(worker);
 
     connect(interpreter, &LuaInterpreter::setCallStack, this, &ThreadpoolModule::setCallStack);
+    connect(interpreter, &LuaInterpreter::setWatchResults, g_globalManager->watchModuleGet(), &WatchModule::watchResultsSet);
     connect(interpreter, &LuaInterpreter::writeTerminal, this, &ThreadpoolModule::writeTerminal);
     connect(interpreter, &LuaInterpreter::appendLog, this, &ThreadpoolModule::appendLog);
     connect(worker, &QThread::started, [this, threadId, worker, output, interpreter, entry = std::move(entry)] {
@@ -121,17 +124,22 @@ void ThreadpoolModule::inputWrite(const QString &threadId, const QByteArray &dat
 }
 
 void ThreadpoolModule::interpreterStateSet(const QString &threadId, const InterpreterState::Value state) const {
-    if (auto *interpreter = interpreterGet(threadId)) {
-        QMetaObject::invokeMethod(interpreter, [interpreter, state] { interpreter->interpreterStateSet(state); }, Qt::BlockingQueuedConnection);
+    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::interpreterStateSet, Qt::QueuedConnection, state);
+}
+
+void ThreadpoolModule::watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) const {
+    for (const auto &[threadId, entry]: m_threads.asKeyValueRange()) {
+        if (entry.toHash().value("mode").value<RunMode::Value>() != RunMode::Debug) continue;
+        if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchExpressionsSet, Qt::QueuedConnection, expressions);
     }
 }
 
-void ThreadpoolModule::valueSet(const QString &threadId, const QString &documentUrl, const QString &expression, const QString &value, const QString &type) const {
-    if (auto *interpreter = interpreterGet(threadId)) {
-        QMetaObject::invokeMethod(interpreter, [interpreter, documentUrl, expression, value, type] {
-            interpreter->valueSet(documentUrl, expression, value, type);
-        }, Qt::BlockingQueuedConnection);
-    }
+void ThreadpoolModule::watchResultRefresh(const QString &threadId) const {
+    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchResultRefresh, Qt::QueuedConnection);
+}
+
+void ThreadpoolModule::watchResultSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const {
+    if (auto *interpreter = interpreterGet(threadId)) emit interpreter->setWatchResult(expression, value, type);
 }
 
 // private

@@ -1,27 +1,23 @@
 #include "debug/watchModule.h"
 
-#include <QJsonArray>
-#include <QQmlContext>
-#include <QQuickItem>
 #include <QQuickWidget>
-#include <QTimer>
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "debug/debugModule.h"
+#include "runtime/threadpoolModule.h"
 
 // public
 WatchModule::WatchModule()
     : DockWidget("Watch"),
-      m_widget(new QQuickWidget()) {
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
+      m_model(new QStandardItemModel(this)) {
     setWidget(m_widget);
-    m_model = new QStandardItemModel(this);
-    auto watchConfig = g_workspaceConfig["watchConfig"].toArray();
-    for (const auto &value: watchConfig) {
-        const auto pair = value.toArray();
-        const auto documentUrl = QUrl(pair[0].toString());
-        const QString expression = pair[1].toString();
-        watchInsert(-1, documentUrl, expression);
-    }
+    m_model->setItemRoleNames({
+        {Qt::DisplayRole, "display"},
+        {DocumentUrlRole, "documentUrl"},
+        {ResultRole, "result"}
+    });
 }
 
 WatchModule::~WatchModule() {
@@ -29,58 +25,61 @@ WatchModule::~WatchModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void WatchModule::propertySet(const QVariantHash &objects) {
-    m_widget->rootContext()->setContextProperty("watchModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
-    m_widget->rootContext()->setContextProperty("expressionMenu", qvariant_cast<QObject *>(objects["watchModuleExpressionMenu"]));
-    m_widget->rootContext()->setContextProperty("valueMenu", qvariant_cast<QObject *>(objects["watchModuleValueMenu"]));
-    m_widget->rootContext()->setContextProperty("rootMenu", qvariant_cast<QObject *>(objects["watchModuleRootMenu"]));
-
+void WatchModule::propertySet() {
+    const auto watches = g_workspaceConfig["watchConfig"].toArray();
+    for (const auto &watch: watches) {
+        const auto pair = watch.toArray();
+        watchExpressionAdd(QUrl(pair[0].toString()), pair[1].toString());
+    }
+    m_widget->setInitialProperties({{"watchModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/debug/watchModule.qml"));
-    m_item = m_widget->rootObject();
 }
 
-void WatchModule::watchConfigSave() {
-    auto watchArray = QJsonArray();
-    for (int i = 0; i < m_model->rowCount(); ++i) {
-        const QString url = m_model->item(i, 0)->data(Qt::WhatsThisRole).toString();
-        const QString expression = m_model->item(i, 0)->text();
-        watchArray.append(QJsonArray({url, expression}));
+void WatchModule::watchConfigSave() const {
+    QJsonArray watches{};
+    for (int row = 0; row < m_model->rowCount(); ++row) {
+        const auto *item = m_model->item(row);
+        watches.append(QJsonArray{item->data(DocumentUrlRole).toUrl().toString(), item->text()});
     }
-    g_workspaceConfig["watchConfig"] = watchArray;
+    g_workspaceConfig["watchConfig"] = watches;
 }
 
-void WatchModule::watchInsert(int index, const QUrl &documentUrl, const QString &expression) {
-    index = m_model->rowCount();
-    auto *expressionItem = new QStandardItem(expression); // NOLINT
-    expressionItem->setData(documentUrl, Qt::WhatsThisRole);
-    auto *valueItem = new QStandardItem("nil"); // NOLINT
-    valueItem->setData("nil", Qt::WhatsThisRole);
-    m_model->insertRow(index, {expressionItem, valueItem});
+QMultiHash<QUrl, QString> WatchModule::watchExpressionsGet() const {
+    QMultiHash<QUrl, QString> expressions{};
+    for (int row = 0; row < m_model->rowCount(); ++row) {
+        const auto *item = m_model->item(row);
+        const auto url = item->data(DocumentUrlRole).toUrl();
+        if (!expressions.contains(url, item->text())) expressions.insert(url, item->text());
+    }
+    return expressions;
 }
 
-void WatchModule::watchRemove(const int index) {
-    m_model->removeRow(index);
+void WatchModule::watchExpressionAdd(const QUrl &documentUrl, const QString &expression) {
+    if (documentUrl.isEmpty() || expression.trimmed().isEmpty()) return;
+    auto *item = new QStandardItem(expression.trimmed()); // NOLINT
+    item->setData(documentUrl, DocumentUrlRole);
+    item->setData(QVariantHash{}, ResultRole);
+    m_model->appendRow(item);
+    g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
 
-void WatchModule::watchRename(const int index, const QUrl &documentUrl, const QString &expression) {
-    m_model->item(index, 0)->setData(documentUrl, Qt::WhatsThisRole);
-    m_model->item(index, 0)->setText(expression);
+void WatchModule::watchExpressionDelete(const int row) {
+    if (!m_model->removeRow(row)) return;
+    g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
 
-void WatchModule::watchSwap(const int src, const int dst) const {
-    const auto tmp = m_model->takeRow(src);
-    m_model->insertRow(dst, tmp);
+void WatchModule::watchResultsReload() const {
+    for (int row = 0; row < m_model->rowCount(); ++row) m_model->item(row)->setData(QVariantHash{}, ResultRole);
+    const auto *debug = g_globalManager->debugModuleGet();
+    if (!debug->callStackGet().isEmpty()) g_globalManager->threadpoolModuleGet()->watchResultRefresh(debug->currentThreadGet());
 }
 
-void WatchModule::watchClear(const int index) {
-    if (index == -1) {
-        for (int i = 0; i < m_model->rowCount(); ++i) {
-            m_model->item(i, 1)->setText("");
-        }
-    } else {
-        m_model->item(index, 1)->setText("");
+void WatchModule::watchResultsSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const {
+    if (threadId != g_globalManager->debugModuleGet()->currentThreadGet()) return;
+    for (int row = 0; row < m_model->rowCount(); ++row) {
+        auto *item = m_model->item(row);
+        if (item->data(DocumentUrlRole).toUrl() != documentUrl) continue;
+        item->setData(results.value(item->text()).toHash(), ResultRole);
     }
 }

@@ -1,52 +1,52 @@
 #ifndef UNICOMM_WATCHMODULE_H
 #define UNICOMM_WATCHMODULE_H
 
-#include <QStandardItemModel>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
+#include <QStandardItemModel>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 class QQuickWidget;
 
-class WatchModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class WatchModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("WatchModule is created by C++.")
     Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
-    Q_PROPERTY(bool refresh READ refreshGet WRITE refreshSet)
 
 public:
     explicit WatchModule();
 
     ~WatchModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
-    [[nodiscard]] QStandardItemModel *modelGet() const {
-        return m_model;
-    }
+    void watchConfigSave() const;
 
-    [[nodiscard]] bool refreshGet() const {
-        return m_refresh;
-    }
+    [[nodiscard]] QStandardItemModel *modelGet() const { return m_model; }
 
-    void refreshSet(const bool refresh) {
-        m_refresh = refresh;
-    }
+    [[nodiscard]] QMultiHash<QUrl, QString> watchExpressionsGet() const;
 
-    void watchConfigSave();
+    Q_INVOKABLE void watchExpressionAdd(const QUrl &documentUrl, const QString &expression);
 
-    Q_INVOKABLE void watchInsert(int index, const QUrl &documentUrl, const QString &expression);
+    Q_INVOKABLE void watchExpressionDelete(int row);
 
-    Q_INVOKABLE void watchRemove(int index);
+    void watchResultsReload() const;
 
-    Q_INVOKABLE void watchRename(int index, const QUrl &documentUrl, const QString &expression);
+    void watchResultsSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const;
 
-    Q_INVOKABLE void watchSwap(int src, int dst) const;
+    enum Role {
+        DocumentUrlRole = Qt::UserRole + 1,
+        ResultRole
+    };
 
-    Q_INVOKABLE void watchClear(int index);
+    Q_ENUM(Role)
+
+signals:
+    void addWatch(const QUrl &documentUrl, const QString &expression);
 
 private:
     QQuickWidget *m_widget{};
-    QQuickItem *m_item{};
     QStandardItemModel *m_model{};
-    bool m_refresh = false;
 };
 
 #endif //UNICOMM_WATCHMODULE_H

@@ -100,7 +100,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
     m_overlay->rootContext()->setContextProperty("terminalModule", m_terminalModule);
     m_overlay->rootContext()->setContextProperty("undoModule", m_undoModule);
-    m_overlay->rootContext()->setContextProperty("watchModule", m_watchModule);
 
     m_overlay->rootContext()->setContextProperty("agentModuleAction", QVariant::fromValue(m_agentModule->toggleAction()));
     m_overlay->rootContext()->setContextProperty("breakpointModuleAction", QVariant::fromValue(m_breakpointModule->toggleAction()));
@@ -238,13 +237,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     m_threadpoolModule->propertySet();
 
-    const QVariantHash watchObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"watchModuleExpressionMenu", objects["watchModuleExpressionMenu"]},
-        {"watchModuleValueMenu", objects["watchModuleValueMenu"]},
-        {"watchModuleRootMenu", objects["watchModuleRootMenu"]}
-    };
-    m_watchModule->propertySet(watchObjects);
+    m_watchModule->propertySet();
 }
 
 void MainWindow::overlayFlagSet(const QVariant &transparent, const QVariant &focus) {
@@ -477,6 +470,7 @@ void MainWindow::moduleInit() {
     connect(m_debugModule, &DebugModule::setEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationSet);
     connect(m_debugModule, &DebugModule::setThreadStatus, m_threadpoolModule, &ThreadpoolModule::threadStatusSet);
     connect(m_debugModule, &DebugModule::setInterpreterState, m_threadpoolModule, &ThreadpoolModule::interpreterStateSet);
+    connect(m_debugModule, &DebugModule::callStackChanged, m_watchModule, &WatchModule::watchResultsReload);
 
     connect(m_diagnosticsModule, &DiagnosticsModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_diagnosticsModule, &DiagnosticsModule::fillIndicator, m_documentModule, &DocumentModule::indicatorFill);
