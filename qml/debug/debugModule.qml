@@ -78,22 +78,22 @@ Rectangle {
         ComboBox {
             id: threadComboBox
             Layout.fillWidth: true
-            readonly property var threads: global.threadpoolModule.threads
-            model: Object.keys(threads).filter(id => threads[id].mode === RunMode.Debug)
+            model: Object.entries(global.threadpoolModule.threads).filter(([, thread]) => thread.mode === RunMode.Debug)
             Accessible.name: qsTr("Debug thread")
             onModelChanged: {
-                currentIndex = model.length ? Math.max(0, model.indexOf(root.debugModule.currentThread)) : -1
-                root.debugModule.currentThread = model[currentIndex] ?? ""
+                const index = model.findIndex(([id]) => id === root.debugModule.currentThread)
+                currentIndex = model.length ? Math.max(0, index) : -1
+                root.debugModule.currentThread = model[currentIndex]?.[0] ?? ""
             }
-            onActivated: root.debugModule.currentThread = currentText
+            onActivated: index => root.debugModule.currentThread = model[index][0]
 
             component ThreadRow: RowLayout {
                 id: threadRow
-                required property string threadId
-                readonly property var status: threadComboBox.threads[threadId]?.status
+                required property var entry
+                readonly property var status: entry?.[1].status
 
                 Label {
-                    text: threadRow.threadId
+                    text: threadRow.entry?.[0] ?? ""
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
@@ -109,21 +109,21 @@ Rectangle {
             }
 
             contentItem: ThreadRow {
-                threadId: threadComboBox.currentText
+                entry: threadComboBox.model[threadComboBox.currentIndex]
             }
 
             delegate: ItemDelegate {
                 id: threadItem
                 required property int index
-                required property string modelData
+                required property var modelData
                 width: ListView.view.width
                 height: 24
                 leftPadding: 11; rightPadding: 6; topPadding: 0; bottomPadding: 0
-                text: modelData
+                text: modelData[0]
                 highlighted: threadComboBox.highlightedIndex === index
 
                 contentItem: ThreadRow {
-                    threadId: threadItem.modelData
+                    entry: threadItem.modelData
                 }
             }
 
