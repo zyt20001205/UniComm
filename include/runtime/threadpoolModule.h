@@ -3,41 +3,45 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QJsonObject>
-#include <QStandardItemModel>
+#include <QVariantHash>
+#include <QtQmlIntegration/qqmlintegration.h>
 
-#include "types/debugTypes.h"
+#include "types/runtimeTypes.h"
 
-class QTableWidget;
 class QQuickWidget;
 
 class LuaInterpreter;
-class ThreadpoolModel;
 
-class ThreadpoolModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class ThreadpoolModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("ThreadpoolModule is created by C++.")
+    Q_PROPERTY(QVariantHash threads READ threadsGet NOTIFY threadsChanged)
 
 public:
     explicit ThreadpoolModule();
 
     ~ThreadpoolModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
+
+    [[nodiscard]] QVariantHash threadsGet() const { return m_threads; }
 
     void quit();
 
-    Q_INVOKABLE QString threadStart(const QUrl &documentUrl, int mode, void *closure = nullptr);
+    Q_INVOKABLE QString threadStart(const QUrl &documentUrl, RunMode::Value mode, void *closure = nullptr);
 
-    Q_INVOKABLE void threadStop(const QString &threadId);
-
-    Q_INVOKABLE [[nodiscard]] bool debugging() const;
+    Q_INVOKABLE void threadStatusSet(const QString &threadId, ThreadStatus::Value status);
 
     void inputWrite(const QString &threadId, const QByteArray &data) const;
 
-    void stateSet(const QString &threadId, Debug::Value state);
+    void interpreterStateSet(const QString &threadId, InterpreterState::Value state) const;
 
-    Q_INVOKABLE void valueSet(const QString &threadId, const QString &documentUrl, const QString &expression, const QString &value, const QString &type);
+    Q_INVOKABLE void valueSet(const QString &threadId, const QString &documentUrl, const QString &expression, const QString &value, const QString &type) const;
 
 signals:
+    void threadsChanged();
+
     void openTerminal(const QString &id, int backend);
 
     void closeTerminal(const QString &id);
@@ -48,61 +52,15 @@ signals:
 
     void trackQuit(float secondaryProgress, const QString &secondaryLog) const;
 
-    void refreshThread(int run, int debug, int agent);
-
     void setCallStack(const QString &threadId, const QVariantList &frames);
-
-    void startDebug(const QString &threadId);
-
-    void stopDebug(const QString &threadId);
 
     void appendLog(int type, const QString &prefix, const QString &message);
 
 private:
-    void threadAppend(int mode, const QString &name, const QString &threadId);
+    [[nodiscard]] LuaInterpreter *interpreterGet(const QString &threadId) const;
 
     QQuickWidget *m_widget{};
-    QObject* m_errorDialog{};
-    QHash<QString, QThread *> m_threadHash{};
-    QHash<QString, LuaInterpreter *> m_interpreterHash{};
-    QString m_agentTerminalId{};
-    int m_run = 0;
-    int m_debug = 0;
-    int m_agent = 0;
-    ThreadpoolModel *m_standardItemModel{};
-    QString m_lifetime{};
-
-    enum {
-        ICON_COL,
-        NAME_COL,
-        SPAWN_COL,
-        THREADID_COL
-    };
-};
-
-class ThreadpoolModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit ThreadpoolModel(QObject *parent = nullptr);
-
-    enum Role {
-        ModeRole = Qt::UserRole + 1,
-        StatusRole,
-        ThreadIdRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-signals:
-    void emptyChanged();
+    QVariantHash m_threads{};
 };
 
 #endif //UNICOMM_THREADPOOL_H

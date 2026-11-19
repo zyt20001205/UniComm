@@ -1,223 +1,113 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
-Item {
+import UniComm
+
+Rectangle {
+    id: root
+    required property ThreadpoolModule threadpoolModule
     anchors.fill: parent
+    color: global.theme.general.back
 
-    Rectangle {
-        anchors.fill: parent
-        color: global.theme.general.back
+    RowLayout {
+        anchors.centerIn: parent
+        visible: listView.count === 0
+
+        Label {
+            text: qsTr("No active threads.")
+            font.pixelSize: 16
+        }
+
+        IconImage {
+            source: "qrc:/icon/snooze.svg"
+            color: global.theme.general.fore
+        }
     }
 
-    Item {
-        anchors.fill: parent
-        visible: standardItemModel.empty
+    Button {
+        id: stopButton
+        anchors.top: parent.top; anchors.right: parent.right
+        width: 24; height: 24
+        flat: true
+        leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+        icon.source: "qrc:/icon/stop.svg"
+        icon.width: 16; icon.height: 16
+        Accessible.name: qsTr("Terminate")
+        enabled: listView.currentItem !== null && listView.currentItem.thread.status !== ThreadStatus.Terminating
+        onClicked: root.threadpoolModule.threadStatusSet(listView.currentItem.threadId, ThreadStatus.Terminating)
 
-        RowLayout {
-            anchors.centerIn: parent
-
-            Label {
-                text: qsTr("No active threads.")
-                font.pixelSize: 16
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            IconImage {
-                source: "qrc:/icon/snooze.svg"
-                color: global.theme.general.fore
-                Layout.alignment: Qt.AlignVCenter
+        HoverHandler {
+            onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+            onPointChanged: {
+                mainTooltip.position = stopButton.mapToGlobal(point.position)
+                mainTooltip.text = stopButton.Accessible.name
             }
         }
     }
 
-    HorizontalHeaderView {
-        id: horizontalHeaderView
-        anchors.top: parent.top
-        width: parent.width; height: 32
-        syncView: tableView
+    ListView {
+        id: listView
+        anchors.left: parent.left; anchors.right: parent.right
+        anchors.top: stopButton.bottom; anchors.bottom: parent.bottom
         clip: true
-        interactive: false
-        visible: !standardItemModel.empty
-        delegate: HorizontalHeaderViewDelegate {
-            id: horizontalHeaderViewDelegate
-            required property int index
-
-            background: Rectangle {
-                color: "transparent"
-                border.width: 0
-            }
-
-            contentItem: Label {
-                anchors.fill: parent
-                elide: Text.ElideRight
-                leftPadding: 6
-                horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                text: horizontalHeader[horizontalHeaderViewDelegate.index]
-            }
-        }
-    }
-
-    TableView {
-        id: tableView
-        anchors.top: horizontalHeaderView.bottom; anchors.bottom: parent.bottom
-        width: parent.width
-        alternatingRows: false
-        clip: true
-        editTriggers: TableView.NoEditTriggers
-        rowSpacing: 1
-        model: standardItemModel
-        visible: !standardItemModel.empty
-        contentWidth: width
-        property int hoveredRow: -1
+        model: Object.entries(root.threadpoolModule.threads)
+        currentIndex: -1
+        focusPolicy: Qt.ClickFocus
+        keyNavigationEnabled: true
 
         ScrollBar.vertical: ScrollBar {
+            id: verticalScrollBar
             minimumSize: Math.min(1, 20 / Math.max(1, height))
-            policy: ScrollBar.AsNeeded
             palette {
                 mid: global.theme.general.stroke
                 dark: global.theme.general.strokePressed
             }
         }
 
-        Rectangle {
-            anchors.fill: parent
-            color: global.theme.general.stroke
-        }
+        delegate: ItemDelegate {
+            id: row
+            required property int index
+            required property var modelData
+            readonly property string threadId: modelData[0]
+            readonly property var thread: modelData[1]
+            width: listView.width
+            height: 24
+            leftPadding: 11; rightPadding: 6 + verticalScrollBar.width
+            topPadding: 0; bottomPadding: 0
+            focusPolicy: Qt.ClickFocus
+            highlighted: ListView.isCurrentItem
+            onClicked: listView.currentIndex = index
 
-        delegate: DelegateChooser {
-            DelegateChoice {
-                column: 0
-                delegate: iconCellDelegate
-            }
-            DelegateChoice {
-                delegate: textCellDelegate
-            }
-        }
-
-        Component {
-            id: iconCellDelegate
-
-            Item {
-                implicitWidth: 12; implicitHeight: 24
-                required property int row
+            contentItem: RowLayout {
+                spacing: 8
 
                 Rectangle {
-                    anchors.fill: parent
-                    color: global.theme.general.back
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    topRightRadius: 0; bottomRightRadius: 0
-                    color: global.theme.general.backHover
-                    opacity: tableView.hoveredRow === row ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
-                    }
-                }
-
-                Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3; height: 14
+                    Layout.preferredWidth: 3; Layout.preferredHeight: 14
                     radius: 1.5
-                    color: model.status === 0 ? global.theme.general.successBack3 :
-                           model.status === 1 ? global.theme.general.warningBack3 :
-                           model.status === 2 ? global.theme.general.brandBack : global.theme.general.dangerBack3
+                    color: row.thread.status === ThreadStatus.Terminating ? global.theme.general.dangerBack3
+                        : row.thread.status === ThreadStatus.Paused ? global.theme.general.warningBack3 : global.theme.general.successBack3
                 }
-
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (hovered) {
-                            tableView.hoveredRow = row
-                        } else if (tableView.hoveredRow === row) {
-                            tableView.hoveredRow = -1
-                        }
-                    }
-                }
-            }
-        }
-
-        Component {
-            id: textCellDelegate
-
-            Item {
-                implicitWidth: {
-                    if (column === tableView.columns - 1) {
-                        let usedWidth = 0
-                        for (let i = 0; i < tableView.columns - 1; i++) {
-                            usedWidth += tableView.columnWidth(i)
-                        }
-                        return tableView.width - usedWidth
-                    }
-                    return Math.max(textMetrics.width + 16, 60)
-                }
-                implicitHeight: 24
-                required property int column
-                required property int row
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    topLeftRadius: 0; bottomLeftRadius: 0
-                    topRightRadius: column === tableView.columns - 1 ? radius : 0
-                    bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: global.theme.general.back
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    topLeftRadius: 0; bottomLeftRadius: 0
-                    topRightRadius: column === tableView.columns - 1 ? radius : 0
-                    bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: global.theme.general.backHover
-                    opacity: tableView.hoveredRow === row ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
-                    }
-                }
-
-                TextMetrics {
-                    id: textMetrics
-                    font: label.font
-                    text: model.display || ""
-                }
-
                 Label {
-                    id: label
-                    anchors.fill: parent
-                    leftPadding: 6
-                    horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                    text: model.display
+                    text: row.threadId
+                    Layout.preferredWidth: 110
                     elide: Text.ElideRight
                 }
-
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (hovered) {
-                            tableView.hoveredRow = row
-                        } else if (tableView.hoveredRow === row) {
-                            tableView.hoveredRow = -1
-                        }
-                    }
+                Label {
+                    text: row.thread.createdAt
+                    Layout.preferredWidth: 165
+                    elide: Text.ElideRight
                 }
-
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    onTapped: {
-                        threadMenu.threadId = model.threadId
-                        threadMenu.popup()
-                    }
+                Label {
+                    text: row.thread.name
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
             }
+
         }
     }
 }

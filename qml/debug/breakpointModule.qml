@@ -86,7 +86,6 @@ Item {
                 currentIndex: -1
                 focusPolicy: Qt.ClickFocus
                 keyNavigationEnabled: true
-                highlightMoveDuration: 0
 
                 Keys.onDeletePressed: {
                     const breakpoint = root.selectedBreakpoint

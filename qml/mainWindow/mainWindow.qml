@@ -836,7 +836,7 @@ Item {
             text: qsTr("Run Here")
             icon.source: "qrc:/icon/debugContinue.svg"
             icon.width: 16; icon.height: 16
-            enabled: global.threadpoolModule.debugging > 0
+            enabled: debugModule.currentThread.length > 0
 
             HoverHandler {
                 onHoveredChanged: {
@@ -929,7 +929,6 @@ Item {
             focus: false
             keyNavigationEnabled: false
             keyNavigationWraps: false
-            highlightMoveDuration: 0
             flickableDirection: Flickable.VerticalFlick
             property int hoveredIndex: -1
 
@@ -1363,7 +1362,6 @@ Item {
             focus: false
             keyNavigationEnabled: false
             keyNavigationWraps: false
-            highlightMoveDuration: 0
             flickableDirection: Flickable.VerticalFlick
             property int hoveredIndex: -1
 
