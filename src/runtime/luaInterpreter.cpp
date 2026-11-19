@@ -492,16 +492,11 @@ void LuaInterpreter::stackSet(lua_State *L, lua_Debug *ar) {
         lua_getinfo(L, "nSl", ar);
         const QUrl documentUrl = ar->source[0] == '@' ? QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1)) : QUrl{};
         frames.prepend(QVariantHash{
+            {"kind", QString::fromUtf8(ar->what)},
             {"documentUrl", documentUrl},
             {"name", documentUrl.isEmpty() ? QString::fromUtf8(ar->short_src) : documentUrl.fileName()},
             {"line", ar->currentline > 0 ? ar->currentline - 1 : -1},
-            {
-                "functionName", QString::fromUtf8(ar->name
-                                                      ? ar->name
-                                                      : std::string_view{ar->what} == "main"
-                                                            ? "main"
-                                                            : "")
-            }
+            {"functionName", QString::fromUtf8(ar->name ? ar->name : "")}
         });
         level++;
     }

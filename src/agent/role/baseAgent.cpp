@@ -37,6 +37,7 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "script_exec",
                   // debug toolset
                   "debug_threads_get",
+                  "debug_call_stack_get",
                   "debug_breakpoint_list",
                   "debug_breakpoint_set",
                   "debug_breakpoint_delete"
@@ -92,6 +93,7 @@ BaseAgent::BaseAgent(QString id, QObject *parent)
                   "script_exec",
                   // debug toolset
                   "debug_threads_get",
+                  "debug_call_stack_get",
                   "debug_breakpoint_list",
                   "debug_breakpoint_set",
                   "debug_breakpoint_delete"

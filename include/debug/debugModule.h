@@ -33,7 +33,9 @@ public:
 
     void currentThreadSet(const QString &threadId);
 
-    [[nodiscard]] QVariantList callStackGet() const { return m_callStacks.value(m_currentThread); }
+    [[nodiscard]] QVariantList callStackGet() const { return callStackGet(m_currentThread); }
+
+    [[nodiscard]] QVariantList callStackGet(const QString &threadId) const { return m_callStacks.value(threadId); }
 
     Q_INVOKABLE void interpreterStateSet(InterpreterState::Value state);
 

@@ -934,6 +934,24 @@ void ToolsModule::initialize() {
             {"type", "function"},
             {
                 "function", QJsonObject{
+                    {"name", "debug_call_stack_get"},
+                    {"description", "Get the saved call stack for one debug thread, outermost frame first and current frame last. Each frame has kind (Lua, C, or main), name, function_name (empty if unknown), document_url and zero-based line (-1 if unknown). Returns [] when the thread has no snapshot."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {"properties", QJsonObject{
+                                {"thread_id", QJsonObject{{"type", "string"}, {"description", "Thread ID returned by debug_threads_get."}}}
+                            }},
+                            {"required", QJsonArray{"thread_id"}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
                     {"name", "debug_breakpoint_list"},
                     {"description", "List workspace breakpoints with document_url, file name (name), zero-based line, enabled and condition. Returns [] if none exist."},
                     {
@@ -1106,6 +1124,8 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
         chatText = QString("Run %1").arg(documentName);
     } else if (name == "debug_threads_get") {
         chatText = "List debug threads";
+    } else if (name == "debug_call_stack_get") {
+        chatText = QString("Get call stack for %1").arg(object.value("thread_id").toString());
     } else if (name == "debug_breakpoint_list") {
         chatText = "List breakpoints";
     } else if (name == "debug_breakpoint_set") {
@@ -1468,6 +1488,19 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
     // debug toolset
     if (name == "debug_threads_get") {
         const auto result = g_globalManager->debugModuleGet()->threadsGet();
+        return {.content = QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact))};
+    }
+    if (name == "debug_call_stack_get") {
+        const auto threadId = object.value("thread_id").toString();
+        if (threadId.isEmpty()) return {.content = "Expected a non-empty thread_id.", .success = false};
+        const auto frames = g_globalManager->debugModuleGet()->callStackGet(threadId);
+        QJsonArray result{};
+        for (const auto &frame: frames) {
+            auto row = QJsonObject::fromVariantHash(frame.toHash());
+            row["document_url"] = row.take("documentUrl");
+            row["function_name"] = row.take("functionName");
+            result.append(row);
+        }
         return {.content = QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact))};
     }
     if (name == "debug_breakpoint_list") {
