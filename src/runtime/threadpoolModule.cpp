@@ -134,8 +134,8 @@ void ThreadpoolModule::watchExpressionsSet(const QMultiHash<QUrl, QString> &expr
     }
 }
 
-void ThreadpoolModule::watchValueRefresh(const QString &threadId) const {
-    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchValueRefresh, Qt::QueuedConnection);
+void ThreadpoolModule::watchValuesGet(const QString &threadId) const {
+    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchValuesRefresh, Qt::QueuedConnection);
 }
 
 void ThreadpoolModule::watchValueSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const {

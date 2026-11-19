@@ -26,9 +26,9 @@ public:
 
     [[nodiscard]] QMultiHash<QUrl, QString> watchExpressionsGet() const;
 
-    Q_INVOKABLE void watchExpressionAdd(const QUrl &documentUrl, const QString &expression);
+    Q_INVOKABLE void watchExpressionAdd(const QUrl &documentUrl, const QString &expression) const;
 
-    Q_INVOKABLE void watchExpressionDelete(int row);
+    Q_INVOKABLE void watchExpressionDelete(int row) const;
 
     void watchValuesReload() const;
 

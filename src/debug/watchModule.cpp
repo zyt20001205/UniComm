@@ -55,7 +55,7 @@ QMultiHash<QUrl, QString> WatchModule::watchExpressionsGet() const {
     return expressions;
 }
 
-void WatchModule::watchExpressionAdd(const QUrl &documentUrl, const QString &expression) {
+void WatchModule::watchExpressionAdd(const QUrl &documentUrl, const QString &expression) const {
     if (documentUrl.isEmpty() || expression.trimmed().isEmpty()) return;
     auto *item = new QStandardItem(expression.trimmed()); // NOLINT
     item->setData(documentUrl, DocumentUrlRole);
@@ -64,7 +64,7 @@ void WatchModule::watchExpressionAdd(const QUrl &documentUrl, const QString &exp
     g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
 
-void WatchModule::watchExpressionDelete(const int row) {
+void WatchModule::watchExpressionDelete(const int row) const {
     if (!m_model->removeRow(row)) return;
     g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
@@ -72,7 +72,7 @@ void WatchModule::watchExpressionDelete(const int row) {
 void WatchModule::watchValuesReload() const {
     for (int row = 0; row < m_model->rowCount(); ++row) m_model->item(row)->setData(QVariantHash{}, ResultRole);
     const auto *debug = g_globalManager->debugModuleGet();
-    if (!debug->callStackGet().isEmpty()) g_globalManager->threadpoolModuleGet()->watchValueRefresh(debug->currentThreadGet());
+    if (!debug->callStackGet().isEmpty()) g_globalManager->threadpoolModuleGet()->watchValuesGet(debug->currentThreadGet());
 }
 
 void WatchModule::watchValuesSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const {
