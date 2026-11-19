@@ -14,6 +14,7 @@
 #include "agent/module/sqlModule.h"
 #include "agent/runtime/runtimeModule.h"
 #include "debug/breakpointModule.h"
+#include "debug/debugModule.h"
 #include "document/documentModule.h"
 #include "port/portModule.h"
 #include "runtime/threadpoolModule.h"
@@ -917,6 +918,22 @@ void ToolsModule::initialize() {
             {"type", "function"},
             {
                 "function", QJsonObject{
+                    {"name", "debug_threads_get"},
+                    {"description", "List active debug threads with thread_id and status (Running, Paused, or Terminating). Paused threads include document_url and zero-based line when their top frame has a source location. Returns [] if none exist."},
+                    {
+                        "parameters", QJsonObject{
+                            {"type", "object"},
+                            {"properties", QJsonObject{}},
+                            {"required", QJsonArray{}}
+                        }
+                    }
+                }
+            }
+        },
+        QJsonObject{
+            {"type", "function"},
+            {
+                "function", QJsonObject{
                     {"name", "debug_breakpoint_list"},
                     {"description", "List workspace breakpoints with document_url, file name (name), zero-based line, enabled and condition. Returns [] if none exist."},
                     {
@@ -1087,6 +1104,8 @@ QString ToolsModule::toolTextGet(const QString &name, const QString &arguments) 
     } else if (name == "script_exec") {
         const auto documentName = QUrl(object.value("document_url").toString()).fileName();
         chatText = QString("Run %1").arg(documentName);
+    } else if (name == "debug_threads_get") {
+        chatText = "List debug threads";
     } else if (name == "debug_breakpoint_list") {
         chatText = "List breakpoints";
     } else if (name == "debug_breakpoint_set") {
@@ -1447,6 +1466,10 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         return {.content = QString::fromUtf8(json.toJson(QJsonDocument::Compact))};
     }
     // debug toolset
+    if (name == "debug_threads_get") {
+        const auto result = g_globalManager->debugModuleGet()->threadsGet();
+        return {.content = QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact))};
+    }
     if (name == "debug_breakpoint_list") {
         QJsonArray result{};
         const auto rows = g_globalManager->breakpointModuleGet()->breakpointsGet();

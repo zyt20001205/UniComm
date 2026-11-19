@@ -426,6 +426,7 @@ void MainWindow::moduleInit() {
     m_mainConfig = g_workspaceConfig["mainConfig"].toObject();
     g_globalManager->agentModuleSet(m_agentModule);
     g_globalManager->breakpointModuleSet(m_breakpointModule);
+    g_globalManager->debugModuleSet(m_debugModule);
     g_globalManager->documentModuleSet(m_documentModule);
     g_globalManager->fileModuleSet(m_fileModule);
     g_globalManager->gitModuleSet(m_gitModule);

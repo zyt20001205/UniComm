@@ -656,7 +656,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                 }
                 // TODO: log/count
             }
-        } else if (state == InterpreterState::StepOver && session["currentDepth"].toInt() == session["baseDepth"].toInt()) This->interpreterStateSet(InterpreterState::Pause);
+        } else if (state == InterpreterState::StepOver && session["currentDepth"].toInt() <= session["baseDepth"].toInt()) This->interpreterStateSet(InterpreterState::Pause);
         else if (state == InterpreterState::StepOut && session["currentDepth"].toInt() < session["baseDepth"].toInt()) This->interpreterStateSet(InterpreterState::Pause);
         else if (state == InterpreterState::StepInto) This->interpreterStateSet(InterpreterState::Pause);
         else if (state == InterpreterState::RunToCursor && g_cursorPosition["url"].toUrl() == currentUrl && g_cursorPosition["line"].toInt() == currentLine)

@@ -9,6 +9,7 @@ class QQmlEngine;
 class AgentModule;
 class AudioService;
 class BreakpointModule;
+class DebugModule;
 class DocumentModule;
 class FileModule;
 class GitModule;
@@ -71,6 +72,14 @@ public:
 
     void breakpointModuleSet(BreakpointModule *module) {
         m_breakpointModule = module;
+    }
+
+    [[nodiscard]] DebugModule *debugModuleGet() const {
+        return m_debugModule;
+    }
+
+    void debugModuleSet(DebugModule *module) {
+        m_debugModule = module;
     }
 
     [[nodiscard]] DocumentModule *documentModuleGet() const {
@@ -203,6 +212,7 @@ private:
     ServiceModule *m_serviceModule{};
     AgentModule *m_agentModule{};
     BreakpointModule *m_breakpointModule{};
+    DebugModule *m_debugModule{};
     DocumentModule *m_documentModule{};
     FileModule *m_fileModule{};
     GitModule *m_gitModule{};

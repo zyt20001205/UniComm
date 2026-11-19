@@ -3,9 +3,9 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QHash>
+#include <QJsonArray>
 #include <QSet>
 #include <QUrl>
-#include <QVariantHash>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/runtimeTypes.h"
@@ -26,6 +26,8 @@ public:
     ~DebugModule() override;
 
     void propertySet();
+
+    [[nodiscard]] QJsonArray threadsGet() const;
 
     [[nodiscard]] QString currentThreadGet() const { return m_currentThread; }
 

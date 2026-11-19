@@ -5,6 +5,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "runtime/threadpoolModule.h"
 
 // public
 DebugModule::DebugModule()
@@ -22,6 +23,30 @@ void DebugModule::propertySet() {
     m_widget->setInitialProperties({{"debugModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/debug/debugModule.qml"));
+}
+
+QJsonArray DebugModule::threadsGet() const {
+    QJsonArray result{};
+    const auto threads = g_globalManager->threadpoolModuleGet()->threadsGet();
+    const auto statuses = QMetaEnum::fromType<ThreadStatus::Value>();
+    for (const auto &[threadId, entry]: threads.asKeyValueRange()) {
+        const auto thread = entry.toHash();
+        if (thread.value("mode").value<RunMode::Value>() != RunMode::Debug) continue;
+        const auto status = thread.value("status").value<ThreadStatus::Value>();
+        QJsonObject row{{"thread_id", threadId}, {"status", QString::fromLatin1(statuses.valueToKey(status))}};
+        const auto stack = m_callStacks.constFind(threadId);
+        if (status == ThreadStatus::Paused && stack != m_callStacks.cend()) {
+            const auto frame = stack->constLast().toHash();
+            const auto url = frame.value("documentUrl").toUrl();
+            const int line = frame.value("line").toInt();
+            if (!url.isEmpty() && line >= 0) {
+                row.insert("document_url", url.toString());
+                row.insert("line", line);
+            }
+        }
+        result.append(row);
+    }
+    return result;
 }
 
 void DebugModule::currentThreadSet(const QString &threadId) {
