@@ -90,16 +90,15 @@ Rectangle {
             component ThreadRow: RowLayout {
                 id: threadRow
                 required property var entry
-                readonly property var status: entry?.[1].status
+                readonly property int status: entry[1].status
 
                 Label {
-                    text: threadRow.entry?.[0] ?? ""
+                    text: threadRow.entry[0]
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
 
                 IconImage {
-                    visible: threadRow.status !== undefined
                     Layout.preferredWidth: 16; Layout.preferredHeight: 16
                     source: threadRow.status === ThreadStatus.Paused ? "qrc:/icon/pause.svg"
                           : threadRow.status === ThreadStatus.Terminating ? "qrc:/icon/stop.svg" : "qrc:/icon/play.svg"
@@ -108,8 +107,11 @@ Rectangle {
                 }
             }
 
-            contentItem: ThreadRow {
-                entry: threadComboBox.model[threadComboBox.currentIndex]
+            contentItem: Loader {
+                id: currentThreadLoader
+                readonly property var entry: threadComboBox.model[threadComboBox.currentIndex]
+                active: !!entry
+                sourceComponent: ThreadRow { entry: currentThreadLoader.entry }
             }
 
             delegate: ItemDelegate {
