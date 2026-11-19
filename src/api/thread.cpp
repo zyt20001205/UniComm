@@ -20,7 +20,10 @@ std::string Thread::start(const sol::object &fn, const QUrl &documentUrl, const 
 }
 
 void Thread::stop(const std::string &threadId) {
-    QMetaObject::invokeMethod(g_globalManager->threadpoolModuleGet(), [id = QString::fromStdString(threadId)] { g_globalManager->threadpoolModuleGet()->threadStop(id); });
+    auto *threadpool = g_globalManager->threadpoolModuleGet();
+    QMetaObject::invokeMethod(threadpool, [threadpool, id = QString::fromStdString(threadId)] {
+        threadpool->threadStatusSet(id, ThreadStatus::Terminating);
+    });
 }
 
 void Thread::sleep(const int ms) {
