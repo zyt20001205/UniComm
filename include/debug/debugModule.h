@@ -2,8 +2,10 @@
 #define UNICOMM_DEBUG_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
+#include <QFuture>
 #include <QHash>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QSet>
 #include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -41,6 +43,8 @@ public:
 
     void callStackSet(const QString &threadId, const QVariantList &frames);
 
+    [[nodiscard]] QFuture<QJsonObject> debugWait(const QString &threadId);
+
 signals:
     void currentThreadChanged();
 
@@ -67,9 +71,12 @@ signals:
 private:
     void debugRefresh();
 
+    [[nodiscard]] static QJsonObject threadInfo(const QString &threadId, ThreadStatus::Value status, const QVariantList &frames);
+
     QQuickWidget *m_widget{};
     QString m_currentThread{};
     QHash<QString, QVariantList> m_callStacks{};
+    QSet<QString> m_waitingThreads{};
     QSet<QUrl> m_markedUrls{};
 };
 

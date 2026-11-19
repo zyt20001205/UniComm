@@ -1,6 +1,8 @@
 #include "debug/debugModule.h"
 
+#include <QPromise>
 #include <QQuickWidget>
+#include <QSharedPointer>
 #include <QStringList>
 
 #include "globals.h"
@@ -28,23 +30,11 @@ void DebugModule::propertySet() {
 QJsonArray DebugModule::threadsGet() const {
     QJsonArray result{};
     const auto threads = g_globalManager->threadpoolModuleGet()->threadsGet();
-    const auto statuses = QMetaEnum::fromType<ThreadStatus::Value>();
     for (const auto &[threadId, entry]: threads.asKeyValueRange()) {
         const auto thread = entry.toHash();
         if (thread.value("mode").value<RunMode::Value>() != RunMode::Debug) continue;
         const auto status = thread.value("status").value<ThreadStatus::Value>();
-        QJsonObject row{{"thread_id", threadId}, {"status", QString::fromLatin1(statuses.valueToKey(status))}};
-        const auto stack = m_callStacks.constFind(threadId);
-        if (status == ThreadStatus::Paused && stack != m_callStacks.cend()) {
-            const auto frame = stack->constLast().toHash();
-            const auto url = frame.value("documentUrl").toUrl();
-            const int line = frame.value("line").toInt();
-            if (!url.isEmpty() && line >= 0) {
-                row.insert("document_url", url.toString());
-                row.insert("line", line);
-            }
-        }
-        result.append(row);
+        result.append(threadInfo(threadId, status, m_callStacks.value(threadId)));
     }
     return result;
 }
@@ -77,6 +67,35 @@ void DebugModule::callStackSet(const QString &threadId, const QVariantList &fram
     debugRefresh();
 }
 
+QFuture<QJsonObject> DebugModule::debugWait(const QString &threadId) {
+    auto *pool = g_globalManager->threadpoolModuleGet();
+    const auto thread = pool->threadsGet().value(threadId).toHash();
+    if (thread.value("mode").value<RunMode::Value>() != RunMode::Debug)
+        return QtFuture::makeReadyValueFuture(QJsonObject{{"error", "Expected an active debug thread."}});
+    if (m_waitingThreads.contains(threadId))
+        return QtFuture::makeReadyValueFuture(QJsonObject{{"error", "Already waiting for this thread."}});
+    m_waitingThreads.insert(threadId);
+    auto promise = QSharedPointer<QPromise<QJsonObject> >::create();
+    promise->start();
+    auto *request = new QObject(this);
+    const auto finish = [this, threadId, pool, request, promise](const QJsonObject &result) {
+        disconnect(pool, nullptr, request, nullptr);
+        request->deleteLater();
+        m_waitingThreads.remove(threadId);
+        promise->addResult(result);
+        promise->finish();
+    };
+    connect(pool, &ThreadpoolModule::setCallStack, request, [pool, threadId, finish](const QString &id, const QVariantList &frames) {
+        if (id != threadId || frames.isEmpty()) return;
+        const auto status = pool->threadsGet().value(id).toHash().value("status").value<ThreadStatus::Value>();
+        if (status == ThreadStatus::Paused) finish(threadInfo(id, status, frames));
+    });
+    connect(pool, &ThreadpoolModule::finishThread, request, [threadId, finish](const QString &id, const QJsonObject &output) {
+        if (id == threadId) finish(QJsonObject{{"thread_id", id}, {"status", "Finished"}, {"output", output}});
+    });
+    return promise->future();
+}
+
 // private
 void DebugModule::debugRefresh() {
     for (const auto &url: m_markedUrls) {
@@ -106,4 +125,18 @@ void DebugModule::debugRefresh() {
             emit setEolAnnotation(url, line, threads.join(", "));
         }
     }
+}
+
+QJsonObject DebugModule::threadInfo(const QString &threadId, const ThreadStatus::Value status, const QVariantList &frames) {
+    QJsonObject row{{"thread_id", threadId}, {"status", QString::fromLatin1(QMetaEnum::fromType<ThreadStatus::Value>().valueToKey(status))}};
+    if (status == ThreadStatus::Paused && !frames.isEmpty()) {
+        const auto frame = frames.constLast().toHash();
+        const auto url = frame.value("documentUrl").toUrl();
+        const int line = frame.value("line").toInt();
+        if (!url.isEmpty() && line >= 0) {
+            row.insert("document_url", url.toString());
+            row.insert("line", line);
+        }
+    }
+    return row;
 }
