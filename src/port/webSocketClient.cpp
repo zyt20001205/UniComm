@@ -311,15 +311,15 @@ bool UWebSocket::waitForConnected(const int msecs) {
     if (state() == QAbstractSocket::ConnectedState) return true;
     if (state() == QAbstractSocket::UnconnectedState) return false;
 
-    QEventLoop eventLoop{};
+    QEventLoop loop{};
     QTimer timer{};
     timer.setSingleShot(true);
-    connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
-    connect(this, &QWebSocket::connected, &eventLoop, &QEventLoop::quit);
-    connect(this, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
-    connect(this, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    connect(this, &QWebSocket::connected, &loop, &QEventLoop::quit);
+    connect(this, &QWebSocket::errorOccurred, &loop, &QEventLoop::quit);
+    connect(this, &QWebSocket::disconnected, &loop, &QEventLoop::quit);
     if (msecs >= 0) timer.start(msecs);
-    eventLoop.exec();
+    loop.exec();
     if (state() == QAbstractSocket::ConnectedState) return true;
     abort();
     return false;
@@ -332,23 +332,23 @@ bool UWebSocket::waitForReadyRead(const int msecs) {
 bool UWebSocket::waitForReadyRead(QWebSocket *socket, const int msecs) {
     if (socket->state() != QAbstractSocket::ConnectedState) return false;
 
-    QEventLoop eventLoop{};
+    QEventLoop loop{};
     QTimer timer{};
     bool ready = false;
     timer.setSingleShot(true);
-    connect(socket, &QWebSocket::binaryMessageReceived, &eventLoop, [&] {
+    connect(socket, &QWebSocket::binaryMessageReceived, &loop, [&] {
         ready = true;
-        eventLoop.quit();
+        loop.quit();
     });
-    connect(socket, &QWebSocket::textMessageReceived, &eventLoop, [&] {
+    connect(socket, &QWebSocket::textMessageReceived, &loop, [&] {
         ready = true;
-        eventLoop.quit();
+        loop.quit();
     });
-    connect(socket, &QWebSocket::disconnected, &eventLoop, &QEventLoop::quit);
-    connect(socket, &QWebSocket::errorOccurred, &eventLoop, &QEventLoop::quit);
-    connect(&timer, &QTimer::timeout, &eventLoop, &QEventLoop::quit);
+    connect(socket, &QWebSocket::disconnected, &loop, &QEventLoop::quit);
+    connect(socket, &QWebSocket::errorOccurred, &loop, &QEventLoop::quit);
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
     if (msecs >= 0) timer.start(msecs);
-    eventLoop.exec();
+    loop.exec();
     return ready;
 }

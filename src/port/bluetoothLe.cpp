@@ -113,7 +113,7 @@ bool BluetoothLe::open() {
         }
         if (!m_peripheral.initialized()) {
             auto adapter = m_adapter;
-            QEventLoop eventLoop;
+            QEventLoop loop;
             const auto cleanup = qScopeGuard([this, &adapter] {
                 adapter.set_callback_on_scan_found(nullptr);
                 adapter.set_callback_on_scan_updated(nullptr);
@@ -125,22 +125,22 @@ bool BluetoothLe::open() {
                     emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "scan stop failed");
                 }
             });
-            const auto discovered = [this, &eventLoop, &peripheralAddress](SimpleBLE::Peripheral peripheral) {
+            const auto discovered = [this, &loop, &peripheralAddress](SimpleBLE::Peripheral peripheral) {
                 if (QString::fromStdString(peripheral.address()).compare(peripheralAddress, Qt::CaseInsensitive) != 0) return;
-                QMetaObject::invokeMethod(&eventLoop, [this, &eventLoop, peripheral] {
+                QMetaObject::invokeMethod(&loop, [this, &loop, peripheral] {
                     if (m_state != State::Connecting || m_peripheral.initialized()) return;
                     m_peripheral = peripheral;
-                    eventLoop.quit();
+                    loop.quit();
                 }, Qt::QueuedConnection);
             };
-            connect(this, &BasePort::refreshPort, &eventLoop, [this, &eventLoop] {
-                if (m_state != State::Connecting) eventLoop.quit();
+            connect(this, &BasePort::refreshPort, &loop, [this, &loop] {
+                if (m_state != State::Connecting) loop.quit();
             });
             adapter.set_callback_on_scan_found(discovered);
             adapter.set_callback_on_scan_updated(discovered);
-            QTimer::singleShot(5000, &eventLoop, &QEventLoop::quit);
+            QTimer::singleShot(5000, &loop, &QEventLoop::quit);
             adapter.scan_start();
-            eventLoop.exec();
+            loop.exec();
         }
         if (m_state != State::Connecting) return false;
         if (!m_peripheral.initialized()) throw std::runtime_error("peripheral not found");
@@ -281,12 +281,12 @@ QByteArray BluetoothLe::read(const int length, const int timeout, const QString 
     if (!subscription || length < 0) return {};
     const int minimum = length == 0 ? 1 : length;
     const QDeadlineTimer deadline(timeout);
-    QEventLoop eventLoop;
+    QEventLoop loop;
     while (subscription->buffer.used() < minimum) {
         if (!subscription->active || m_state != State::Connected || deadline.hasExpired()) break;
         const auto interval = deadline.isForever() ? 10 : static_cast<int>(qMin<qint64>(10, deadline.remainingTime()));
-        QTimer::singleShot(interval, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
+        QTimer::singleShot(interval, &loop, &QEventLoop::quit);
+        loop.exec();
     }
     if (!subscription->active || m_state != State::Connected) return {};
     return subscription->buffer.read(length, peek);
@@ -296,13 +296,13 @@ QByteArray BluetoothLe::readUntil(const QByteArray &text, const int timeout, con
     const auto subscription = m_services.value(serviceUuid).value(characteristicUuid).subscription;
     if (!subscription || text.isEmpty()) return {};
     const QDeadlineTimer deadline(timeout);
-    QEventLoop eventLoop;
+    QEventLoop loop;
     QByteArray data = subscription->buffer.readUntil(text, peek);
     while (data.isEmpty()) {
         if (!subscription->active || m_state != State::Connected || deadline.hasExpired()) break;
         const auto interval = deadline.isForever() ? 10 : static_cast<int>(qMin<qint64>(10, deadline.remainingTime()));
-        QTimer::singleShot(interval, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
+        QTimer::singleShot(interval, &loop, &QEventLoop::quit);
+        loop.exec();
         if (!subscription->active || m_state != State::Connected) return {};
         data = subscription->buffer.readUntil(text, peek);
     }

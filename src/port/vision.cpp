@@ -64,22 +64,22 @@ bool Vision::open() {
         return false;
     }
     // port open
-    QEventLoop eventLoop;
+    QEventLoop loop;
     bool frameReady = false;
-    connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &frameReady](const QVideoFrame &frame) {
+    connect(m_videoSink, &QVideoSink::videoFrameChanged, &loop, [&loop, &frameReady](const QVideoFrame &frame) {
         if (!frame.isValid()) return;
         frameReady = true;
-        eventLoop.quit();
+        loop.quit();
     });
     if (m_screenCapture) {
-        connect(m_screenCapture, &QScreenCapture::errorOccurred, &eventLoop, &QEventLoop::quit);
+        connect(m_screenCapture, &QScreenCapture::errorOccurred, &loop, &QEventLoop::quit);
         m_screenCapture->start();
     } else {
-        connect(m_cameraCapture, &QCamera::errorOccurred, &eventLoop, &QEventLoop::quit);
+        connect(m_cameraCapture, &QCamera::errorOccurred, &loop, &QEventLoop::quit);
         m_cameraCapture->start();
     }
-    QTimer::singleShot(30000, &eventLoop, &QEventLoop::quit);
-    if (!frameReady) eventLoop.exec();
+    QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+    if (!frameReady) loop.exec();
     if (!frameReady) {
         if (m_screenCapture) m_screenCapture->stop();
         else m_cameraCapture->stop();
@@ -195,13 +195,13 @@ QVariantList Vision::read(const int timeout) {
 
 // private
 QImage Vision::snapshot(const int timeout) const {
-    QEventLoop eventLoop;
+    QEventLoop loop;
     QImage image{};
-    connect(m_videoSink, &QVideoSink::videoFrameChanged, &eventLoop, [&eventLoop, &image](const QVideoFrame &frame) {
+    connect(m_videoSink, &QVideoSink::videoFrameChanged, &loop, [&loop, &image](const QVideoFrame &frame) {
         image = frame.toImage();
-        eventLoop.quit();
+        loop.quit();
     });
-    if (timeout > 0) QTimer::singleShot(timeout, &eventLoop, &QEventLoop::quit);
-    eventLoop.exec();
+    if (timeout > 0) QTimer::singleShot(timeout, &loop, &QEventLoop::quit);
+    loop.exec();
     return image;
 }
