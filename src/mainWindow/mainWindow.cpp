@@ -218,8 +218,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     const QVariantHash statusObjects = {
         {"statusModuleEolModeMenu", objects["statusModuleEolModeMenu"]},
-        {"statusModuleBackgroundToolTip", objects["statusModuleBackgroundToolTip"]},
-        {"statusModuleThreadToolTip", objects["statusModuleThreadToolTip"]}
+        {"statusModuleBackgroundToolTip", objects["statusModuleBackgroundToolTip"]}
     };
     m_statusModule->propertySet(statusObjects);
 
@@ -521,7 +520,6 @@ void MainWindow::moduleInit() {
     connect(m_structureModule, &StructureModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
 
     connect(m_threadpoolModule, &ThreadpoolModule::trackQuit, this, &MainWindow::quitTrack);
-    connect(m_threadpoolModule, &ThreadpoolModule::refreshThread, m_statusModule, &StatusModule::threadRefresh);
     connect(m_threadpoolModule, &ThreadpoolModule::setCallStack, m_debugModule, &DebugModule::callStackSet);
     connect(m_threadpoolModule, &ThreadpoolModule::openTerminal, m_terminalModule, &TerminalModule::terminalOpen);
     connect(m_threadpoolModule, &ThreadpoolModule::closeTerminal, m_terminalModule, &TerminalModule::terminalClose);

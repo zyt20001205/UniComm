@@ -20,7 +20,6 @@ StatusModule::~StatusModule() {
 }
 
 void StatusModule::propertySet(const QVariantHash &objects) {
-    m_threadTooltip = qvariant_cast<QObject *>(objects["statusModuleThreadToolTip"]);
     auto *backgroundTooltip = qvariant_cast<QObject *>(objects["statusModuleBackgroundToolTip"]);
     backgroundTooltip->setProperty("backgroundModel", QVariant::fromValue<QObject *>(m_backgroundModel));
     rootContext()->setContextProperty("global", g_globalManager);
@@ -28,7 +27,6 @@ void StatusModule::propertySet(const QVariantHash &objects) {
     rootContext()->setContextProperty("statusModule", this);
     rootContext()->setContextProperty("workspaceName", g_workspaceUrl.fileName());
     rootContext()->setContextProperty("eolModeMenu", qvariant_cast<QObject *>(objects["statusModuleEolModeMenu"]));
-    rootContext()->setContextProperty("threadTooltip", m_threadTooltip);
     rootContext()->setContextProperty("backgroundTooltip", backgroundTooltip);
     rootContext()->setContextProperty("backgroundModel", m_backgroundModel);
     setResizeMode(SizeRootObjectToView);
@@ -126,11 +124,6 @@ void StatusModule::selectionChange(const QHash<QString, int> &selection) const {
     const auto charsText = selection["characters"] == 0 ? "" : QString(" [%1 chars]").arg(QString::number(selection["characters"]));
     const auto linesText = selection["lines"] == 0 ? "" : QString(" [%1 lines]").arg(QString::number(selection["lines"]));
     m_positionButton->setProperty("text", QString("%1%2%3").arg(current, charsText, linesText));
-}
-
-void StatusModule::threadRefresh(const int run, const int debug) const {
-    m_threadTooltip->setProperty("runCount", run);
-    m_threadTooltip->setProperty("debugCount", debug);
 }
 
 // private
