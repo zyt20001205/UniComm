@@ -39,9 +39,9 @@ public:
 
     void watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) const;
 
-    Q_INVOKABLE void watchResultRefresh(const QString &threadId) const;
+    Q_INVOKABLE void watchValueRefresh(const QString &threadId) const;
 
-    Q_INVOKABLE void watchResultSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const;
+    Q_INVOKABLE void watchValueSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const;
 
 signals:
     void threadsChanged();

@@ -73,7 +73,7 @@ QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const RunMode::Va
     interpreter->moveToThread(worker);
 
     connect(interpreter, &LuaInterpreter::setCallStack, this, &ThreadpoolModule::setCallStack);
-    connect(interpreter, &LuaInterpreter::setWatchResults, g_globalManager->watchModuleGet(), &WatchModule::watchResultsSet);
+    connect(interpreter, &LuaInterpreter::setWatchValues, g_globalManager->watchModuleGet(), &WatchModule::watchValuesSet);
     connect(interpreter, &LuaInterpreter::writeTerminal, this, &ThreadpoolModule::writeTerminal);
     connect(interpreter, &LuaInterpreter::appendLog, this, &ThreadpoolModule::appendLog);
     connect(worker, &QThread::started, [this, threadId, worker, output, interpreter, entry = std::move(entry)] {
@@ -134,12 +134,12 @@ void ThreadpoolModule::watchExpressionsSet(const QMultiHash<QUrl, QString> &expr
     }
 }
 
-void ThreadpoolModule::watchResultRefresh(const QString &threadId) const {
-    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchResultRefresh, Qt::QueuedConnection);
+void ThreadpoolModule::watchValueRefresh(const QString &threadId) const {
+    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchValueRefresh, Qt::QueuedConnection);
 }
 
-void ThreadpoolModule::watchResultSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const {
-    if (auto *interpreter = interpreterGet(threadId)) emit interpreter->setWatchResult(expression, value, type);
+void ThreadpoolModule::watchValueSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const {
+    if (auto *interpreter = interpreterGet(threadId)) emit interpreter->setWatchValue(expression, value, type);
 }
 
 // private

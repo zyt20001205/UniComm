@@ -69,13 +69,13 @@ void WatchModule::watchExpressionDelete(const int row) {
     g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
 
-void WatchModule::watchResultsReload() const {
+void WatchModule::watchValuesReload() const {
     for (int row = 0; row < m_model->rowCount(); ++row) m_model->item(row)->setData(QVariantHash{}, ResultRole);
     const auto *debug = g_globalManager->debugModuleGet();
-    if (!debug->callStackGet().isEmpty()) g_globalManager->threadpoolModuleGet()->watchResultRefresh(debug->currentThreadGet());
+    if (!debug->callStackGet().isEmpty()) g_globalManager->threadpoolModuleGet()->watchValueRefresh(debug->currentThreadGet());
 }
 
-void WatchModule::watchResultsSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const {
+void WatchModule::watchValuesSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const {
     if (threadId != g_globalManager->debugModuleGet()->currentThreadGet()) return;
     for (int row = 0; row < m_model->rowCount(); ++row) {
         auto *item = m_model->item(row);

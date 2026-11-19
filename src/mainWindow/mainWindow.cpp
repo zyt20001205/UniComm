@@ -470,7 +470,7 @@ void MainWindow::moduleInit() {
     connect(m_debugModule, &DebugModule::setEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationSet);
     connect(m_debugModule, &DebugModule::setThreadStatus, m_threadpoolModule, &ThreadpoolModule::threadStatusSet);
     connect(m_debugModule, &DebugModule::setInterpreterState, m_threadpoolModule, &ThreadpoolModule::interpreterStateSet);
-    connect(m_debugModule, &DebugModule::callStackChanged, m_watchModule, &WatchModule::watchResultsReload);
+    connect(m_debugModule, &DebugModule::callStackChanged, m_watchModule, &WatchModule::watchValuesReload);
 
     connect(m_diagnosticsModule, &DiagnosticsModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_diagnosticsModule, &DiagnosticsModule::fillIndicator, m_documentModule, &DocumentModule::indicatorFill);

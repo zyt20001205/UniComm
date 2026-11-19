@@ -30,9 +30,9 @@ public:
 
     Q_INVOKABLE void watchExpressionDelete(int row);
 
-    void watchResultsReload() const;
+    void watchValuesReload() const;
 
-    void watchResultsSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const;
+    void watchValuesSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const;
 
     enum Role {
         DocumentUrlRole = Qt::UserRole + 1,
