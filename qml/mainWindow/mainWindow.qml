@@ -635,10 +635,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: {
-            documentModuleEditorMenu.menuSession = documentModule.menuLoad("editor")
-            documentModuleEditorMenuRunHereItem.enabled = threadpoolModule.debugging()
-        }
+        onAboutToShow: menuSession = documentModule.menuLoad("editor")
 
         MenuItem {
             contentItem: RowLayout {
@@ -665,7 +662,7 @@ Item {
                 }
             }
 
-            onTriggered: threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, 0)
+            onTriggered: global.threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, RunMode.Run)
         }
 
         MenuItem {
@@ -693,7 +690,7 @@ Item {
                 }
             }
 
-            onTriggered: threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, 1)
+            onTriggered: global.threadpoolModule.threadStart(documentModuleEditorMenu.menuSession.documentUrl, RunMode.Debug)
         }
 
         MenuSeparator {
@@ -839,7 +836,7 @@ Item {
             text: qsTr("Run Here")
             icon.source: "qrc:/icon/debugContinue.svg"
             icon.width: 16; icon.height: 16
-            enabled: false
+            enabled: global.threadpoolModule.debugging
 
             HoverHandler {
                 onHoveredChanged: {
@@ -855,7 +852,7 @@ Item {
                 }
             }
 
-            onTriggered: debugModule.stateSet(Debug.RunToCursor)
+            onTriggered: debugModule.interpreterStateSet(InterpreterState.RunToCursor)
         }
 
         MenuSeparator {
@@ -3581,7 +3578,7 @@ Item {
                 }
             }
 
-            onTriggered: threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, 0)
+            onTriggered: global.threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, RunMode.Run)
         }
 
         MenuItem {
@@ -3619,7 +3616,7 @@ Item {
                 }
             }
 
-            onTriggered: threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, 1)
+            onTriggered: global.threadpoolModule.threadStart(menuModuleExecMenu.menuSession.documentUrl, RunMode.Debug)
         }
     }
 
@@ -4039,43 +4036,6 @@ Item {
         }
     }
 
-    // threadpool module
-    Dialog {
-        id: threadpoolModuleErrorDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Terminate Request Has Been Sent")
-        standardButtons: Dialog.Ok
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-    }
-
-    Menu {
-        id: threadpoolModuleThreadMenu
-        property string threadId
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("Terminate")
-            icon.source: "qrc:/icon/stop.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: threadpoolModule.threadStop(threadpoolModuleThreadMenu.threadId)
-        }
-    }
-
     // watch module
     Dialog {
         id: watchModuleExpressionDialog
@@ -4172,7 +4132,7 @@ Item {
             watchModuleValueTextField.selectAll()
             watchModuleValueComboBox.currentValue = watchModuleValueDialog.currentType
         }
-        onAccepted: threadpoolModule.valueSet(watchModuleValueDialog.currentThread, watchModuleValueDialog.watchUrl, watchModuleValueDialog.watchExpression, watchModuleValueTextField.text, watchModuleValueComboBox.currentValue)
+        onAccepted: global.threadpoolModule.valueSet(watchModuleValueDialog.currentThread, watchModuleValueDialog.watchUrl, watchModuleValueDialog.watchExpression, watchModuleValueTextField.text, watchModuleValueComboBox.currentValue)
 
         ColumnLayout {
             width: parent.width
@@ -4404,8 +4364,6 @@ Item {
             "terminalModuleContextMenu": terminalModuleContextMenu,
             "terminalModuleTerminalMenu": terminalModuleTerminalMenu,
 
-            "threadpoolModuleErrorDialog": threadpoolModuleErrorDialog,
-            "threadpoolModuleThreadMenu": threadpoolModuleThreadMenu,
 
             "watchModuleExpressionMenu": watchModuleExpressionMenu,
             "watchModuleValueMenu": watchModuleValueMenu,
