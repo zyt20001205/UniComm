@@ -540,15 +540,21 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
     // evaluate expressions
     QVariantHash results{};
     for (const auto &expression: expressions) {
-        const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
+        const bool writable = variables.contains(expression);
+        sol::object object{};
+        if (writable) {
+            object = env.raw_get<sol::object>(expression.toStdString());
+        } else {
+            const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
+            if (result.valid()) object = result.get<sol::object>();
+        }
         auto type = LuaType::Nil;
         QString value = "nil";
-        if (result.valid()) {
-            const sol::object object = result;
+        if (object.valid()) {
             type = static_cast<LuaType::Value>(object.get_type());
             value = uni_cast<QString>(object);
         }
-        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}, {"writable", variables.contains(expression)}});
+        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}, {"writable", writable}});
     }
     return results;
 }
@@ -556,7 +562,9 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
 void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const LuaType::Value type) {
     // push new value
     bool valid = true;
-    if (type == LuaType::Boolean && (value == "true" || value == "false")) {
+    if (type == LuaType::Nil) {
+        lua_pushnil(L);
+    } else if (type == LuaType::Boolean && (value == "true" || value == "false")) {
         lua_pushboolean(L, value == "true");
     } else if (type == LuaType::Number) {
         const auto integer = value.toLongLong(&valid);

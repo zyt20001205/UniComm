@@ -18,8 +18,9 @@ Item {
         const index = treeView.selectionModel.currentIndex
         const result = root.watchModule.model.data(index, WatchModule.ResultRole)
         valueField.text = result?.value ?? ""
-        typeBox.currentIndex = typeBox.indexOfValue(result?.type ?? LuaType.None)
-        editor.writable = result?.writable === true
+        typeBox.sourceType = result?.type ?? LuaType.None
+        typeBox.currentIndex = typeBox.indexOfValue(typeBox.sourceType)
+        editor.writable = result?.writable === true && typeBox.currentIndex >= 0
     }
 
     Connections {
@@ -293,6 +294,7 @@ Item {
 
                     LineEdit {
                         id: valueField
+                        enabled: typeBox.currentValue !== LuaType.Nil
                         clearable: true
                         tooltip: mainTooltip
                         buttonSize: 24
@@ -304,12 +306,15 @@ Item {
 
                     ComboBox {
                         id: typeBox
-                        model: [LuaType.Boolean, LuaType.Number, LuaType.String].map(value => ({
-                            text: Qt.enumValueToString(LuaType.Value, value).toLowerCase(),
+                        property int sourceType: LuaType.None
+                        model: [LuaType.Nil, LuaType.Boolean, LuaType.Number, LuaType.String].map(value => ({
+                            text: Qt.enumValueToString(LuaType.Value, value),
                             value: value
                         }))
                         textRole: "text"
                         valueRole: "value"
+                        displayText: currentIndex >= 0 ? currentText
+                                   : sourceType === LuaType.None ? "" : Qt.enumValueToString(LuaType.Value, sourceType)
                         Layout.fillWidth: true
 
                         popup.parent: mainOverlay
@@ -336,7 +341,8 @@ Item {
                         enabled: typeBox.currentIndex >= 0
                         onClicked: {
                             const expression = treeView.model.data(treeView.selectionModel.currentIndex, Qt.DisplayRole)
-                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, expression, valueField.text, typeBox.currentValue)
+                            const value = typeBox.currentValue === LuaType.Nil ? "nil" : valueField.text
+                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, expression, value, typeBox.currentValue)
                         }
                     }
                 }
