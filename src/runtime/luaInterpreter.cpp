@@ -28,8 +28,6 @@
 #include "api/ui/ui.h"
 #include "core/globalManager.h"
 #include "debug/breakpointModule.h"
-#include "debug/watchModule.h"
-#include "util/luaUtils.h"
 #include "util/uniCast.h"
 
 // public
@@ -482,7 +480,17 @@ void LuaInterpreter::interpreterStateSet(const InterpreterState::Value state) {
     if (state != InterpreterState::Pause) emit quitLoop();
 }
 
-void LuaInterpreter::stackSet(lua_State *L, lua_Debug *ar) {
+void LuaInterpreter::watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) {
+    m_luaSession.insert("expressions", QVariant::fromValue(expressions));
+}
+
+void LuaInterpreter::watchValuesRefresh() {
+    m_watchValuesRefresh = true;
+    emit refreshWatchValues();
+}
+
+// private
+void LuaInterpreter::callStackSet(lua_State *L, lua_Debug *ar) {
     sol::state_view lua(L);
     QVariantMap &session = *lua["session"].get<QVariantMap *>();
     auto *This = qvariant_cast<LuaInterpreter *>(session["this"]);
@@ -503,67 +511,99 @@ void LuaInterpreter::stackSet(lua_State *L, lua_Debug *ar) {
     emit This->setCallStack(session["threadId"].toString(), frames);
 }
 
-void LuaInterpreter::watchSet(lua_State *L, lua_Debug *ar) {
-    lua_getstack(L, 0, ar);
-    lua_getinfo(L, "S", ar);
-    QUrl currentUrl;
-    if (ar->source[0] == '@' && ar->source[1] != '\0') {
-        currentUrl = QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1));
-    }
+QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const {
+    const auto expressions = m_luaSession.value("expressions").value<QMultiHash<QUrl, QString>>().values(documentUrl);
+    if (expressions.isEmpty()) return {};
     sol::state_view lua(L);
-    QHash<QString, int> watchHash{};
-    const auto *model = g_globalManager->watchModuleGet()->modelGet();
-    for (int i = 0; i < model->rowCount(); ++i) {
-        const QString url = model->item(i, 0)->data(Qt::WhatsThisRole).toString();
-        if (url == currentUrl) {
-            const QString key = model->item(i, 0)->text();
-            watchHash.insert(key, i);
-        }
-    }
-    if (!watchHash.isEmpty()) {
-        // create env table
-        sol::environment env(lua, sol::create);
-        sol::table mt = lua.create_table();
-        mt[sol::meta_function::index] = lua.globals();
-        env[sol::metatable_key] = mt;
-        // load upvalues
-        if (lua_getinfo(L, "f", ar)) {
-            const char *name = nullptr;
-            int i = 1;
-            while ((name = lua_getupvalue(L, -1, i++)) != nullptr) {
-                if (name[0] != '(') env[name] = sol::object(L, -1);
-                lua_pop(L, 1);
+    // use globals as fallback
+    sol::environment env(lua, sol::create, lua.globals());
+    QSet<QString> variables{};
+    // load upvalues
+    if (lua_getinfo(L, "f", ar)) {
+        for (int i = 1; const char *name = lua_getupvalue(L, -1, i); ++i) {
+            if (name[0] != '(') {
+                env[name] = sol::object(L, -1);
+                variables.insert(QString::fromUtf8(name));
             }
             lua_pop(L, 1);
         }
-        // load locals
-        const char *name = nullptr;
-        int i = 1;
-        while ((name = lua_getlocal(L, ar, i++)) != nullptr) {
-            if (name[0] != '(') env[name] = sol::object(L, -1);
-            lua_pop(L, 1);
-        }
-        // eval
-        for (auto it = watchHash.constBegin(); it != watchHash.constEnd(); ++it) {
-            const auto result = lua.safe_script("return " + it.key().toStdString(), env, sol::script_pass_on_error);
-            QString val = "nil";
-            QString type = "nil";
-            if (result.valid()) {
-                sol::object obj = result;
-                type = lua_typename(L, static_cast<int>(obj.get_type()));
-                val = uni_cast<QString>(obj);
-            }
-            model->item(it.value(), 1)->setText(val);
-            model->item(it.value(), 1)->setData(type, Qt::WhatsThisRole);
-        }
+        lua_pop(L, 1);
     }
+    // load locals
+    for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
+        if (name[0] != '(') {
+            env[name] = sol::object(L, -1);
+            variables.insert(QString::fromUtf8(name));
+        }
+        lua_pop(L, 1);
+    }
+    // evaluate expressions
+    QVariantHash results{};
+    for (const auto &expression: expressions) {
+        const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
+        QString type = "nil";
+        QString value = "nil";
+        if (result.valid()) {
+            const sol::object object = result;
+            type = lua_typename(L, static_cast<int>(object.get_type()));
+            value = uni_cast<QString>(object);
+        }
+        results.insert(expression, QVariantHash{{"value", value}, {"type", type}, {"writable", variables.contains(expression)}});
+    }
+    return results;
 }
 
-void LuaInterpreter::valueSet(const QString &documentUrl, const QString &expression, const QString &value, const QString &type) {
-    emit setValue(documentUrl, expression, value, type);
+void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const QString &type) {
+    // push new value
+    bool valid = true;
+    if (type == "boolean" && (value == "true" || value == "false")) {
+        lua_pushboolean(L, value == "true");
+    } else if (type == "number") {
+        const auto integer = value.toLongLong(&valid);
+        if (valid) {
+            lua_pushinteger(L, integer);
+        } else {
+            const auto number = value.toDouble(&valid);
+            if (valid) lua_pushnumber(L, number);
+        }
+    } else if (type == "string") {
+        const auto bytes = value.toUtf8();
+        lua_pushlstring(L, bytes.constData(), bytes.size());
+    } else {
+        valid = false;
+    }
+    if (!valid) {
+        m_io->stdErr("Hot update failed: invalid value\n");
+        return;
+    }
+    // set matching local
+    int local = 0;
+    for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
+        if (expression == QString::fromUtf8(name)) local = i;
+        lua_pop(L, 1);
+    }
+    if (local) {
+        lua_setlocal(L, ar, local);
+        emit appendLog(LogLevel::Info, QString("Hot update executed: local %1 = %2").arg(expression, value), "");
+        return;
+    }
+    // set matching upvalue
+    if (lua_getinfo(L, "f", ar)) {
+        for (int i = 1; const char *name = lua_getupvalue(L, -1, i); ++i) {
+            lua_pop(L, 1);
+            if (expression != QString::fromUtf8(name)) continue;
+            lua_insert(L, -2);
+            lua_setupvalue(L, -2, i);
+            lua_pop(L, 1);
+            emit appendLog(LogLevel::Info, QString("Hot update executed: upvalue %1 = %2").arg(expression, value), "");
+            return;
+        }
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+    m_io->stdErr(QString("Hot update failed: variable '%1' not found\n").arg(expression).toUtf8());
 }
 
-// private
 void LuaInterpreter::luaRunHook(lua_State *L, lua_Debug *ar) {
     // check if thread interruption is requested
     if (QThread::currentThread()->isInterruptionRequested()) {
@@ -591,11 +631,6 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
             currentUrl = QUrl::fromLocalFile(QString::fromUtf8(ar->source + 1));
         }
         const int currentLine = ar->currentline - 1;
-        // watch refresh
-        if (g_globalManager->watchModuleGet()->refreshGet()) {
-            watchSet(L, ar);
-            g_globalManager->watchModuleGet()->refreshSet(false);
-        }
         // debug state machine
         const auto state = session.value("state");
         if (state == InterpreterState::Resume) {
@@ -657,66 +692,25 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
         else if (state == InterpreterState::RunToCursor && g_cursorPosition["url"].toUrl() == currentUrl && g_cursorPosition["line"].toInt() == currentLine)
             This->interpreterStateSet(InterpreterState::Pause);
         if (session.value("state") == InterpreterState::Pause) {
-            // call stack handle
-            stackSet(L, ar);
-            // watch handle
-            watchSet(L, ar);
-            // hold thread
-            QEventLoop loop;
+            This->m_watchValuesRefresh = false;
+            QEventLoop loop{};
+            lua_Debug frame{};
+            lua_getstack(L, 0, &frame);
             connect(This, &LuaInterpreter::quitLoop, &loop, &QEventLoop::quit);
-            connect(This, &LuaInterpreter::setValue, This,
-                    [This, L, ar, currentUrl](const QString &documentUrl, const QString &expression, const QString &value, const QString &type) {
-                        disconnect(This, &LuaInterpreter::setValue, This, nullptr);
-                        if (currentUrl != documentUrl) {
-                            This->m_io->stdErr("Hot update failed: Not in the current file scope\n");
-                            return;
-                        }
-                        bool updated = false;
-                        // try local value
-                        const char *localValue = nullptr;
-                        int local_i = 1;
-                        while ((localValue = lua_getlocal(L, ar, local_i)) != nullptr) {
-                            if (expression == localValue) {
-                                lua_pushvariant(L, value, type);
-                                lua_setlocal(L, ar, local_i);
-                                lua_pop(L, 1);
-                                updated = true;
-                                emit This->appendLog(LogLevel::Info, QString("Hot update executed: local %1 = %2").arg(expression, value), "");
-                                break;
-                            }
-                            lua_pop(L, 1);
-                            local_i++;
-                        }
-                        // try up value
-                        if (!updated) {
-                            if (lua_getinfo(L, "f", ar)) {
-                                const char *upValue = nullptr;
-                                int upvalue_i = 1;
-                                while ((upValue = lua_getupvalue(L, -1, upvalue_i)) != nullptr) {
-                                    if (expression == upValue) {
-                                        lua_pushvariant(L, value, type);
-                                        lua_setupvalue(L, -3, upvalue_i);
-                                        lua_pop(L, 1);
-                                        updated = true;
-                                        emit This->appendLog(LogLevel::Info, QString("Hot update executed: upvalue %1 = %2").arg(expression, value), "");
-                                        break;
-                                    }
-                                    lua_pop(L, 1);
-                                    upvalue_i++;
-                                }
-                                lua_pop(L, 1);
-                            }
-                        }
-                        // value not found
-                        if (!updated) {
-                            This->m_io->stdErr(QString("Hot update failed: variable '%1' not found\n").arg(expression).toUtf8());
-                        } else {
-                            // watch handle
-                            watchSet(L, ar);
-                        }
-                    });
+            connect(This, &LuaInterpreter::refreshWatchValues, &loop, [&] {
+                This->m_watchValuesRefresh = false;
+                emit This->setWatchValues(session["threadId"].toString(), currentUrl, This->watchValuesGet(L, &frame, currentUrl));
+            });
+            connect(This, &LuaInterpreter::setWatchValue, &loop, [&](const QString &expression, const QString &value, const QString &type) {
+                This->watchValueSet(L, &frame, expression, value, type);
+                This->watchValuesRefresh();
+            });
+            callStackSet(L, ar);
             if (!thread->isInterruptionRequested()) loop.exec();
             emit This->setCallStack(session["threadId"].toString(), {});
+        } else if (This->m_watchValuesRefresh) {
+            This->m_watchValuesRefresh = false;
+            emit This->setWatchValues(session["threadId"].toString(), currentUrl, This->watchValuesGet(L, ar, currentUrl));
         }
     }
     if (thread->isInterruptionRequested()) luaL_error(L, "terminated");

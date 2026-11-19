@@ -30,7 +30,6 @@ Item {
         toolBar.searchExpanded = false
         treeView.forceActiveFocus()
     }
-
     function filterRefresh() {
         filterModel.invalidate()
         treeView.selectedRow = -1
@@ -38,7 +37,6 @@ Item {
         if (searchField.query.length > 0)
             Qt.callLater(() => treeView.expandRecursively())
     }
-
     function kindIcon(kind: int): string {
         switch (kind) {
             case LspSymbolKind.Package:
@@ -62,7 +60,6 @@ Item {
                 return "qrc:/icon/symbolMisc.svg"
         }
     }
-
     function kindColor(kind: int): string {
         const colors = global.theme.lua.structure
         switch (kind) {

@@ -30,6 +30,8 @@ public:
 
     Q_INVOKABLE void watchExpressionDelete(int row) const;
 
+    Q_INVOKABLE void watchExpressionSet(int row, const QString &expression) const;
+
     void watchValuesReload() const;
 
     void watchValuesSet(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results) const;

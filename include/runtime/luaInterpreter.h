@@ -28,30 +28,39 @@ public:
 
     void interpreterStateSet(InterpreterState::Value state);
 
-    static void stackSet(lua_State *L, lua_Debug *ar);
+    void watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions);
 
-    static void watchSet(lua_State *L, lua_Debug *ar);
-
-    void valueSet(const QString &documentUrl, const QString &expression, const QString &value, const QString &type);
+    void watchValuesRefresh();
 
 signals:
+    void appendLog(int type, const QString &prefix, const QString &message);
+
     void writeTerminal(const QString &id, const QByteArray &data);
 
     void setCallStack(const QString &threadId, const QVariantList &frames);
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void refreshWatchValues();
 
-    void setValue(const QString &documentUrl, const QString &expression, const QString &value, const QString &type);
+    void setWatchValues(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results);
+
+    void setWatchValue(const QString &expression, const QString &value, const QString &type);
 
     void quitLoop();
 
 private:
+    static void callStackSet(lua_State *L, lua_Debug *ar);
+
+    [[nodiscard]] QVariantHash watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const;
+
+    void watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const QString &type);
+
     static void luaRunHook(lua_State *L, lua_Debug *ar);
 
     static void luaDebugHook(lua_State *L, lua_Debug *ar);
 
     sol::state m_lua{};
     QVariantMap m_luaSession{};
+    bool m_watchValuesRefresh{};
     IO *m_io{};
     Key *m_key{};
     Mouse *m_mouse{};

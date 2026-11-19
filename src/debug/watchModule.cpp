@@ -69,6 +69,17 @@ void WatchModule::watchExpressionDelete(const int row) const {
     g_globalManager->threadpoolModuleGet()->watchExpressionsSet(watchExpressionsGet());
 }
 
+void WatchModule::watchExpressionSet(const int row, const QString &expression) const {
+    auto *item = m_model->item(row);
+    const auto text = expression.trimmed();
+    if (!item || text.isEmpty() || text == item->text()) return;
+    item->setData(QVariantHash{}, ResultRole);
+    item->setText(text);
+    auto *pool = g_globalManager->threadpoolModuleGet();
+    pool->watchExpressionsSet(watchExpressionsGet());
+    pool->watchValuesGet(g_globalManager->debugModuleGet()->currentThreadGet());
+}
+
 void WatchModule::watchValuesReload() const {
     for (int row = 0; row < m_model->rowCount(); ++row) m_model->item(row)->setData(QVariantHash{}, ResultRole);
     const auto *debug = g_globalManager->debugModuleGet();
