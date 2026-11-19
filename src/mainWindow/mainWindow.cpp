@@ -266,6 +266,7 @@ void MainWindow::overlayFlagSet(const QVariant &transparent, const QVariant &foc
 }
 
 void MainWindow::quit() {
+    g_terminating = true;
     workspaceSave();
 
     QMetaObject::invokeMethod(m_quitDialog, "open");
