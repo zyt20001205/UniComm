@@ -99,7 +99,6 @@ void MainWindow::propertySet() {
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
     m_overlay->rootContext()->setContextProperty("terminalModule", m_terminalModule);
-    m_overlay->rootContext()->setContextProperty("threadpoolModule", m_threadpoolModule);
     m_overlay->rootContext()->setContextProperty("undoModule", m_undoModule);
     m_overlay->rootContext()->setContextProperty("watchModule", m_watchModule);
 
@@ -238,11 +237,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_terminalModule->propertySet(terminalObjects);
 
-    const QVariantHash threadpoolObjects = {
-        {"threadpoolModuleErrorDialog", objects["threadpoolModuleErrorDialog"]},
-        {"threadpoolModuleThreadMenu", objects["threadpoolModuleThreadMenu"]}
-    };
-    m_threadpoolModule->propertySet(threadpoolObjects);
+    m_threadpoolModule->propertySet();
 
     const QVariantHash watchObjects = {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
@@ -479,7 +474,8 @@ void MainWindow::moduleInit() {
     connect(m_debugModule, &DebugModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
     connect(m_debugModule, &DebugModule::clearEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationClear);
     connect(m_debugModule, &DebugModule::setEolAnnotation, m_documentModule, &DocumentModule::eolAnnotationSet);
-    connect(m_debugModule, &DebugModule::setState, m_threadpoolModule, &ThreadpoolModule::stateSet);
+    connect(m_debugModule, &DebugModule::setThreadStatus, m_threadpoolModule, &ThreadpoolModule::threadStatusSet);
+    connect(m_debugModule, &DebugModule::setInterpreterState, m_threadpoolModule, &ThreadpoolModule::interpreterStateSet);
 
     connect(m_diagnosticsModule, &DiagnosticsModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_diagnosticsModule, &DiagnosticsModule::fillIndicator, m_documentModule, &DocumentModule::indicatorFill);
@@ -527,8 +523,6 @@ void MainWindow::moduleInit() {
     connect(m_threadpoolModule, &ThreadpoolModule::trackQuit, this, &MainWindow::quitTrack);
     connect(m_threadpoolModule, &ThreadpoolModule::refreshThread, m_statusModule, &StatusModule::threadRefresh);
     connect(m_threadpoolModule, &ThreadpoolModule::setCallStack, m_debugModule, &DebugModule::callStackSet);
-    connect(m_threadpoolModule, &ThreadpoolModule::startDebug, m_debugModule, &DebugModule::debugStart);
-    connect(m_threadpoolModule, &ThreadpoolModule::stopDebug, m_debugModule, &DebugModule::debugStop);
     connect(m_threadpoolModule, &ThreadpoolModule::openTerminal, m_terminalModule, &TerminalModule::terminalOpen);
     connect(m_threadpoolModule, &ThreadpoolModule::closeTerminal, m_terminalModule, &TerminalModule::terminalClose);
     connect(m_threadpoolModule, &ThreadpoolModule::writeTerminal, m_terminalModule, &TerminalModule::terminalWrite);

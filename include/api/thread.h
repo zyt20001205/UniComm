@@ -7,11 +7,13 @@
 
 #include <string>
 
+#include "types/runtimeTypes.h"
+
 class QUrl;
 
 class Thread final {
 public:
-    [[nodiscard]] static std::string start(const sol::object &fn, const QUrl &documentUrl, int mode);
+    [[nodiscard]] static std::string start(const sol::object &fn, const QUrl &documentUrl, RunMode::Value mode);
 
     static void stop(const std::string &threadId);
 

@@ -4,6 +4,8 @@
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QSortFilterProxyModel>
 
+#include "types/runtimeTypes.h"
+
 class QAbstractProxyModel;
 class QFileSystemModel;
 class QFileSystemWatcher;
@@ -40,7 +42,7 @@ signals:
 
     void openDocument(const QUrl &documentUrl);
 
-    void startThread(const QUrl &documentUrl, int mode, void *closure = nullptr);
+    void startThread(const QUrl &documentUrl, RunMode::Value mode, void *closure = nullptr);
 
 private:
     void processFinished(int exitcode);

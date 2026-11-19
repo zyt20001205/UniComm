@@ -83,15 +83,6 @@ namespace Recognition {
     };
 }
 
-namespace InterpreterMode {
-    enum {
-        Run,
-        Debug,
-        Agent,
-        Terminate
-    };
-}
-
 namespace GitStatus {
     enum {
         Idle,

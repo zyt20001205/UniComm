@@ -9,7 +9,7 @@
 #include "core/globalManager.h"
 #include "runtime/threadpoolModule.h"
 
-std::string Thread::start(const sol::object &fn, const QUrl &documentUrl, const int mode) {
+std::string Thread::start(const sol::object &fn, const QUrl &documentUrl, const RunMode::Value mode) {
     LuaClosure closure(fn);
     QString threadId{};
     QMetaObject::invokeMethod(g_globalManager->threadpoolModuleGet(), [&threadId, &documentUrl, mode, &closure] {
