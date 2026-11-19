@@ -5,7 +5,7 @@
 #include <variant>
 
 #include "api/thread.h"
-#include "types/debugTypes.h"
+#include "types/runtimeTypes.h"
 
 class QJsonObject;
 class IO;
@@ -22,11 +22,11 @@ public:
 
     [[nodiscard]] QJsonObject start(const std::variant<QString, LuaClosure> &entry);
 
-    void stop() const;
+    void stop();
 
     void inputWrite(const QByteArray &data) const;
 
-    void stateSet(Debug::Value state);
+    void interpreterStateSet(InterpreterState::Value state);
 
     static void stackSet(lua_State *L, lua_Debug *ar);
 
