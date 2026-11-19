@@ -3,6 +3,7 @@
 
 #include <QMetaObject>
 #include <QtQmlIntegration/qqmlintegration.h>
+#include <lua.hpp>
 
 namespace RunMode {
     Q_NAMESPACE
@@ -29,6 +30,27 @@ namespace InterpreterState {
         StepInto,
         StepOut,
         RunToCursor
+    };
+
+    Q_ENUM_NS(Value)
+}
+
+namespace LuaType {
+    Q_NAMESPACE
+
+    QML_ELEMENT
+
+    enum Value {
+        None = LUA_TNONE,
+        Nil = LUA_TNIL,
+        Boolean = LUA_TBOOLEAN,
+        LightUserdata = LUA_TLIGHTUSERDATA,
+        Number = LUA_TNUMBER,
+        String = LUA_TSTRING,
+        Table = LUA_TTABLE,
+        Function = LUA_TFUNCTION,
+        Userdata = LUA_TUSERDATA,
+        Thread = LUA_TTHREAD
     };
 
     Q_ENUM_NS(Value)

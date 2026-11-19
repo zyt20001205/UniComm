@@ -512,7 +512,7 @@ void LuaInterpreter::callStackSet(lua_State *L, lua_Debug *ar) {
 }
 
 QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const {
-    const auto expressions = m_luaSession.value("expressions").value<QMultiHash<QUrl, QString>>().values(documentUrl);
+    const auto expressions = m_luaSession.value("expressions").value<QMultiHash<QUrl, QString> >().values(documentUrl);
     if (expressions.isEmpty()) return {};
     sol::state_view lua(L);
     // use globals as fallback
@@ -541,24 +541,24 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
     QVariantHash results{};
     for (const auto &expression: expressions) {
         const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
-        QString type = "nil";
+        auto type = LuaType::Nil;
         QString value = "nil";
         if (result.valid()) {
             const sol::object object = result;
-            type = lua_typename(L, static_cast<int>(object.get_type()));
+            type = static_cast<LuaType::Value>(object.get_type());
             value = uni_cast<QString>(object);
         }
-        results.insert(expression, QVariantHash{{"value", value}, {"type", type}, {"writable", variables.contains(expression)}});
+        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}, {"writable", variables.contains(expression)}});
     }
     return results;
 }
 
-void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const QString &type) {
+void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const LuaType::Value type) {
     // push new value
     bool valid = true;
-    if (type == "boolean" && (value == "true" || value == "false")) {
+    if (type == LuaType::Boolean && (value == "true" || value == "false")) {
         lua_pushboolean(L, value == "true");
-    } else if (type == "number") {
+    } else if (type == LuaType::Number) {
         const auto integer = value.toLongLong(&valid);
         if (valid) {
             lua_pushinteger(L, integer);
@@ -566,7 +566,7 @@ void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &e
             const auto number = value.toDouble(&valid);
             if (valid) lua_pushnumber(L, number);
         }
-    } else if (type == "string") {
+    } else if (type == LuaType::String) {
         const auto bytes = value.toUtf8();
         lua_pushlstring(L, bytes.constData(), bytes.size());
     } else {
@@ -701,7 +701,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
                 This->m_watchValuesRefresh = false;
                 emit This->setWatchValues(session["threadId"].toString(), currentUrl, This->watchValuesGet(L, &frame, currentUrl));
             });
-            connect(This, &LuaInterpreter::setWatchValue, &loop, [&](const QString &expression, const QString &value, const QString &type) {
+            connect(This, &LuaInterpreter::setWatchValue, &loop, [&](const QString &expression, const QString &value, const LuaType::Value type) {
                 This->watchValueSet(L, &frame, expression, value, type);
                 This->watchValuesRefresh();
             });

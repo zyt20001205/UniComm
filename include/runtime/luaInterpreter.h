@@ -43,7 +43,7 @@ signals:
 
     void setWatchValues(const QString &threadId, const QUrl &documentUrl, const QVariantHash &results);
 
-    void setWatchValue(const QString &expression, const QString &value, const QString &type);
+    void setWatchValue(const QString &expression, const QString &value, LuaType::Value type);
 
     void quitLoop();
 
@@ -52,7 +52,7 @@ private:
 
     [[nodiscard]] QVariantHash watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const;
 
-    void watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const QString &type);
+    void watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, LuaType::Value type);
 
     static void luaRunHook(lua_State *L, lua_Debug *ar);
 

@@ -18,7 +18,7 @@ Item {
         const index = treeView.selectionModel.currentIndex
         const result = root.watchModule.model.data(index, WatchModule.ResultRole)
         valueField.text = result?.value ?? ""
-        typeBox.currentIndex = typeBox.find(result?.type ?? "")
+        typeBox.currentIndex = typeBox.indexOfValue(result?.type ?? LuaType.None)
         editor.writable = result?.writable === true
     }
 
@@ -207,7 +207,6 @@ Item {
                     }
 
                     RowLayout {
-                        visible: !node.editing
                         anchors.fill: parent
                         anchors.rightMargin: 6 + treeScrollBar.width
                         spacing: 0
@@ -224,16 +223,20 @@ Item {
                                 width: 16; height: 16
                                 source: "qrc:/icon/arrowCollapse.svg"
                                 color: global.theme.general.fore
+                                visible: node.result.type === LuaType.Table
                             }
                         }
 
                         Label {
+                            id: expressionLabel
+                            opacity: node.editing ? 0 : 1
                             text: node.display
                             Layout.fillWidth: true
                             elide: Text.ElideRight
                         }
 
                         Label {
+                            opacity: node.editing ? 0 : 1
                             text: node.result.value ?? ""
                             Layout.maximumWidth: treeView.width / 2
                             elide: Text.ElideRight
@@ -246,7 +249,9 @@ Item {
                         required property int row
                         required property string display
                         anchors.fill: parent
+                        anchors.leftMargin: expressionLabel.x
                         anchors.rightMargin: treeScrollBar.width
+                        leftPadding: 0
                         topPadding: 0; bottomPadding: 0
                         text: display
                         placeholderText: qsTr("e.g. x + 1")
@@ -299,7 +304,12 @@ Item {
 
                     ComboBox {
                         id: typeBox
-                        model: ["boolean", "number", "string"]
+                        model: [LuaType.Boolean, LuaType.Number, LuaType.String].map(value => ({
+                            text: Qt.enumValueToString(LuaType.Value, value).toLowerCase(),
+                            value: value
+                        }))
+                        textRole: "text"
+                        valueRole: "value"
                         Layout.fillWidth: true
 
                         popup.parent: mainOverlay
@@ -326,7 +336,7 @@ Item {
                         enabled: typeBox.currentIndex >= 0
                         onClicked: {
                             const expression = treeView.model.data(treeView.selectionModel.currentIndex, Qt.DisplayRole)
-                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, expression, valueField.text, typeBox.currentText)
+                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, expression, valueField.text, typeBox.currentValue)
                         }
                     }
                 }

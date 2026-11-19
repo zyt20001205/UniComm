@@ -138,7 +138,7 @@ void ThreadpoolModule::watchValuesGet(const QString &threadId) const {
     if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchValuesRefresh, Qt::QueuedConnection);
 }
 
-void ThreadpoolModule::watchValueSet(const QString &threadId, const QString &expression, const QString &value, const QString &type) const {
+void ThreadpoolModule::watchValueSet(const QString &threadId, const QString &expression, const QString &value, const LuaType::Value type) const {
     if (auto *interpreter = interpreterGet(threadId)) emit interpreter->setWatchValue(expression, value, type);
 }
 
