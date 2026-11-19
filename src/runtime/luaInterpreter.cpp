@@ -540,9 +540,8 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
     // evaluate expressions
     QVariantHash results{};
     for (const auto &expression: expressions) {
-        const bool writable = variables.contains(expression);
         sol::object object{};
-        if (writable) {
+        if (variables.contains(expression)) {
             object = env.raw_get<sol::object>(expression.toStdString());
         } else {
             const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
@@ -554,7 +553,7 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
             type = static_cast<LuaType::Value>(object.get_type());
             value = uni_cast<QString>(object);
         }
-        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}, {"writable", writable}});
+        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}});
     }
     return results;
 }

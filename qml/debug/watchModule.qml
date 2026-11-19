@@ -20,7 +20,6 @@ Item {
         valueField.text = result?.value ?? ""
         typeBox.sourceType = result?.type ?? LuaType.None
         typeBox.currentIndex = typeBox.indexOfValue(typeBox.sourceType)
-        editor.writable = result?.writable === true && typeBox.currentIndex >= 0
     }
 
     Connections {
@@ -284,11 +283,9 @@ Item {
                 ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
                 ColumnLayout {
-                    id: editor
-                    property bool writable: false
                     width: settingsView.availableWidth
                     visible: treeView.currentRow >= 0
-                    enabled: writable && global.debugModule.callStack.length > 0
+                    enabled: global.debugModule.callStack.length > 0
 
                     Label { text: qsTr("Value") }
 
