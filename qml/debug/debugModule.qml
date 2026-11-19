@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.impl
 import QtQuick.Layouts
 
 import UniComm
@@ -40,49 +41,79 @@ Rectangle {
             DebugButton {
                 icon.source: "qrc:/icon/stop.svg"
                 Accessible.name: qsTr("Terminate")
-                onClicked: root.debugModule.stateSet(Debug.Terminate)
+                onClicked: global.threadpoolModule.threadStatusSet(root.debugModule.currentThread, ThreadStatus.Terminating)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/play.svg"
                 Accessible.name: qsTr("Resume")
-                onClicked: root.debugModule.stateSet(Debug.Resume)
+                onClicked: root.debugModule.interpreterStateSet(InterpreterState.Resume)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/pause.svg"
                 Accessible.name: qsTr("Pause")
-                onClicked: root.debugModule.stateSet(Debug.Pause)
+                onClicked: root.debugModule.interpreterStateSet(InterpreterState.Pause)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepOver.svg"
                 Accessible.name: qsTr("Step Over")
-                onClicked: root.debugModule.stateSet(Debug.StepOver)
+                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepOver)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepInto.svg"
                 Accessible.name: qsTr("Step Into")
-                onClicked: root.debugModule.stateSet(Debug.StepInto)
+                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepInto)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepOut.svg"
                 Accessible.name: qsTr("Step Out")
-                onClicked: root.debugModule.stateSet(Debug.StepOut)
+                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepOut)
             }
         }
 
         ComboBox {
             id: threadComboBox
             Layout.fillWidth: true
-            model: root.debugModule.threads
-            currentValue: root.debugModule.currentThread
+            readonly property var threads: global.threadpoolModule.threads
+            model: Object.keys(threads).filter(id => threads[id].mode === RunMode.Debug)
             Accessible.name: qsTr("Debug thread")
+            onModelChanged: {
+                currentIndex = model.length ? Math.max(0, model.indexOf(root.debugModule.currentThread)) : -1
+                root.debugModule.currentThread = model[currentIndex] ?? ""
+            }
             onActivated: root.debugModule.currentThread = currentText
 
+            component ThreadRow: RowLayout {
+                id: threadRow
+                required property string threadId
+                readonly property var status: threadComboBox.threads[threadId]?.status
+
+                Label {
+                    text: threadRow.threadId
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+
+                IconImage {
+                    visible: threadRow.status !== undefined
+                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    source: threadRow.status === ThreadStatus.Paused ? "qrc:/icon/pause.svg"
+                          : threadRow.status === ThreadStatus.Terminating ? "qrc:/icon/stop.svg" : "qrc:/icon/play.svg"
+                    color: threadRow.status === ThreadStatus.Paused ? global.theme.general.warningBack3
+                         : threadRow.status === ThreadStatus.Terminating ? global.theme.general.dangerBack3 : global.theme.general.successBack3
+                }
+            }
+
+            contentItem: ThreadRow {
+                threadId: threadComboBox.currentText
+            }
+
             delegate: ItemDelegate {
+                id: threadItem
                 required property int index
                 required property string modelData
                 width: ListView.view.width
@@ -90,6 +121,10 @@ Rectangle {
                 leftPadding: 11; rightPadding: 6; topPadding: 0; bottomPadding: 0
                 text: modelData
                 highlighted: threadComboBox.highlightedIndex === index
+
+                contentItem: ThreadRow {
+                    threadId: threadItem.modelData
+                }
             }
 
             popup.parent: mainOverlay
@@ -118,7 +153,6 @@ Rectangle {
             clip: true
             model: root.debugModule.callStack
             focusPolicy: Qt.ClickFocus
-            highlightMoveDuration: 0
 
             ScrollBar.vertical: ScrollBar {
                 id: stackScrollBar

@@ -1,6 +1,7 @@
 #include "debug/debugModule.h"
 
 #include <QQuickWidget>
+#include <QStringList>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -25,43 +26,28 @@ void DebugModule::propertySet() {
 
 void DebugModule::currentThreadSet(const QString &threadId) {
     if (m_currentThread == threadId) return;
-    if (m_threads.isEmpty() ? !threadId.isEmpty() : !m_threads.contains(threadId)) return;
     m_currentThread = threadId;
     emit currentThreadChanged();
     emit callStackChanged();
     debugRefresh();
 }
 
-void DebugModule::debugStart(const QString &threadId) {
-    if (m_threads.contains(threadId)) return;
-    m_threads.append(threadId);
-    if (m_threads.size() == 1) currentThreadSet(threadId);
-    emit threadsChanged();
-}
-
-void DebugModule::debugStop(const QString &threadId) {
-    if (!m_threads.removeOne(threadId)) return;
-    const bool wasPaused = m_callStacks.remove(threadId);
-    if (m_currentThread == threadId) currentThreadSet(m_threads.value(0));
-    else if (wasPaused) debugRefresh();
-    emit threadsChanged();
-}
-
-void DebugModule::stateSet(const Debug::Value state) {
+void DebugModule::interpreterStateSet(const InterpreterState::Value state) {
     if (m_currentThread.isEmpty()) return;
-    if (state == Debug::RunToCursor) emit getIndex();
-    emit setState(m_currentThread, state);
+    if (state == InterpreterState::RunToCursor) emit getIndex();
+    emit setInterpreterState(m_currentThread, state);
 }
 
 void DebugModule::callStackSet(const QString &threadId, const QVariantList &frames) {
-    if (!m_threads.contains(threadId)) return;
-    if (frames.isEmpty()) {
-        m_callStacks.remove(threadId);
-    } else {
+    const bool paused = !frames.isEmpty();
+    if (paused) {
         m_callStacks.insert(threadId, frames);
         const auto url = frames.constLast().toHash().value("documentUrl").toUrl();
         if (!url.isEmpty()) emit openDocument(url);
+    } else {
+        m_callStacks.remove(threadId);
     }
+    emit setThreadStatus(threadId, paused ? ThreadStatus::Paused : ThreadStatus::Running);
     if (threadId == m_currentThread) emit callStackChanged();
     debugRefresh();
 }
@@ -74,11 +60,9 @@ void DebugModule::debugRefresh() {
         emit deleteMarker(url, ScintillaMarker::DebugLine, -1);
     }
     m_markedUrls.clear();
-    QHash<QUrl, QHash<int, QStringList>> lines{};
-    for (const auto &threadId: m_threads) {
-        const auto stack = m_callStacks.constFind(threadId);
-        if (stack == m_callStacks.cend()) continue;
-        const auto frame = stack->constLast().toHash();
+    QHash<QUrl, QHash<int, QStringList> > lines{};
+    for (const auto &[threadId, stack]: m_callStacks.asKeyValueRange()) {
+        const auto frame = stack.constLast().toHash();
         const auto url = frame.value("documentUrl").toUrl();
         const int line = frame.value("line").toInt();
         if (url.isEmpty() || line < 0) continue;
