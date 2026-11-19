@@ -836,7 +836,7 @@ Item {
             text: qsTr("Run Here")
             icon.source: "qrc:/icon/debugContinue.svg"
             icon.width: 16; icon.height: 16
-            enabled: global.threadpoolModule.debugging
+            enabled: global.threadpoolModule.debugging > 0
 
             HoverHandler {
                 onHoveredChanged: {
