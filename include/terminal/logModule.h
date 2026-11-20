@@ -33,7 +33,7 @@ public:
 
     Q_INVOKABLE void logSave(const QUrl &fileUrl) const;
 
-    Q_INVOKABLE static QString linkTextGet(const QUrl &url);
+    Q_INVOKABLE QString linkTextGet(int position) const;
 
 signals:
     void timestampChanged();

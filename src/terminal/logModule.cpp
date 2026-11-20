@@ -4,11 +4,20 @@
 #include <QPdfWriter>
 #include <QSaveFile>
 #include <QQuickWidget>
+#include <QTextBlock>
 
 #include "globals.h"
 #include "core/fileModule.h"
 #include "core/globalManager.h"
 #include "mainWindow/toastModule.h"
+
+namespace {
+    struct LogBlockData final : QTextBlockUserData {
+        explicit LogBlockData(const QString &text) : message(text) {}
+
+        QString message;
+    };
+}
 
 // public
 LogModule::LogModule()
@@ -48,13 +57,12 @@ void LogModule::logConfigSave() const {
 }
 
 void LogModule::logAppend(const int type, const QString &prefix, const QString &message) {
+    if (!m_textDocument) return;
     auto _message = message;
     // check size
-    const auto size = _message.size();
-    if (size >= m_collapseThreshold) {
-        _message = QString::fromLatin1(_message.toUtf8().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
-        _message = QString("<a href='request.expand://reserved/%1'>[%2 chars collapsed]</a>").arg(_message, QString::number(size));
-    }
+    const bool collapsed = message.size() >= m_collapseThreshold;
+    if (collapsed)
+        _message = QString("<a href='#expand'>[%1 chars collapsed]</a>").arg(message.size());
     // check level
     switch (type) {
         case LogLevel::Error: {
@@ -85,6 +93,7 @@ void LogModule::logAppend(const int type, const QString &prefix, const QString &
         _message = timestamp + _message;
     }
     emit appendText(_message);
+    if (collapsed) m_textDocument->lastBlock().setUserData(new LogBlockData(message));
 }
 
 void LogModule::documentSet(const QQuickTextDocument *document) {
@@ -122,6 +131,7 @@ void LogModule::logSave(const QUrl &fileUrl) const {
     }
 }
 
-QString LogModule::linkTextGet(const QUrl &url) {
-    return QString::fromUtf8(QByteArray::fromBase64(url.path().mid(1).toLatin1(), QByteArray::Base64UrlEncoding));
+QString LogModule::linkTextGet(const int position) const {
+    const auto *data = static_cast<LogBlockData *>(m_textDocument->findBlock(position).userData());
+    return data ? data->message : QString{};
 }

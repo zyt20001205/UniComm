@@ -184,10 +184,10 @@ Item {
                     onTapped: {
                         if (textArea.hoveredLink) {
                             const url = textArea.hoveredLink
-                            if (url.startsWith("request.expand://")) {
+                            if (url === "#expand") {
                                 mainTextView.position = textArea.mapToGlobal(point.position)
                                 mainTextView.font = textArea.font
-                                mainTextView.data = root.logModule.linkTextGet(url)
+                                mainTextView.data = root.logModule.linkTextGet(textArea.positionAt(point.position.x, point.position.y))
                                 mainTextView.open()
                             } else {
                                 Qt.openUrlExternally(url)
@@ -199,7 +199,7 @@ Item {
                 TapHandler {
                     acceptedButtons: Qt.RightButton
                     onTapped: {
-                        if (textArea.hoveredLink && !textArea.hoveredLink.startsWith("request.expand://")) {
+                        if (textArea.hoveredLink && textArea.hoveredLink !== "#expand") {
                             mainLinkMenu.url = textArea.hoveredLink
                             mainLinkMenu.popup()
                         } else {
