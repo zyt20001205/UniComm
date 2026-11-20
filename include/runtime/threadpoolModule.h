@@ -37,7 +37,7 @@ public:
 
     void interpreterStateSet(const QString &threadId, InterpreterState::Value state) const;
 
-    void watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) const;
+    void watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions) const;
 
     Q_INVOKABLE void watchValuesGet(const QString &threadId) const;
 

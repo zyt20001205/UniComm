@@ -127,7 +127,7 @@ void ThreadpoolModule::interpreterStateSet(const QString &threadId, const Interp
     if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::interpreterStateSet, Qt::QueuedConnection, state);
 }
 
-void ThreadpoolModule::watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) const {
+void ThreadpoolModule::watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions) const {
     for (const auto &[threadId, entry]: m_threads.asKeyValueRange()) {
         if (entry.toHash().value("mode").value<RunMode::Value>() != RunMode::Debug) continue;
         if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::watchExpressionsSet, Qt::QueuedConnection, expressions);
