@@ -95,7 +95,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("statusModule", m_statusModule);
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
-    m_overlay->rootContext()->setContextProperty("terminalModule", m_terminalModule);
     m_overlay->rootContext()->setContextProperty("undoModule", m_undoModule);
 
     m_overlay->rootContext()->setContextProperty("agentModuleAction", QVariant::fromValue(m_agentModule->toggleAction()));
@@ -218,8 +217,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     const QVariantHash terminalObjects = {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"terminalModuleContextMenu", objects["terminalModuleContextMenu"]},
-        {"terminalModuleTerminalMenu", objects["terminalModuleTerminalMenu"]}
+        {"terminalModuleContextMenu", objects["terminalModuleContextMenu"]}
     };
     m_terminalModule->propertySet(terminalObjects);
 

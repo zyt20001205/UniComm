@@ -315,7 +315,7 @@ Item {
                         opacity: hoverHandler.hovered ? 1 : 0
                         Behavior on opacity {
                             NumberAnimation {
-                                duration: 150
+                                duration: AnimationDuration.Fade
                             }
                         }
                     }

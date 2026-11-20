@@ -316,7 +316,10 @@ Item {
                 contentWidth: availableWidth
 
                 Behavior on reveal {
-                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                    NumberAnimation {
+                        duration: detailsButton.checked ? AnimationDuration.PaneOpen : AnimationDuration.PaneClose
+                        easing.type: Easing.OutCubic
+                    }
                 }
 
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff

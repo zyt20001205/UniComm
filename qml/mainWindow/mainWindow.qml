@@ -3141,7 +3141,6 @@ Item {
         Menu {
             id: terminalModuleTerminalMenu
             title: qsTr("Terminal")
-            property var terminalModel
 
             onOpened: {
                 mainWindow.overlayFlagSet(false, true)
@@ -3152,7 +3151,7 @@ Item {
             MenuItem {
                 text: qsTr("Manage")
 
-                onTriggered: terminalModule.terminalManage()
+                onTriggered: global.terminalModule.terminalManage()
             }
 
             MenuSeparator {
@@ -3160,10 +3159,11 @@ Item {
 
             Instantiator {
                 id: terminalModuleTerminalInstantiator
-                model: terminalModuleTerminalMenu.terminalModel
+                model: global.terminalModule.terminals
                 delegate: MenuItem {
-                    text: model.session.name
-                    onTriggered: terminalModule.terminalOpen(model.id)
+                    required property var modelData
+                    text: modelData.name
+                    onTriggered: global.terminalModule.terminalOpen(modelData.id)
                 }
 
                 onObjectAdded: (index, object) => terminalModuleTerminalMenu.insertItem(index + 2, object)
@@ -4014,8 +4014,7 @@ Item {
             "statusModuleEolModeMenu": statusModuleEolModeMenu,
             "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip,
 
-            "terminalModuleContextMenu": terminalModuleContextMenu,
-            "terminalModuleTerminalMenu": terminalModuleTerminalMenu
+            "terminalModuleContextMenu": terminalModuleContextMenu
         };
         mainWindow.propertyGet(objects)
     }

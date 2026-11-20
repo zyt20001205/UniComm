@@ -82,9 +82,9 @@ Item {
 
                     SequentialAnimation {
                         id: flashAnimation
-                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 0.25; duration: 150 }
-                        PauseAnimation { duration: 350 }
-                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 1; duration: 150 }
+                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 0.25; duration: AnimationDuration.Fade }
+                        PauseAnimation { duration: AnimationDuration.FlashHold }
+                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 1; duration: AnimationDuration.Fade }
                     }
 
                     Connections {

@@ -9,8 +9,9 @@ TextField {
     property bool revealable: false
     property bool clearable: false
     property QtObject tooltip: mainToolTip
-    property bool browsable: false
-    property alias fileMode: fileDialog.fileMode
+    enum FileMode { OpenFile, OpenFiles, SaveFile, Folder }
+    property int fileMode: LineEdit.OpenFile
+    property bool browsable: fileMode === LineEdit.Folder
     property alias nameFilters: fileDialog.nameFilters
     property alias currentFolder: fileDialog.currentFolder
     property alias selectedFile: fileDialog.selectedFile
@@ -19,6 +20,12 @@ TextField {
     property int iconSize: 16
 
     signal valueCommitted()
+
+    function commitPath(path: url) {
+        text = path.toString()
+        forceActiveFocus()
+        valueCommitted()
+    }
 
     rightPadding: padding + actions.implicitWidth
     echoMode: revealable && !revealButton.checked ? TextInput.Password : TextInput.Normal
@@ -68,7 +75,8 @@ TextField {
 
             onClicked: {
                 control.clear()
-                if (control.browsable) fileDialog.selectedFile = ""
+                if (control.fileMode === LineEdit.Folder) folderDialog.selectedFolder = ""
+                else if (control.browsable) fileDialog.selectedFile = ""
                 control.forceActiveFocus()
                 control.valueCommitted()
             }
@@ -87,12 +95,24 @@ TextField {
             enabled: !control.readOnly
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            icon.source: "qrc:/icon/folder.svg"
+            icon.source: {
+                switch (control.fileMode) {
+                case LineEdit.OpenFiles: return "qrc:/icon/documentMultiple.svg"
+                case LineEdit.SaveFile: return "qrc:/icon/documentSave.svg"
+                case LineEdit.Folder: return "qrc:/icon/folder.svg"
+                default: return "qrc:/icon/document.svg"
+                }
+            }
             icon.width: control.iconSize; icon.height: control.iconSize
             Layout.preferredWidth: control.buttonSize; Layout.preferredHeight: control.buttonSize
             Accessible.name: qsTr("Browse")
 
             onClicked: {
+                if (control.fileMode === LineEdit.Folder) {
+                    if (control.text) folderDialog.currentFolder = control.text
+                    folderDialog.open()
+                    return
+                }
                 if (control.text) {
                     const url = control.text
                     fileDialog.selectedFile = url
@@ -113,12 +133,15 @@ TextField {
 
     FileDialog {
         id: fileDialog
-        fileMode: FileDialog.OpenFile
+        fileMode: control.fileMode === LineEdit.Folder ? FileDialog.OpenFile : control.fileMode
 
-        onAccepted: {
-            control.text = selectedFile.toString()
-            control.forceActiveFocus()
-            control.valueCommitted()
-        }
+        onAccepted: control.commitPath(selectedFile)
+    }
+
+    FolderDialog {
+        id: folderDialog
+        title: control.title
+        currentFolder: control.currentFolder
+        onAccepted: control.commitPath(selectedFolder)
     }
 }

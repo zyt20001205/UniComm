@@ -140,7 +140,7 @@ Item {
                 spacing: 0
 
                 Behavior on x {
-                    NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: AnimationDuration.Move; easing.type: Easing.OutCubic }
                 }
 
                 Button {
@@ -261,7 +261,7 @@ Item {
                 readonly property string query: text.trim().toLowerCase()
 
                 Behavior on opacity {
-                    NumberAnimation { duration: 150 }
+                    NumberAnimation { duration: AnimationDuration.Fade }
                 }
 
                 onQueryChanged: root.filterRefresh()
@@ -309,7 +309,7 @@ Item {
                     opacity: hoverHandler.hovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 150
+                            duration: AnimationDuration.Fade
                         }
                     }
                 }
