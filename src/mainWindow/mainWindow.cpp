@@ -116,6 +116,7 @@ void MainWindow::propertySet() {
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", objects["mainWindowToolTip"]);
 
@@ -209,11 +210,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_portModule->propertySet(portObjects);
 
-    const QVariantHash serviceObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"serviceModuleContextMenu", objects["mainWindowLinkMenu"]}
-    };
-    m_serviceModule->propertySet(serviceObjects);
+    m_serviceModule->propertySet();
 
     const QVariantHash statusObjects = {
         {"statusModuleEolModeMenu", objects["statusModuleEolModeMenu"]},

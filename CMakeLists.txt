@@ -202,6 +202,7 @@ target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}/debug
         ${UNICOMM_INCLUDE}/qml
         ${UNICOMM_INCLUDE}/runtime
+        ${UNICOMM_INCLUDE}/service
         ${UNICOMM_INCLUDE}/types
         ${CMARK_INCLUDE}
         ${DRMINGW_INCLUDE}

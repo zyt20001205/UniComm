@@ -1,6 +1,5 @@
 #include "service/serviceModule.h"
 
-#include <QQmlContext>
 #include <QQuickWidget>
 
 #include "globals.h"
@@ -16,15 +15,12 @@ ServiceModule::ServiceModule()
       m_mcpService(new McpService(this)),
       m_grepService(new GrepService(this)),
       m_networkService(new NetworkService(this)),
-      m_widget(new QQuickWidget()) {
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)) {
     setWidget(m_widget);
 }
 
-void ServiceModule::propertySet(const QVariantHash &objects) {
-    m_widget->rootContext()->setContextProperty("serviceModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
-    m_widget->rootContext()->setContextProperty("serviceModuleContextMenu", qvariant_cast<QObject *>(objects["serviceModuleContextMenu"]));
+void ServiceModule::propertySet() {
+    m_widget->setInitialProperties({{"serviceModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/serviceModule.qml"));
 }

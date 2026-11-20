@@ -1,10 +1,16 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+
+import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property ServiceModule serviceModule
     anchors.fill: parent
-    readonly property var selectedService: serviceModule.services[serviceView.currentIndex]
+    readonly property var selectedService: root.serviceModule.services[serviceView.currentIndex]
     property double currentTime: Date.now()
 
     function uptimeFormat(milliseconds) {
@@ -17,8 +23,8 @@ Item {
         interval: 1000
         repeat: true
         triggeredOnStart: true
-        running: rootItem.visible && uptimeLabel.visible
-        onTriggered: rootItem.currentTime = Date.now()
+        running: root.visible && uptimeLabel.visible
+        onTriggered: root.currentTime = Date.now()
     }
 
     Rectangle {
@@ -32,8 +38,18 @@ Item {
         width: 240
         clip: true
         currentIndex: 0
-        model: serviceModule.services
-        spacing: 2
+        model: root.serviceModule.services
+        focusPolicy: Qt.ClickFocus
+        keyNavigationEnabled: true
+
+        ScrollBar.vertical: ScrollBar {
+            id: serviceScrollBar
+            minimumSize: Math.min(1, 20 / Math.max(1, height))
+            palette {
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
+            }
+        }
 
         delegate: ItemDelegate {
             id: serviceDelegate
@@ -41,35 +57,39 @@ Item {
             required property var modelData
 
             width: serviceView.width; height: 36
-            text: modelData.name
-            rightPadding: 28
-            highlighted: serviceView.currentIndex === index
+            text: serviceDelegate.modelData.name
+            leftPadding: 11; rightPadding: 6 + serviceScrollBar.width
+            topPadding: 0; bottomPadding: 0
+            focusPolicy: Qt.ClickFocus
+            highlighted: ListView.isCurrentItem
 
             onClicked: serviceView.currentIndex = index
 
-            Rectangle {
-                id: statusIndicator
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                width: 8; height: 8
-                radius: 4
-                color: serviceDelegate.modelData.status === 1 ? global.theme.general.successFore3
-                    : serviceDelegate.modelData.status === 2 ? global.theme.general.dangerFore3
-                    : global.theme.general.stroke
-
-                SequentialAnimation {
-                    id: flashAnimation
-                    NumberAnimation { target: statusIndicator; property: "opacity"; to: 0.25; duration: 150 }
-                    PauseAnimation { duration: 350 }
-                    NumberAnimation { target: statusIndicator; property: "opacity"; to: 1; duration: 150 }
+            contentItem: RowLayout {
+                Label {
+                    text: serviceDelegate.text
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
                 }
 
-                Connections {
-                    target: serviceDelegate.modelData.eventModel
+                Rectangle {
+                    id: statusIndicator
+                    implicitWidth: 8; implicitHeight: 8
+                    radius: 4
+                    color: serviceDelegate.modelData.status === 1 ? global.theme.general.successFore3
+                        : serviceDelegate.modelData.status === 2 ? global.theme.general.dangerFore3
+                        : global.theme.general.stroke
 
-                    function onRowsInserted() {
-                        flashAnimation.restart()
+                    SequentialAnimation {
+                        id: flashAnimation
+                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 0.25; duration: 150 }
+                        PauseAnimation { duration: 350 }
+                        NumberAnimation { target: statusIndicator; property: "opacity"; to: 1; duration: 150 }
+                    }
+
+                    Connections {
+                        target: serviceDelegate.modelData.eventModel
+                        function onRowsInserted() { flashAnimation.restart() }
                     }
                 }
             }
@@ -99,14 +119,13 @@ Item {
                 id: uptimeLabel
                 anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
                 height: visible ? implicitHeight : 0
-                visible: rootItem.selectedService ? rootItem.selectedService.status === 1 : false
-                text: visible ? qsTr("Uptime: %1").arg(rootItem.uptimeFormat(rootItem.currentTime - rootItem.selectedService.createdAt)) : ""
+                visible: root.selectedService?.status === 1
+                text: visible ? qsTr("Uptime: %1").arg(root.uptimeFormat(root.currentTime - root.selectedService.createdAt)) : ""
                 color: global.theme.general.fore
                 wrapMode: Text.Wrap
             }
 
             ScrollView {
-                id: detailScrollView
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                 anchors.top: uptimeLabel.bottom
                 anchors.topMargin: uptimeLabel.visible ? 4 : 0
@@ -115,22 +134,13 @@ Item {
                 rightPadding: effectiveScrollBarWidth
 
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical: ScrollBar {
-                    parent: detailScrollView
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    x: parent.mirrored ? 0 : parent.width - width
-                    y: parent.topPadding
-                    height: parent.availableHeight
-                    policy: ScrollBar.AsNeeded
-                    palette {
-                        mid: global.theme.general.stroke
-                        dark: global.theme.general.strokePressed
-                    }
-                }
+                ScrollBar.vertical.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.vertical.height))
+                ScrollBar.vertical.palette.mid: global.theme.general.stroke
+                ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
                 TextArea {
                     id: detailTextArea
-                    text: rootItem.selectedService ? rootItem.selectedService.detail : ""
+                    text: root.selectedService?.detail ?? ""
                     textFormat: TextEdit.RichText
                     readOnly: true
                     selectByMouse: true
@@ -165,8 +175,8 @@ Item {
                         acceptedButtons: Qt.RightButton
                         onTapped: {
                             if (!detailTextArea.hoveredLink) return
-                            serviceModuleContextMenu.url = detailTextArea.hoveredLink
-                            serviceModuleContextMenu.popup()
+                            mainLinkMenu.url = detailTextArea.hoveredLink
+                            mainLinkMenu.popup()
                         }
                     }
                 }
@@ -174,7 +184,6 @@ Item {
         }
 
         Item {
-            id: eventPane
             SplitView.fillWidth: true
 
             HorizontalHeaderView {
@@ -215,9 +224,7 @@ Item {
                 id: eventTable
                 anchors.left: parent.left; anchors.right: parent.right
                 anchors.top: eventHeader.bottom; anchors.bottom: parent.bottom
-                anchors.rightMargin: verticalScrollBar.width
-                anchors.bottomMargin: horizontalScrollBar.height
-                model: rootItem.selectedService ? rootItem.selectedService.eventModel : null
+                model: root.selectedService?.eventModel ?? null
                 rowSpacing: 1; columnSpacing: 0
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -244,9 +251,7 @@ Item {
 
                 ScrollBar.vertical: ScrollBar {
                     id: verticalScrollBar
-                    parent: eventPane
-                    anchors.left: eventTable.right; anchors.top: eventTable.top; anchors.bottom: eventTable.bottom
-                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -254,10 +259,7 @@ Item {
                 }
 
                 ScrollBar.horizontal: ScrollBar {
-                    id: horizontalScrollBar
-                    parent: eventPane
-                    anchors.left: eventTable.left; anchors.right: eventTable.right; anchors.top: eventTable.bottom
-                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -266,6 +268,7 @@ Item {
 
                 delegate: Item {
                     id: eventCell
+                    required property int column
                     required property var display
                     required property var toolTip
                     implicitWidth: 120; implicitHeight: 32
@@ -280,7 +283,7 @@ Item {
                         text: eventCell.display ?? ""
                         textFormat: Text.PlainText
                         color: global.theme.general.fore
-                        leftPadding: 6; rightPadding: 6
+                        leftPadding: 6; rightPadding: 6 + (eventCell.column === eventTable.columns - 1 ? verticalScrollBar.width : 0)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                     }
@@ -290,13 +293,13 @@ Item {
 
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
 
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = eventCell.toolTip || ""
+                            mainTooltip.position = eventCell.mapToGlobal(point.position)
+                            mainTooltip.text = eventCell.toolTip
                         }
                     }
                 }

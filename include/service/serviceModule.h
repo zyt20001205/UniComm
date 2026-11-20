@@ -2,6 +2,7 @@
 #define UNICOMM_SERVICEMODULE_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 class GrepService;
 class LspManager;
@@ -9,14 +10,16 @@ class McpService;
 class NetworkService;
 class QQuickWidget;
 
-class ServiceModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class ServiceModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("ServiceModule is created by C++.")
     Q_PROPERTY(QVariantList services READ servicesGet CONSTANT)
 
 public:
     explicit ServiceModule();
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] LspManager *lspManagerGet() const {
         return m_lspManager;
