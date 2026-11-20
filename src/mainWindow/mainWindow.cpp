@@ -77,8 +77,6 @@ MainWindow::MainWindow(QWidget *parent, const QString &uniqueName)
 }
 
 MainWindow::~MainWindow() {
-    delete m_toastModule;
-
     const auto timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     qDebug() << QString("[%1] main window destructed").arg(timestamp);
 }
@@ -92,7 +90,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("documentModule", m_documentModule);
     m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
-    m_overlay->rootContext()->setContextProperty("logModule", m_logModule);
     m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
     m_overlay->rootContext()->setContextProperty("portModule", m_portModule);
     m_overlay->rootContext()->setContextProperty("statusModule", m_statusModule);
@@ -118,6 +115,7 @@ void MainWindow::propertySet() {
 void MainWindow::propertyGet(const QVariantMap &objects) {
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainTextView", objects["mainWindowTextView"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", objects["mainWindowToolTip"]);
 
     m_closeDialog = qvariant_cast<QObject *>(objects["mainWindowCloseDialog"]);
@@ -125,7 +123,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     const QVariantHash agentObjects = {
         {"mainWindowLinkMenu", objects["mainWindowLinkMenu"]},
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)},
+        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"documentModule", QVariant::fromValue(m_documentModule)},
         {"fileModule", QVariant::fromValue(m_fileModule)},
@@ -142,7 +140,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_diagnosticsModule->propertySet();
 
     const QVariantHash documentObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)},
+        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"breakpointModuleEditDialog", objects["breakpointModuleEditDialog"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
@@ -183,14 +181,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_gitModule->propertySet(gitObjects);
 
-    const QVariantHash logObjects = {
-        {"mainWindowLinkMenu", objects["mainWindowLinkMenu"]},
-        {"mainWindowTextView", objects["mainWindowTextView"]},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"logModuleHeightDialog", objects["logModuleHeightDialog"]},
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)}
-    };
-    m_logModule->propertySet(logObjects);
+    m_logModule->propertySet();
 
     const QVariantHash menuObjects = {
         {"menuModuleFileMenu", objects["menuModuleFileMenu"]},
@@ -221,7 +212,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_structureModule->propertySet();
 
     const QVariantHash fileObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule)}
+        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())}
     };
     m_fileModule->propertySet(fileObjects);
 
@@ -304,7 +295,6 @@ void MainWindow::terminate() {
 
         delete m_portModule;
         m_portModule = nullptr;
-        g_globalManager->portModuleSet(nullptr);
         close();
     });
 }
@@ -486,9 +476,6 @@ void MainWindow::moduleInit() {
     connect(m_explorerModule, &ExplorerModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_explorerModule, &ExplorerModule::startThread, m_threadpoolModule, &ThreadpoolModule::threadStart);
 
-    connect(m_logModule, &LogModule::openFileInExplorer, m_fileModule, &FileModule::fileOpenInExplorer);
-    connect(m_logModule, &LogModule::openFileInApplication, m_fileModule, &FileModule::fileOpenInApplication);
-
     connect(m_fileModule, &FileModule::setPermission, m_documentModule, &DocumentModule::permissionSet);
     connect(m_fileModule, &FileModule::appendBackground, m_statusModule, &StatusModule::backgroundAppend);
     connect(m_fileModule, &FileModule::removeBackground, m_statusModule, &StatusModule::backgroundRemove);
@@ -646,7 +633,8 @@ void MainWindow::overlayInit() {
 
     auto *owner = windowHandle();
     Q_ASSERT(owner);
-    m_toastModule = new ToastModule(m_overlay->engine(), *owner);
+    m_toastModule = std::make_unique<ToastModule>(m_overlay->engine(), *owner);
+    g_globalManager->toastModuleSet(m_toastModule.get());
 
     m_overlay->setSource(QUrl("qrc:/qml/mainWindow/mainWindow.qml"));
 

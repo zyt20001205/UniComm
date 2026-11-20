@@ -11,7 +11,7 @@ class WatchModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("WatchModule is created by C++.")
-    Q_PROPERTY(QStandardItemModel* model READ modelGet CONSTANT)
+    Q_PROPERTY(QStandardItemModel* model MEMBER m_model CONSTANT)
 
 public:
     explicit WatchModule();
@@ -21,8 +21,6 @@ public:
     void propertySet();
 
     void watchConfigSave() const;
-
-    [[nodiscard]] QStandardItemModel *modelGet() const { return m_model; }
 
     [[nodiscard]] QHash<QUrl, QVariantHash> watchExpressionsGet() const;
 

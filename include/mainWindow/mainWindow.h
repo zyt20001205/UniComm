@@ -3,6 +3,7 @@
 
 #include <QJsonObject>
 #include <kddockwidgets/qtwidgets/views/MainWindow.h>
+#include <memory>
 
 class QQuickView;
 class QShortcut;
@@ -82,7 +83,7 @@ private:
 
     QJsonObject m_mainConfig{};
     QQuickView *m_overlay{};
-    ToastModule *m_toastModule{};
+    std::unique_ptr<ToastModule> m_toastModule{};
     QObject *m_closeDialog{};
     QObject *m_quitDialog{};
 

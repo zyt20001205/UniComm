@@ -8,25 +8,17 @@ class QJsonObject;
 
 class BaseService : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString name READ nameGet CONSTANT)
+    Q_PROPERTY(QString name MEMBER m_name CONSTANT)
     Q_PROPERTY(int status READ statusGet NOTIFY changeStatus)
-    Q_PROPERTY(qint64 createdAt READ createdAtGet CONSTANT)
+    Q_PROPERTY(qint64 createdAt MEMBER m_createdAt CONSTANT)
     Q_PROPERTY(QString detail READ detailGet NOTIFY changeDetail)
     Q_PROPERTY(QAbstractItemModel *eventModel READ eventModelGet CONSTANT)
 
 public:
     explicit BaseService(const QString &name, QObject *parent = nullptr);
 
-    [[nodiscard]] QString nameGet() const {
-        return m_name;
-    }
-
     [[nodiscard]] int statusGet() const {
         return m_status;
-    }
-
-    [[nodiscard]] qint64 createdAtGet() const {
-        return m_createdAt;
     }
 
     [[nodiscard]] QString detailGet() const {

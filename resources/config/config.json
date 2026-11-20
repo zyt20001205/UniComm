@@ -50,9 +50,10 @@
     "fontSize": 10
   },
   "logConfig": {
+    "collapseThreshold": 200,
     "fontFamily": "Segoe UI",
     "fontSize": 10,
-    "height": 1000,
+    "lineLimit": 1000,
     "timestamp": true,
     "wrap": true
   },

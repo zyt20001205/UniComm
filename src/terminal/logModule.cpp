@@ -1,28 +1,28 @@
 #include "terminal/logModule.h"
 
-#include <QFileDialog>
+#include <QFileInfo>
+#include <QPdfWriter>
 #include <QSaveFile>
-#include <QJsonArray>
-#include <QPrinter>
-#include <QQmlContext>
-#include <QQuickTextDocument>
 #include <QQuickWidget>
-#include <QStandardPaths>
-#include <QTextBlock>
 
 #include "globals.h"
+#include "core/fileModule.h"
 #include "core/globalManager.h"
 #include "mainWindow/toastModule.h"
 
 // public
 LogModule::LogModule()
     : DockWidget("Log"),
-      m_config(g_workspaceConfig["logConfig"].toObject()),
-      m_widget(new QQuickWidget()),
-      m_textDocument(new QTextDocument(this)),
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_errorFore(g_globalManager->themeGet()["general"].toObject()["dangerFore3"].toString()),
       m_warningFore(g_globalManager->themeGet()["general"].toObject()["warningFore3"].toString()),
       m_infoFore(g_globalManager->themeGet()["general"].toObject()["fore"].toString()) {
+    const auto config = g_workspaceConfig["logConfig"].toObject();
+    m_timestamp = config["timestamp"].toBool();
+    m_wrap = config["wrap"].toBool();
+    m_collapseThreshold = config["collapseThreshold"].toInt(m_collapseThreshold);
+    m_lineLimit = config["lineLimit"].toInt(config["height"].toInt(m_lineLimit));
+    m_font = QFont(config["fontFamily"].toString(), config["fontSize"].toInt());
     setWidget(m_widget);
 }
 
@@ -31,77 +31,29 @@ LogModule::~LogModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void LogModule::propertySet(const QVariantHash &objects) {
-    m_textView = qvariant_cast<QObject *>(objects["mainWindowTextView"]);
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
-    const auto font = QFont(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
-    m_textView->setProperty("font", font);
-
-    m_widget->rootContext()->setContextProperty("logModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainLinkMenu", qvariant_cast<QObject *>(objects["mainWindowLinkMenu"]));
-    m_widget->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
-    m_widget->rootContext()->setContextProperty("heightDialog", qvariant_cast<QObject *>(objects["logModuleHeightDialog"]));
-
+void LogModule::propertySet() {
+    m_widget->setInitialProperties({{"logModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/terminal/logModule.qml"));
 }
 
-void LogModule::propertyGet(const QVariantMap &objects) {
-    // set timestamp
-    auto *timestampButton = qvariant_cast<QObject *>(objects["timestampButton"]);
-    timestampButton->setProperty("checked", m_config["timestamp"].toBool());
-    // set wrap
-    auto *wrapButton = qvariant_cast<QObject *>(objects["wrapButton"]);
-    wrapButton->setProperty("checked", m_config["wrap"].toBool());
-    // set font
-    m_textArea = qvariant_cast<QObject *>(objects["textArea"]);
-    const auto font = QFont(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
-    m_textArea->setProperty("font", font);
-    // set height
-    const auto *quickTextDocument = qvariant_cast<QQuickTextDocument *>(m_textArea->property("textDocument"));
-    m_textDocument = quickTextDocument->textDocument();
-    m_textDocument->setMaximumBlockCount(m_config["height"].toInt());
-}
-
 void LogModule::logConfigSave() const {
-    g_workspaceConfig["logConfig"] = m_config;
-}
-
-void LogModule::logFontReload(const QJsonObject &fontConfigLog) const {
-    const auto logFont = QFont(fontConfigLog["fontFamily"].toString(), fontConfigLog["fontSize"].toInt());
-    m_textArea->setProperty("font", logFont);
-}
-
-void LogModule::logFontSave(const QJsonObject &fontConfigLog) {
-    m_config["fontFamily"] = fontConfigLog["fontFamily"].toString();
-    m_config["fontSize"] = fontConfigLog["fontSize"].toInt();
-}
-
-QJsonArray LogModule::logGet(const int blockCount) const {
-    int count{};
-    // limit range
-    if (blockCount == -1 || blockCount > 20) count = 20;
-    // limit blockCount to available
-    count = qMin(count, m_textDocument->blockCount());
-    // pack to json array
-    QJsonArray array{};
-    for (int i = m_textDocument->blockCount() - count; i < m_textDocument->blockCount(); ++i) {
-        const auto block = m_textDocument->findBlockByNumber(i);
-        array.append(block.text());
-    }
-    return array;
+    auto config = g_workspaceConfig["logConfig"].toObject();
+    config.remove("height");
+    config["collapseThreshold"] = m_collapseThreshold;
+    config["lineLimit"] = m_lineLimit;
+    config["timestamp"] = m_timestamp;
+    config["wrap"] = m_wrap;
+    g_workspaceConfig["logConfig"] = config;
 }
 
 void LogModule::logAppend(const int type, const QString &prefix, const QString &message) {
     auto _message = message;
     // check size
     const auto size = _message.size();
-    if (size >= 200) {
-        _message = QString::fromLatin1(
-            _message.toUtf8().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
-        _message = QString("[<a href='request.expand://reserved/%1'>%2 chars collapsed</a>]").arg(
-            _message, QString::number(size));
+    if (size >= m_collapseThreshold) {
+        _message = QString::fromLatin1(_message.toUtf8().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+        _message = QString("<a href='request.expand://reserved/%1'>[%2 chars collapsed]</a>").arg(_message, QString::number(size));
     }
     // check level
     switch (type) {
@@ -128,73 +80,48 @@ void LogModule::logAppend(const int type, const QString &prefix, const QString &
         default: break;
     }
     // check timestamp
-    if (m_config["timestamp"].toBool()) {
+    if (m_timestamp) {
         const auto timestamp = QString("[%1] ").arg(QDateTime::currentDateTime().toString("HH:mm:ss.zzz"));
         _message = timestamp + _message;
     }
-    QMetaObject::invokeMethod(m_textArea, "append", Q_ARG(QString, _message));
+    emit appendText(_message);
 }
 
-void LogModule::timestampToggle(const bool status) {
-    m_config["timestamp"] = status;
+void LogModule::documentSet(const QQuickTextDocument *document) {
+    m_textDocument = document->textDocument();
+    m_textDocument->setMaximumBlockCount(m_lineLimit);
+    connect(this, &LogModule::lineLimitChanged, m_textDocument, &QTextDocument::setMaximumBlockCount);
 }
 
-void LogModule::wrapToggle(const bool status) {
-    m_config["wrap"] = status;
-}
-
-int LogModule::heightGet() {
-    return m_config["height"].toInt();
-}
-
-void LogModule::heightSet(const QString &height) {
-    m_config["height"] = height.toInt();
-    m_textDocument->setMaximumBlockCount(height.toInt());
-}
-
-bool LogModule::logSaveCheck() const {
-    QTextDocument document;
-    document.setHtml(m_textArea->property("text").toString());
-    if (document.toPlainText().isEmpty()) {
-        m_toast->show(ToastLevel::Warning, tr("Nothing to export"), tr("Log is empty."));
-        return false;
-    }
-    return true;
-}
-
-void LogModule::logSave(const QUrl &fileUrl) {
+void LogModule::logSave(const QUrl &fileUrl) const {
+    auto *toast = g_globalManager->toastModuleGet();
     const QString filePath = fileUrl.toLocalFile();
-    QTextDocument document;
-    document.setHtml(m_textArea->property("text").toString());
-    if (filePath.endsWith(".txt", Qt::CaseInsensitive)) {
-        bool saved = false;
-        QSaveFile file(filePath);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream stream(&file);
-            stream << document.toPlainText();
-            stream.flush();
-            if (stream.status() == QTextStream::Ok) saved = file.commit();
-        }
-        if (saved) {
-            m_toast->show(ToastLevel::Success, tr("Log exported"), filePath, {
-                {tr("Open"), [this, fileUrl] { emit openFileInApplication(fileUrl); }},
-                {tr("Show in Explorer"), [this, fileUrl] { emit openFileInExplorer(fileUrl); }}
-            });
-        } else {
-            m_toast->show(ToastLevel::Error, tr("Log export failed"), filePath);
-        }
+    const auto suffix = QFileInfo(filePath).suffix().toLower();
+    QSaveFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        toast->show(ToastLevel::Error, tr("Log export failed"), filePath);
+        return;
+    }
+
+    if (suffix == "pdf") {
+        QPdfWriter writer(&file);
+        m_textDocument->print(&writer);
+    } else if (suffix == "txt" || suffix == "html") {
+        const auto data = (suffix == "txt" ? m_textDocument->toPlainText() : m_textDocument->toHtml()).toUtf8();
+        if (file.write(data) != data.size()) file.cancelWriting();
+    } else {
+        file.cancelWriting();
+    }
+    if (file.commit()) {
+        toast->show(ToastLevel::Success, tr("Log exported"), filePath, {
+                        {.text = tr("Open"), .callback = [fileUrl] { g_globalManager->fileModuleGet()->fileOpenInApplication(fileUrl); }},
+                        {.text = tr("Show in Explorer"), .callback = [fileUrl] { g_globalManager->fileModuleGet()->fileOpenInExplorer(fileUrl); }}
+                    });
+    } else {
+        toast->show(ToastLevel::Error, tr("Log export failed"), filePath);
     }
 }
 
-void LogModule::linkClick(const QUrl &customUrl) const {
-    // qDebug() << customUrl;
-    const QString scheme = customUrl.scheme();
-    if (scheme == "request.expand") {
-        const QStringList arguments = customUrl.path().split('/');
-        const auto data = QString::fromUtf8(
-            QByteArray::fromBase64(arguments[1].toLatin1(), QByteArray::Base64UrlEncoding));
-        m_textView->setProperty("position", QCursor::pos());
-        m_textView->setProperty("data", data);
-        QMetaObject::invokeMethod(m_textView, "open");
-    }
+QString LogModule::linkTextGet(const QUrl &url) {
+    return QString::fromUtf8(QByteArray::fromBase64(url.path().mid(1).toLatin1(), QByteArray::Base64UrlEncoding));
 }

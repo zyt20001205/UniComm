@@ -1,12 +1,16 @@
+pragma ComponentBehavior: Bound
+
 import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
-import QtQuick.Window
+
+import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property LogModule logModule
     anchors.fill: parent
 
     Rectangle {
@@ -24,68 +28,47 @@ Item {
             Layout.margins: 4
 
             Button {
-                id: timestampButton
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                 checkable: true
                 icon.source: "qrc:/icon/clock.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onToggled: logModule.timestampToggle(checked)
+                checked: root.logModule.timestamp
+                onToggled: root.logModule.timestamp = checked
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = parent.checked ? qsTr("Hide Timestamp") : qsTr("Show Timestamp")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = parent.checked ? qsTr("Hide Timestamp") : qsTr("Show Timestamp")
                     }
                 }
             }
 
             Button {
-                id: wrapButton
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                 checkable: true
                 icon.source: "qrc:/icon/wrap.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onToggled: logModule.wrapToggle(checked)
+                checked: root.logModule.wrap
+                onToggled: root.logModule.wrap = checked
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = parent.checked ? qsTr("Disable Wrap") : qsTr("Enable Wrap")
-                    }
-                }
-            }
-
-            Button {
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                icon.source: "qrc:/icon/autoFitHeight.svg"
-                icon.width: 16; icon.height: 16
-                Layout.preferredWidth: 24; Layout.preferredHeight: 24
-
-                onClicked: heightDialog.open()
-
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (!hovered) {
-                            mainToolTip.text = ""
-                        }
-                    }
-                    onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Maximum Line Count")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = parent.checked ? qsTr("Disable Wrap") : qsTr("Enable Wrap")
                     }
                 }
             }
@@ -96,30 +79,27 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: {
-                    if (logModule.logSaveCheck()) {
-                        fileDialog.open()
-                    }
-                }
+                onClicked: fileDialog.open()
 
                 FileDialog {
                     id: fileDialog
                     currentFolder: StandardPaths.standardLocations(StandardPaths.DesktopLocation)[0]
                     fileMode: FileDialog.SaveFile
                     nameFilters: ["Plain Text (*.txt)", "PDF (*.pdf)", "Rich Text (*.html)"]
+                    defaultSuffix: selectedNameFilter.extensions[0]
                     selectedFile: currentFolder + "/log_" + Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
-                    onAccepted: logModule.logSave(selectedFile)
+                    onAccepted: root.logModule.logSave(selectedFile)
                 }
 
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Save")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Save")
                     }
                 }
             }
@@ -146,57 +126,44 @@ Item {
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = parent.checked ? qsTr("Confirm") : qsTr("Clear")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = parent.checked ? qsTr("Confirm") : qsTr("Clear")
                     }
                 }
             }
         }
 
         ScrollView {
-            id: scrollView
             rightPadding: effectiveScrollBarWidth
             bottomPadding: effectiveScrollBarHeight
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.topMargin: 4; Layout.rightMargin: 4; Layout.bottomMargin: 4
 
-            ScrollBar.vertical: ScrollBar {
-                minimumSize: Math.min(1, 20 / Math.max(1, height))
-                x: parent.mirrored ? 0 : parent.width - width
-                y: parent.topPadding
-                height: parent.availableHeight
-                active: parent.ScrollBar.horizontal.active
-                policy: ScrollBar.AsNeeded
-                palette {
-                    mid: global.theme.general.stroke
-                    dark: global.theme.general.strokePressed
-                }
-            }
-
-            ScrollBar.horizontal: ScrollBar {
-                minimumSize: Math.min(1, 20 / Math.max(1, width))
-                x: parent.leftPadding
-                y: parent.height - height
-                width: parent.availableWidth
-                active: parent.ScrollBar.vertical.active
-                policy: ScrollBar.AsNeeded
-                palette {
-                    mid: global.theme.general.stroke
-                    dark: global.theme.general.strokePressed
-                }
-            }
+            ScrollBar.vertical.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.vertical.height))
+            ScrollBar.vertical.palette.mid: global.theme.general.stroke
+            ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
+            ScrollBar.horizontal.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.horizontal.width))
+            ScrollBar.horizontal.palette.mid: global.theme.general.stroke
+            ScrollBar.horizontal.palette.dark: global.theme.general.strokePressed
 
             TextArea {
                 id: textArea
                 readOnly: true
                 textFormat: TextEdit.RichText
                 verticalAlignment: TextEdit.AlignTop
-                wrapMode: wrapButton.checked ? TextEdit.Wrap : TextEdit.NoWrap
+                wrapMode: root.logModule.wrap ? TextEdit.Wrap : TextEdit.NoWrap
+                font: root.logModule.logFont
                 ContextMenu.menu: null
+                Component.onCompleted: root.logModule.documentSet(textDocument)
+
+                Connections {
+                    target: root.logModule
+                    function onAppendText(text) { textArea.append(text) }
+                }
 
                 HoverHandler {
                     id: hoverHandler
@@ -218,7 +185,10 @@ Item {
                         if (textArea.hoveredLink) {
                             const url = textArea.hoveredLink
                             if (url.startsWith("request.expand://")) {
-                                logModule.linkClick(url)
+                                mainTextView.position = textArea.mapToGlobal(point.position)
+                                mainTextView.font = textArea.font
+                                mainTextView.data = root.logModule.linkTextGet(url)
+                                mainTextView.open()
                             } else {
                                 Qt.openUrlExternally(url)
                             }
@@ -232,19 +202,60 @@ Item {
                         if (textArea.hoveredLink && !textArea.hoveredLink.startsWith("request.expand://")) {
                             mainLinkMenu.url = textArea.hoveredLink
                             mainLinkMenu.popup()
+                        } else {
+                            const position = mainOverlay.mapFromGlobal(textArea.mapToGlobal(point.position))
+                            contextMenu.popup(position.x, position.y)
                         }
                     }
                 }
             }
         }
+    }
 
-        Component.onCompleted: {
-            const objects = {
-                "timestampButton": timestampButton,
-                "wrapButton": wrapButton,
-                "textArea": textArea
-            };
-            logModule.propertyGet(objects)
+    Menu {
+        id: contextMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        Menu {
+            title: qsTr("Fold at")
+            icon.source: "qrc:/icon/arrowAutoFitWidth.svg"
+            icon.width: 16; icon.height: 16
+            ButtonGroup { id: collapseThresholdGroup }
+            Repeater {
+                model: [100, 200, 500, 1000]
+                delegate: MenuItem {
+                    required property int modelData
+                    text: qsTr("%1 characters").arg(modelData)
+                    checkable: true
+                    checked: root.logModule.collapseThreshold === modelData
+                    ButtonGroup.group: collapseThresholdGroup
+                    onTriggered: root.logModule.collapseThreshold = modelData
+                }
+            }
+        }
+
+        Menu {
+            title: qsTr("Keep last")
+            icon.source: "qrc:/icon/arrowAutoFitHeight.svg"
+            icon.width: 16; icon.height: 16
+            ButtonGroup { id: lineLimitGroup }
+            Repeater {
+                model: [1000, 2000, 5000, 10000]
+                delegate: MenuItem {
+                    required property int modelData
+                    text: qsTr("%1 lines").arg(modelData)
+                    checkable: true
+                    checked: root.logModule.lineLimit === modelData
+                    ButtonGroup.group: lineLimitGroup
+                    onTriggered: root.logModule.lineLimit = modelData
+                }
+            }
         }
     }
 }

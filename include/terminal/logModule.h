@@ -2,60 +2,57 @@
 #define UNICOMM_LOG_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
-#include <QJsonObject>
+#include <QFont>
+#include <QQuickTextDocument>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 class QQuickWidget;
-class QTextBrowser;
-class QTextDocument;
-class ToastModule;
 
-class LogModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class LogModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("LogModule is created by C++.")
+    Q_PROPERTY(bool timestamp MEMBER m_timestamp NOTIFY timestampChanged)
+    Q_PROPERTY(bool wrap MEMBER m_wrap NOTIFY wrapChanged)
+    Q_PROPERTY(int collapseThreshold MEMBER m_collapseThreshold NOTIFY collapseThresholdChanged)
+    Q_PROPERTY(int lineLimit MEMBER m_lineLimit NOTIFY lineLimitChanged)
+    Q_PROPERTY(QFont logFont MEMBER m_font CONSTANT)
 
 public:
     explicit LogModule();
 
     ~LogModule() override;
 
-    void propertySet(const QVariantHash &objects);
-
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    void propertySet();
 
     void logConfigSave() const;
 
-    void logFontReload(const QJsonObject &fontConfigLog) const;
-
-    void logFontSave(const QJsonObject &fontConfigLog);
-
-    [[nodiscard]] QJsonArray logGet(int blockCount) const;
-
     void logAppend(int type, const QString &prefix, const QString &message);
 
-    Q_INVOKABLE void timestampToggle(bool status);
+    Q_INVOKABLE void documentSet(const QQuickTextDocument *document);
 
-    Q_INVOKABLE void wrapToggle(bool status);
+    Q_INVOKABLE void logSave(const QUrl &fileUrl) const;
 
-    Q_INVOKABLE int heightGet();
-
-    Q_INVOKABLE void heightSet(const QString &height);
-
-    Q_INVOKABLE [[nodiscard]] bool logSaveCheck() const;
-
-    Q_INVOKABLE void logSave(const QUrl &fileUrl);
-
-    Q_INVOKABLE void linkClick(const QUrl &customUrl) const;
+    Q_INVOKABLE static QString linkTextGet(const QUrl &url);
 
 signals:
-    void openFileInExplorer(const QUrl &fileUrl);
+    void timestampChanged();
 
-    void openFileInApplication(const QUrl &fileUrl);
+    void wrapChanged();
+
+    void collapseThresholdChanged();
+
+    void lineLimitChanged(int limit);
+
+    void appendText(const QString &text);
 
 private:
-    QJsonObject m_config{};
+    bool m_timestamp{};
+    bool m_wrap{};
+    int m_collapseThreshold{200};
+    int m_lineLimit{1000};
+    QFont m_font{};
     QQuickWidget *m_widget{};
-    QObject *m_textView{};
-    QObject *m_textArea{};
-    ToastModule *m_toast{};
     QTextDocument *m_textDocument{};
     QString m_errorFore{};
     QString m_warningFore{};

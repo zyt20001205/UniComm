@@ -2648,42 +2648,6 @@ Item {
         }
     }
 
-    // log module
-    Dialog {
-        id: logModuleHeightDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Set Max Line Count")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-        onAboutToShow: {
-            logModuleHeightSpinBox.value = logModule.heightGet()
-            logModuleHeightSpinBox.forceActiveFocus()
-        }
-        onAccepted: logModule.heightSet(logModuleHeightSpinBox.value)
-
-        SpinBox {
-            id: logModuleHeightSpinBox
-            width: parent.width
-            editable: true
-            from: 1000
-            to: 10000
-            stepSize: 1000
-
-            Keys.onReturnPressed: logModuleHeightDialog.accept()
-            Keys.onEnterPressed: logModuleHeightDialog.accept()
-            Keys.onEscapePressed: logModuleHeightDialog.reject()
-        }
-    }
-
     // menu module
     Menu {
         id: menuModuleFileMenu
@@ -4035,8 +3999,6 @@ Item {
             "gitModuleRemoteAddDialog": gitModuleRemoteAddDialog,
             "gitModuleBranchMenu": gitModuleBranchMenu,
             "gitModuleLogMenu": gitModuleLogMenu,
-
-            "logModuleHeightDialog": logModuleHeightDialog,
 
             "menuModuleFileMenu": menuModuleFileMenu,
             "menuModuleEditMenu": menuModuleEditMenu,

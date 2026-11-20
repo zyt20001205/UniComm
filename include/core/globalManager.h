@@ -20,6 +20,7 @@ class ServiceModule;
 class TerminalModule;
 class ThemeManager;
 class ThreadpoolModule;
+class ToastModule;
 class UndoModule;
 class WatchModule;
 
@@ -188,6 +189,14 @@ public:
         m_threadpoolModule = module;
     }
 
+    [[nodiscard]] ToastModule *toastModuleGet() const {
+        return m_toastModule;
+    }
+
+    void toastModuleSet(ToastModule *module) {
+        m_toastModule = module;
+    }
+
     [[nodiscard]] UndoModule *undoModuleGet() const {
         return m_undoModule;
     }
@@ -223,6 +232,7 @@ private:
     PortModule *m_portModule{};
     TerminalModule *m_terminalModule{};
     ThreadpoolModule *m_threadpoolModule{};
+    ToastModule *m_toastModule{};
     UndoModule *m_undoModule{};
     WatchModule *m_watchModule{};
 
