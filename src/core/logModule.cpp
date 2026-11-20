@@ -1,4 +1,4 @@
-#include "terminal/logModule.h"
+#include "core/logModule.h"
 
 #include <QFileInfo>
 #include <QPdfWriter>
@@ -43,7 +43,7 @@ LogModule::~LogModule() {
 void LogModule::propertySet() {
     m_widget->setInitialProperties({{"logModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    m_widget->setSource(QUrl("qrc:/qml/terminal/logModule.qml"));
+    m_widget->setSource(QUrl("qrc:/qml/core/logModule.qml"));
 }
 
 void LogModule::logConfigSave() const {

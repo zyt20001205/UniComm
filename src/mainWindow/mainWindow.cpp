@@ -31,6 +31,7 @@
 #include "core/explorerModule.h"
 #include "core/fileModule.h"
 #include "core/globalManager.h"
+#include "core/logModule.h"
 #include "core/undoModule.h"
 #include "debug/breakpointModule.h"
 #include "debug/debugModule.h"
@@ -48,7 +49,6 @@
 #include "service/lsp/lspManager.h"
 #include "service/network/networkService.h"
 #include "service/serviceModule.h"
-#include "terminal/logModule.h"
 #include "terminal/terminalModule.h"
 
 // public

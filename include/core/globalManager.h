@@ -27,6 +27,7 @@ class WatchModule;
 Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
 Q_MOC_INCLUDE("core/fileModule.h")
+Q_MOC_INCLUDE("core/logModule.h")
 Q_MOC_INCLUDE("core/undoModule.h")
 Q_MOC_INCLUDE("debug/debugModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
@@ -35,7 +36,6 @@ Q_MOC_INCLUDE("port/portModule.h")
 Q_MOC_INCLUDE("runtime/threadpoolModule.h")
 Q_MOC_INCLUDE("service/git/gitModule.h")
 Q_MOC_INCLUDE("service/serviceModule.h")
-Q_MOC_INCLUDE("terminal/logModule.h")
 Q_MOC_INCLUDE("terminal/terminalModule.h")
 
 class GlobalManager final : public QObject {

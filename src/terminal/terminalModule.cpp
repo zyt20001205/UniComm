@@ -8,8 +8,8 @@
 #include "globals.h"
 #include "mainWindow/mainWindow.h"
 #include "core/globalManager.h"
+#include "core/logModule.h"
 #include "runtime/threadpoolModule.h"
-#include "terminal/logModule.h"
 #include "terminal/terminalPage.h"
 
 // public
