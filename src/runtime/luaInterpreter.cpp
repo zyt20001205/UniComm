@@ -1,5 +1,6 @@
 #include "runtime/luaInterpreter.h"
 
+#include <QDebug>
 #include <QThread>
 #include <QTimer>
 #include <sol/sol.hpp>
@@ -480,7 +481,7 @@ void LuaInterpreter::interpreterStateSet(const InterpreterState::Value state) {
     if (state != InterpreterState::Pause) emit quitLoop();
 }
 
-void LuaInterpreter::watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions) {
+void LuaInterpreter::watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions) {
     m_luaSession.insert("expressions", QVariant::fromValue(expressions));
 }
 
@@ -511,60 +512,87 @@ void LuaInterpreter::callStackSet(lua_State *L, lua_Debug *ar) {
     emit This->setCallStack(session["threadId"].toString(), frames);
 }
 
+QVariantHash LuaInterpreter::watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open) {
+    const auto type = object.valid() ? static_cast<LuaType::Value>(object.get_type()) : LuaType::Nil;
+    QVariantHash result{{"type", QVariant::fromValue(type)}, {"value", object.valid() ? uni_cast<QString>(object) : QStringLiteral("nil")}};
+    if (type != LuaType::Table || expression.isEmpty() || !open.contains(expression)) return result;
+
+    // only visit children of expanded tables
+    QVariantMap children{};
+    // get a reference to string.format
+    const sol::function format = sol::state_view(object.lua_state())["string"]["format"];
+    for (const auto &[key, value]: object.as<sol::table>()) {
+        const auto keyType = key.get_type();
+        // build the full expression
+        QString literal{};
+        if (keyType == sol::type::string || keyType == sol::type::number || keyType == sol::type::boolean) {
+            const auto quoted = QByteArray::fromStdString(format.call<std::string>("%q", key));
+            if (quoted.isValidUtf8()) literal = QString::fromUtf8(quoted);
+            else {
+                // preserve binary keys across the QString round trip
+                const auto bytes = QByteArray::fromStdString(key.as<std::string>());
+                literal = QString::fromLatin1("\"\\x" + bytes.toHex(':').replace(":", "\\x") + '"');
+            }
+        }
+        const auto path = literal.isEmpty() ? QString{} : expression + "[" + literal + "]";
+        // format the display name
+        QString display;
+        if (literal.isEmpty()) {
+            display = QString("[%1:0x%2]").arg(uni_cast<QString>(key)).arg(reinterpret_cast<quintptr>(key.pointer()), 0, 16);
+        } else if (keyType == sol::type::string) {
+            display = QString::fromStdString(key.as<std::string>());
+            if (display.isEmpty()) display = literal;
+        } else {
+            display = "[" + QString::fromStdString(format.call<std::string>("%s", key)) + "]";
+        }
+        auto child = watchValueGet(value, path, open);
+        child.insert("display", display);
+        child.insert("expression", path);
+        children.insert(path.isEmpty() ? display : path, child);
+    }
+    result.insert("children", children);
+    return result;
+}
+
 QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const {
-    const auto expressions = m_luaSession.value("expressions").value<QMultiHash<QUrl, QString> >().values(documentUrl);
+    const auto expressions = m_luaSession.value("expressions").value<QHash<QUrl, QVariantHash>>().value(documentUrl);
     if (expressions.isEmpty()) return {};
     sol::state_view lua(L);
-    // use globals as fallback
-    sol::environment env(lua, sol::create, lua.globals());
-    QSet<QString> variables{};
+    // load globals
+    sol::environment env(lua, sol::create);
+    for (const auto &[key, value]: lua.globals()) env[key] = value;
     // load upvalues
     if (lua_getinfo(L, "f", ar)) {
         for (int i = 1; const char *name = lua_getupvalue(L, -1, i); ++i) {
-            if (name[0] != '(') {
-                env[name] = sol::object(L, -1);
-                variables.insert(QString::fromUtf8(name));
-            }
+            if (name[0] != '(') env[name] = sol::object(L, -1);
             lua_pop(L, 1);
         }
         lua_pop(L, 1);
     }
     // load locals
     for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
-        if (name[0] != '(') {
-            env[name] = sol::object(L, -1);
-            variables.insert(QString::fromUtf8(name));
-        }
+        if (name[0] != '(') env[name] = sol::object(L, -1);
         lua_pop(L, 1);
     }
     // evaluate expressions
     QVariantHash results{};
-    for (const auto &expression: expressions) {
+    for (const auto &[expression, expanded]: expressions.asKeyValueRange()) {
         sol::object object{};
-        if (variables.contains(expression)) {
-            object = env.raw_get<sol::object>(expression.toStdString());
-        } else {
-            const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
-            if (result.valid()) object = result.get<sol::object>();
-        }
-        auto type = LuaType::Nil;
-        QString value = "nil";
-        if (object.valid()) {
-            type = static_cast<LuaType::Value>(object.get_type());
-            value = uni_cast<QString>(object);
-        }
-        results.insert(expression, QVariantHash{{"value", value}, {"type", QVariant::fromValue(type)}});
+        const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
+        if (result.valid()) object = result.get<sol::object>();
+        results.insert(expression, watchValueGet(object, expression, expanded.value<QSet<QString>>()));
     }
     return results;
 }
 
-void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const LuaType::Value type) {
+void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, const LuaType::Value type) const {
     // push new value
     bool valid = true;
     if (type == LuaType::Nil) {
         lua_pushnil(L);
-    } else if (type == LuaType::Boolean && (value == "true" || value == "false")) {
-        lua_pushboolean(L, value == "true");
+    } else if (type == LuaType::Boolean) {
+        valid = value == "true" || value == "false";
+        if (valid) lua_pushboolean(L, value == "true");
     } else if (type == LuaType::Number) {
         const auto integer = value.toLongLong(&valid);
         if (valid) {
@@ -577,38 +605,68 @@ void LuaInterpreter::watchValueSet(lua_State *L, lua_Debug *ar, const QString &e
         const auto bytes = value.toUtf8();
         lua_pushlstring(L, bytes.constData(), bytes.size());
     } else {
-        valid = false;
+        m_io->stdErr(QString("\x1b[33mHot update failed\x1b[39m for %1: unsupported value type\n").arg(expression).toUtf8());
+        return;
     }
     if (!valid) {
-        m_io->stdErr("Hot update failed: invalid value\n");
+        const auto expected = type == LuaType::Number ? "a number" : "a boolean";
+        m_io->stdErr(QString("\x1b[33mHot update failed\x1b[39m for %1: expected %2, got %3\n").arg(expression, expected, QDebug::toString(value)).toUtf8());
         return;
     }
-    // set matching local
-    int local = 0;
-    for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
-        if (expression == QString::fromUtf8(name)) local = i;
-        lua_pop(L, 1);
-    }
-    if (local) {
-        lua_setlocal(L, ar, local);
-        emit appendLog(LogLevel::Info, QString("Hot update executed: local %1 = %2").arg(expression, value), "");
-        return;
-    }
-    // set matching upvalue
+    // collect frame variables for Lua assignments
+    sol::state_view lua(L);
+    sol::environment env(lua, sol::create);
+    int upvalue = 0;
     if (lua_getinfo(L, "f", ar)) {
         for (int i = 1; const char *name = lua_getupvalue(L, -1, i); ++i) {
+            env[name] = sol::object(L, -1);
+            if (expression == QString::fromUtf8(name)) upvalue = i;
             lua_pop(L, 1);
-            if (expression != QString::fromUtf8(name)) continue;
-            lua_insert(L, -2);
-            lua_setupvalue(L, -2, i);
-            lua_pop(L, 1);
-            emit appendLog(LogLevel::Info, QString("Hot update executed: upvalue %1 = %2").arg(expression, value), "");
-            return;
         }
         lua_pop(L, 1);
     }
+    int local = 0;
+    for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
+        env[name] = sol::object(L, -1);
+        if (expression == QString::fromUtf8(name)) local = i;
+        lua_pop(L, 1);
+    }
+    const auto display = type == LuaType::String ? QDebug::toString(value) : value;
+    if (local) {
+        lua_setlocal(L, ar, local);
+        m_io->stdOut(QString("\x1b[32mHot updated\x1b[39m: local %1 = %2\n").arg(expression, display).toUtf8());
+        return;
+    }
+    if (upvalue) {
+        lua_getinfo(L, "f", ar);
+        lua_insert(L, -2);
+        lua_setupvalue(L, -2, upvalue);
+        lua_pop(L, 1);
+        m_io->stdOut(QString("\x1b[32mHot updated\x1b[39m: upvalue %1 = %2\n").arg(expression, display).toUtf8());
+        return;
+    }
+
+    // assign the field with the typed value as the chunk argument
+    sol::object newValue(L, -1);
     lua_pop(L, 1);
-    m_io->stdErr(QString("Hot update failed: variable '%1' not found\n").arg(expression).toUtf8());
+    env[sol::metatable_key] = lua.create_table_with(sol::meta_function::new_index, +[](lua_State *state) -> int {
+        return luaL_error(state, "unknown watch variable '%s'", lua_tostring(state, 2));
+    });
+    const auto chunk = lua.load(expression.toStdString() + " = ...", "=watch");
+    if (chunk.valid()) {
+        sol::protected_function assign = chunk;
+        sol::set_environment(env, assign);
+        const auto result = assign(newValue);
+        if (result.valid()) {
+            m_io->stdOut(QString("\x1b[32mHot updated\x1b[39m: field %1 = %2\n").arg(expression, display).toUtf8());
+            return;
+        }
+        const sol::error error = result;
+        m_io->stdErr(QString("\x1b[33mHot update failed\x1b[39m for %1: %2\n").arg(expression, QString::fromUtf8(error.what())).toUtf8());
+    } else {
+        const sol::error error = chunk;
+        m_io->stdErr(QString("\x1b[33mHot update failed\x1b[39m for %1: %2\n").arg(expression, QString::fromUtf8(error.what())).toUtf8());
+    }
 }
 
 void LuaInterpreter::luaRunHook(lua_State *L, lua_Debug *ar) {

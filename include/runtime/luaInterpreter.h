@@ -28,7 +28,7 @@ public:
 
     void interpreterStateSet(InterpreterState::Value state);
 
-    void watchExpressionsSet(const QMultiHash<QUrl, QString> &expressions);
+    void watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions);
 
     void watchValuesRefresh();
 
@@ -50,9 +50,11 @@ signals:
 private:
     static void callStackSet(lua_State *L, lua_Debug *ar);
 
+    [[nodiscard]] static QVariantHash watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open);
+
     [[nodiscard]] QVariantHash watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const;
 
-    void watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, LuaType::Value type);
+    void watchValueSet(lua_State *L, lua_Debug *ar, const QString &expression, const QString &value, LuaType::Value type) const;
 
     static void luaRunHook(lua_State *L, lua_Debug *ar);
 
