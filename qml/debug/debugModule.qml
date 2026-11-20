@@ -119,7 +119,7 @@ Rectangle {
                 required property int index
                 required property var modelData
                 width: ListView.view.width
-                height: 24
+                height: 28
                 leftPadding: 11; rightPadding: 6; topPadding: 0; bottomPadding: 0
                 text: modelData[0]
                 highlighted: threadComboBox.highlightedIndex === index
@@ -135,7 +135,7 @@ Rectangle {
             popup.contentItem.focus: true
             popup.contentItem.Keys.forwardTo: [threadComboBox]
             popup.closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-            popup.height: Math.min(threadComboBox.count, 8) * 24 + popup.topPadding + popup.bottomPadding
+            popup.height: Math.min(threadComboBox.count, 8) * 28 + popup.topPadding + popup.bottomPadding
             popup.topMargin: -1
             popup.bottomMargin: -1
             popup.onAboutToShow: {
@@ -170,7 +170,7 @@ Rectangle {
                 required property int index
                 required property var modelData
                 width: stackView.width
-                height: 24
+                height: 28
                 leftPadding: 11; rightPadding: 6 + stackScrollBar.width
                 topPadding: 0; bottomPadding: 0
                 focusPolicy: Qt.ClickFocus

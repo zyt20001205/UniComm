@@ -56,7 +56,7 @@ Item {
             required property int index
             required property var modelData
 
-            width: serviceView.width; height: 36
+            width: serviceView.width; height: 28
             text: serviceDelegate.modelData.name
             leftPadding: 11; rightPadding: 6 + serviceScrollBar.width
             topPadding: 0; bottomPadding: 0

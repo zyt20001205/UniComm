@@ -173,7 +173,7 @@ Item {
                         required property var modelData
                         required property int index
                         width: listView.width
-                        height: 24
+                        height: 28
                         leftPadding: 11; rightPadding: 6 + breakpointScrollBar.width
                         topPadding: 0; bottomPadding: 0
                         focusPolicy: Qt.ClickFocus

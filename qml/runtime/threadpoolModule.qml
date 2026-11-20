@@ -75,7 +75,7 @@ Rectangle {
             readonly property string threadId: modelData[0]
             readonly property var thread: modelData[1]
             width: listView.width
-            height: 24
+            height: 28
             leftPadding: 11; rightPadding: 6 + verticalScrollBar.width
             topPadding: 0; bottomPadding: 0
             focusPolicy: Qt.ClickFocus
