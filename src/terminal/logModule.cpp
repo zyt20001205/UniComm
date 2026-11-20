@@ -57,7 +57,7 @@ void LogModule::logConfigSave() const {
 }
 
 void LogModule::logAppend(const int type, const QString &prefix, const QString &message) {
-    if (!m_textDocument) return;
+    if (m_pause || !m_textDocument) return;
     auto _message = message;
     // check size
     const bool collapsed = message.size() >= m_collapseThreshold;

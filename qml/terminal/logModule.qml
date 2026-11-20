@@ -79,7 +79,11 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: fileDialog.open()
+                onClicked: {
+                    const timestamp = Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
+                    fileDialog.selectedFile = fileDialog.currentFolder + "/log_" + timestamp
+                    fileDialog.open()
+                }
 
                 FileDialog {
                     id: fileDialog
@@ -87,7 +91,6 @@ Item {
                     fileMode: FileDialog.SaveFile
                     nameFilters: ["Plain Text (*.txt)", "PDF (*.pdf)", "Rich Text (*.html)"]
                     defaultSuffix: selectedNameFilter.extensions[0]
-                    selectedFile: currentFolder + "/log_" + Qt.formatDateTime(new Date(), "yyyyMMdd_HHmmss")
                     onAccepted: root.logModule.logSave(selectedFile)
                 }
 
@@ -221,6 +224,15 @@ Item {
             mainOverlay.widgetCount += 1
         }
         onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Pause updates")
+            icon.source: "qrc:/icon/pause.svg"
+            icon.width: 16; icon.height: 16
+            checkable: true
+            checked: root.logModule.pause
+            onToggled: root.logModule.pause = checked
+        }
 
         Menu {
             title: qsTr("Fold at")

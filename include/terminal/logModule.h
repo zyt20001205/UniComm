@@ -14,6 +14,7 @@ class LogModule : public KDDockWidgets::QtWidgets::DockWidget {
     QML_UNCREATABLE("LogModule is created by C++.")
     Q_PROPERTY(bool timestamp MEMBER m_timestamp NOTIFY timestampChanged)
     Q_PROPERTY(bool wrap MEMBER m_wrap NOTIFY wrapChanged)
+    Q_PROPERTY(bool pause MEMBER m_pause NOTIFY pauseChanged)
     Q_PROPERTY(int collapseThreshold MEMBER m_collapseThreshold NOTIFY collapseThresholdChanged)
     Q_PROPERTY(int lineLimit MEMBER m_lineLimit NOTIFY lineLimitChanged)
     Q_PROPERTY(QFont logFont MEMBER m_font CONSTANT)
@@ -40,6 +41,8 @@ signals:
 
     void wrapChanged();
 
+    void pauseChanged();
+
     void collapseThresholdChanged();
 
     void lineLimitChanged(int limit);
@@ -49,6 +52,7 @@ signals:
 private:
     bool m_timestamp{};
     bool m_wrap{};
+    bool m_pause{};
     int m_collapseThreshold{200};
     int m_lineLimit{1000};
     QFont m_font{};
