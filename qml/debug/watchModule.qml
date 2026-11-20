@@ -17,16 +17,23 @@ Item {
     function loadEditor() {
         const index = treeView.selectionModel.currentIndex
         const result = root.watchModule.model.data(index, WatchModule.ResultRole)
+        sourceLabel.text = result?.source === undefined ? "" : Qt.enumValueToString(WatchSource.Value, result.source)
+        editor.expression = root.watchModule.model.data(index, WatchModule.ExpressionRole) ?? ""
         valueField.text = result?.value ?? ""
         typeBox.sourceType = result?.type ?? LuaType.None
         typeBox.currentIndex = typeBox.indexOfValue(typeBox.sourceType)
     }
 
     Connections {
+        target: root.watchModule
+        function onExpandWatch(index) { treeView.expandToIndex(index) }
+    }
+
+    Connections {
         target: root.watchModule.model
         function onDataChanged(first, last) {
             const row = treeView.currentRow
-            if (row >= first.row && row <= last.row) root.loadEditor()
+            if (row >= 0 && row >= treeView.rowAtIndex(first) && row <= treeView.rowAtIndex(last)) root.loadEditor()
         }
     }
 
@@ -71,9 +78,9 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
                 Accessible.name: qsTr("Delete watch")
-                enabled: treeView.currentRow >= 0
+                enabled: treeView.currentRow >= 0 && treeView.depth(treeView.currentRow) === 0
                 onClicked: {
-                    root.watchModule.watchExpressionDelete(treeView.currentRow)
+                    root.watchModule.watchExpressionDelete(treeView.selectionModel.currentIndex.row)
                     global.threadpoolModule.watchValuesGet(global.debugModule.currentThread)
                 }
 
@@ -95,8 +102,10 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
                 Accessible.name: checked ? qsTr("Disable Refresh") : qsTr("Enable Refresh")
+                Accessible.description: qsTr("Right-click to change the refresh interval.")
 
                 Timer {
+                    id: refreshTimer
                     interval: 1000
                     repeat: true
                     running: refreshButton.checked && treeView.rows > 0
@@ -105,11 +114,22 @@ Item {
                     onTriggered: global.threadpoolModule.watchValuesGet(global.debugModule.currentThread)
                 }
 
+                TapHandler {
+                    acceptedButtons: Qt.RightButton
+                    onTapped: {
+                        mainTooltip.text = ""
+                        const position = mainOverlay.mapFromGlobal(refreshButton.mapToGlobal(point.position))
+                        intervalMenu.popup(position.x, position.y)
+                    }
+                }
+
                 HoverHandler {
+                    enabled: !intervalMenu.visible
                     onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
                     onPointChanged: {
                         mainTooltip.position = refreshButton.mapToGlobal(point.position)
-                        mainTooltip.text = refreshButton.Accessible.name
+                        mainTooltip.text = qsTr("%1 (%2)\n%3").arg(refreshButton.Accessible.name)
+                            .arg(intervalGroup.checkedButton.text).arg(refreshButton.Accessible.description)
                     }
                 }
             }
@@ -180,6 +200,7 @@ Item {
                     onCurrentChanged: root.loadEditor()
                 }
                 Keys.onDeletePressed: deleteButton.click()
+                onCollapsed: row => root.watchModule.watchExpand(treeView.index(row, 0), false)
 
                 ScrollBar.vertical: ScrollBar {
                     id: treeScrollBar
@@ -193,7 +214,10 @@ Item {
                 delegate: Item {
                     id: node
                     required property int depth
+                    required property int row
                     required property string display
+                    required property string expression
+                    required property bool expand
                     required property var result
                     required property bool current
                     required property bool editing
@@ -219,11 +243,21 @@ Item {
                             Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
                             IconImage {
+                                id: expandIcon
                                 anchors.centerIn: parent
                                 width: 16; height: 16
-                                source: "qrc:/icon/arrowCollapse.svg"
+                                source: node.expand ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
                                 color: global.theme.general.fore
-                                visible: node.result.type === LuaType.Table
+                                visible: node.expand || (node.result.type === LuaType.Table && node.expression.length > 0)
+                            }
+
+                            TapHandler {
+                                enabled: expandIcon.visible
+                                gesturePolicy: TapHandler.DragWithinBounds
+                                onTapped: {
+                                    if (node.expand && treeView.isExpanded(node.row)) treeView.collapse(node.row)
+                                    else root.watchModule.watchExpand(treeView.index(node.row, 0), !node.expand)
+                                }
                             }
                         }
 
@@ -243,7 +277,14 @@ Item {
                         }
                     }
 
-                    HoverHandler { id: hoverHandler }
+                    HoverHandler {
+                        id: hoverHandler
+                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                        onPointChanged: {
+                            mainTooltip.position = node.mapToGlobal(point.position)
+                            mainTooltip.text = node.expression
+                        }
+                    }
 
                     TableView.editDelegate: TextField {
                         required property int row
@@ -256,7 +297,7 @@ Item {
                         text: display
                         placeholderText: qsTr("e.g. x + 1")
                         Component.onCompleted: selectAll()
-                        TableView.onCommit: root.watchModule.watchExpressionSet(row, text)
+                        TableView.onCommit: root.watchModule.watchExpressionSet(treeView.index(row, 0).row, text)
                     }
                 }
             }
@@ -283,9 +324,16 @@ Item {
                 ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
                 ColumnLayout {
+                    id: editor
+                    property string expression
                     width: settingsView.availableWidth
                     visible: treeView.currentRow >= 0
                     enabled: global.debugModule.callStack.length > 0
+
+                    RowLayout {
+                        Label { text: qsTr("Source") }
+                        Label { id: sourceLabel }
+                    }
 
                     Label { text: qsTr("Value") }
 
@@ -335,11 +383,10 @@ Item {
                     Button {
                         id: applyButton
                         text: qsTr("Apply")
-                        enabled: typeBox.currentIndex >= 0
+                        enabled: typeBox.currentIndex >= 0 && editor.expression.length > 0
                         onClicked: {
-                            const expression = treeView.model.data(treeView.selectionModel.currentIndex, Qt.DisplayRole)
                             const value = typeBox.currentValue === LuaType.Nil ? "nil" : valueField.text
-                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, expression, value, typeBox.currentValue)
+                            global.threadpoolModule.watchValueSet(global.debugModule.currentThread, editor.expression, value, typeBox.currentValue)
                         }
                     }
                 }
@@ -401,6 +448,32 @@ Item {
                 placeholderText: qsTr("Enter expression:")
                 onAccepted: expressionDialog.accept()
                 Keys.onEscapePressed: expressionDialog.reject()
+            }
+        }
+    }
+
+    Menu {
+        id: intervalMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        ButtonGroup { id: intervalGroup }
+
+        Repeater {
+            model: [100, 250, 500, 1000, 2000, 5000]
+            delegate: MenuItem {
+                required property int modelData
+                text: modelData < 1000 ? qsTr("%1 ms").arg(modelData) : qsTr("%1 s").arg(modelData / 1000)
+                checkable: true
+                checked: refreshTimer.interval === modelData
+                ButtonGroup.group: intervalGroup
+                onTriggered: refreshTimer.interval = modelData
             }
         }
     }

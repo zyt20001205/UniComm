@@ -512,9 +512,9 @@ void LuaInterpreter::callStackSet(lua_State *L, lua_Debug *ar) {
     emit This->setCallStack(session["threadId"].toString(), frames);
 }
 
-QVariantHash LuaInterpreter::watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open) {
+QVariantHash LuaInterpreter::watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open, const WatchSource::Value source) {
     const auto type = object.valid() ? static_cast<LuaType::Value>(object.get_type()) : LuaType::Nil;
-    QVariantHash result{{"type", QVariant::fromValue(type)}, {"value", object.valid() ? uni_cast<QString>(object) : QStringLiteral("nil")}};
+    QVariantHash result{{"source", QVariant::fromValue(source)}, {"type", QVariant::fromValue(type)}, {"value", object.valid() ? uni_cast<QString>(object) : QStringLiteral("nil")}};
     if (type != LuaType::Table || expression.isEmpty() || !open.contains(expression)) return result;
 
     // only visit children of expanded tables
@@ -558,20 +558,30 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
     const auto expressions = m_luaSession.value("expressions").value<QHash<QUrl, QVariantHash>>().value(documentUrl);
     if (expressions.isEmpty()) return {};
     sol::state_view lua(L);
+    QHash<QString, WatchSource::Value> sources{};
     // load globals
     sol::environment env(lua, sol::create);
-    for (const auto &[key, value]: lua.globals()) env[key] = value;
+    for (const auto &[key, value]: lua.globals()) {
+        env[key] = value;
+        if (key.get_type() == sol::type::string) sources.insert(QString::fromStdString(key.as<std::string>()), WatchSource::Global);
+    }
     // load upvalues
     if (lua_getinfo(L, "f", ar)) {
         for (int i = 1; const char *name = lua_getupvalue(L, -1, i); ++i) {
-            if (name[0] != '(') env[name] = sol::object(L, -1);
+            if (name[0] != '(') {
+                env[name] = sol::object(L, -1);
+                sources.insert(QString::fromUtf8(name), WatchSource::Upvalue);
+            }
             lua_pop(L, 1);
         }
         lua_pop(L, 1);
     }
     // load locals
     for (int i = 1; const char *name = lua_getlocal(L, ar, i); ++i) {
-        if (name[0] != '(') env[name] = sol::object(L, -1);
+        if (name[0] != '(') {
+            env[name] = sol::object(L, -1);
+            sources.insert(QString::fromUtf8(name), WatchSource::Local);
+        }
         lua_pop(L, 1);
     }
     // evaluate expressions
@@ -580,7 +590,8 @@ QVariantHash LuaInterpreter::watchValuesGet(lua_State *L, lua_Debug *ar, const Q
         sol::object object{};
         const auto result = lua.safe_script("return " + expression.toStdString(), env, sol::script_pass_on_error);
         if (result.valid()) object = result.get<sol::object>();
-        results.insert(expression, watchValueGet(object, expression, expanded.value<QSet<QString>>()));
+        const auto source = sources.value(expression.sliced(1, expression.size() - 2), WatchSource::Expression);
+        results.insert(expression, watchValueGet(object, expression, expanded.value<QSet<QString>>(), source));
     }
     return results;
 }

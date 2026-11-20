@@ -50,7 +50,7 @@ signals:
 private:
     static void callStackSet(lua_State *L, lua_Debug *ar);
 
-    [[nodiscard]] static QVariantHash watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open);
+    [[nodiscard]] static QVariantHash watchValueGet(const sol::object &object, const QString &expression, const QSet<QString> &open, WatchSource::Value source = WatchSource::Expression);
 
     [[nodiscard]] QVariantHash watchValuesGet(lua_State *L, lua_Debug *ar, const QUrl &documentUrl) const;
 

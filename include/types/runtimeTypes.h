@@ -70,4 +70,19 @@ namespace ThreadStatus {
     Q_ENUM_NS(Value)
 }
 
+namespace WatchSource {
+    Q_NAMESPACE
+
+    QML_ELEMENT
+
+    enum Value {
+        Local,
+        Upvalue,
+        Global,
+        Expression
+    };
+
+    Q_ENUM_NS(Value)
+}
+
 #endif //UNICOMM_RUNTIMETYPES_H
