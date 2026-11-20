@@ -118,8 +118,9 @@ Item {
                     acceptedButtons: Qt.RightButton
                     onTapped: {
                         mainTooltip.text = ""
-                        const position = mainOverlay.mapFromGlobal(refreshButton.mapToGlobal(point.position))
-                        intervalMenu.popup(position.x, position.y)
+                        const position = refreshButton.mapToGlobal(0, refreshButton.height)
+                        const localPosition = mainOverlay.mapFromGlobal(position)
+                        intervalMenu.popup(localPosition.x, localPosition.y)
                     }
                 }
 
