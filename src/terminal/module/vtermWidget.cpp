@@ -215,9 +215,9 @@ void VtermWidget::selectionWord(const int row, const int col) {
     renderSelection();
 }
 
-void VtermWidget::selectionGet(QString &text) const {
-    text.clear();
-    if (m_selection.anchorRow < 0) return;
+QString VtermWidget::selectionGet() const {
+    if (m_selection.anchorRow < 0) return {};
+    QString text{};
 
     qint64 startRow = m_selection.anchorRow;
     int startCol = m_selection.anchorCol;
@@ -241,11 +241,12 @@ void VtermWidget::selectionGet(QString &text) const {
             }
         }
     }
+    return text;
 }
 
-void VtermWidget::linkGet(const int uri, QUrl &url) const {
+QUrl VtermWidget::linkGet(const int uri) const {
     const char *value = vterm_screen_get_uri(m_screen, uri);
-    url = value ? QUrl(QString::fromUtf8(value)) : QUrl{};
+    return value ? QUrl(QString::fromUtf8(value)) : QUrl{};
 }
 
 qreal VtermWidget::scrollPositionGet() const {

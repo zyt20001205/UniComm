@@ -46,17 +46,8 @@ void TerminalPage::propertySet(const QVariantHash &objects) {
     m_terminalWidget->propertySet(objects);
 }
 
-void TerminalPage::write(const QByteArray &data) const {
-    m_vtermWidget->inputWrite(data);
-}
-
-void TerminalPage::propertyGet(const QVariantMap &objects) {
-    m_terminalItem = qvariant_cast<QObject *>(objects["terminalItem"]);
-    auto *terminalItem = qobject_cast<QQuickItem *>(m_terminalItem);
-    auto *damageOverlay = qobject_cast<QQuickItem *>(qvariant_cast<QObject *>(objects["damageOverlay"]));
-
-    m_terminalWidget = new TerminalWidget(terminalItem);
-    m_terminalWidget->setParentItem(terminalItem);
+void TerminalPage::terminalWidgetSet(TerminalWidget *widget) {
+    m_terminalWidget = widget;
 
     connect(m_terminalWidget, &TerminalWidget::keyPressed, m_vtermWidget, &VtermWidget::keyPressed);
     connect(m_terminalWidget, &TerminalWidget::pasteText, m_vtermWidget, &VtermWidget::textPaste);
@@ -70,11 +61,6 @@ void TerminalPage::propertyGet(const QVariantMap &objects) {
     connect(m_terminalWidget, &TerminalWidget::selectWord, m_vtermWidget, &VtermWidget::selectionWord);
     connect(m_terminalWidget, &TerminalWidget::getSelection, m_vtermWidget, &VtermWidget::selectionGet);
     connect(m_terminalWidget, &TerminalWidget::getLink, m_vtermWidget, &VtermWidget::linkGet);
-    connect(m_terminalWidget, &TerminalWidget::debugDamage, damageOverlay, [damageOverlay](const QRectF &rect) {
-        damageOverlay->setPosition(rect.topLeft());
-        damageOverlay->setSize(rect.size());
-        damageOverlay->setVisible(true);
-    });
     connect(m_vtermWidget, &VtermWidget::setScreen, m_terminalWidget, &TerminalWidget::screenSet);
     connect(m_vtermWidget, &VtermWidget::setScreenDamage, m_terminalWidget, &TerminalWidget::screenDamageSet);
     connect(m_vtermWidget, &VtermWidget::setSelection, m_terminalWidget, &TerminalWidget::selectionSet);
@@ -86,6 +72,11 @@ void TerminalPage::propertyGet(const QVariantMap &objects) {
     connect(m_vtermWidget, &VtermWidget::setCursorMode, m_terminalWidget, &TerminalWidget::cursorModeSet);
 
     connect(m_terminalWidget, &TerminalWidget::resize, this, &TerminalPage::_resize);
+    QFont font(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
+    font.setFixedPitch(true);
+    font.setStyleHint(QFont::Monospace, QFont::ForceOutline);
+    m_terminalWidget->fontSet(font);
+
     if (m_conptyWidget) {
         connect(m_vtermWidget, &VtermWidget::outputWrite, m_conptyWidget, &ConptyWidget::inputWrite);
         connect(m_conptyWidget, &ConptyWidget::outputWrite, m_vtermWidget, &VtermWidget::inputWrite);
@@ -97,21 +88,14 @@ void TerminalPage::propertyGet(const QVariantMap &objects) {
     }
 }
 
+void TerminalPage::write(const QByteArray &data) const {
+    m_vtermWidget->inputWrite(data);
+}
+
 bool TerminalPage::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_widget) {
         if (event->type() == QEvent::Show) {
             QTimer::singleShot(0, this, [this] {
-                auto *terminalItem = qobject_cast<QQuickItem *>(m_terminalItem);
-                if (m_terminalWidget->width() <= 0) {
-                    auto font = QFont(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
-                    font.setFixedPitch(true);
-                    font.setStyleHint(QFont::Monospace, QFont::ForceOutline);
-                    m_terminalWidget->fontSet(font);
-                    m_terminalWidget->setWidth(terminalItem->width());
-                    m_terminalWidget->setHeight(terminalItem->height());
-                    connect(terminalItem, &QQuickItem::widthChanged, m_terminalWidget, [this, terminalItem] { m_terminalWidget->setWidth(terminalItem->width()); });
-                    connect(terminalItem, &QQuickItem::heightChanged, m_terminalWidget, [this, terminalItem] { m_terminalWidget->setHeight(terminalItem->height()); });
-                }
                 m_widget->setFocus(Qt::OtherFocusReason);
                 m_terminalWidget->forceActiveFocus(Qt::OtherFocusReason);
             });

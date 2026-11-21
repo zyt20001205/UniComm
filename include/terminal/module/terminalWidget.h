@@ -8,9 +8,11 @@
 #include <QQuickPaintedItem>
 #include <QRect>
 #include <QVariant>
+#include <QtQmlIntegration/qqmlintegration.h>
 
-class TerminalWidget final : public QQuickPaintedItem {
+class TerminalWidget : public QQuickPaintedItem {
     Q_OBJECT
+    QML_ELEMENT
 
 public:
     explicit TerminalWidget(QQuickItem *parent = nullptr);
@@ -64,9 +66,9 @@ signals:
 
     void selectWord(int row, int col);
 
-    void getSelection(QString &text);
+    QString getSelection();
 
-    void getLink(int uri, QUrl &url);
+    QUrl getLink(int uri);
 
     void debugDamage(const QRectF &rect);
 
@@ -122,8 +124,6 @@ private:
 
     int m_rows{};
     int m_cols{};
-    int m_requestedRows{};
-    int m_requestedCols{};
     qreal m_cellWidth{1};
     qreal m_cellHeight{1};
     qreal m_ascent{1};

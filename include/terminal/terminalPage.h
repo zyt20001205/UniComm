@@ -17,6 +17,7 @@ class TerminalPage : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("TerminalPage is created by C++.")
+    Q_MOC_INCLUDE("terminal/module/terminalWidget.h")
     Q_MOC_INCLUDE("terminal/module/vtermWidget.h")
     Q_PROPERTY(VtermWidget* vtermWidget MEMBER m_vtermWidget CONSTANT)
 
@@ -27,9 +28,9 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
-    void write(const QByteArray &data) const;
+    Q_INVOKABLE void terminalWidgetSet(TerminalWidget *widget);
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    void write(const QByteArray &data) const;
 
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -53,7 +54,6 @@ private:
     QQuickWidget *m_widget{};
     QObject *m_root{};
     QObject *m_messageDialog{};
-    QObject *m_terminalItem{};
     ConptyWidget *m_conptyWidget{};
     TerminalWidget *m_terminalWidget{};
     VtermWidget *m_vtermWidget{};

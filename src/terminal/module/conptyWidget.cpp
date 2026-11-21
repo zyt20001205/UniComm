@@ -135,7 +135,7 @@ void ConptyWidget::inputWrite(const QByteArray &bytes) const {
 }
 
 void ConptyWidget::resize(const int rows, const int cols) const {
-    ResizePseudoConsole(m_pseudoConsole, COORD{static_cast<SHORT>(cols), static_cast<SHORT>(rows)});
+    if (m_pseudoConsole) ResizePseudoConsole(m_pseudoConsole, COORD{static_cast<SHORT>(cols), static_cast<SHORT>(rows)});
 }
 
 void ConptyWidget::stop() {

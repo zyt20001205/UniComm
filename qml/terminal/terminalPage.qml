@@ -15,9 +15,18 @@ Item {
         color: global.theme.general.back
     }
 
-    Item {
-        id: terminalItem
+    TerminalWidget {
+        id: terminalWidget
         anchors.fill: parent
+
+        Component.onCompleted: root.terminalPage.terminalWidgetSet(terminalWidget)
+        onDebugDamage: rect => {
+            damageOverlay.x = rect.x
+            damageOverlay.y = rect.y
+            damageOverlay.width = rect.width
+            damageOverlay.height = rect.height
+            damageOverlay.visible = true
+        }
 
         Rectangle {
             id: damageOverlay
@@ -47,13 +56,5 @@ Item {
                 if (pressed) root.terminalPage.vtermWidget.scrollPosition = position
             }
         }
-    }
-
-    Component.onCompleted: {
-        const objects = {
-            "terminalItem": terminalItem,
-            "damageOverlay": damageOverlay
-        };
-        root.terminalPage.propertyGet(objects)
     }
 }

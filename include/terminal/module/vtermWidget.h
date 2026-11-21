@@ -53,9 +53,9 @@ public:
 
     void selectionWord(int row, int col);
 
-    void selectionGet(QString &text) const;
+    [[nodiscard]] QString selectionGet() const;
 
-    void linkGet(int uri, QUrl &url) const;
+    [[nodiscard]] QUrl linkGet(int uri) const;
 
     [[nodiscard]] qreal scrollPositionGet() const;
 

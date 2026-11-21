@@ -264,10 +264,9 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
             const int index = row * m_cols + col;
             QUrl url;
             if (row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0) {
-                emit getLink(m_cells[index].uri, url);
+                url = emit getLink(m_cells[index].uri);
             }
-            QString text;
-            emit getSelection(text);
+            const auto text = emit getSelection();
             m_contextMenu->setProperty("menuSession", QVariantHash({
                 {"terminalWidget", QVariant::fromValue(this)},
                 {"copiable", !text.isEmpty()},
@@ -306,8 +305,7 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
             emit updateSelection(row, qRound(event->position().x() / m_cellWidth));
         }
         else if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
-            QUrl url;
-            emit getLink(m_cells[index].uri, url);
+            const auto url = emit getLink(m_cells[index].uri);
             if (!url.isEmpty()) QDesktopServices::openUrl(url);
         }
     }
@@ -349,8 +347,7 @@ void TerminalWidget::hoverMoveEvent(QHoverEvent *event) {
     if (link) {
         m_toolTip->setProperty("position", QCursor::pos());
         if (control) {
-            QUrl url;
-            emit getLink(m_cells[index].uri, url);
+            const auto url = emit getLink(m_cells[index].uri);
             m_toolTip->setProperty("text", url.toString());
         } else {
             m_toolTip->setProperty("text", tr("Ctrl + Click"));
@@ -404,10 +401,6 @@ void TerminalWidget::metricsUpdate() {
     const int rows = static_cast<int>(height() / m_cellHeight);
     const int cols = static_cast<int>(width() / m_cellWidth);
     if (rows < 1 || cols < 1) return;
-    if (rows == m_requestedRows && cols == m_requestedCols) return;
-
-    m_requestedRows = rows;
-    m_requestedCols = cols;
     emit resize(rows, cols);
 }
 
