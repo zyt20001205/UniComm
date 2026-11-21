@@ -1,8 +1,13 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 
+import UniComm
+
 Item {
-    id: rootItem
+    id: root
+    required property TerminalPage terminalPage
     anchors.fill: parent
 
     Rectangle {
@@ -35,11 +40,11 @@ Item {
                 mid: global.theme.general.stroke
                 dark: global.theme.general.strokePressed
             }
-            size: vtermWidget.scrollSize
-            position: vtermWidget.scrollPosition
+            size: root.terminalPage.vtermWidget.scrollSize
+            position: root.terminalPage.vtermWidget.scrollPosition
 
             onPositionChanged: {
-                if (pressed) vtermWidget.scrollPosition = position
+                if (pressed) root.terminalPage.vtermWidget.scrollPosition = position
             }
         }
     }
@@ -49,6 +54,6 @@ Item {
             "terminalItem": terminalItem,
             "damageOverlay": damageOverlay
         };
-        terminalPage.propertyGet(objects)
+        root.terminalPage.propertyGet(objects)
     }
 }

@@ -3,6 +3,7 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QJsonObject>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/terminalTypes.h"
 
@@ -12,8 +13,12 @@ class QQuickWidget;
 class TerminalWidget;
 class VtermWidget;
 
-class TerminalPage final: public KDDockWidgets::QtWidgets::DockWidget {
+class TerminalPage : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("TerminalPage is created by C++.")
+    Q_MOC_INCLUDE("terminal/module/vtermWidget.h")
+    Q_PROPERTY(VtermWidget* vtermWidget MEMBER m_vtermWidget CONSTANT)
 
 public:
     explicit TerminalPage(const QString &uniqueName, const QVariantHash &session, const QJsonObject &config, TerminalBackend::Value backend = TerminalBackend::Process);

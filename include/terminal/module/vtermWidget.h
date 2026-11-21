@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QRect>
 #include <QUrl>
+#include <QtQmlIntegration/qqmlintegration.h>
 #include <vterm.h>
 
 extern "C" {
@@ -14,8 +15,10 @@ typedef VTermState VTermState;
 typedef VTermScreen VTermScreen;
 }
 
-class VtermWidget final : public QObject {
+class VtermWidget : public QObject {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("VtermWidget is created by C++.")
     Q_PROPERTY(qreal scrollPosition READ scrollPositionGet WRITE scrollPositionSet NOTIFY scrollChanged)
     Q_PROPERTY(qreal scrollSize READ scrollSizeGet NOTIFY scrollChanged)
 

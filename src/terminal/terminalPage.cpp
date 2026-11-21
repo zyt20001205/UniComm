@@ -4,7 +4,6 @@
 #include <QDir>
 #include <QFileIconProvider>
 #include <QFileInfo>
-#include <QQmlContext>
 #include <QQuickWidget>
 #include <QTimer>
 
@@ -19,7 +18,7 @@ TerminalPage::TerminalPage(const QString &uniqueName, const QVariantHash &sessio
     : DockWidget(uniqueName),
       m_config(config),
       m_session(session),
-      m_widget(new QQuickWidget()),
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_conptyWidget(backend == TerminalBackend::Process ? new ConptyWidget(this) : nullptr),
       m_vtermWidget(new VtermWidget(24, 80, this)) {
     setWidget(m_widget);
@@ -40,10 +39,7 @@ TerminalPage::~TerminalPage() {
 }
 
 void TerminalPage::propertySet(const QVariantHash &objects) {
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("terminalPage", this);
-    m_widget->rootContext()->setContextProperty("vtermWidget", m_vtermWidget);
-
+    m_widget->setInitialProperties({{"terminalPage", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/terminal/terminalPage.qml"));
     m_root = m_widget->rootObject();
