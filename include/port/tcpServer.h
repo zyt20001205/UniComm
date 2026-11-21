@@ -18,7 +18,7 @@ public:
 
     ~TcpServer() override;
 
-    [[nodiscard]] int type() override;
+    [[nodiscard]] PortType::Value type() override;
 
     [[nodiscard]] QJsonObject config() override;
 
@@ -59,7 +59,7 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, const QString &peerIp, bool peek);
 
-    void handleLog(int type, const QByteArray &data, const QTcpSocket *tcpServerPeer);
+    void handleLog(LogType::Value type, const QByteArray &data, const QTcpSocket *tcpServerPeer);
 
     QTcpServer *m_tcpServer{};
     QJsonObject m_portConfig{};

@@ -27,7 +27,7 @@ Vision::~Vision() {
     close();
 }
 
-int Vision::type() {
+PortType::Value Vision::type() {
     return PortType::Vision;
 }
 
@@ -60,7 +60,7 @@ bool Vision::open() {
     }
     if (!m_screenCapture && !m_cameraCapture) {
         emit refreshPort(m_portConfig["portName"].toString(), false);
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
     // port open
@@ -84,11 +84,11 @@ bool Vision::open() {
         if (m_screenCapture) m_screenCapture->stop();
         else m_cameraCapture->stop();
         emit refreshPort(m_portConfig["portName"].toString(), false);
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
     emit refreshPort(m_portConfig["portName"].toString(), true);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
     return true;
 }
 
@@ -98,7 +98,7 @@ void Vision::close() {
     else if (m_cameraCapture) m_cameraCapture->stop();
     clear();
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
 void Vision::clear() {
@@ -114,7 +114,7 @@ bool Vision::write(const QByteArray &txData, const QString &logFormat, const QSt
     else if (m_cameraCapture) status = m_cameraCapture->isActive();
     // check port status
     if (!status) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     const auto arguments = QProcess::splitCommand(QString::fromUtf8(txData));
@@ -182,7 +182,7 @@ QVariantList Vision::read(const int timeout) {
     else if (m_cameraCapture) status = m_cameraCapture->isActive();
     // check port status
     if (!status) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     const auto rawImage = timeout == 0 ? m_videoSink->videoFrame().toImage() : snapshot(timeout);

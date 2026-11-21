@@ -5,7 +5,6 @@
 #include <QSerialPort>
 #include <QThread>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -19,7 +18,7 @@ SerialPort::~SerialPort() {
     close();
 }
 
-int SerialPort::type() {
+PortType::Value SerialPort::type() {
     return PortType::SerialPort;
 }
 
@@ -82,10 +81,10 @@ bool SerialPort::open() {
     m_serialPort->setStopBits(static_cast<QSerialPort::StopBits>(m_portConfig["stopBits"].toInt()));
     if (m_serialPort->open(QSerialPort::ReadWrite)) {
         emit refreshPort(m_portConfig["portName"].toString(), true);
-        emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
+        emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "opened");
         return true;
     }
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_serialPort->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_serialPort->errorString()));
     return false;
 }
 
@@ -95,7 +94,7 @@ void SerialPort::close() {
     // port close
     m_serialPort->close();
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
 void SerialPort::clear() {
@@ -130,10 +129,10 @@ QByteArray SerialPort::readUntil(const QByteArray &text, const int timeout, cons
 void SerialPort::handleReadyRead() {
     const auto rxData = m_serialPort->readAll();
     if (m_buffer.write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
         close();
     }
-    handleLog(LogLevel::Receive, rxData);
+    handleLog(LogType::Receive, rxData);
 }
 
 void SerialPort::handleError() {
@@ -142,17 +141,17 @@ void SerialPort::handleError() {
         m_serialPort->close();
     }
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_serialPort->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_serialPort->errorString()));
 }
 
 bool SerialPort::handleWrite(const QByteArray &f_txData) {
     // check port status
     if (m_serialPort == nullptr || !m_serialPort->isOpen()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     if (m_serialPort->write(f_txData) < 0) return false;
-    handleLog(LogLevel::Transmit, f_txData);
+    handleLog(LogType::Transmit, f_txData);
     return true;
 }
 
@@ -178,7 +177,7 @@ QByteArray SerialPort::handleReadUntil(const QByteArray &text, const int timeout
     return data;
 }
 
-void SerialPort::handleLog(const int type, const QByteArray &data) {
+void SerialPort::handleLog(const LogType::Value type, const QByteArray &data) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -188,7 +187,7 @@ void SerialPort::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1] -&gt;").arg(m_serialPort->portName()), message);
     } else {
         emit appendLog(type, QString("[%1] &lt;-").arg(m_serialPort->portName()), message);

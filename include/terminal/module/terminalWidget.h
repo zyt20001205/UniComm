@@ -1,9 +1,10 @@
 #ifndef UNICOMM_TERMINALWIDGET_H
 #define UNICOMM_TERMINALWIDGET_H
 
-#include "globals.h"
 #include "terminal/module/vtermWidget.h"
+#include "types/terminalTypes.h"
 
+#include <QFont>
 #include <QList>
 #include <QQuickPaintedItem>
 #include <QRect>

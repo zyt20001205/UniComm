@@ -390,7 +390,7 @@ void DocumentModule::documentOpen(const QUrl &documentUrl) {
         } else {
             m_pageHash.value(m_focusedUrl)->addDockWidgetAsTab(documentPage);
         }
-        emit appendLog(LogLevel::Info, "document opened", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
+        emit appendLog(LogType::Info, "document opened", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 
         if (auto *handler = handlerGet(documentUrl)) {
             const auto text = handler->textGet();
@@ -1274,7 +1274,7 @@ QString DocumentModule::_directoryCreate(const QUrl &directoryUrl) {
     if (!QDir().mkpath(directoryUrl.toLocalFile())) return tr("Directory create failed: unable to create directory.");
 
     didCreateFilesNotification(directoryUrl);
-    emit appendLog(LogLevel::Info, "directory created at", QString("<a href='%1'>%2</a>").arg(directoryUrl.toString(), directoryUrl.toString()));
+    emit appendLog(LogType::Info, "directory created at", QString("<a href='%1'>%2</a>").arg(directoryUrl.toString(), directoryUrl.toString()));
     return {};
 }
 
@@ -1283,7 +1283,7 @@ QString DocumentModule::_directoryRename(const QUrl &sourceUrl, const QUrl &targ
     if (!directory.rename(targetUrl.toLocalFile())) return tr("Directory rename failed: %1").arg(directory.errorString());
 
     didRenameFilesNotification(sourceUrl, targetUrl);
-    emit appendLog(LogLevel::Info, "directory renamed to", QString("<a href='%1'>%2</a>").arg(targetUrl.toString(), targetUrl.toString()));
+    emit appendLog(LogType::Info, "directory renamed to", QString("<a href='%1'>%2</a>").arg(targetUrl.toString(), targetUrl.toString()));
     return {};
 }
 
@@ -1293,7 +1293,7 @@ QString DocumentModule::_directoryDelete(const QUrl &directoryUrl, QUrl &trashUr
 
     trashUrl = QUrl::fromLocalFile(trashPath);
     didDeleteFilesNotification(directoryUrl);
-    emit appendLog(LogLevel::Info, "directory deleted", QString("<a href='%1'>%2</a>").arg(trashUrl.toString(), trashUrl.toString()));
+    emit appendLog(LogType::Info, "directory deleted", QString("<a href='%1'>%2</a>").arg(trashUrl.toString(), trashUrl.toString()));
     return {};
 }
 
@@ -1305,7 +1305,7 @@ QString DocumentModule::_directoryRestore(const QUrl &directoryUrl, const QUrl &
     if (!directory.rename(directoryUrl.toLocalFile())) return tr("Directory restore failed: %1").arg(directory.errorString());
 
     didCreateFilesNotification(directoryUrl);
-    emit appendLog(LogLevel::Info, "directory restored to", QString("<a href='%1'>%2</a>").arg(directoryUrl.toString(), directoryUrl.toString()));
+    emit appendLog(LogType::Info, "directory restored to", QString("<a href='%1'>%2</a>").arg(directoryUrl.toString(), directoryUrl.toString()));
     return {};
 }
 
@@ -1316,7 +1316,7 @@ QString DocumentModule::_documentCreate(const QUrl &documentUrl) {
 
     didCreateFilesNotification(documentUrl);
     documentOpen(documentUrl);
-    emit appendLog(LogLevel::Info, "document created at", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
+    emit appendLog(LogType::Info, "document created at", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
     return {};
 }
 
@@ -1325,7 +1325,7 @@ QString DocumentModule::_documentRename(const QUrl &sourceUrl, const QUrl &targe
     if (!document.rename(targetUrl.toLocalFile())) return tr("Document rename failed: %1").arg(document.errorString());
 
     didRenameFilesNotification(sourceUrl, targetUrl);
-    emit appendLog(LogLevel::Info, "document renamed to", QString("<a href='%1'>%2</a>").arg(targetUrl.toString(), targetUrl.toString()));
+    emit appendLog(LogType::Info, "document renamed to", QString("<a href='%1'>%2</a>").arg(targetUrl.toString(), targetUrl.toString()));
     return {};
 }
 
@@ -1335,7 +1335,7 @@ QString DocumentModule::_documentDelete(const QUrl &documentUrl, QUrl &trashUrl)
 
     trashUrl = QUrl::fromLocalFile(trashPath);
     didDeleteFilesNotification(documentUrl);
-    emit appendLog(LogLevel::Info, "document deleted", QString("<a href='%1'>%2</a>").arg(trashUrl.toString(), trashUrl.toString()));
+    emit appendLog(LogType::Info, "document deleted", QString("<a href='%1'>%2</a>").arg(trashUrl.toString(), trashUrl.toString()));
     return {};
 }
 
@@ -1347,7 +1347,7 @@ QString DocumentModule::_documentRestore(const QUrl &documentUrl, const QUrl &tr
     if (!document.rename(documentUrl.toLocalFile())) return tr("Document restore failed: %1").arg(document.errorString());
 
     didCreateFilesNotification(documentUrl);
-    emit appendLog(LogLevel::Info, "document restored to", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
+    emit appendLog(LogType::Info, "document restored to", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
     return {};
 }
 
@@ -1579,7 +1579,7 @@ void DocumentModule::documentClose(const QUrl &documentUrl) {
         m_focusedUrl = begin.key();
     }
     if (previousFocusedUrl != m_focusedUrl) emit focusedUrlChanged();
-    emit appendLog(LogLevel::Info, "document closed", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
+    emit appendLog(LogType::Info, "document closed", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 }
 
 void DocumentModule::charAdd(const QUrl &documentUrl, const QChar character) const {

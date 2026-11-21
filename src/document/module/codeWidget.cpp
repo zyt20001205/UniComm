@@ -307,7 +307,7 @@ void CodeWidget::semanticTokensResponse(const QJsonArray &data) {
                 type = ScintillaStyle::Decorator;
                 break;
             default:
-                emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported semantic (token type:%1)").arg(QString::number(tokenType)));
+                emit appendLog(LogType::Warning, "contact author:", QString("unsupported semantic (token type:%1)").arg(QString::number(tokenType)));
                 break;
         }
         m_scintillaWidget->styleSet(type, line, character, length);

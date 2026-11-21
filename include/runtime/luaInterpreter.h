@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "api/thread.h"
+#include "types/logTypes.h"
 #include "types/runtimeTypes.h"
 
 class QJsonObject;
@@ -33,7 +34,7 @@ public:
     void watchValuesRefresh();
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void writeTerminal(const QString &id, const QByteArray &data);
 

@@ -3,6 +3,7 @@
 
 #include <QQuickWidget>
 
+#include "types/logTypes.h"
 #include "types/scintillaTypes.h"
 
 class SymbolWidget final : public QQuickWidget {
@@ -25,7 +26,7 @@ public:
 signals:
     void modelChanged();
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void setFocus(bool status);
 

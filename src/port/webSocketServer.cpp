@@ -7,7 +7,6 @@
 #include <QUrl>
 #include <QWebSocketServer>
 
-#include "globals.h"
 #include "port/module/ringBuffer.h"
 #include "port/webSocketClient.h"
 #include "util/uniCast.h"
@@ -22,7 +21,7 @@ WebSocketServer::~WebSocketServer() {
     close();
 }
 
-int WebSocketServer::type() {
+PortType::Value WebSocketServer::type() {
     return PortType::WebSocketServer;
 }
 
@@ -68,17 +67,17 @@ bool WebSocketServer::open() {
     }
     if (m_webSocketServer->isListening()) return true;
     if (const auto exception = configure(); !exception.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
         emit refreshPort(m_portConfig["portName"].toString(), false);
         return false;
     }
 
     if (m_webSocketServer->listen(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
         emit refreshPort(m_portConfig["portName"].toString(), true);
-        emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("started on %1:%2").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt())));
+        emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("started on %1:%2").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt())));
         return true;
     }
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_webSocketServer->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_webSocketServer->errorString()));
     emit refreshPort(m_portConfig["portName"].toString(), false);
     return false;
 }
@@ -98,7 +97,7 @@ void WebSocketServer::close() {
         peer->deleteLater();
     }
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
 void WebSocketServer::clear() {
@@ -109,7 +108,7 @@ bool WebSocketServer::write(const QByteArray &txData, const QString &logFormat, 
     return write(txData, WebSocketMessageType::Binary, "", logFormat, txSuffix);
 }
 
-bool WebSocketServer::write(const QByteArray &txData, const int messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix) {
+bool WebSocketServer::write(const QByteArray &txData, const WebSocketMessageType::Value messageType, const QString &peerIp, const QString &logFormat, const QString &txSuffix) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
@@ -212,7 +211,7 @@ void WebSocketServer::handleStateChanged(QWebSocket *webSocketServerPeer, const 
             break;
         default: return;
     }
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void WebSocketServer::handleNewConnection() {
@@ -235,38 +234,38 @@ void WebSocketServer::handleMessage(QWebSocket *webSocketServerPeer, const QByte
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;
     if (buffer->write(message) != message.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(peerIp), "buffer overflow");
         webSocketServerPeer->close();
         return;
     }
-    handleLog(LogLevel::Receive, message, webSocketServerPeer);
+    handleLog(LogType::Receive, message, webSocketServerPeer);
 }
 
 void WebSocketServer::handleServerError() {
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketServer->errorString());
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketServer->errorString());
 }
 
 void WebSocketServer::handleSocketError(const QWebSocket *webSocketServerPeer, const QAbstractSocket::SocketError error) {
     if (webSocketServerPeer == nullptr || error == QAbstractSocket::SocketTimeoutError) return;
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(webSocketServerPeer->property("peerIp").toString()), QString("error: %1").arg(webSocketServerPeer->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(webSocketServerPeer->property("peerIp").toString()), QString("error: %1").arg(webSocketServerPeer->errorString()));
 }
 
 void WebSocketServer::handleSocketErrors(const QSslSocket *webSocketServerPeer, const QList<QSslError> &errors) {
     const QString peerIp = webSocketServerPeer->peerAddress().toString() + ":" + QString::number(webSocketServerPeer->peerPort());
-    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), error.errorString());
+    for (const auto &error: errors) emit appendLog(LogType::Error, QString("[%1]").arg(peerIp), error.errorString());
 }
 
-bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageType, const QString &peerIp) {
+bool WebSocketServer::handleWrite(const QByteArray &f_txData, const WebSocketMessageType::Value messageType, const QString &peerIp) {
     if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
         return false;
     }
     if (messageType == WebSocketMessageType::Text && !f_txData.isValidUtf8()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
         return false;
     }
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     const auto send = [this, &f_txData, messageType](QWebSocket *peer) {
@@ -275,10 +274,10 @@ bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageT
                                  ? peer->sendTextMessage(QString::fromUtf8(f_txData))
                                  : peer->sendBinaryMessage(f_txData);
         if (written != f_txData.size()) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(peer->property("peerIp").toString()), "write failed");
+            emit appendLog(LogType::Error, QString("[%1]").arg(peer->property("peerIp").toString()), "write failed");
             return false;
         }
-        handleLog(LogLevel::Transmit, f_txData, peer);
+        handleLog(LogType::Transmit, f_txData, peer);
         return true;
     };
     if (peerIp.isEmpty()) {
@@ -288,7 +287,7 @@ bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageT
     }
     const auto peer = m_peerHash.constFind(peerIp);
     if (peer == m_peerHash.constEnd()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return false;
     }
     return send(peer.value());
@@ -296,13 +295,13 @@ bool WebSocketServer::handleWrite(const QByteArray &f_txData, const int messageT
 
 QByteArray WebSocketServer::handleRead(const int length, const int timeout, const QString &peerIp, const bool peek) {
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     auto *peer = m_peerHash.value(peerIp, nullptr);
     if (buffer == nullptr || peer == nullptr) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
     const int minimum = length == 0 ? 1 : length;
@@ -319,14 +318,14 @@ QByteArray WebSocketServer::handleRead(const int length, const int timeout, cons
 
 QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp, const bool peek) {
     if (m_webSocketServer == nullptr || !m_webSocketServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     if (text.isEmpty()) return {};
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     auto *peer = m_peerHash.value(peerIp, nullptr);
     if (buffer == nullptr || peer == nullptr) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
     const QDeadlineTimer deadline(timeout);
@@ -342,7 +341,7 @@ QByteArray WebSocketServer::handleReadUntil(const QByteArray &text, const int ti
     return data;
 }
 
-void WebSocketServer::handleLog(const int type, const QByteArray &data, const QWebSocket *webSocketServerPeer) {
+void WebSocketServer::handleLog(const LogType::Value type, const QByteArray &data, const QWebSocket *webSocketServerPeer) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -353,7 +352,7 @@ void WebSocketServer::handleLog(const int type, const QByteArray &data, const QW
     else message = QString::fromUtf8(data);
 
     const QString peerIp = webSocketServerPeer->property("peerIp").toString();
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);

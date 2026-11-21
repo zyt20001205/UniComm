@@ -4,7 +4,6 @@
 #include <QScopedValueRollback>
 #include <QUdpSocket>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -18,7 +17,7 @@ UdpSocket::~UdpSocket() {
     close();
 }
 
-int UdpSocket::type() {
+PortType::Value UdpSocket::type() {
     return PortType::UdpSocket;
 }
 
@@ -50,7 +49,7 @@ bool UdpSocket::open() {
     if (m_udpSocket->state() == QAbstractSocket::UnconnectedState) {
         m_buffer.clear();
         if (!m_udpSocket->bind(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_udpSocket->errorString()));
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_udpSocket->errorString()));
             return false;
         }
     }
@@ -59,7 +58,7 @@ bool UdpSocket::open() {
     }
     if (!m_udpSocket->waitForConnected()) {
         m_udpSocket->abort();
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
     return true;
@@ -126,16 +125,16 @@ void UdpSocket::handleStateChanged(const QAbstractSocket::SocketState state) {
         default: break;
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState);
-    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    if (!message.isEmpty()) emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void UdpSocket::handleReadyRead() {
     const auto rxData = m_udpSocket->readAll();
     if (m_buffer.write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
         close();
     }
-    handleLog(LogLevel::Receive, rxData);
+    handleLog(LogType::Receive, rxData);
 }
 
 void UdpSocket::handleError() {
@@ -143,17 +142,17 @@ void UdpSocket::handleError() {
     if (m_udpSocket->isOpen()) {
         m_udpSocket->close();
     }
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_udpSocket->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_udpSocket->errorString()));
 }
 
 bool UdpSocket::handleWrite(const QByteArray &f_txData) {
     // check port status
     if (m_udpSocket == nullptr || m_udpSocket->state() != QAbstractSocket::ConnectedState) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     m_udpSocket->write(f_txData);
-    handleLog(LogLevel::Transmit, f_txData);
+    handleLog(LogType::Transmit, f_txData);
     return true;
 }
 
@@ -179,7 +178,7 @@ QByteArray UdpSocket::handleReadUntil(const QByteArray &text, const int timeout,
     return data;
 }
 
-void UdpSocket::handleLog(const int type, const QByteArray &data) {
+void UdpSocket::handleLog(const LogType::Value type, const QByteArray &data) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -189,7 +188,7 @@ void UdpSocket::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3:%4]").arg(m_portConfig["localHost"].toString(), QString::number(m_udpSocket->localPort()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3:%4] ").arg(m_portConfig["localHost"].toString(), QString::number(m_udpSocket->localPort()), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);

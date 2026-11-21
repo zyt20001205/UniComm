@@ -6,6 +6,8 @@
 #include <QJsonObject>
 #include <QWidget>
 
+#include "types/logTypes.h"
+
 class SearchWidget;
 class ToastModule;
 
@@ -28,7 +30,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void changeSavepoint(bool status);
 

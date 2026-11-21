@@ -28,7 +28,7 @@ public:
 
     ~BluetoothLe() override;
 
-    [[nodiscard]] int type() override;
+    [[nodiscard]] PortType::Value type() override;
 
     [[nodiscard]] QJsonObject config() override;
 
@@ -73,7 +73,7 @@ private:
 
     void handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid);
 
-    void handleLog(int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid, std::optional<QString> descriptorUuid = std::nullopt);
+    void handleLog(LogType::Value type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid, std::optional<QString> descriptorUuid = std::nullopt);
 
     struct Characteristic {
         int capabilities{};

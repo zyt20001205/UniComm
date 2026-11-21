@@ -262,7 +262,7 @@ LuaInterpreter::LuaInterpreter(const QVariantMap &luaSession, QObject *parent)
                 },
                 // References prevent this sol2 version from detecting optional arity.
                 [](const Port &port, const std::string &data, const int messageType, const sol::optional<std::string> peerIp) {
-                    port.write(data, messageType, peerIp.value_or(""));
+                    port.write(data, static_cast<WebSocketMessageType::Value>(messageType), peerIp.value_or(""));
                 },
                 [](const Port &port, const std::string &data, const sol::optional<std::string> peerIp) { port.write(data, WebSocketMessageType::Binary, peerIp.value_or("")); }
             ),

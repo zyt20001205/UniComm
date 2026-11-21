@@ -1481,13 +1481,13 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         return {.content = QString::fromUtf8(QJsonDocument(ports).toJson(QJsonDocument::Compact))};
     }
     if (name == "port_config_get") {
-        const auto portType = m_portTypes.value(object.value("port_type").toString(), -1);
+        const auto portType = m_portTypes.value(object.value("port_type").toString(), static_cast<PortType::Value>(-1));
         const auto config = PortModule::portConfigGet(portType);
         if (config.isEmpty()) return {.content = "Unsupported port type.", .success = false};
         return {.content = QString::fromUtf8(QJsonDocument(config).toJson(QJsonDocument::Compact))};
     }
     if (name == "port_create") {
-        const auto portType = m_portTypes.value(object.value("port_type").toString(), -1);
+        const auto portType = m_portTypes.value(object.value("port_type").toString(), static_cast<PortType::Value>(-1));
         auto config = object.value("config").toObject();
         config["portType"] = portType;
         const auto portName = config.value("portName").toString().trimmed();

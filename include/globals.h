@@ -21,60 +21,12 @@ namespace Theme {
     };
 }
 
-namespace LogLevel {
-    enum {
-        Error,
-        Warning,
-        Info,
-        Transmit,
-        Receive
-    };
-}
-
 namespace ToastLevel {
     enum {
         Error,
         Warning,
         Info,
         Success
-    };
-}
-
-namespace PortType {
-    enum {
-        SerialPort,
-        Vision,
-        TcpClient,
-        TcpServer,
-        SslClient,
-        SslServer,
-        WebSocketClient,
-        WebSocketServer,
-        UdpSocket,
-        BluetoothLe
-    };
-}
-
-namespace WebSocketMessageType {
-    enum {
-        Text = 1,
-        Binary = 2
-    };
-}
-
-namespace ImagePipeline {
-    enum {
-        Scale,
-        Threshold
-    };
-}
-
-namespace Recognition {
-    enum {
-        OCR,
-        CornerShiTomasi,
-        CornerHarris,
-        TemplateMatch
     };
 }
 
@@ -102,31 +54,5 @@ namespace GitStatusCode {
         /* 'U' */UpdatedButUnmerged
     };
 }
-
-struct TerminalCell {
-    int width{};
-    QString text{};
-    bool bold{};
-    bool underline{};
-    bool italic{};
-    bool strike{};
-    QColor foreground{};
-    QColor background{};
-    int uri{};
-    bool dim{};
-    bool overline{};
-};
-
-struct TerminalLine {
-    QList<TerminalCell> cells{};
-    bool continuation{};
-};
-
-struct TerminalSelection {
-    qint64 anchorRow{-1};
-    int anchorCol{};
-    qint64 extentRow{-1};
-    int extentCol{};
-};
 
 #endif //UNICOMM_GLOBALS_H

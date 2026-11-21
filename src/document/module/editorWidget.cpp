@@ -90,7 +90,7 @@ QString EditorWidget::documentSave() {
     QSaveFile documentFile(documentPath);
     if (!documentFile.open(QIODevice::WriteOnly)) {
         const auto error = tr("Document save failed: %1").arg(documentFile.errorString());
-        emit appendLog(LogLevel::Error, "document save failed", error);
+        emit appendLog(LogType::Error, "document save failed", error);
         return error;
     }
 
@@ -100,17 +100,17 @@ QString EditorWidget::documentSave() {
     if (documentTextStream.status() != QTextStream::Ok) {
         documentFile.cancelWriting();
         const auto error = tr("Document save failed: unable to write the complete document.");
-        emit appendLog(LogLevel::Error, "document save failed", error);
+        emit appendLog(LogType::Error, "document save failed", error);
         return error;
     }
     if (!documentFile.commit()) {
         const auto error = tr("Document save failed: %1").arg(documentFile.errorString());
-        emit appendLog(LogLevel::Error, "document save failed", error);
+        emit appendLog(LogType::Error, "document save failed", error);
         return error;
     }
 
     m_scintillaWidget->savepointSet();
-    emit appendLog(LogLevel::Info, "document saved", QString("<a href='%1'>%2</a>").arg(m_documentUrl.toString(), m_documentUrl.toString()));
+    emit appendLog(LogType::Info, "document saved", QString("<a href='%1'>%2</a>").arg(m_documentUrl.toString(), m_documentUrl.toString()));
     return {};
 }
 

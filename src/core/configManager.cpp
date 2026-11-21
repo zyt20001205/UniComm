@@ -124,9 +124,9 @@ void ConfigManager::workspaceConfigSave(const QUrl &configUrl) {
         const QJsonDocument doc(g_workspaceConfig);
         workspaceConfig.write(doc.toJson(QJsonDocument::Indented));
         workspaceConfig.close();
-        emit appendLog(LogLevel::Info, "workspace saved to", QString("<a href='%1'>%2</a>").arg(fileUrl.toString(), fileUrl.toString()));
+        emit appendLog(LogType::Info, "workspace saved to", QString("<a href='%1'>%2</a>").arg(fileUrl.toString(), fileUrl.toString()));
     } else {
-        emit appendLog(LogLevel::Info, "workspace save failed", "");
+        emit appendLog(LogType::Info, "workspace save failed", "");
     }
 }
 

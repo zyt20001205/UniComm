@@ -18,7 +18,7 @@ public:
 
     ~WebSocketClient() override;
 
-    [[nodiscard]] int type() override;
+    [[nodiscard]] PortType::Value type() override;
 
     [[nodiscard]] QJsonObject config() override;
 
@@ -32,7 +32,7 @@ public:
 
     [[nodiscard]] bool write(const QByteArray &txData, const QString &logFormat, const QString &txSuffix) override;
 
-    [[nodiscard]] bool write(const QByteArray &txData, int messageType, const QString &logFormat, const QString &txSuffix);
+    [[nodiscard]] bool write(const QByteArray &txData, WebSocketMessageType::Value messageType, const QString &logFormat, const QString &txSuffix);
 
     [[nodiscard]] QByteArray read(int length, int timeout, const QString &logFormat, bool peek) override;
 
@@ -49,13 +49,13 @@ private:
 
     void handleErrors(const QList<QSslError> &errors);
 
-    [[nodiscard]] bool handleWrite(const QByteArray &f_txData, int messageType);
+    [[nodiscard]] bool handleWrite(const QByteArray &f_txData, WebSocketMessageType::Value messageType);
 
     [[nodiscard]] QByteArray handleRead(int length, int timeout, bool peek);
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
-    void handleLog(int type, const QByteArray &data);
+    void handleLog(LogType::Value type, const QByteArray &data);
 
     UWebSocket *m_webSocketClient{};
     QJsonObject m_portConfig{};

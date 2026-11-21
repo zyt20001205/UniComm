@@ -6,6 +6,7 @@
 #include <QVariantHash>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "types/logTypes.h"
 #include "types/runtimeTypes.h"
 #include "types/terminalTypes.h"
 
@@ -59,7 +60,7 @@ signals:
 
     void setCallStack(const QString &threadId, const QVariantList &frames);
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
 private:
     [[nodiscard]] LuaInterpreter *interpreterGet(const QString &threadId) const;

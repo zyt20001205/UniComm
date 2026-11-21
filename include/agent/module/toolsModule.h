@@ -8,6 +8,8 @@
 #include <QObject>
 #include <QSet>
 
+#include "types/portTypes.h"
+
 class SqlModule;
 class McpModule;
 
@@ -45,7 +47,7 @@ private:
 
     [[nodiscard]] bool permissionGet(int mode, const QString &name) const;
 
-    QHash<QString, int> m_portTypes{};
+    QHash<QString, PortType::Value> m_portTypes{};
     QJsonArray m_tools{};
     QJsonArray m_mcpTools{};
     McpModule *m_mcpModule{};

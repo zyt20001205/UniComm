@@ -56,32 +56,32 @@ void LogModule::logConfigSave() const {
     g_workspaceConfig["logConfig"] = config;
 }
 
-void LogModule::logAppend(const int type, const QString &prefix, const QString &message) {
+void LogModule::logAppend(const LogType::Value type, const QString &prefix, const QString &message) {
     if (m_pause || !m_textDocument) return;
     auto _message = message;
     // check size
     const bool collapsed = message.size() >= m_collapseThreshold;
     if (collapsed)
         _message = QString("<a href='#expand'>[%1 chars collapsed]</a>").arg(message.size());
-    // check level
+    // check type
     switch (type) {
-        case LogLevel::Error: {
+        case LogType::Error: {
             _message = QString("<span style='color:%1'>%2 %3</span>").arg(m_errorFore, prefix, _message);
         }
         break;
-        case LogLevel::Warning: {
+        case LogType::Warning: {
             _message = QString("<span style='color:%1'>%2 %3</span>").arg(m_warningFore, prefix, _message);
         }
         break;
-        case LogLevel::Info: {
+        case LogType::Info: {
             _message = QString("<span style='color:%1'>%2 %3</span>").arg(m_infoFore, prefix, _message);
         }
         break;
-        case LogLevel::Transmit: {
+        case LogType::Transmit: {
             _message = QString("%1 %2").arg(prefix, _message);
         }
         break;
-        case LogLevel::Receive: {
+        case LogType::Receive: {
             _message = QString("%1 %2").arg(prefix, _message);
         }
         break;

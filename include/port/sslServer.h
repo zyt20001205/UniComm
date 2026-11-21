@@ -19,7 +19,7 @@ public:
 
     ~SslServer() override;
 
-    [[nodiscard]] int type() override;
+    [[nodiscard]] PortType::Value type() override;
 
     [[nodiscard]] QJsonObject config() override;
 
@@ -64,7 +64,7 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, const QString &peerIp, bool peek);
 
-    void handleLog(int type, const QByteArray &data, const QSslSocket *sslServerPeer);
+    void handleLog(LogType::Value type, const QByteArray &data, const QSslSocket *sslServerPeer);
 
     QSslServer *m_sslServer{};
     QJsonObject m_portConfig{};

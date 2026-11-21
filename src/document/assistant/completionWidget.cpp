@@ -154,7 +154,7 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
                 default: {
                     iconColor = general["fore"].toString();
                     iconSource = "qrc:/icon/symbolMisc.svg";
-                    emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported completion (kind:%1, text:%2)").arg(QString::number(kind), insertText));
+                    emit appendLog(LogType::Warning, "contact author:", QString("unsupported completion (kind:%1, text:%2)").arg(QString::number(kind), insertText));
                 }
                 break;
             }

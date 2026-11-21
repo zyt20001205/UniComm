@@ -3,6 +3,9 @@
 
 #include <QObject>
 
+#include "types/logTypes.h"
+#include "types/portTypes.h"
+
 class BasePort : public QObject {
     Q_OBJECT
 
@@ -11,7 +14,7 @@ public:
 
     ~BasePort() override = default;
 
-    [[nodiscard]] virtual int type() = 0;
+    [[nodiscard]] virtual PortType::Value type() = 0;
 
     [[nodiscard]] virtual QJsonObject config() = 0;
 
@@ -36,7 +39,7 @@ public:
     }
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void refreshPort(const QString &portName, bool active);
 

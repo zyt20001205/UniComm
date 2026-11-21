@@ -429,6 +429,6 @@ QByteArray Imap::rfc2047Parser(const QByteArray &text) {
     const QByteArray payload = m.captured(3).toLatin1();
 
     if (encoding == 'B') return QByteArray::fromBase64(payload);
-    emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported rfc2047 encoding (Q)"));
+    emit appendLog(LogType::Warning, "contact author:", QString("unsupported rfc2047 encoding (Q)"));
     return {};
 }

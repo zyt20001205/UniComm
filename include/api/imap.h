@@ -6,6 +6,8 @@
 #include <sol/object.hpp>
 #include <variant>
 
+#include "types/logTypes.h"
+
 class BasePort;
 
 class Imap final : public QObject {
@@ -26,7 +28,7 @@ public:
     void logout();
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
 private:
     struct Untagged {

@@ -17,7 +17,7 @@ public:
 
     ~UdpSocket() override;
 
-    [[nodiscard]] int type() override;
+    [[nodiscard]] PortType::Value type() override;
 
     [[nodiscard]] QJsonObject config() override;
 
@@ -48,7 +48,7 @@ private:
 
     [[nodiscard]] QByteArray handleReadUntil(const QByteArray &text, int timeout, bool peek);
 
-    void handleLog(int type, const QByteArray &data);
+    void handleLog(LogType::Value type, const QByteArray &data);
 
     QUdpSocket *m_udpSocket{};
     QJsonObject m_portConfig{};

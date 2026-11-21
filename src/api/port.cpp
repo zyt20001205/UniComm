@@ -97,7 +97,7 @@ void Port::clear() const {
     }, Qt::BlockingQueuedConnection);
 }
 
-void Port::write(const std::string &data, const int messageType, const std::string &peerIp) const {
+void Port::write(const std::string &data, const WebSocketMessageType::Value messageType, const std::string &peerIp) const {
     if (m_port.isNull()) throw sol::error(m_portName.toStdString() + ": port is no longer available");
     if (m_port->type() == PortType::BluetoothLe)
         throw sol::error(m_portName.toStdString() + ": Bluetooth LE writes require mode, service UUID and characteristic UUID");

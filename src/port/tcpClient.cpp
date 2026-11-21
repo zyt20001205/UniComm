@@ -4,7 +4,6 @@
 #include <QScopedValueRollback>
 #include <QTcpSocket>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -18,7 +17,7 @@ TcpClient::~TcpClient() {
     close();
 }
 
-int TcpClient::type() {
+PortType::Value TcpClient::type() {
     return PortType::TcpClient;
 }
 
@@ -74,7 +73,7 @@ bool TcpClient::open() {
         m_tcpClient->connectToHost(m_portConfig["remoteHost"].toString(), m_portConfig["remotePort"].toInt());
     }
     if (!m_tcpClient->waitForConnected()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
     return true;
@@ -147,16 +146,16 @@ void TcpClient::handleStateChanged(const QAbstractSocket::SocketState state) {
         default: break;
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState);
-    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    if (!message.isEmpty()) emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void TcpClient::handleReadyRead() {
     const auto rxData = m_tcpClient->readAll();
     if (m_buffer.write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
         close();
     }
-    handleLog(LogLevel::Receive, rxData);
+    handleLog(LogType::Receive, rxData);
 }
 
 void TcpClient::handleError() {
@@ -164,17 +163,17 @@ void TcpClient::handleError() {
     if (m_tcpClient->isOpen()) {
         m_tcpClient->close();
     }
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_tcpClient->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_tcpClient->errorString()));
 }
 
 bool TcpClient::handleWrite(const QByteArray &f_txData) {
     // check port status
     if (m_tcpClient == nullptr || m_tcpClient->state() != QAbstractSocket::ConnectedState) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     m_tcpClient->write(f_txData);
-    handleLog(LogLevel::Transmit, f_txData);
+    handleLog(LogType::Transmit, f_txData);
     return true;
 }
 
@@ -200,7 +199,7 @@ QByteArray TcpClient::handleReadUntil(const QByteArray &text, const int timeout,
     return data;
 }
 
-void TcpClient::handleLog(const int type, const QByteArray &data) {
+void TcpClient::handleLog(const LogType::Value type, const QByteArray &data) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -210,7 +209,7 @@ void TcpClient::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3:%4]").arg(m_tcpClientLocalHost, QString::number(m_tcpClientLocalPort), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3:%4]").arg(m_tcpClientLocalHost, QString::number(m_tcpClientLocalPort), m_portConfig["remoteHost"].toString(), QString::number(m_portConfig["remotePort"].toInt())), message);

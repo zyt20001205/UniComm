@@ -4,6 +4,7 @@
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QSortFilterProxyModel>
 
+#include "types/logTypes.h"
 #include "types/runtimeTypes.h"
 
 class QAbstractProxyModel;
@@ -38,7 +39,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void openDocument(const QUrl &documentUrl);
 

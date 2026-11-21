@@ -5,11 +5,12 @@ import QtQuick.Controls.impl
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Shapes
+import UniComm
 import "../util"
 
 Item {
     id: rootItem
-    property int portType: 0
+    property int portType: PortType.SerialPort
     property var patterns: {
         "ipv4": /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
         "ipv6": /[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){3}/
@@ -74,25 +75,25 @@ Item {
 
                         function sourceGet() {
                             switch (rootItem.portType) {
-                                case 0:
+                                case PortType.SerialPort:
                                     return "qrc:/icon/serialPort.svg"
-                                case 1:
+                                case PortType.Vision:
                                     return "qrc:/icon/video.svg"
-                                case 2:
+                                case PortType.TcpClient:
                                     return "qrc:/icon/tcpClient.svg"
-                                case 3:
+                                case PortType.TcpServer:
                                     return "qrc:/icon/tcpServer.svg"
-                                case 4:
+                                case PortType.SslClient:
                                     return ""
-                                case 5:
+                                case PortType.SslServer:
                                     return ""
-                                case 6:
+                                case PortType.WebSocketClient:
                                     return ""
-                                case 7:
+                                case PortType.WebSocketServer:
                                     return ""
-                                case 8:
+                                case PortType.UdpSocket:
                                     return "qrc:/icon/udpSocket.svg"
-                                case 9:
+                                case PortType.BluetoothLe:
                                     return ""
                                 default:
                                     return ""
@@ -109,25 +110,25 @@ Item {
 
                         function textGet() {
                             switch (rootItem.portType) {
-                                case 0:
+                                case PortType.SerialPort:
                                     return qsTr("A serial communication interface through which information transfers in or out sequentially one bit at a time.")
-                                case 1:
+                                case PortType.Vision:
                                     return qsTr("A vision input that captures frames from a screen or camera for image processing and recognition.")
-                                case 2:
+                                case PortType.TcpClient:
                                     return qsTr("A device that initiates a connection with a TCP server to send and receive reliable, ordered data over a network.")
-                                case 3:
+                                case PortType.TcpServer:
                                     return qsTr("A device that listens on a network port, accepts incoming connections from TCP clients, and manages reliable, ordered data exchange.")
-                                case 4:
+                                case PortType.SslClient:
                                     return qsTr("A secure client that establishes encrypted connections with SSL/TLS servers to ensure data confidentiality and integrity during transmission.")
-                                case 5:
+                                case PortType.SslServer:
                                     return qsTr("A secure server that accepts encrypted SSL/TLS byte-stream connections from multiple clients.")
-                                case 6:
+                                case PortType.WebSocketClient:
                                     return qsTr("A client that establishes a full-duplex WebSocket connection and exchanges text or binary messages.")
-                                case 7:
+                                case PortType.WebSocketServer:
                                     return qsTr("A server that accepts multiple WebSocket clients over ws or wss and manages each peer independently.")
-                                case 8:
+                                case PortType.UdpSocket:
                                     return qsTr("A device that uses the User Datagram Protocol to send independent, connectionless messages (datagrams) over an IP network.")
-                                case 9:
+                                case PortType.BluetoothLe:
                                     return qsTr("A Bluetooth Low Energy central that exchanges data through GATT characteristics.")
                                 default:
                                     return ""
@@ -1299,7 +1300,7 @@ Item {
 
             // port format
             StackLayout {
-                currentIndex: rootItem.portType === 1 ? 1 : 0
+                currentIndex: rootItem.portType === PortType.Vision ? 1 : 0
                 Layout.fillWidth: true; Layout.fillHeight: true
 
                 // format
@@ -2250,10 +2251,10 @@ Item {
                                             text: qsTr("OCR")
                                         }
                                         ListElement {
-                                            text: qsTr("Corner ShiTomasi")
+                                            text: qsTr("Shi-Tomasi Corner")
                                         }
                                         ListElement {
-                                            text: qsTr("Corner Harris")
+                                            text: qsTr("Harris Corner")
                                         }
                                         ListElement {
                                             text: qsTr("Template Match")
@@ -2273,12 +2274,12 @@ Item {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                 }
 
-                                // Corner ShiTomasi
+                                // Shi-Tomasi Corner
                                 ColumnLayout {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                 }
 
-                                // Corner Harris
+                                // Harris Corner
                                 ColumnLayout {
                                     Layout.fillWidth: true; Layout.fillHeight: true
                                 }
@@ -2547,7 +2548,7 @@ Item {
                         swipeView.currentIndex = swipeView.currentIndex + 1
                     } else if (swipeView.currentIndex === 1) {
                         switch (rootItem.portType) {
-                            case 0: {
+                            case PortType.SerialPort: {
                                 if (!serialPortNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2560,7 +2561,7 @@ Item {
                                 }
                             }
                                 break
-                            case 1: {
+                            case PortType.Vision: {
                                 if (!visionNameComboBox.currentText) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2569,7 +2570,7 @@ Item {
                                 portSetting.visionCapture()
                             }
                                 break
-                            case 2: {
+                            case PortType.TcpClient: {
                                 if (!tcpClientNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2588,7 +2589,7 @@ Item {
                                 // }
                             }
                                 break
-                            case 3: {
+                            case PortType.TcpServer: {
                                 if (!tcpServerNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2601,7 +2602,7 @@ Item {
                                 }
                             }
                                 break
-                            case 4: {
+                            case PortType.SslClient: {
                                 if (!sslClientNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2620,7 +2621,7 @@ Item {
                                 // }
                             }
                                 break
-                            case 5: {
+                            case PortType.SslServer: {
                                 if (!sslServerNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2643,7 +2644,7 @@ Item {
                                 }
                             }
                                 break
-                            case 6: {
+                            case PortType.WebSocketClient: {
                                 if (!webSocketClientNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2656,7 +2657,7 @@ Item {
                                 }
                             }
                                 break
-                            case 7: {
+                            case PortType.WebSocketServer: {
                                 if (!webSocketServerNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2679,7 +2680,7 @@ Item {
                                 }
                             }
                                 break
-                            case 8: {
+                            case PortType.UdpSocket: {
                                 if (!udpSocketNameTextField.text) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2703,7 +2704,7 @@ Item {
                                 // }
                             }
                                 break
-                            case 9: {
+                            case PortType.BluetoothLe: {
                                 if (!bluetoothNameTextField.text.trim()) {
                                     portNameValidator.text = qsTr("Invalid Port Name")
                                     portNameValidatorTimer.start()
@@ -2737,7 +2738,7 @@ Item {
 
             onTriggered: {
                 let session = {}
-                session.type = 0
+                session.type = ImageOperation.Scale
                 session.ratio = 1.0
                 session.interpolation = 1
                 portSetting.pipelineInsert(session)
@@ -2751,7 +2752,7 @@ Item {
 
             onTriggered: {
                 let session = {}
-                session.type = 1
+                session.type = ImageOperation.Threshold
                 session.thresh = 0
                 session.maxval = 255
                 session.mode = 0

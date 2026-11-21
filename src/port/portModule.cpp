@@ -74,7 +74,7 @@ QSet<QString> PortModule::portList() const {
     return keys;
 }
 
-QJsonObject PortModule::portConfigGet(const int portType) {
+QJsonObject PortModule::portConfigGet(const PortType::Value portType) {
     QJsonObject portConfig{};
     switch (portType) {
         case PortType::SerialPort: {
@@ -393,7 +393,7 @@ QJsonObject PortModule::portConfigGet(const int portType) {
 }
 
 QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldPortName) const {
-    const auto portType = portConfig.value("portType").toInt(-1);
+    const auto portType = static_cast<PortType::Value>(portConfig.value("portType").toInt(-1));
     const auto portName = portConfig.value("portName").toString();
     if (portName.trimmed().isEmpty()) return "Port check failed: portName is empty.";
     if (portName != oldPortName && m_portHash.contains(portName)) return QString("Port check failed: '%1' already exists.").arg(portName);
@@ -513,14 +513,14 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
     auto exception = portCheck(portConfig);
     const auto portName = portConfig.value("portName").toString();
     if (!exception.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), exception);
+        emit appendLog(LogType::Error, QString("[%1]").arg(portName), exception);
         return exception;
     }
 
     if (index == -1) index = m_ports.size();
     if (index < 0 || index > m_ports.size()) {
         const auto error = QString("Port insert failed: invalid index %1.").arg(index);
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), error);
+        emit appendLog(LogType::Error, QString("[%1]").arg(portName), error);
         return error;
     }
 
@@ -576,7 +576,7 @@ QString PortModule::portRemove(const QString &portName, const QString &undoGroup
 
 void PortModule::portMove(const int src, const int dst) {
     if (src < 0 || src >= m_ports.size() || dst < 0 || dst >= m_ports.size()) {
-        emit appendLog(LogLevel::Error, "[Port]", "Port move failed: invalid index.");
+        emit appendLog(LogType::Error, "[Port]", "Port move failed: invalid index.");
         return;
     }
     if (src == dst) return;
@@ -591,7 +591,7 @@ void PortModule::portMove(const int src, const int dst) {
 void PortModule::portEdit(const QString &oldPortName, const QJsonObject &portConfig) {
     const int index = portIndexGet(oldPortName);
     if (index < 0) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(oldPortName), "Port edit failed: port does not exist.");
+        emit appendLog(LogType::Error, QString("[%1]").arg(oldPortName), "Port edit failed: port does not exist.");
         return;
     }
 
@@ -599,7 +599,7 @@ void PortModule::portEdit(const QString &oldPortName, const QJsonObject &portCon
     portDefaults(newPortConfig);
     const auto portName = newPortConfig.value("portName").toString();
     if (const auto exception = portCheck(newPortConfig, oldPortName); !exception.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), exception);
+        emit appendLog(LogType::Error, QString("[%1]").arg(portName), exception);
         return;
     }
 
@@ -642,7 +642,7 @@ void PortModule::portRefresh(const QString &portName, const bool active) {
 
 // private
 void PortModule::portDefaults(QJsonObject &portConfig) {
-    const auto defaults = portConfigGet(portConfig.value("portType").toInt(-1)).value("defaults").toObject();
+    const auto defaults = portConfigGet(static_cast<PortType::Value>(portConfig.value("portType").toInt(-1))).value("defaults").toObject();
     for (auto iterator = defaults.constBegin(); iterator != defaults.constEnd(); ++iterator) {
         if (!portConfig.contains(iterator.key())) portConfig.insert(iterator.key(), iterator.value());
     }
@@ -658,7 +658,7 @@ int PortModule::portIndexGet(const QString &portName) const {
 void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
     const auto portName = portConfig.value("portName").toString();
     BasePort *port{};
-    switch (portConfig["portType"].toInt()) {
+    switch (static_cast<PortType::Value>(portConfig["portType"].toInt())) {
         case PortType::SerialPort: {
             port = new SerialPort(portConfig);
             break;
@@ -706,7 +706,7 @@ void PortModule::_portInsert(const int index, const QJsonObject &portConfig) {
     m_portHash.insert(portName, port);
     m_ports.insert(index, QVariantHash{{"name", portName}, {"active", false}});
     emit portsChanged();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), "initialized");
+    emit appendLog(LogType::Info, QString("[%1]").arg(portName), "initialized");
 }
 
 void PortModule::_portRemove(const int index) {
@@ -716,7 +716,7 @@ void PortModule::_portRemove(const int index) {
     auto *thread = port->thread();
     thread->quit();
     thread->wait();
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(portName), "removed");
+    emit appendLog(LogType::Info, QString("[%1]").arg(portName), "removed");
 }
 
 void PortModule::_portEdit(const int index, const QJsonObject &portConfig) {

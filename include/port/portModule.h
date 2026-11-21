@@ -31,7 +31,7 @@ public:
 
     [[nodiscard]] QSet<QString> portList() const;
 
-    [[nodiscard]] static QJsonObject portConfigGet(int portType);
+    [[nodiscard]] static QJsonObject portConfigGet(PortType::Value portType);
 
     [[nodiscard]] QString portCheck(const QJsonObject &portConfig, const QString &oldPortName = QString()) const;
 
@@ -54,7 +54,7 @@ public:
 signals:
     void portsChanged();
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
 private:
     static void portDefaults(QJsonObject &portConfig);

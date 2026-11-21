@@ -15,6 +15,7 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
+#include "types/terminalTypes.h"
 
 // lua -> qt
 template<>

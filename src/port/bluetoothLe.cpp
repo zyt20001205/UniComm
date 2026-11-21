@@ -8,7 +8,6 @@
 #include <stdexcept>
 #include <utility>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -21,7 +20,7 @@ BluetoothLe::~BluetoothLe() {
     close();
 }
 
-int BluetoothLe::type() {
+PortType::Value BluetoothLe::type() {
     return PortType::BluetoothLe;
 }
 
@@ -120,9 +119,9 @@ bool BluetoothLe::open() {
                 try {
                     if (adapter.scan_is_active()) adapter.scan_stop();
                 } catch (const std::exception &exception) {
-                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("scan stop failed: %1").arg(exception.what()));
+                    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("scan stop failed: %1").arg(exception.what()));
                 } catch (...) {
-                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "scan stop failed");
+                    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "scan stop failed");
                 }
             });
             const auto discovered = [this, &loop, &peripheralAddress](SimpleBLE::Peripheral peripheral) {
@@ -181,7 +180,7 @@ bool BluetoothLe::open() {
         handleStateChanged(State::Connected);
         return true;
     } catch (const std::exception &exception) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(portName), QString("open failed: %1").arg(exception.what()));
+        emit appendLog(LogType::Error, QString("[%1]").arg(portName), QString("open failed: %1").arg(exception.what()));
         close();
         return false;
     }
@@ -195,9 +194,9 @@ void BluetoothLe::close() {
                 try {
                     unsubscribe(service.key(), characteristic.key());
                 } catch (const std::exception &exception) {
-                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("unsubscribe failed: %1").arg(exception.what()));
+                    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("unsubscribe failed: %1").arg(exception.what()));
                 } catch (...) {
-                    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "unsubscribe failed");
+                    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "unsubscribe failed");
                 }
             }
         }
@@ -206,9 +205,9 @@ void BluetoothLe::close() {
             m_peripheral.set_callback_on_disconnected(nullptr);
             m_peripheral.disconnect();
         } catch (const std::exception &exception) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), exception.what());
         } catch (...) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "disconnect failed");
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "disconnect failed");
         }
     }
     m_peripheral = {};
@@ -258,13 +257,13 @@ void BluetoothLe::write(const QByteArray &txData, const int mode, const QString 
     const SimpleBLE::ByteArray data(reinterpret_cast<const uint8_t *>(txData.constData()), static_cast<size_t>(txData.size()));
     if (mode == Capability::WriteRequest) m_peripheral.write_request(service, characteristic, data);
     else m_peripheral.write_command(service, characteristic, data);
-    handleLog(LogLevel::Transmit, txData, serviceUuid, characteristicUuid);
+    handleLog(LogType::Transmit, txData, serviceUuid, characteristicUuid);
 }
 
 void BluetoothLe::write(const QByteArray &txData, const QString &serviceUuid, const QString &characteristicUuid, const QString &descriptorUuid) {
     const SimpleBLE::ByteArray data(reinterpret_cast<const uint8_t *>(txData.constData()), static_cast<size_t>(txData.size()));
     m_peripheral.write(serviceUuid.toStdString(), characteristicUuid.toStdString(), descriptorUuid.toStdString(), data);
-    handleLog(LogLevel::Transmit, txData, serviceUuid, characteristicUuid, descriptorUuid);
+    handleLog(LogType::Transmit, txData, serviceUuid, characteristicUuid, descriptorUuid);
 }
 
 QByteArray BluetoothLe::read(const QString &serviceUuid, const QString &characteristicUuid, const std::optional<QString> &descriptorUuid) {
@@ -272,7 +271,7 @@ QByteArray BluetoothLe::read(const QString &serviceUuid, const QString &characte
                           ? m_peripheral.read(serviceUuid.toStdString(), characteristicUuid.toStdString(), descriptorUuid->toStdString())
                           : m_peripheral.read(serviceUuid.toStdString(), characteristicUuid.toStdString());
     const QByteArray rxData(reinterpret_cast<const char *>(data.data()), static_cast<qsizetype>(data.size()));
-    handleLog(LogLevel::Receive, rxData, serviceUuid, characteristicUuid, descriptorUuid);
+    handleLog(LogType::Receive, rxData, serviceUuid, characteristicUuid, descriptorUuid);
     return rxData;
 }
 
@@ -382,7 +381,7 @@ void BluetoothLe::handleStateChanged(const int state) {
         default: break;
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == State::Connected);
-    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    if (!message.isEmpty()) emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void BluetoothLe::handleReadyRead(Subscription *subscription, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid) {
@@ -390,20 +389,20 @@ void BluetoothLe::handleReadyRead(Subscription *subscription, const QByteArray &
     if (subscription->buffer.write(data) != data.size()) {
         const auto source = QString("[%1/%2/%3]").arg(m_portConfig["portName"].toString(), uni_cast<QBluetoothUuidShort>(serviceUuid).value,
                                                       uni_cast<QBluetoothUuidShort>(characteristicUuid).value);
-        emit appendLog(LogLevel::Error, source, "buffer overflow");
+        emit appendLog(LogType::Error, source, "buffer overflow");
         try {
             unsubscribe(serviceUuid, characteristicUuid);
         } catch (const std::exception &exception) {
-            emit appendLog(LogLevel::Error, source, QString("unsubscribe failed: %1").arg(exception.what()));
+            emit appendLog(LogType::Error, source, QString("unsubscribe failed: %1").arg(exception.what()));
         } catch (...) {
-            emit appendLog(LogLevel::Error, source, "unsubscribe failed");
+            emit appendLog(LogType::Error, source, "unsubscribe failed");
         }
         return;
     }
-    handleLog(LogLevel::Receive, data, serviceUuid, characteristicUuid);
+    handleLog(LogType::Receive, data, serviceUuid, characteristicUuid);
 }
 
-void BluetoothLe::handleLog(const int type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid, const std::optional<QString> descriptorUuid) {
+void BluetoothLe::handleLog(const LogType::Value type, const QByteArray &data, const QString &serviceUuid, const QString &characteristicUuid, const std::optional<QString> descriptorUuid) {
     QString message{};
     const auto format = m_portConfig["logFormat"].toString();
     if (format == "raw") {
@@ -416,7 +415,7 @@ void BluetoothLe::handleLog(const int type, const QByteArray &data, const QStrin
     auto endpoint = QString("%1/%2/%3").arg(m_portConfig["peripheralAddress"].toString(), uni_cast<QBluetoothUuidShort>(serviceUuid).value,
                                             uni_cast<QBluetoothUuidShort>(characteristicUuid).value);
     if (descriptorUuid) endpoint += '/' + uni_cast<QBluetoothUuidShort>(*descriptorUuid).value;
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1 -&gt; %2]").arg(m_portConfig["adapterAddress"].toString(), endpoint), message);
     } else {
         emit appendLog(type, QString("[%1 &lt;- %2]").arg(m_portConfig["adapterAddress"].toString(), endpoint), message);

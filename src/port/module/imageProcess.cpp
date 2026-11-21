@@ -4,7 +4,7 @@
 #include <QPainter>
 #include <QPixmap>
 
-#include "globals.h"
+#include "types/portTypes.h"
 #include "opencv2/imgproc.hpp"
 #include "tesseract/baseapi.h"
 #include "tesseract/resultiterator.h"
@@ -88,14 +88,14 @@ QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline
     cv::Mat frame(source.height(), source.width(), CV_8UC3, const_cast<uchar *>(source.constBits()), source.bytesPerLine());
     for (const auto &value: pipeline) {
         const auto &session = value.toObject();
-        switch (session["type"].toInt()) {
-            case ImagePipeline::Scale: {
+        switch (static_cast<ImageOperation::Value>(session["type"].toInt())) {
+            case ImageOperation::Scale: {
                 const float ratio = static_cast<float>(session["ratio"].toDouble(1));
                 const int interpolation = session["interpolation"].toInt();
                 frame = scale(frame, ratio, interpolation);
             }
             break;
-            case ImagePipeline::Threshold: {
+            case ImageOperation::Threshold: {
                 const int thresh = session["thresh"].toInt();
                 const int maxval = session["maxval"].toInt();
                 const int mode = session["mode"].toInt();
@@ -114,9 +114,9 @@ QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonO
         {"text", ""},
         {"items", QVariantList{}}
     };
-    const auto mode = recognition["mode"].toInt();
+    const auto mode = static_cast<RecognitionMethod::Value>(recognition["mode"].toInt());
     switch (mode) {
-        case Recognition::OCR: {
+        case RecognitionMethod::OCR: {
             m_ocrEngine->SetImage(pipelineFrame.bits(), pipelineFrame.width(), pipelineFrame.height(), 1, pipelineFrame.bytesPerLine());
             m_ocrEngine->Recognize(nullptr);
 
@@ -148,7 +148,7 @@ QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonO
             result["items"] = items;
         }
         break;
-        case Recognition::CornerShiTomasi: {
+        case RecognitionMethod::ShiTomasiCorner: {
             const auto point = goodFeaturesToTrack(pipelineFrame);
             if (point != QPoint(-1, -1)) {
                 result["text"] = QString("%1,%2").arg(point.x()).arg(point.y());
@@ -158,7 +158,7 @@ QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonO
             }
         }
         break;
-        case Recognition::CornerHarris: {
+        case RecognitionMethod::HarrisCorner: {
             const auto point = cornerHarris(pipelineFrame);
             if (point != QPoint(-1, -1)) {
                 result["text"] = QString("%1,%2").arg(point.x()).arg(point.y());
@@ -168,7 +168,7 @@ QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonO
             }
         }
         break;
-        case Recognition::TemplateMatch: {
+        case RecognitionMethod::TemplateMatch: {
             const auto templateUrl = recognition["template"].toString();
             if (m_templateUrl != templateUrl) {
                 m_templateUrl = templateUrl;

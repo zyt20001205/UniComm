@@ -11,7 +11,6 @@
 #include <QUrl>
 #include <QWebSocket>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -27,7 +26,7 @@ WebSocketClient::~WebSocketClient() {
     close();
 }
 
-int WebSocketClient::type() {
+PortType::Value WebSocketClient::type() {
     return PortType::WebSocketClient;
 }
 
@@ -90,7 +89,7 @@ bool WebSocketClient::open() {
     if (m_webSocketClient->state() == QAbstractSocket::UnconnectedState) {
         m_sslErrorsHandled = false;
         if (const auto exception = configure(); !exception.isEmpty()) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
             emit refreshPort(m_portConfig["portName"].toString(), false);
             return false;
         }
@@ -98,7 +97,7 @@ bool WebSocketClient::open() {
         m_webSocketClient->open(m_url);
     }
     if (!m_webSocketClient->waitForConnected()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
 
@@ -129,7 +128,7 @@ bool WebSocketClient::write(const QByteArray &txData, const QString &logFormat, 
     return write(txData, WebSocketMessageType::Binary, logFormat, txSuffix);
 }
 
-bool WebSocketClient::write(const QByteArray &txData, const int messageType, const QString &logFormat, const QString &txSuffix) {
+bool WebSocketClient::write(const QByteArray &txData, const WebSocketMessageType::Value messageType, const QString &logFormat, const QString &txSuffix) {
     QScopedValueRollback configRollback(m_portConfig);
     if (!logFormat.isEmpty()) m_portConfig["logFormat"] = logFormat;
     if (!txSuffix.isEmpty()) m_portConfig["txSuffix"] = txSuffix;
@@ -220,50 +219,50 @@ void WebSocketClient::handleStateChanged(const QAbstractSocket::SocketState stat
         default: break;
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState);
-    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    if (!message.isEmpty()) emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void WebSocketClient::handleMessage(const QByteArray &message) {
     if (m_buffer.write(message) != message.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
         close();
         return;
     }
-    handleLog(LogLevel::Receive, message);
+    handleLog(LogType::Receive, message);
 }
 
 void WebSocketClient::handleError() {
     if (m_webSocketClient->error() == QAbstractSocket::SocketTimeoutError) return;
     if (m_webSocketClient->error() == QAbstractSocket::SslHandshakeFailedError && m_sslErrorsHandled) return;
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_webSocketClient->errorString());
 }
 
 void WebSocketClient::handleErrors(const QList<QSslError> &errors) {
     m_sslErrorsHandled = !errors.isEmpty();
-    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
+    for (const auto &error: errors) emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
 }
 
-bool WebSocketClient::handleWrite(const QByteArray &f_txData, const int messageType) {
+bool WebSocketClient::handleWrite(const QByteArray &f_txData, const WebSocketMessageType::Value messageType) {
     if (messageType != WebSocketMessageType::Text && messageType != WebSocketMessageType::Binary) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid message type");
         return false;
     }
     if (messageType == WebSocketMessageType::Text && !f_txData.isValidUtf8()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "invalid UTF-8 text");
         return false;
     }
     if (m_webSocketClient == nullptr || m_webSocketClient->state() != QAbstractSocket::ConnectedState) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     const auto written = messageType == WebSocketMessageType::Text
                              ? m_webSocketClient->sendTextMessage(QString::fromUtf8(f_txData))
                              : m_webSocketClient->sendBinaryMessage(f_txData);
     if (written != f_txData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "write failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "write failed");
         return false;
     }
-    handleLog(LogLevel::Transmit, f_txData);
+    handleLog(LogType::Transmit, f_txData);
     return true;
 }
 
@@ -289,7 +288,7 @@ QByteArray WebSocketClient::handleReadUntil(const QByteArray &text, const int ti
     return data;
 }
 
-void WebSocketClient::handleLog(const int type, const QByteArray &data) {
+void WebSocketClient::handleLog(const LogType::Value type, const QByteArray &data) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -299,7 +298,7 @@ void WebSocketClient::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3]").arg(m_localHost, QString::number(m_localPort), m_url.toString()), message);
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3]").arg(m_localHost, QString::number(m_localPort), m_url.toString()), message);

@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QUrl>
 
+#include "types/logTypes.h"
+
 class ConfigManager final : public QObject {
     Q_OBJECT
 
@@ -19,7 +21,7 @@ public:
     void workspaceConfigSave(const QUrl &configUrl);
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void openWorkspace();
 

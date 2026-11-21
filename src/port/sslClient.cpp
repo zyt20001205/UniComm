@@ -9,7 +9,6 @@
 #include <QSslSocket>
 #include <QUrl>
 
-#include "globals.h"
 #include "util/uniCast.h"
 
 // public
@@ -23,7 +22,7 @@ SslClient::~SslClient() {
     close();
 }
 
-int SslClient::type() {
+PortType::Value SslClient::type() {
     return PortType::SslClient;
 }
 
@@ -83,7 +82,7 @@ bool SslClient::open() {
     if (m_sslClient->state() == QAbstractSocket::ClosingState) m_sslClient->abort();
     if (m_sslClient->state() == QAbstractSocket::UnconnectedState) {
         if (const auto exception = configure(); !exception.isEmpty()) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
             emit refreshPort(m_portConfig["portName"].toString(), false);
             return false;
         }
@@ -94,7 +93,7 @@ bool SslClient::open() {
     }
     if (!m_sslClient->isEncrypted() && !m_sslClient->waitForEncrypted()) {
         m_sslClient->abort();
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
         return false;
     }
     return true;
@@ -209,36 +208,36 @@ void SslClient::handleStateChanged(const QAbstractSocket::SocketState state) {
         default: break;
     }
     emit refreshPort(m_portConfig["portName"].toString(), state == QAbstractSocket::ConnectedState && m_sslClient->isEncrypted());
-    if (!message.isEmpty()) emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    if (!message.isEmpty()) emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void SslClient::handleReadyRead() {
     const auto rxData = m_sslClient->readAll();
     if (m_buffer.write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "buffer overflow");
         close();
     }
-    handleLog(LogLevel::Receive, rxData);
+    handleLog(LogType::Receive, rxData);
 }
 
 void SslClient::handleError() {
     if (m_sslClient->error() == QAbstractSocket::SocketTimeoutError || m_sslClient->error() == QAbstractSocket::RemoteHostClosedError) return;
     if (m_sslClient->error() == QAbstractSocket::SslHandshakeFailedError && !m_sslClient->sslHandshakeErrors().isEmpty()) return;
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_sslClient->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("%1").arg(m_sslClient->errorString()));
 }
 
 void SslClient::handleErrors(const QList<QSslError> &errors) {
-    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
+    for (const auto &error: errors) emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), error.errorString());
 }
 
 bool SslClient::handleWrite(const QByteArray &f_txData) {
     // check port status
     if (m_sslClient == nullptr || m_sslClient->state() != QAbstractSocket::ConnectedState || !m_sslClient->isEncrypted()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     m_sslClient->write(f_txData);
-    handleLog(LogLevel::Transmit, f_txData);
+    handleLog(LogType::Transmit, f_txData);
     return true;
 }
 
@@ -264,7 +263,7 @@ QByteArray SslClient::handleReadUntil(const QByteArray &text, const int timeout,
     return data;
 }
 
-void SslClient::handleLog(const int type, const QByteArray &data) {
+void SslClient::handleLog(const LogType::Value type, const QByteArray &data) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -274,7 +273,7 @@ void SslClient::handleLog(const int type, const QByteArray &data) {
     else if (logFormat == "ascii") message = QString::fromLatin1(data);
     else message = QString::fromUtf8(data);
 
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3:%4]").arg(m_sslClientLocalHost, QString::number(m_sslClientLocalPort), m_portConfig["remoteHost"].toString(),
                                                                 QString::number(m_portConfig["remotePort"].toInt())), message);
     } else {

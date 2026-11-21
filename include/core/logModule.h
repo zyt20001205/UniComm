@@ -6,6 +6,8 @@
 #include <QQuickTextDocument>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "types/logTypes.h"
+
 class QQuickWidget;
 
 class LogModule : public KDDockWidgets::QtWidgets::DockWidget {
@@ -28,7 +30,7 @@ public:
 
     void logConfigSave() const;
 
-    void logAppend(int type, const QString &prefix, const QString &message);
+    void logAppend(LogType::Value type, const QString &prefix, const QString &message);
 
     Q_INVOKABLE void documentSet(const QQuickTextDocument *document);
 

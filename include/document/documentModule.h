@@ -6,6 +6,7 @@
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
 #include "document/page/welcomePage.h"
+#include "types/logTypes.h"
 #include "types/scintillaTypes.h"
 
 class QFileSystemWatcher;
@@ -205,7 +206,7 @@ public:
 signals:
     void focusedUrlChanged();
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void updateDiff(const QString &undoGroupId, const QVariantMap &fileDiffs, int additions, int deletions);
 

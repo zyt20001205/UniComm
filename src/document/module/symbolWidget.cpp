@@ -116,7 +116,7 @@ QVariantList SymbolWidget::symbolParse(const QJsonArray &result, const int line,
             break;
             default: {
                 source = "qrc:/icon/symbolMisc.svg";
-                emit appendLog(LogLevel::Warning, "contact author:", QString("unsupported symbol (kind:%1, name:%2, detail:%3)").arg(QString::number(kind), name, detail));
+                emit appendLog(LogType::Warning, "contact author:", QString("unsupported symbol (kind:%1, name:%2, detail:%3)").arg(QString::number(kind), name, detail));
             }
             break;
         }

@@ -1,13 +1,13 @@
 #ifndef UNICOMM_VTERMWIDGET_H
 #define UNICOMM_VTERMWIDGET_H
 
-#include "globals.h"
-
 #include <QObject>
 #include <QRect>
 #include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <vterm.h>
+
+#include "types/terminalTypes.h"
 
 extern "C" {
 typedef VTerm VTerm;

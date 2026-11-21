@@ -8,6 +8,8 @@
 #include <sol/object.hpp>
 #include <sol/table.hpp>
 
+#include "types/portTypes.h"
+
 class BasePort;
 
 class Port final : public QObject {
@@ -34,7 +36,7 @@ public:
 
     void clear() const;
 
-    void write(const std::string &data, int messageType, const std::string &peerIp) const;
+    void write(const std::string &data, WebSocketMessageType::Value messageType, const std::string &peerIp) const;
 
     void write(const std::string &data, int mode, const std::string &serviceUuid, const std::string &characteristicUuid) const;
 

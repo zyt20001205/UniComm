@@ -24,6 +24,7 @@
 #include "mainWindow/mainWindow.h"
 #include "core/globalManager.h"
 #include "port/module/deviceDiscovery.h"
+#include "types/portTypes.h"
 
 // public
 PortSetting::PortSetting(QWidget *parent)
@@ -146,7 +147,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
     bleRefresh();
     processRefresh(portConfig);
     if (portConfig.isEmpty()) {
-        m_root->setProperty("portType", 0);
+        m_root->setProperty("portType", PortType::SerialPort);
         m_swipeView->setProperty("currentIndex", 0);
         m_oldPortName = "";
         // serial port
@@ -232,7 +233,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
     } else {
         m_swipeView->setProperty("currentIndex", 1);
         m_oldPortName = portConfig["portName"].toString();
-        const int portType = portConfig["portType"].toInt();
+        const auto portType = static_cast<PortType::Value>(portConfig["portType"].toInt());
         m_root->setProperty("portType", portType);
         switch (portType) {
             case PortType::SerialPort: {
@@ -250,19 +251,19 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
             case PortType::Vision: {
                 m_visionNameComboBox->setProperty("currentValue", portConfig["portName"].toString());
                 const auto &recognition = portConfig["recognition"].toObject();
-                const auto mode = recognition["mode"].toInt();
+                const auto mode = static_cast<RecognitionMethod::Value>(recognition["mode"].toInt());
                 m_recognitionComboBox->setProperty("currentIndex", mode);
                 switch (mode) {
-                    case Recognition::OCR: {
+                    case RecognitionMethod::OCR: {
                     }
                         break;
-                    case Recognition::CornerShiTomasi: {
+                    case RecognitionMethod::ShiTomasiCorner: {
                     }
                         break;
-                    case Recognition::CornerHarris: {
+                    case RecognitionMethod::HarrisCorner: {
                     }
                         break;
-                    case Recognition::TemplateMatch: {
+                    case RecognitionMethod::TemplateMatch: {
                         m_templateTextField->setProperty("text", recognition["template"].toString());
                     }
                         break;
@@ -394,7 +395,7 @@ void PortSetting::portSettingImport(const QJsonObject &portConfig) {
 }
 
 void PortSetting::portSettingExport() {
-    const int portType = m_root->property("portType").toInt();
+    const auto portType = m_root->property("portType").value<PortType::Value>();
     QJsonObject portConfig{};
     switch (portType) {
         case PortType::SerialPort: {
@@ -442,19 +443,19 @@ void PortSetting::portSettingExport() {
             };
             // recognition
             QJsonObject recognition{};
-            const auto mode = m_recognitionComboBox->property("currentIndex").toInt();
+            const auto mode = m_recognitionComboBox->property("currentIndex").value<RecognitionMethod::Value>();
             recognition["mode"] = mode;
             switch (mode) {
-                case Recognition::OCR: {
+                case RecognitionMethod::OCR: {
                 }
                     break;
-                case Recognition::CornerShiTomasi: {
+                case RecognitionMethod::ShiTomasiCorner: {
                 }
                     break;
-                case Recognition::CornerHarris: {
+                case RecognitionMethod::HarrisCorner: {
                 }
                     break;
-                case Recognition::TemplateMatch: {
+                case RecognitionMethod::TemplateMatch: {
                     const auto templateUrl = m_templateTextField->property("text").toString();
                     if (templateUrl.isEmpty()) return;
                     recognition["template"] = m_templateTextField->property("text").toString();
@@ -694,19 +695,19 @@ void PortSetting::previewLoad(const int index) const {
         pipeline.append(session);
     }
     QJsonObject recognition{};
-    const auto mode = m_recognitionComboBox->property("currentIndex").toInt();
+    const auto mode = m_recognitionComboBox->property("currentIndex").value<RecognitionMethod::Value>();
     recognition["mode"] = mode;
     switch (mode) {
-        case Recognition::OCR: {
+        case RecognitionMethod::OCR: {
         }
         break;
-        case Recognition::CornerShiTomasi: {
+        case RecognitionMethod::ShiTomasiCorner: {
         }
         break;
-        case Recognition::CornerHarris: {
+        case RecognitionMethod::HarrisCorner: {
         }
         break;
-        case Recognition::TemplateMatch: {
+        case RecognitionMethod::TemplateMatch: {
             const auto templateUrl = m_templateTextField->property("text").toString();
             if (templateUrl.isEmpty()) return;
             recognition["template"] = m_templateTextField->property("text").toString();
@@ -749,15 +750,15 @@ void PortSetting::roiSwap(const int src, const int dst) const {
 }
 
 void PortSetting::pipelineInsert(const QVariantHash &session) const {
-    const int type = session["type"].toInt();
+    const auto type = session["type"].value<ImageOperation::Value>();
     switch (type) {
-        case ImagePipeline::Scale: {
+        case ImageOperation::Scale: {
             auto *item = new QStandardItem("Scale"); // NOLINT
             m_pipelineModel->appendRow(item);
             item->setData(session, Qt::WhatsThisRole);
         }
         break;
-        case ImagePipeline::Threshold: {
+        case ImageOperation::Threshold: {
             auto *item = new QStandardItem("Threshold"); // NOLINT
             m_pipelineModel->appendRow(item);
             item->setData(session, Qt::WhatsThisRole);
@@ -871,7 +872,7 @@ void PortSetting::processRefresh(const QJsonObject &portConfig) const {
     m_roiModel->clear();
     m_pipelineModel->clear();
     QMetaObject::invokeMethod(m_root, "indicatorReload");
-    m_recognitionComboBox->setProperty("currentIndex", 0);
+    m_recognitionComboBox->setProperty("currentIndex", RecognitionMethod::OCR);
     if (!portConfig.isEmpty()) {
         // roi
         for (const auto &value: portConfig["roi"].toArray()) {

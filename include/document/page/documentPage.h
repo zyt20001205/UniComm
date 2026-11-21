@@ -4,6 +4,8 @@
 #include <QJsonObject>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
+#include "types/logTypes.h"
+
 class DocumentPage : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
 
@@ -28,7 +30,7 @@ public:
     virtual void permissionGet();
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void closeRequest(const QUrl &documentUrl);
 

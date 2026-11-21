@@ -9,7 +9,6 @@
 #include <QTcpServer>
 #include <QUrl>
 
-#include "globals.h"
 #include "port/module/ringBuffer.h"
 #include "util/uniCast.h"
 
@@ -23,7 +22,7 @@ SslServer::~SslServer() {
     close();
 }
 
-int SslServer::type() {
+PortType::Value SslServer::type() {
     return PortType::SslServer;
 }
 
@@ -68,17 +67,17 @@ bool SslServer::open() {
     }
     if (m_sslServer->isListening()) return true;
     if (const auto exception = configure(); !exception.isEmpty()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed: " + exception);
         emit refreshPort(m_portConfig["portName"].toString(), false);
         return false;
     }
 
     if (m_sslServer->listen(QHostAddress(m_portConfig["localHost"].toString()), m_portConfig["localPort"].toInt())) {
         emit refreshPort(m_portConfig["portName"].toString(), true);
-        emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("started on %1:%2").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt())));
+        emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("started on %1:%2").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt())));
         return true;
     }
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_sslServer->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("open failed: %1").arg(m_sslServer->errorString()));
     emit refreshPort(m_portConfig["portName"].toString(), false);
     return false;
 }
@@ -98,7 +97,7 @@ void SslServer::close() {
     qDeleteAll(m_bufferHash);
     m_bufferHash.clear();
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), "closed");
 }
 
 void SslServer::clear() {
@@ -215,7 +214,7 @@ void SslServer::handleStateChanged(QSslSocket *sslServerPeer, const QAbstractSoc
             break;
         default: return;
     }
-    emit appendLog(LogLevel::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
+    emit appendLog(LogType::Info, QString("[%1]").arg(m_portConfig["portName"].toString()), message);
 }
 
 void SslServer::handleNewConnection() {
@@ -237,18 +236,18 @@ void SslServer::handleReadyRead(QSslSocket *sslServerPeer) {
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     if (buffer == nullptr) return;
     if (buffer->write(rxData) != rxData.size()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), "buffer overflow");
+        emit appendLog(LogType::Error, QString("[%1]").arg(peerIp), "buffer overflow");
         sslServerPeer->disconnectFromHost();
         return;
     }
-    handleLog(LogLevel::Receive, rxData, sslServerPeer);
+    handleLog(LogType::Receive, rxData, sslServerPeer);
 }
 
 void SslServer::handleServerError(const QAbstractSocket::SocketError error) {
     if (error == QAbstractSocket::SocketTimeoutError) return;
     if (m_sslServer->isListening()) m_sslServer->close();
     emit refreshPort(m_portConfig["portName"].toString(), false);
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_sslServer->errorString());
+    emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), m_sslServer->errorString());
 }
 
 void SslServer::handleSocketError(const QSslSocket *sslServerPeer, const QAbstractSocket::SocketError error) {
@@ -256,45 +255,45 @@ void SslServer::handleSocketError(const QSslSocket *sslServerPeer, const QAbstra
     if (error == QAbstractSocket::SslHandshakeFailedError && !sslServerPeer->sslHandshakeErrors().isEmpty()) return;
     const auto cachedPeerIp = sslServerPeer->property("peerIp").toString();
     const QString peerIp = cachedPeerIp.isEmpty() ? sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort()) : cachedPeerIp;
-    emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), QString("error: %1").arg(sslServerPeer->errorString()));
+    emit appendLog(LogType::Error, QString("[%1]").arg(peerIp), QString("error: %1").arg(sslServerPeer->errorString()));
 }
 
 void SslServer::handleSocketErrors(const QSslSocket *sslServerPeer, const QList<QSslError> &errors) {
     const QString peerIp = sslServerPeer->peerAddress().toString() + ":" + QString::number(sslServerPeer->peerPort());
-    for (const auto &error: errors) emit appendLog(LogLevel::Error, QString("[%1]").arg(peerIp), error.errorString());
+    for (const auto &error: errors) emit appendLog(LogType::Error, QString("[%1]").arg(peerIp), error.errorString());
 }
 
 bool SslServer::handleWrite(const QByteArray &f_txData, const QString &peerIp) {
     if (m_sslServer == nullptr || !m_sslServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return false;
     }
     if (peerIp.isEmpty()) {
         for (auto *peer: m_peerHash) {
             peer->write(f_txData);
-            handleLog(LogLevel::Transmit, f_txData, peer);
+            handleLog(LogType::Transmit, f_txData, peer);
         }
     } else {
         const auto peer = m_peerHash.constFind(peerIp);
         if (peer == m_peerHash.constEnd()) {
-            emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+            emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
             return false;
         }
         peer.value()->write(f_txData);
-        handleLog(LogLevel::Transmit, f_txData, peer.value());
+        handleLog(LogType::Transmit, f_txData, peer.value());
     }
     return true;
 }
 
 QByteArray SslServer::handleRead(const int length, const int timeout, const QString &peerIp, const bool peek) {
     if (m_sslServer == nullptr || !m_sslServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     auto *peer = m_peerHash.value(peerIp, nullptr);
     if (buffer == nullptr || peer == nullptr) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
     const int minimum = length == 0 ? 1 : length;
@@ -311,14 +310,14 @@ QByteArray SslServer::handleRead(const int length, const int timeout, const QStr
 
 QByteArray SslServer::handleReadUntil(const QByteArray &text, const int timeout, const QString &peerIp, const bool peek) {
     if (m_sslServer == nullptr || !m_sslServer->isListening()) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "not opened");
         return {};
     }
     if (text.isEmpty()) return {};
     auto *buffer = m_bufferHash.value(peerIp, nullptr);
     auto *peer = m_peerHash.value(peerIp, nullptr);
     if (buffer == nullptr || peer == nullptr) {
-        emit appendLog(LogLevel::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
+        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "peer not found");
         return {};
     }
     const QDeadlineTimer deadline(timeout);
@@ -334,7 +333,7 @@ QByteArray SslServer::handleReadUntil(const QByteArray &text, const int timeout,
     return data;
 }
 
-void SslServer::handleLog(const int type, const QByteArray &data, const QSslSocket *sslServerPeer) {
+void SslServer::handleLog(const LogType::Value type, const QByteArray &data, const QSslSocket *sslServerPeer) {
     QString message{};
     const QString logFormat = m_portConfig["logFormat"].toString();
     if (logFormat == "raw") {
@@ -345,7 +344,7 @@ void SslServer::handleLog(const int type, const QByteArray &data, const QSslSock
     else message = QString::fromUtf8(data);
 
     const QString peerIp = sslServerPeer->property("peerIp").toString();
-    if (type == LogLevel::Transmit) {
+    if (type == LogType::Transmit) {
         emit appendLog(type, QString("[%1:%2 -&gt; %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);
     } else {
         emit appendLog(type, QString("[%1:%2 &lt;- %3]").arg(m_portConfig["localHost"].toString(), QString::number(m_portConfig["localPort"].toInt()), peerIp), message);

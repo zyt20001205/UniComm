@@ -5,6 +5,8 @@
 #include <QSizeF>
 #include <QVariant>
 
+#include "types/logTypes.h"
+
 class CompletionWidget final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
@@ -63,7 +65,7 @@ signals:
 
     void sizesChanged();
 
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void setIndex(const QUrl &documentUrl, int line, int character);
 

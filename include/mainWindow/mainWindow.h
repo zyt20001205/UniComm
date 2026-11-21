@@ -5,6 +5,8 @@
 #include <kddockwidgets/qtwidgets/views/MainWindow.h>
 #include <memory>
 
+#include "types/logTypes.h"
+
 class QQuickView;
 class QShortcut;
 
@@ -61,7 +63,7 @@ public:
     void quitTrack(float secondaryProgress, const QString &secondaryLog) const;
 
 signals:
-    void appendLog(int type, const QString &prefix, const QString &message);
+    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
