@@ -1,5 +1,3 @@
-// #define UNICOMM_TERMINAL_DAMAGE_DEBUG
-
 #include "terminal/module/terminalWidget.h"
 
 #include <QClipboard>
@@ -25,7 +23,7 @@ TerminalWidget::TerminalWidget(QQuickItem *parent)
     m_blinkTimer->setInterval(500);
     connect(m_blinkTimer, &QTimer::timeout, this, [this] {
         m_blinkPhase = !m_blinkPhase;
-        updateRegion(cursorRect());
+        update(cursorRect());
     });
     m_blinkTimer->start();
 }
@@ -36,12 +34,12 @@ void TerminalWidget::paste() {
 }
 
 void TerminalWidget::paint(QPainter *painter) {
-    const auto general = g_globalManager->themeGet()["general"].toObject();
-    if (m_rows < 1 || m_cols < 1 || m_cells.size() < m_rows * m_cols) return;
+    if (m_cells.isEmpty()) return;
 
     QRectF paintRect = painter->hasClipping() ? painter->clipBoundingRect() : boundingRect();
     paintRect = paintRect.intersected(QRectF(0, 0, m_cols * m_cellWidth, m_rows * m_cellHeight));
     if (paintRect.isEmpty()) return;
+    if (m_damage) QMetaObject::invokeMethod(this, &TerminalWidget::debugDamage, Qt::QueuedConnection, paintRect);
 
     const int firstRow = qMax(0, qFloor(paintRect.top() / m_cellHeight));
     const int endRow = qMin(m_rows, qCeil(paintRect.bottom() / m_cellHeight));
@@ -50,6 +48,7 @@ void TerminalWidget::paint(QPainter *painter) {
 
     painter->setFont(m_font);
     QFont currentFont = m_font;
+    const auto general = g_globalManager->themeGet()["general"].toObject();
     const QColor selectionForeground(general["foreSelected"].toString());
     const QColor selectionBackground(general["backSelected"].toString());
 
@@ -132,8 +131,7 @@ void TerminalWidget::screenSet(const int rows, const int cols, const QList<Termi
 }
 
 void TerminalWidget::screenDamageSet(const QRect &rect, const QList<TerminalCell> &cells) {
-    const int expectedCells = rect.width() * rect.height();
-    if (rect.isEmpty() || cells.size() != expectedCells || m_cells.size() != m_rows * m_cols || rect.left() < 0 || rect.top() < 0 || rect.right() >= m_cols || rect.bottom() >= m_rows) return;
+    if (m_cells.isEmpty()) return;
 
     int source = 0;
     for (int row = rect.top(); row <= rect.bottom(); ++row) {
@@ -149,7 +147,7 @@ void TerminalWidget::screenDamageSet(const QRect &rect, const QList<TerminalCell
         rect.height() * m_cellHeight
     ).toAlignedRect().adjusted(-1, 0, 1, 0).intersected(boundingRect().toAlignedRect());
 
-    updateRegion(pixelRect);
+    update(pixelRect);
 }
 
 void TerminalWidget::selectionSet(const int startRow, const int startCol, const int endRow, const int endCol) {
@@ -158,16 +156,16 @@ void TerminalWidget::selectionSet(const int startRow, const int startCol, const 
     const QRect oldRect = selectionRect();
     m_selection = {.anchorRow = startRow, .anchorCol = startCol, .extentRow = endRow, .extentCol = endCol};
     const QRect newRect = selectionRect();
-    if (!oldRect.isEmpty()) updateRegion(oldRect);
-    if (!newRect.isEmpty() && newRect != oldRect) updateRegion(newRect);
+    if (!oldRect.isEmpty()) update(oldRect);
+    if (!newRect.isEmpty() && newRect != oldRect) update(newRect);
 }
 
 void TerminalWidget::cursorPositionSet(const QPoint &position, const QPoint &oldPosition) {
     if (m_position == position) return;
     m_position = position;
     if (!(m_atBottom && m_visible && m_blinkPhase)) return;
-    updateRegion(cursorRect(oldPosition));
-    updateRegion(cursorRect(position));
+    update(cursorRect(oldPosition));
+    update(cursorRect(position));
 }
 
 void TerminalWidget::cursorVisibleSet(const bool visible) {
@@ -184,7 +182,7 @@ void TerminalWidget::cursorVisibleSet(const bool visible) {
         m_blinkTimer->stop();
         m_blinkPhase = true;
     }
-    updateRegion(cursorRect());
+    update(cursorRect());
 }
 
 void TerminalWidget::cursorBlinkSet(const bool blink) {
@@ -198,13 +196,13 @@ void TerminalWidget::cursorBlinkSet(const bool blink) {
         m_blinkTimer->stop();
         m_blinkPhase = true;
     }
-    updateRegion(cursorRect());
+    update(cursorRect());
 }
 
 void TerminalWidget::cursorShapeSet(const int shape) {
     if (m_shape == shape) return;
     m_shape = shape;
-    updateRegion(cursorRect());
+    update(cursorRect());
 }
 
 void TerminalWidget::cursorModeSet(const int mode) {
@@ -244,21 +242,19 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
         if (event->button() == Qt::LeftButton && !(event->modifiers() & Qt::ControlModifier)) {
             const int row = qFloor(event->position().y() / m_cellHeight);
             const int col = qRound(event->position().x() / m_cellWidth);
-            if (m_rows > 0 && m_cols > 0 && row >= 0 && row < m_rows) {
+            if (row >= 0 && row < m_rows) {
                 m_selecting = true;
                 emit startSelection(row, qBound(0, col, m_cols));
             }
-        }
-        else if (event->button() == Qt::MiddleButton) {
+        } else if (event->button() == Qt::MiddleButton) {
             const QString text = QGuiApplication::clipboard()->text();
             if (!text.isEmpty()) emit pasteText(text);
-        }
-        else if (event->button() == Qt::RightButton) {
+        } else if (event->button() == Qt::RightButton) {
             const int row = qFloor(event->position().y() / m_cellHeight);
             const int col = qFloor(event->position().x() / m_cellWidth);
             const int index = row * m_cols + col;
             QUrl url;
-            if (row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0) {
+            if (row >= 0 && row < m_rows && col >= 0 && col < m_cols && m_cells[index].uri > 0) {
                 url = emit getLink(m_cells[index].uri);
             }
             const auto text = emit getSelection();
@@ -287,16 +283,14 @@ void TerminalWidget::mouseReleaseEvent(QMouseEvent *event) {
         const int row = qFloor(event->position().y() / m_cellHeight);
         const int col = qFloor(event->position().x() / m_cellWidth);
         const int index = row * m_cols + col;
-        const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
+        const bool link = row >= 0 && row < m_rows && col >= 0 && col < m_cols && m_cells[index].uri > 0;
         if (event->button() == Qt::LeftButton && m_selecting) {
             emit updateSelection(row, qRound(event->position().x() / m_cellWidth));
-        }
-        else if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
+        } else if (link && event->button() == Qt::LeftButton && event->modifiers() & Qt::ControlModifier) {
             const auto url = emit getLink(m_cells[index].uri);
             if (!url.isEmpty()) QDesktopServices::openUrl(url);
         }
-    }
-    else {
+    } else {
         emit mouseReleased(
             event->position().y() / m_cellHeight,
             event->position().x() / m_cellWidth,
@@ -317,8 +311,7 @@ void TerminalWidget::mouseMoveEvent(QMouseEvent *event) {
             event->button(),
             event->modifiers()
         );
-    }
-    else if (m_mode == VTERM_PROP_MOUSE_NONE && m_selecting && (event->buttons() & Qt::LeftButton)) {
+    } else if (m_mode == VTERM_PROP_MOUSE_NONE && m_selecting && (event->buttons() & Qt::LeftButton)) {
         emit updateSelection(qFloor(event->position().y() / m_cellHeight), qRound(event->position().x() / m_cellWidth));
     }
     event->accept();
@@ -328,7 +321,7 @@ void TerminalWidget::hoverMoveEvent(QHoverEvent *event) {
     const int row = qFloor(event->position().y() / m_cellHeight);
     const int col = qFloor(event->position().x() / m_cellWidth);
     const int index = row * m_cols + col;
-    const bool link = m_mode == VTERM_PROP_MOUSE_NONE && row >= 0 && row < m_rows && col >= 0 && col < m_cols && index >= 0 && index < m_cells.size() && m_cells[index].uri > 0;
+    const bool link = m_mode == VTERM_PROP_MOUSE_NONE && row >= 0 && row < m_rows && col >= 0 && col < m_cols && m_cells[index].uri > 0;
     const bool control = event->modifiers() & Qt::ControlModifier;
     setCursor(link && control ? Qt::PointingHandCursor : Qt::IBeamCursor);
     if (link) {
@@ -387,18 +380,8 @@ void TerminalWidget::metricsUpdate() {
 }
 
 void TerminalWidget::updateRegion() {
-#ifdef UNICOMM_TERMINAL_DAMAGE_DEBUG
-    emit debugDamage(boundingRect());
-#endif
     // Preserve the full repaint when partial updates follow in the same frame.
     update(boundingRect().toAlignedRect());
-}
-
-void TerminalWidget::updateRegion(const QRect &rect) {
-#ifdef UNICOMM_TERMINAL_DAMAGE_DEBUG
-    if (!rect.isEmpty()) emit debugDamage(rect);
-#endif
-    update(rect);
 }
 
 QRect TerminalWidget::selectionRect() const {

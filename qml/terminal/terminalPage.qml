@@ -18,6 +18,7 @@ Item {
     TerminalWidget {
         id: terminalWidget
         anchors.fill: parent
+        damage: damageItem.checked
 
         Component.onCompleted: root.terminalPage.terminalWidgetSet(terminalWidget)
 
@@ -39,12 +40,11 @@ Item {
             damageOverlay.y = rect.y
             damageOverlay.width = rect.width
             damageOverlay.height = rect.height
-            damageOverlay.visible = true
         }
 
         Rectangle {
             id: damageOverlay
-            visible: false
+            visible: damageItem.checked
             color: "transparent"
             border.color: "#ff00ff"
             border.width: 1
@@ -104,9 +104,6 @@ Item {
             onTriggered: terminalWidget.paste()
         }
 
-        MenuSeparator {
-        }
-
         Menu {
             title: qsTr("Link")
             enabled: contextMenu.link.toString().length > 0
@@ -136,6 +133,17 @@ Item {
 
                 onTriggered: Qt.openUrlExternally(contextMenu.link)
             }
+        }
+
+        MenuSeparator {
+        }
+
+        MenuItem {
+            id: damageItem
+            text: qsTr("Repaint Region")
+            checkable: true
+            icon.source: "qrc:/icon/squareHint.svg"
+            icon.width: 16; icon.height: 16
         }
     }
 }

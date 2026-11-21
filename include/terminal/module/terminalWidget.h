@@ -13,6 +13,7 @@
 class TerminalWidget : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(bool damage MEMBER m_damage)
 
 public:
     explicit TerminalWidget(QQuickItem *parent = nullptr);
@@ -100,8 +101,6 @@ private:
 
     void updateRegion();
 
-    void updateRegion(const QRect &rect);
-
     [[nodiscard]] QRect selectionRect() const;
 
     [[nodiscard]] QRect cursorRect() const;
@@ -112,6 +111,7 @@ private:
     QList<TerminalCell> m_cells{};
     TerminalSelection m_selection{};
     bool m_selecting{};
+    bool m_damage{};
     // cursor
     QPoint m_position{};
     bool m_visible{true};
