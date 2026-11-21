@@ -186,6 +186,7 @@ public:
 
     virtual void render(QPainter *) = 0;
 
+    /// @brief Returns the child view at the specified local position, recursively
     virtual std::shared_ptr<View> childViewAt(Point localPos) const = 0;
 
     /// @brief Returns the top-level gui element which this view is inside
@@ -293,19 +294,6 @@ protected:
 
     View(const View &) = delete;
     View &operator=(const View &) = delete;
-
-#ifdef KDDW_FRONTEND_FLUTTER
-    // Little workaround so flutter has the same deletion order as Qt.
-    // In Qt we have this order of deletion
-    //    1. ~Core::View() deletes the controller
-    //    2. ~QObject deletes children views
-    // But in Flutter, we don't have ~QObject, so we were deleting children views inside ~flutter::View
-    // which runs before ~Core::View() not after, causing different deletion ordering, thus different behaviour
-    // and different bugs. Let's keep both frontends consistent predictable.
-
-    // No shared pointers, as lifetime is managed by parent-children relationship (as in QObject)
-    Vector<Core::View *> m_childViews;
-#endif
 };
 
 }

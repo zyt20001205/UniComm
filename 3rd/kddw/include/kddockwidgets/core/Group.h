@@ -49,7 +49,7 @@ public:
     ~Group() override;
 
     static Group *deserialize(const LayoutSaver::Group &);
-    LayoutSaver::Group serialize() const;
+    LayoutSaver::Group serialize(const LayoutSaver::SaveScope &) const;
 
     ///@brief Adds a widget into the Group's Stack
     void addTab(DockWidget *, const InitialOption & = {});
@@ -185,6 +185,7 @@ public:
     FrameOptions options() const;
     bool anyNonClosable() const;
     bool anyNonDockable() const;
+    bool anyNoDrops() const;
 
     ///@brief returns whether there's 0 dock widgets. If not persistent then the Frame will delete
     /// itself.

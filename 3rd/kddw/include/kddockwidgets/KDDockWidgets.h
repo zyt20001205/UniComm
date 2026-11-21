@@ -47,8 +47,6 @@ namespace KDDockWidgets::QtWidgets {
 }
 namespace KDDockWidgets::QtCommon {
 }
-namespace KDDockWidgets::Flutter {
-}
 
 namespace KDDockWidgets {
 QT_DOCKS_EXPORT
@@ -102,11 +100,12 @@ enum DockWidgetOption {
     DockWidgetOption_NotDockable = 2, ///< The DockWidget can't be docked, it's always floating
     DockWidgetOption_DeleteOnClose = 4, ///< Deletes the DockWidget when closed
     DockWidgetOption_MDINestable =
-        8 ///< EXPERIMENTAL. When this dock widget is being shown in a MDI area it will also allow
-          ///< other dock widgets to be dropped to its sides and tabbed
-          /// Usually Each MDI "window" corresponds to one DockWidget, with this option each
-          /// "window" will have a layout with 1 or more dock widgets Run
-          /// "examples/qtwidgets_mdi_with_docking -n" to see it in action
+        8, ///< EXPERIMENTAL. When this dock widget is being shown in a MDI area it will also allow
+           ///< other dock widgets to be dropped to its sides and tabbed
+           /// Usually Each MDI "window" corresponds to one DockWidget, with this option each
+           /// "window" will have a layout with 1 or more dock widgets Run
+           /// "examples/qtwidgets_mdi_with_docking -n" to see it in action
+    DockWidgetOption_NoDrops = 16 ///< Other dock widgets can't be dropped onto this dock widget. This is EXPERIMENTAL and behavior might change
 };
 Q_DECLARE_FLAGS(DockWidgetOptions, DockWidgetOption)
 Q_ENUM_NS(DockWidgetOptions)
@@ -254,6 +253,9 @@ enum RestoreOption {
            ///< relative sizing. Loading layouts won't change the main window geometry and just use
            ///< whatever the user has at the moment.
     RestoreOption_AbsoluteFloatingDockWindows = 2, ///< Skips scaling of floating dock windows relative to the main window.
+    RestoreOption_CloseUnknownDockWidgets =
+        4, ///< Closes dock widgets that are docked in a main window being restored but aren't
+           ///< part of the saved layout. By default they are floated instead.
 };
 Q_DECLARE_FLAGS(RestoreOptions, RestoreOption)
 Q_ENUM_NS(RestoreOptions)
@@ -360,9 +362,9 @@ enum StackOption {
 Q_DECLARE_FLAGS(StackOptions, StackOption)
 Q_ENUM_NS(StackOptions)
 
-/// @internal
+/// @brief Per-dock-widget flags controlling the floating window's title bar buttons and behaviour
 enum class FloatingWindowFlag {
-    None = 0,
+    NoFlags = 0,
     FromGlobalConfig = 1, // KDDockWidgets::Config is used instead
     TitleBarHasMinimizeButton = 2,
     TitleBarHasMaximizeButton = 4,
@@ -376,6 +378,7 @@ enum class FloatingWindowFlag {
     StartsMinimized = 1024
 };
 Q_DECLARE_FLAGS(FloatingWindowFlags, FloatingWindowFlag)
+Q_ENUM_NS(FloatingWindowFlags)
 
 /// @internal
 enum class WindowState {

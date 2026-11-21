@@ -130,7 +130,7 @@ public:
 
     ///@brief overload that returns list of QWindow. This is more friendly for supporting both
     /// QtWidgets and QtQuick
-    QVector<std::shared_ptr<Core::Window>> floatingQWindows() const;
+    QVector<std::shared_ptr<Core::Window>> floatingQWindows(bool excludeNoDrops = false) const;
 
     ///@brief returns whether if there's at least one floating window
     Q_INVOKABLE bool hasFloatingWindows() const;
@@ -171,7 +171,7 @@ public:
      */
     void clear(const QVector<Core::DockWidget *> &dockWidgets,
                const QVector<Core::MainWindow *> &mainWindows,
-               const QVector<QString> &affinities);
+               const QVector<QString> &affinities, bool documentsOnly = false);
 
     /**
      * @brief Ensures that all floating DockWidgets have a FloatingWindow as a window.
@@ -256,6 +256,9 @@ private:
     void addSideBarGrouping(const QVector<Core::DockWidget *> &);
     void removeSideBarGrouping(const QVector<Core::DockWidget *> &);
     QVector<Core::DockWidget *> sideBarGroupingFor(Core::DockWidget *) const;
+
+    void clearDocuments(const QVector<Core::DockWidget *> &dockWidgets,
+                        Core::MainWindow *mainWindow);
 
     Private *const d;
 

@@ -184,7 +184,7 @@ public:
     void updateSizeConstraints();
 
     virtual bool deserialize(const LayoutSaver::MultiSplitter &);
-    LayoutSaver::MultiSplitter serialize() const;
+    LayoutSaver::MultiSplitter serialize(const LayoutSaver::SaveScope &) const;
 
     Core::DropArea *asDropArea() const;
     Core::MDILayout *asMDILayout() const;
