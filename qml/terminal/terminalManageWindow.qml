@@ -1,12 +1,30 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
-import QtQuick.Dialogs
 import QtQuick.Layouts
 
+import UniComm
+import "../util"
+
 Item {
-    id: rootItem
+    id: root
     anchors.fill: parent
+
+    ListModel { id: draft }
+
+    Connections {
+        target: root.Window.window
+        function onVisibleChanged() {
+            if (root.Window.window.visible) {
+                draft.clear()
+                for (const terminal of global.terminalModule.terminals)
+                    draft.append(terminal)
+                listView.currentIndex = draft.count ? 0 : -1
+            }
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -19,394 +37,225 @@ Item {
         spacing: 10
 
         RowLayout {
-            id: toolBar
-            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignRight
             spacing: 0
 
-            Item {
-                Layout.fillWidth: true
-            }
-
             Button {
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                id: addButton
                 flat: true
-                icon.source: "qrc:/icon/add.svg"
+                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                icon.source: "qrc:/icon/addSquare.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                Accessible.name: qsTr("Add terminal")
 
                 onClicked: {
-                    const row = terminalModule.terminalAdd()
-                    tableView.selectedRow = row
-                    programTextField.clear()
-                    argumentsTextField.clear()
-                    workingDirectoryTextField.clear()
-                    environmentTextField.clear()
-                    tableView.positionViewAtRow(row, TableView.Contain, 0, Qt.rect(0, 0, 0, 0))
+                    draft.append({id: "", name: "new", program: "", arguments: "", workingDirectory: "", environment: ""})
+                    listView.currentIndex = draft.count - 1
+                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                }
+
+                HoverHandler {
+                    onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                    onPointChanged: {
+                        mainTooltip.position = addButton.mapToGlobal(point.position)
+                        mainTooltip.text = addButton.Accessible.name
+                    }
                 }
             }
 
             Button {
-                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                checkable: true
+                id: deleteButton
                 flat: true
-                icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/subtract.svg"
+                checkable: true
+                enabled: draft.count > 0
+                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                Accessible.name: checked ? qsTr("Confirm deletion") : qsTr("Delete terminal")
 
-                onToggled: {
-                    if (!checked) terminalModule.terminalDelete(tableView.selectedRow)
-                }
+                onToggled: { if (!checked) draft.remove(listView.currentIndex) }
 
                 Timer {
                     interval: 1000
-                    running: parent.checked
-                    onTriggered: parent.checked = false
+                    running: deleteButton.checked
+                    onTriggered: deleteButton.checked = false
+                }
+
+                HoverHandler {
+                    onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                    onPointChanged: {
+                        mainTooltip.position = deleteButton.mapToGlobal(point.position)
+                        mainTooltip.text = deleteButton.Accessible.name
+                    }
                 }
             }
         }
 
-        Item {
+        ListView {
+            id: listView
             Layout.fillWidth: true; Layout.fillHeight: true
+            clip: true
+            focusPolicy: Qt.ClickFocus
+            keyNavigationEnabled: true
+            model: draft
 
-            VerticalHeaderView {
-                id: verticalHeaderView
-                anchors.left: parent.left
-                width: 32; height: parent.height
-                syncView: tableView
-                clip: true
-                interactive: false
-                movableRows: true
-                delegate: VerticalHeaderViewDelegate {
-                    implicitWidth: verticalHeaderView.width; implicitHeight: 32
-                    padding: 0
-
-                    contentItem: Rectangle {
-                        width: 32; height: 32
-                        color: global.theme.general.back
-
-                        IconImage {
-                            anchors.centerIn: parent
-                            width: 16; height: 16
-                            color: global.theme.general.fore
-                            source: "qrc:/icon/drag.svg"
-                        }
-                    }
-
-                    HoverHandler {
-                        onHoveredChanged: cursorShape = Qt.OpenHandCursor
-                    }
-                }
-                property var moves: []
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: global.theme.general.stroke
-                }
-
-                Timer {
-                    id: timer
-                    interval: 10
-                    onTriggered: {
-                        if (verticalHeaderView.moves.length === 0) return
-                        let index = -1
-                        let distance = -1
-                        for (let i = 0; i < verticalHeaderView.moves.length; ++i) {
-                            const move = verticalHeaderView.moves[i]
-                            const currentDistance = Math.abs(move.oldVisualIndex - move.newVisualIndex)
-                            if (currentDistance > distance) {
-                                distance = currentDistance
-                                index = i
-                            }
-                        }
-                        const move = verticalHeaderView.moves[index]
-                        terminalModule.terminalSwap(move.oldVisualIndex, move.newVisualIndex)
-                        verticalHeaderView.clearRowReordering()
-                        tableView.clearRowReordering()
-                        verticalHeaderView.moves = []
-                    }
-                }
-
-                onRowMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
-                    moves.push({logicalIndex, oldVisualIndex, newVisualIndex})
-                    timer.restart()
+            moveDisplaced: Transition {
+                NumberAnimation {
+                    property: "y"
+                    duration: AnimationDuration.Reorder
+                    easing.type: Easing.OutCubic
                 }
             }
 
-            TableView {
-                id: tableView
-                anchors.left: verticalHeaderView.right; anchors.right: parent.right
-                anchors.top: parent.top; anchors.bottom: parent.bottom
-                alternatingRows: false
-                clip: true
-                editTriggers: TableView.NoEditTriggers
-                rowSpacing: 1
-                model: terminalModel
-                contentWidth: width
-                property int hoveredRow: -1
-                property int selectedRow: -1
+            onCurrentItemChanged: {
+                deleteButton.checked = false
+                if (!currentItem) return
+                const terminal = currentItem.model
+                nameField.text = terminal.name ?? ""
+                programField.text = terminal.program ?? ""
+                argumentsField.text = terminal.arguments ?? ""
+                directoryField.text = terminal.workingDirectory ?? ""
+                environmentField.text = terminal.environment ?? ""
+            }
 
-                ScrollBar.vertical: ScrollBar {
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    policy: ScrollBar.AsNeeded
-                    palette {
-                        mid: global.theme.general.stroke
-                        dark: global.theme.general.strokePressed
-                    }
+            ScrollBar.vertical: ScrollBar {
+                id: scrollBar
+                minimumSize: Math.min(1, 20 / Math.max(1, height))
+                palette {
+                    mid: global.theme.general.stroke
+                    dark: global.theme.general.strokePressed
+                }
+            }
+
+            delegate: DropArea {
+                id: row
+                required property int index
+                required property var model
+                width: listView.width
+                height: 28
+                keys: ["terminal"]
+                onEntered: drag => {
+                    const from = drag.source.index
+                    if (from !== index) draft.move(from, index, 1)
                 }
 
-                Rectangle {
-                    anchors.fill: parent
-                    color: global.theme.general.stroke
-                }
+                ItemDelegate {
+                    id: entry
+                    anchors.left: parent.left; anchors.top: parent.top
+                    width: row.width; height: row.height
+                    leftPadding: 11; rightPadding: 6 + scrollBar.width
+                    topPadding: 0; bottomPadding: 0
+                    highlighted: row.ListView.isCurrentItem
+                    focusPolicy: Qt.ClickFocus
+                    onClicked: listView.currentIndex = row.index
 
-                delegate: Item {
-                    implicitWidth: tableView.width
-                    implicitHeight: 32
+                    Drag.active: handle.drag.active
+                    Drag.source: row
+                    Drag.keys: ["terminal"]
+                    Drag.hotSpot.x: leftPadding + handle.width / 2
+                    Drag.hotSpot.y: height / 2
 
-                    Rectangle {
-                        anchors.fill: parent
-                        color: global.theme.general.back
-                    }
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 6
-                        color: global.theme.general.backHover
-                        opacity: tableView.hoveredRow === row ? 1 : 0
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: 150
+                    contentItem: RowLayout {
+                        spacing: 4
+                        IconImage {
+                            source: "qrc:/icon/drag.svg"
+                            color: global.theme.general.fore
+                            Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                            MouseArea {
+                                id: handle
+                                anchors.fill: parent
+                                cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                preventStealing: true
+                                drag.target: entry
+                                drag.axis: Drag.YAxis
+                                onPressed: {
+                                    listView.forceActiveFocus()
+                                    listView.currentIndex = row.index
+                                }
                             }
                         }
-                    }
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 6
-                        color: tableView.selectedRow === row ? global.theme.general.backSelected : "transparent"
-                    }
-
-                    Label {
-                        anchors.fill: parent
-                        leftPadding: 6
-                        horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: model.session.name || ""
-                        elide: Text.ElideRight
-                    }
-
-                    HoverHandler {
-                        onHoveredChanged: {
-                            if (hovered) {
-                                tableView.hoveredRow = row
-                            } else if (tableView.hoveredRow === row) {
-                                tableView.hoveredRow = -1
-                            }
+                        Label {
+                            text: row.model.name
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                     }
 
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        gesturePolicy: TapHandler.DragWithinBounds
-
-                        onSingleTapped: {
-                            tableView.selectedRow = row
-                            const session = model.session
-                            programTextField.text = session.program
-                            argumentsTextField.text = session.arguments
-                            workingDirectoryTextField.text = session.workingDirectory
-                            environmentTextField.text = session.environment
-                        }
-
-                        onDoubleTapped: {
-                            tableView.selectedRow = row
-                            tableView.edit(tableView.index(row, column))
-                        }
+                    states: State {
+                        when: handle.pressed
+                        ParentChange { target: entry; parent: listView.contentItem }
+                        AnchorChanges { target: entry; anchors.top: undefined; anchors.left: undefined }
+                        PropertyChanges { entry.z: 2 }
                     }
-
-                    TableView.editDelegate: TextField {
-                        anchors.fill: parent
-                        leftPadding: 6
-                        rightPadding: 6
-                        verticalAlignment: Text.AlignVCenter
-                        text: session.name || ""
-                        selectByMouse: true
-                        background: Rectangle {
-                            color: global.theme.general.backSelected
-                            radius: 6
-                        }
-
-                        Component.onCompleted: {
-                            forceActiveFocus()
-                            selectAll()
-                        }
-
-                        TableView.onCommit: {
-                            const index = terminalModel.index(row, column)
-                            const session = terminalModel.data(index, Qt.UserRole + 2)
-                            session.name = text.trim()
-                            terminalModel.setData(index, session, Qt.UserRole + 2)
-                        }
-                    }
-                }
-
-                TapHandler {
-                    acceptedButtons: Qt.LeftButton
-                    gesturePolicy: TapHandler.DragWithinBounds
-
-                    onSingleTapped: tableView.closeEditor()
                 }
             }
         }
 
         ColumnLayout {
-            visible: tableView.selectedRow !== -1
+            visible: listView.currentItem !== null
             Layout.fillWidth: true
 
-            Label {
-                text: qsTr("Program")
+            Label { text: qsTr("Name") }
+            LineEdit {
+                id: nameField
                 Layout.fillWidth: true
+                clearable: true
+                tooltip: mainTooltip
+                onValueCommitted: draft.setProperty(listView.currentIndex, "name", text.trim())
             }
 
-            RowLayout {
+            Label { text: qsTr("Program") }
+            LineEdit {
+                id: programField
                 Layout.fillWidth: true
-
-                TextField {
-                    id: programTextField
-                    Layout.fillWidth: true
-
-                    onEditingFinished: {
-                        const index = terminalModel.index(tableView.selectedRow, 0)
-                        const session = terminalModel.data(index, Qt.UserRole + 2)
-                        session.program = programTextField.text
-                        terminalModel.setData(index, session, Qt.UserRole + 2)
-                    }
-                }
-
-                Button {
-                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    icon.source: "qrc:/icon/folder.svg"
-                    icon.width: 16; icon.height: 16
-                    Layout.preferredWidth: 32; Layout.preferredHeight: 32
-
-                    onClicked: {
-                        if (programTextField.text) {
-                            const url = programTextField.text
-                            programDialog.selectedFile = url
-                            programDialog.currentFolder = url.substring(0, url.lastIndexOf('/'))
-                        }
-                        programDialog.open()
-                    }
-                }
-
-                FileDialog {
-                    id: programDialog
-                    fileMode: FileDialog.OpenFile
-                    nameFilters: ["Executable files (*.exe)", "All files (*)"]
-                    onAccepted: {
-                        programTextField.text = selectedFile
-                        const index = terminalModel.index(tableView.selectedRow, 0)
-                        const session = terminalModel.data(index, Qt.UserRole + 2)
-                        session.program = selectedFile
-                        terminalModel.setData(index, session, Qt.UserRole + 2)
-                    }
-                }
+                clearable: true
+                browsable: true
+                tooltip: mainTooltip
+                nameFilters: ["Executable files (*.exe)", "All files (*)"]
+                onValueCommitted: draft.setProperty(listView.currentIndex, "program", text)
             }
 
-            Label {
-                text: qsTr("Arguments")
+            Label { text: qsTr("Arguments") }
+            LineEdit {
+                id: argumentsField
                 Layout.fillWidth: true
+                clearable: true
+                tooltip: mainTooltip
+                onValueCommitted: draft.setProperty(listView.currentIndex, "arguments", text)
             }
 
-            TextField {
-                id: argumentsTextField
+            Label { text: qsTr("Working Directory") }
+            LineEdit {
+                id: directoryField
                 Layout.fillWidth: true
-
-                onEditingFinished: {
-                    const index = terminalModel.index(tableView.selectedRow, 0)
-                    const session = terminalModel.data(index, Qt.UserRole + 2)
-                    session.arguments = argumentsTextField.text
-                    terminalModel.setData(index, session, Qt.UserRole + 2)
-                }
+                clearable: true
+                fileMode: LineEdit.Folder
+                tooltip: mainTooltip
+                onValueCommitted: draft.setProperty(listView.currentIndex, "workingDirectory", text)
             }
 
-            Label {
-                text: qsTr("Working Directory")
+            Label { text: qsTr("Environment") }
+            LineEdit {
+                id: environmentField
                 Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-
-                TextField {
-                    id: workingDirectoryTextField
-                    Layout.fillWidth: true
-
-                    onEditingFinished: {
-                        const index = terminalModel.index(tableView.selectedRow, 0)
-                        const session = terminalModel.data(index, Qt.UserRole + 2)
-                        session.workingDirectory = workingDirectoryTextField.text
-                        terminalModel.setData(index, session, Qt.UserRole + 2)
-                    }
-                }
-
-                Button {
-                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    icon.source: "qrc:/icon/folder.svg"
-                    icon.width: 16; icon.height: 16
-                    Layout.preferredWidth: 32; Layout.preferredHeight: 32
-
-                    onClicked: {
-                        if (workingDirectoryTextField.text) {
-                            workingDirectoryDialog.currentFolder = workingDirectoryTextField.text
-                        }
-                        workingDirectoryDialog.open()
-                    }
-                }
-
-                FolderDialog {
-                    id: workingDirectoryDialog
-
-                    onAccepted: {
-                        workingDirectoryTextField.text = selectedFolder
-                        const index = terminalModel.index(tableView.selectedRow, 0)
-                        const session = terminalModel.data(index, Qt.UserRole + 2)
-                        session.workingDirectory = selectedFolder
-                        terminalModel.setData(index, session, Qt.UserRole + 2)
-                    }
-                }
-            }
-
-            Label {
-                text: qsTr("Environment")
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: environmentTextField
-                Layout.fillWidth: true
+                clearable: true
+                tooltip: mainTooltip
                 placeholderText: "NAME=value;NAME2=value"
-
-                onEditingFinished: {
-                    const index = terminalModel.index(tableView.selectedRow, 0)
-                    const session = terminalModel.data(index, Qt.UserRole + 2)
-                    session.environment = text
-                    terminalModel.setData(index, session, Qt.UserRole + 2)
-                }
+                onValueCommitted: draft.setProperty(listView.currentIndex, "environment", text)
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
+        Button {
             Layout.alignment: Qt.AlignRight
-
-            Button {
-                text: qsTr("Apply")
-            }
-
-            Button {
-                text: qsTr("Save and Exit")
-
-                onClicked: terminalModule.terminalSave()
+            text: qsTr("Save and Exit")
+            onClicked: {
+                listView.forceActiveFocus()
+                const terminals = []
+                for (let i = 0; i < draft.count; ++i)
+                    terminals.push(Object.assign({}, draft.get(i)))
+                global.terminalModule.terminalSave(terminals)
             }
         }
     }
