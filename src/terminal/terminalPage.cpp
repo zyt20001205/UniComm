@@ -144,8 +144,12 @@ void TerminalPage::_resize(const int rows, const int cols) {
     if (m_conptyWidget) m_conptyWidget->resize(rows, cols);
 }
 
-void TerminalPage::stop() const {
-    if (m_conptyWidget) m_conptyWidget->stop();
+void TerminalPage::stop() {
+    if (!m_conptyWidget) return;
+    m_conptyWidget->setParent(qApp);
+    connect(m_conptyWidget, &ConptyWidget::stopped, m_conptyWidget, &QObject::deleteLater);
+    m_conptyWidget->stop();
+    m_conptyWidget = nullptr;
 }
 
 void TerminalPage::titleSet(const QString &title) {

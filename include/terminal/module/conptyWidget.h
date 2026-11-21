@@ -1,11 +1,6 @@
 #ifndef UNICOMM_CONPTYWIDGET_H
 #define UNICOMM_CONPTYWIDGET_H
 
-#include <atomic>
-
-#include <QByteArray>
-#include <QObject>
-#include <QString>
 #include <QThread>
 
 class ConptyWidget final : public QObject {
@@ -29,6 +24,8 @@ public:
 signals:
     void quit();
 
+    void stopped();
+
     void outputWrite(const QByteArray &bytes);
 
 private:
@@ -42,7 +39,7 @@ private:
     void *m_conptyInputWrite{};
     void *m_conptyOutputRead{};
     void *m_processHandle{};
-    void *m_threadHandle{};
+    void *m_stopEvent{};
     QThread *m_readerThread{};
     QThread *m_processThread{};
 };

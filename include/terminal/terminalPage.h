@@ -45,7 +45,7 @@ private:
 
     void _resize(int rows, int cols);
 
-    void stop() const;
+    void stop();
 
     void titleSet(const QString &title);
 
