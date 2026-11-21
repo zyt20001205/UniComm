@@ -18,6 +18,7 @@ TerminalWidget::TerminalWidget(QQuickItem *parent)
     setFlag(ItemAcceptsInputMethod, true);
     setAcceptHoverEvents(true);
     setAcceptedMouseButtons(Qt::AllButtons);
+    connect(this, &TerminalWidget::cursorRectChanged, this, [this] { updateInputMethod(Qt::ImCursorRectangle); });
     metricsUpdate();
 
     m_blinkTimer->setInterval(500);
@@ -119,14 +120,18 @@ void TerminalWidget::paint(QPainter *painter) {
 void TerminalWidget::fontSet(const QFont &font) {
     m_font = font;
     metricsUpdate();
+    emit fontChanged();
+    emit cursorRectChanged();
     updateRegion();
 }
 
 void TerminalWidget::screenSet(const int rows, const int cols, const QList<TerminalCell> &cells, const bool atBottom) {
+    const bool resized = rows != m_rows || cols != m_cols;
     m_rows = rows;
     m_cols = cols;
     m_cells = cells;
     m_atBottom = atBottom;
+    if (resized) emit cursorRectChanged();
     updateRegion();
 }
 
@@ -161,6 +166,7 @@ void TerminalWidget::selectionSet(const int startRow, const int startCol, const 
 void TerminalWidget::cursorPositionSet(const QPoint &position, const QPoint &oldPosition) {
     if (m_position == position) return;
     m_position = position;
+    emit cursorRectChanged();
     if (!(m_atBottom && m_visible && m_blinkPhase)) return;
     update(cursorRect(oldPosition));
     update(cursorRect(position));
@@ -211,16 +217,32 @@ void TerminalWidget::cursorModeSet(const int mode) {
 
 QVariant TerminalWidget::inputMethodQuery(const Qt::InputMethodQuery query) const {
     if (query == Qt::ImCursorRectangle) return cursorRect();
+    if (query == Qt::ImFont) return m_font;
     return QQuickPaintedItem::inputMethodQuery(query);
 }
 
 // protected
+void TerminalWidget::focusOutEvent(QFocusEvent *event) {
+    QQuickPaintedItem::focusOutEvent(event);
+    preeditSet({}, -1);
+}
+
 void TerminalWidget::keyPressEvent(QKeyEvent *event) {
     emit keyPressed(event->key(), event->modifiers(), event->text());
     event->accept();
 }
 
 void TerminalWidget::inputMethodEvent(QInputMethodEvent *event) {
+    const auto &text = event->preeditString();
+    int cursor = text.size();
+    QColor color{};
+    for (const auto &attribute : event->attributes()) {
+        if (attribute.type != QInputMethodEvent::Cursor) continue;
+        cursor = attribute.length ? attribute.start : -1;
+        color = attribute.value.value<QColor>();
+        break;
+    }
+    preeditSet(text, text.isEmpty() ? -1 : cursor, color);
     const QString commit = event->commitString();
     if (!commit.isEmpty()) emit keyPressed(0, Qt::NoModifier, commit);
     event->accept();
@@ -365,6 +387,13 @@ void TerminalWidget::geometryChange(const QRectF &newGeometry, const QRectF &old
 }
 
 // private
+void TerminalWidget::preeditSet(const QString &text, const int cursor, const QColor &color) {
+    const QVariantHash preedit{{"text", text}, {"cursor", cursor}, {"color", color}};
+    if (m_preedit == preedit) return;
+    m_preedit = preedit;
+    emit preeditChanged();
+}
+
 void TerminalWidget::metricsUpdate() {
     QFontMetricsF metrics(m_font);
     m_cellWidth = qMax<qreal>(1, metrics.horizontalAdvance('M'));

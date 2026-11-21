@@ -5,6 +5,7 @@
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QQuickWidget>
+#include <QQuickWindow>
 #include <QTimer>
 
 #include "globals.h"
@@ -81,7 +82,9 @@ void TerminalPage::terminalWidgetSet(TerminalWidget *widget) {
         connect(m_vtermWidget, &VtermWidget::outputWrite, m_conptyWidget, &ConptyWidget::inputWrite);
         connect(m_conptyWidget, &ConptyWidget::outputWrite, m_vtermWidget, &VtermWidget::inputWrite);
         connect(m_conptyWidget, &ConptyWidget::quit, this, &TerminalPage::close);
-        start();
+        // Start with the grid size of the first rendered frame.
+        connect(m_widget->quickWindow(), &QQuickWindow::afterRendering, this, &TerminalPage::start,
+                static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::SingleShotConnection));
     } else {
         m_vtermWidget->inputWrite("\x1b[20h");
         connect(m_vtermWidget, &VtermWidget::outputWrite, this, &TerminalPage::readTerminal);

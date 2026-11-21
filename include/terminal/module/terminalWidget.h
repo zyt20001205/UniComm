@@ -14,6 +14,9 @@ class TerminalWidget : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
     Q_PROPERTY(bool damage MEMBER m_damage)
+    Q_PROPERTY(QVariantHash preedit MEMBER m_preedit NOTIFY preeditChanged)
+    Q_PROPERTY(QRect cursorRect READ cursorRect NOTIFY cursorRectChanged)
+    Q_PROPERTY(QFont font MEMBER m_font WRITE fontSet NOTIFY fontChanged)
 
 public:
     explicit TerminalWidget(QQuickItem *parent = nullptr);
@@ -43,6 +46,12 @@ public:
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 signals:
+    void preeditChanged();
+
+    void cursorRectChanged();
+
+    void fontChanged();
+
     void resize(int rows, int cols);
 
     void keyPressed(int key, int modifiers, const QString &text);
@@ -76,6 +85,8 @@ signals:
     void debugDamage(const QRectF &rect);
 
 protected:
+    void focusOutEvent(QFocusEvent *event) override;
+
     void keyPressEvent(QKeyEvent *event) override;
 
     void inputMethodEvent(QInputMethodEvent *event) override;
@@ -97,6 +108,8 @@ protected:
     void geometryChange(const QRectF &newGeometry, const QRectF &oldGeometry) override;
 
 private:
+    void preeditSet(const QString &text, int cursor, const QColor &color = {});
+
     void metricsUpdate();
 
     void updateRegion();
@@ -108,6 +121,7 @@ private:
     [[nodiscard]] QRect cursorRect(const QPoint &position) const;
 
     QFont m_font{};
+    QVariantHash m_preedit{{"text", QString{}}, {"cursor", -1}, {"color", QColor{}}};
     QList<TerminalCell> m_cells{};
     TerminalSelection m_selection{};
     bool m_selecting{};

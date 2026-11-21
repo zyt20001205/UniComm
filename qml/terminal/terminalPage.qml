@@ -42,6 +42,41 @@ Item {
             damageOverlay.height = rect.height
         }
 
+        onPreeditChanged: {
+            preeditInput.text = preedit.text
+            preeditInput.cursorPosition = Math.max(0, preedit.cursor)
+        }
+
+        Rectangle {
+            visible: terminalWidget.activeFocus && preeditInput.length > 0 && height > 0
+            x: Math.min(terminalWidget.cursorRect.x, terminalWidget.width - width)
+            y: terminalWidget.cursorRect.y
+            width: Math.min(preeditInput.implicitWidth, terminalWidget.width)
+            height: terminalWidget.cursorRect.height
+            clip: true
+            color: global.theme.general.back
+
+            TextInput {
+                id: preeditInput
+                anchors.fill: parent
+                enabled: false
+                readOnly: true
+                rightPadding: 1
+                font: terminalWidget.font
+                verticalAlignment: TextInput.AlignVCenter
+                color: global.theme.general.fore
+
+                Rectangle {
+                    visible: terminalWidget.preedit.cursor >= 0
+                    x: preeditInput.cursorRectangle.x
+                    y: preeditInput.cursorRectangle.y
+                    width: 1
+                    height: preeditInput.cursorRectangle.height
+                    color: terminalWidget.preedit.color.valid ? terminalWidget.preedit.color : preeditInput.color
+                }
+            }
+        }
+
         Rectangle {
             id: damageOverlay
             visible: damageItem.checked
