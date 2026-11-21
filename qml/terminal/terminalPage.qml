@@ -65,13 +65,10 @@ Item {
                 font: terminalWidget.font
                 verticalAlignment: TextInput.AlignVCenter
                 color: global.theme.general.fore
-
-                Rectangle {
-                    visible: terminalWidget.preedit.cursor >= 0
-                    x: preeditInput.cursorRectangle.x
-                    y: preeditInput.cursorRectangle.y
+                cursorVisible: terminalWidget.preedit.cursor >= 0
+                cursorDelegate: Rectangle {
+                    visible: preeditInput.cursorVisible
                     width: 1
-                    height: preeditInput.cursorRectangle.height
                     color: terminalWidget.preedit.color.valid ? terminalWidget.preedit.color : preeditInput.color
                 }
             }
