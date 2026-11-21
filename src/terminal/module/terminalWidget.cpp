@@ -131,8 +131,6 @@ void TerminalWidget::screenSet(const int rows, const int cols, const QList<Termi
 }
 
 void TerminalWidget::screenDamageSet(const QRect &rect, const QList<TerminalCell> &cells) {
-    if (m_cells.isEmpty()) return;
-
     int source = 0;
     for (int row = rect.top(); row <= rect.bottom(); ++row) {
         for (int col = rect.left(); col <= rect.right(); ++col) {
