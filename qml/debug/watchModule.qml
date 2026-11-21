@@ -346,7 +346,6 @@ Item {
                         enabled: typeBox.currentValue !== LuaType.Nil
                         clearable: true
                         tooltip: mainTooltip
-                        buttonSize: 24
                         Layout.fillWidth: true
                         onAccepted: applyButton.click()
                     }

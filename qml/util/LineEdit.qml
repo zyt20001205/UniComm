@@ -16,7 +16,7 @@ TextField {
     property alias currentFolder: fileDialog.currentFolder
     property alias selectedFile: fileDialog.selectedFile
     property alias title: fileDialog.title
-    property int buttonSize: 32
+    property int buttonSize: 24
     property int iconSize: 16
 
     signal valueCommitted()

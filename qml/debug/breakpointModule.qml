@@ -255,7 +255,6 @@ Item {
                         placeholderText: "true"
                         clearable: true
                         tooltip: mainTooltip
-                        buttonSize: 24
                         Layout.fillWidth: true
 
                         onValueCommitted: {

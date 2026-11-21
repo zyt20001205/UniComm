@@ -255,7 +255,6 @@ Item {
                 enabled: toolBar.searchExpanded
                 opacity: toolBar.searchExpanded ? 1 : 0
                 clearable: true
-                buttonSize: 24
                 tooltip: mainTooltip
                 placeholderText: qsTr("Search symbols")
                 readonly property string query: text.trim().toLowerCase()
