@@ -11,7 +11,6 @@
 #include "runtime/luaInterpreter.h"
 #include "document/documentModule.h"
 #include "debug/watchModule.h"
-#include "terminal/terminalPage.h"
 
 // public
 ThreadpoolModule::ThreadpoolModule()
@@ -100,7 +99,7 @@ QString ThreadpoolModule::threadStart(const QUrl &documentUrl, const RunMode::Va
                          {"interpreter", QVariant::fromValue(QPointer(interpreter))}
                      });
     emit threadsChanged();
-    emit openTerminal(threadId, TerminalPage::Backend::Lua);
+    emit openTerminal(threadId, TerminalBackend::Lua);
     worker->start();
     return threadId;
 }

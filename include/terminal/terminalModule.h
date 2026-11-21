@@ -2,13 +2,17 @@
 #define UNICOMM_TERMINALMODULE_H
 
 #include <QJsonObject>
+#include <QObject>
 #include <QVariantList>
 #include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
-#include "terminal/terminalPage.h"
+#include "types/terminalTypes.h"
 
 class QQuickView;
+class QWidget;
+
+class TerminalPage;
 
 class TerminalModule : public QObject {
     Q_OBJECT
@@ -31,9 +35,9 @@ public:
 
     Q_INVOKABLE void terminalSave(const QVariantList &terminals);
 
-    [[nodiscard]] TerminalPage *terminalConstruct(const QUrl &terminalUrl, int backend = TerminalPage::Backend::Conpty);
+    [[nodiscard]] TerminalPage *terminalConstruct(const QUrl &terminalUrl, TerminalBackend::Value backend = TerminalBackend::Process);
 
-    Q_INVOKABLE void terminalOpen(const QString &id, int backend = TerminalPage::Backend::Conpty);
+    Q_INVOKABLE void terminalOpen(const QString &id, TerminalBackend::Value backend = TerminalBackend::Process);
 
     void terminalClose(const QString &id) const;
 

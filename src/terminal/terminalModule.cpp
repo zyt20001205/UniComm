@@ -62,7 +62,7 @@ void TerminalModule::terminalSave(const QVariantList &terminals) {
     m_manageWindow->close();
 }
 
-TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const int backend) {
+TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const TerminalBackend::Value backend) {
     const auto parts = terminalUrl.path().split('/', Qt::SkipEmptyParts);
     if (parts.size() != 2) return nullptr;
 
@@ -72,7 +72,7 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
     QVariantHash session{};
     QString terminalTitle{};
     switch (backend) {
-        case TerminalPage::Backend::Conpty: {
+        case TerminalBackend::Process: {
             const auto &id = parts.at(0);
             for (const auto &value: m_config["terminals"].toArray()) {
                 auto candidate = value.toObject().toVariantHash();
@@ -84,7 +84,7 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
             if (session.isEmpty()) return nullptr;
             break;
         }
-        case TerminalPage::Backend::Lua: {
+        case TerminalBackend::Lua: {
             const auto &id = parts.at(1);
             terminalTitle = id;
             break;
@@ -92,7 +92,7 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
     }
 
     auto *terminalPage = new TerminalPage(uniqueName, session, m_config, backend); // NOLINT
-    if (backend == TerminalPage::Backend::Lua) {
+    if (backend == TerminalBackend::Lua) {
         const auto &id = parts.at(1);
         connect(terminalPage, &TerminalPage::readTerminal, this, [id](const QByteArray &data) { g_globalManager->threadpoolModuleGet()->inputWrite(id, data); });
     }
@@ -107,14 +107,14 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const i
     return terminalPage;
 }
 
-void TerminalModule::terminalOpen(const QString &id, const int backend) {
+void TerminalModule::terminalOpen(const QString &id, const TerminalBackend::Value backend) {
     QUrl terminalUrl{};
     terminalUrl.setScheme("terminal");
     switch (backend) {
-        case TerminalPage::Backend::Conpty:
+        case TerminalBackend::Process:
             terminalUrl.setPath(QStringLiteral("/%1/%2").arg(id, QUuid::createUuid().toString(QUuid::WithoutBraces)));
             break;
-        case TerminalPage::Backend::Lua:
+        case TerminalBackend::Lua:
             terminalUrl.setPath(QStringLiteral("/lua/%1").arg(id));
             break;
     }

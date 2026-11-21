@@ -4,6 +4,8 @@
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QJsonObject>
 
+#include "types/terminalTypes.h"
+
 class ConptyWidget;
 class QCloseEvent;
 class QQuickWidget;
@@ -14,14 +16,7 @@ class TerminalPage final: public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
 
 public:
-    struct Backend {
-        enum {
-            Conpty,
-            Lua
-        };
-    };
-
-    explicit TerminalPage(const QString &uniqueName, const QVariantHash &session, const QJsonObject &config, int backend = Backend::Conpty);
+    explicit TerminalPage(const QString &uniqueName, const QVariantHash &session, const QJsonObject &config, TerminalBackend::Value backend = TerminalBackend::Process);
 
     ~TerminalPage() override;
 
@@ -48,7 +43,6 @@ private:
 
     void titleSet(const QString &title);
 
-    int m_backend{};
     QJsonObject m_config{};
     QVariantHash m_session{};
     QQuickWidget *m_widget{};

@@ -15,13 +15,12 @@
 #include "terminal/module/vtermWidget.h"
 
 // public
-TerminalPage::TerminalPage(const QString &uniqueName, const QVariantHash &session, const QJsonObject &config, const int backend)
+TerminalPage::TerminalPage(const QString &uniqueName, const QVariantHash &session, const QJsonObject &config, const TerminalBackend::Value backend)
     : DockWidget(uniqueName),
-      m_backend(backend),
       m_config(config),
       m_session(session),
       m_widget(new QQuickWidget()),
-      m_conptyWidget(m_backend == Backend::Conpty ? new ConptyWidget(this) : nullptr),
+      m_conptyWidget(backend == TerminalBackend::Process ? new ConptyWidget(this) : nullptr),
       m_vtermWidget(new VtermWidget(24, 80, this)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);

@@ -7,6 +7,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/runtimeTypes.h"
+#include "types/terminalTypes.h"
 
 class QQuickWidget;
 
@@ -46,7 +47,7 @@ public:
 signals:
     void threadsChanged();
 
-    void openTerminal(const QString &id, int backend);
+    void openTerminal(const QString &id, TerminalBackend::Value backend);
 
     void closeTerminal(const QString &id);
 
