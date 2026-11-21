@@ -33,7 +33,7 @@ class DOCKS_EXPORT TitleBar : public Controller, public Draggable
     Q_OBJECT
 public:
     /// Creates the TitleBar used by Floating windows
-    explicit TitleBar(FloatingWindow *parent, int userType = 0);
+    explicit TitleBar(FloatingWindow *parent);
 
     /// Creates the TitleBar used by tab groups
     explicit TitleBar(Group *parent);

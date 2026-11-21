@@ -17,6 +17,7 @@
 #include "kddockwidgets/QtCompat_p.h"
 
 #include <vector>
+#include <memory.h>
 
 namespace KDDockWidgets {
 

@@ -38,14 +38,13 @@ class DOCKS_EXPORT FloatingWindow : public Controller, public Draggable
 public:
     explicit FloatingWindow(
         Rect suggestedGeometry, MainWindow *parent = nullptr,
-        FloatingWindowFlags requestedFlags = FloatingWindowFlag::FromGlobalConfig,
-        int userType = 0);
+        FloatingWindowFlags requestedFlags = FloatingWindowFlag::FromGlobalConfig);
     explicit FloatingWindow(Core::Group *group, Rect suggestedGeometry,
                             MainWindow *parent = nullptr);
     virtual ~FloatingWindow() override;
 
     bool deserialize(const LayoutSaver::FloatingWindow &);
-    LayoutSaver::FloatingWindow serialize(const LayoutSaver::SaveScope &) const;
+    LayoutSaver::FloatingWindow serialize() const;
 
     // Draggable:
     std::unique_ptr<WindowBeingDragged> makeWindow() override;
@@ -93,7 +92,6 @@ public:
 
     bool anyNonClosable() const;
     bool anyNonDockable() const;
-    bool anyNoDrops() const;
 
     /**
      * @brief checks if this FloatingWindow only has one group.
@@ -232,8 +230,5 @@ private:
     int m_lastHitTest = 0;
 #endif
 };
-
-DOCKS_EXPORT Vector<FloatingWindow *>
-floatingWindowsForAffinity(const Vector<QString> &affinityNames);
 
 }

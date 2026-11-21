@@ -37,6 +37,10 @@ namespace QtQuick {
 class MainWindow;
 }
 
+namespace flutter {
+class MainWindow;
+}
+
 namespace Core {
 
 class MainWindowViewInterface;
@@ -147,19 +151,6 @@ public:
      * @p name The affinity names.
      */
     void setAffinities(const Vector<QString> &names);
-
-    /**
-     * @brief Sets the "document affinity".
-     *
-     * Some projects have the concept of "document". For example, in an IDE, each tab in the central area might be a document.
-     * It's common that when loading a layout you want to restore everything except the documents, which are project specific.
-     * Conversely, you might want to save/restore the documents but not the rest of the layout.
-     *
-     * Use this in conjuection with LayoutSaver::setAffinityNames() to specify that the "document affinity" should be included or excluded from save/restore.
-     * Set the dockwidget's affinity to the same value via Core::DockWidget::setAffinities() to have it included in the "document affinity" and tab those to center.
-     */
-    void setDocumentAffinity(const QString &affinity);
-    QString documentAffinity() const;
 
     /**
      * @brief Returns the list of affinity names. Empty by default.
@@ -277,9 +268,6 @@ public:
 
 protected:
     void setUniqueName(const QString &uniqueName);
-
-    /// this is central area in terms of QMainWindow::centralWidget(), for internal usage only.
-    /// It's unrelated to KDDW's concept of central widget/group.
     Rect centralAreaGeometry() const;
 
 private:
@@ -288,12 +276,13 @@ private:
 
     friend class KDDockWidgets::QtWidgets::MainWindow;
     friend class KDDockWidgets::QtQuick::MainWindow;
+    friend class KDDockWidgets::flutter::MainWindow;
 
     friend class KDDockWidgets::Core::MainWindowViewInterface;
     friend class ::TestDocks;
     friend class KDDockWidgets::LayoutSaver;
     bool deserialize(const LayoutSaver::MainWindow &);
-    LayoutSaver::MainWindow serialize(const LayoutSaver::SaveScope &) const;
+    LayoutSaver::MainWindow serialize() const;
 };
 }
 }
