@@ -70,6 +70,8 @@ void TerminalPage::terminalWidgetSet(TerminalWidget *widget) {
     connect(m_vtermWidget, &VtermWidget::setCursorMode, m_terminalWidget, &TerminalWidget::cursorModeSet);
 
     connect(m_terminalWidget, &TerminalWidget::resize, this, &TerminalPage::_resize);
+    m_vtermWidget->renderScreen();
+
     QFont font(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
     font.setFixedPitch(true);
     font.setStyleHint(QFont::Monospace, QFont::ForceOutline);

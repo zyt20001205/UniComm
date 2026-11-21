@@ -31,6 +31,8 @@ public:
 
     void reset(bool hard = true);
 
+    void renderScreen();
+
     void inputWrite(const QByteArray &bytes);
 
     void keyPressed(int key, int modifiers, const QString &text);
@@ -88,8 +90,6 @@ signals:
 
 private:
     [[nodiscard]] TerminalLine lineGet(qint64 row) const;
-
-    void renderScreen();
 
     void renderDamage(const QRect &rect);
 
