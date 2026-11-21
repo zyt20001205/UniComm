@@ -30,11 +30,6 @@ TerminalWidget::TerminalWidget(QQuickItem *parent)
     m_blinkTimer->start();
 }
 
-void TerminalWidget::propertySet(const QVariantHash &objects) {
-    m_contextMenu = qvariant_cast<QObject *>(objects["terminalModuleContextMenu"]);
-    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-}
-
 void TerminalWidget::paste() {
     const QString text = QGuiApplication::clipboard()->text();
     if (!text.isEmpty()) emit pasteText(text);
@@ -267,15 +262,7 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
                 url = emit getLink(m_cells[index].uri);
             }
             const auto text = emit getSelection();
-            m_contextMenu->setProperty("menuSession", QVariantHash({
-                {"terminalWidget", QVariant::fromValue(this)},
-                {"copiable", !text.isEmpty()},
-                {"pastable", !QGuiApplication::clipboard()->text().isEmpty()},
-                {"text", text},
-                {"url", url}
-            }));
-            m_toolTip->setProperty("text", QString());
-            QMetaObject::invokeMethod(m_contextMenu, "popup");
+            emit showContextMenu(text, url, !QGuiApplication::clipboard()->text().isEmpty());
         }
     }
     event->accept();
@@ -345,22 +332,17 @@ void TerminalWidget::hoverMoveEvent(QHoverEvent *event) {
     const bool control = event->modifiers() & Qt::ControlModifier;
     setCursor(link && control ? Qt::PointingHandCursor : Qt::IBeamCursor);
     if (link) {
-        m_toolTip->setProperty("position", QCursor::pos());
-        if (control) {
-            const auto url = emit getLink(m_cells[index].uri);
-            m_toolTip->setProperty("text", url.toString());
-        } else {
-            m_toolTip->setProperty("text", tr("Ctrl + Click"));
-        }
+        const auto text = control ? getLink(m_cells[index].uri).toString() : tr("Ctrl + Click");
+        emit setToolTip(QCursor::pos(), text);
     } else {
-        m_toolTip->setProperty("text", QString());
+        emit setToolTip({}, {});
     }
     QQuickPaintedItem::hoverMoveEvent(event);
 }
 
 void TerminalWidget::hoverLeaveEvent(QHoverEvent *event) {
     setCursor(Qt::IBeamCursor);
-    m_toolTip->setProperty("text", QString());
+    emit setToolTip({}, {});
     QQuickPaintedItem::hoverLeaveEvent(event);
 }
 

@@ -25,7 +25,7 @@ public:
 
     ~TerminalModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet() const;
 
     void terminalConfigSave() const;
 
@@ -49,8 +49,6 @@ signals:
 private:
     QJsonObject m_config{};
     QQuickView *m_manageWindow{};
-    QObject *m_toolTip{};
-    QObject *m_contextMenu{};
 
     QHash<QString, TerminalPage *> m_terminalPageHash{};
 };

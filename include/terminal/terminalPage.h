@@ -26,7 +26,7 @@ public:
 
     ~TerminalPage() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void terminalWidgetSet(TerminalWidget *widget);
 
@@ -52,8 +52,6 @@ private:
     QJsonObject m_config{};
     QVariantHash m_session{};
     QQuickWidget *m_widget{};
-    QObject *m_root{};
-    QObject *m_messageDialog{};
     ConptyWidget *m_conptyWidget{};
     TerminalWidget *m_terminalWidget{};
     VtermWidget *m_vtermWidget{};

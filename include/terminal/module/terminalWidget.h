@@ -17,8 +17,6 @@ class TerminalWidget : public QQuickPaintedItem {
 public:
     explicit TerminalWidget(QQuickItem *parent = nullptr);
 
-    void propertySet(const QVariantHash &objects);
-
     Q_INVOKABLE void paste();
 
     void paint(QPainter *painter) override;
@@ -70,6 +68,10 @@ signals:
 
     QUrl getLink(int uri);
 
+    void showContextMenu(const QString &selection, const QUrl &link, bool pastable);
+
+    void setToolTip(const QPoint &position, const QString &text);
+
     void debugDamage(const QRectF &rect);
 
 protected:
@@ -106,8 +108,6 @@ private:
 
     [[nodiscard]] QRect cursorRect(const QPoint &position) const;
 
-    QObject *m_contextMenu{};
-    QObject *m_toolTip{};
     QFont m_font{};
     QList<TerminalCell> m_cells{};
     TerminalSelection m_selection{};

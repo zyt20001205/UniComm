@@ -38,12 +38,10 @@ TerminalPage::~TerminalPage() {
     qDebug() << QString("[%1] %2 destructed").arg(timestamp, uniqueName());
 }
 
-void TerminalPage::propertySet(const QVariantHash &objects) {
+void TerminalPage::propertySet() {
     m_widget->setInitialProperties({{"terminalPage", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/terminal/terminalPage.qml"));
-    m_root = m_widget->rootObject();
-    m_terminalWidget->propertySet(objects);
 }
 
 void TerminalPage::terminalWidgetSet(TerminalWidget *widget) {

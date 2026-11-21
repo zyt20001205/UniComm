@@ -24,10 +24,7 @@ TerminalModule::~TerminalModule() {
     qDebug() << QString("[%1] terminal module destructed").arg(timestamp);
 }
 
-void TerminalModule::propertySet(const QVariantHash &objects) {
-    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    m_contextMenu = qvariant_cast<QObject *>(objects["terminalModuleContextMenu"]);
-
+void TerminalModule::propertySet() const {
     // manage window
     m_manageWindow->setTitle(tr("Manage Terminal"));
     m_manageWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
@@ -97,10 +94,7 @@ TerminalPage *TerminalModule::terminalConstruct(const QUrl &terminalUrl, const T
         connect(terminalPage, &TerminalPage::readTerminal, this, [id](const QByteArray &data) { g_globalManager->threadpoolModuleGet()->inputWrite(id, data); });
     }
     terminalPage->setTitle(terminalTitle);
-    terminalPage->propertySet({
-        {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-        {"terminalModuleContextMenu", QVariant::fromValue(m_contextMenu)}
-    });
+    terminalPage->propertySet();
 
     m_terminalPageHash.insert(uniqueName, terminalPage);
     connect(terminalPage, &TerminalPage::destroyed, this, [this, uniqueName] { m_terminalPageHash.remove(uniqueName); });

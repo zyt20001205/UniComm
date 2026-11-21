@@ -3892,71 +3892,6 @@ Item {
         }
     }
 
-    // terminal module
-    Menu {
-        id: terminalModuleContextMenu
-        focus: false
-        property var menuSession
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("Copy")
-            enabled: terminalModuleContextMenu.menuSession ? terminalModuleContextMenu.menuSession.copiable : false
-            icon.source: "qrc:/icon/copy.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: fileModule.copyToClipboard(terminalModuleContextMenu.menuSession.text)
-        }
-
-        MenuItem {
-            text: qsTr("Paste")
-            enabled: terminalModuleContextMenu.menuSession ? terminalModuleContextMenu.menuSession.pastable : false
-            icon.source: "qrc:/icon/paste.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: terminalModuleContextMenu.menuSession.terminalWidget.paste()
-        }
-
-        MenuSeparator {
-        }
-
-        Menu {
-            title: qsTr("Link")
-            enabled: terminalModuleContextMenu.menuSession ? String(terminalModuleContextMenu.menuSession.url).length > 0 : false
-            icon.source: "qrc:/icon/link.svg"
-            icon.width: 16; icon.height: 16
-
-            MenuItem {
-                text: qsTr("Copy")
-                icon.source: "qrc:/icon/copy.svg"
-                icon.width: 16; icon.height: 16
-
-                onTriggered: fileModule.copyToClipboard(String(terminalModuleContextMenu.menuSession.url))
-            }
-
-            MenuItem {
-                text: qsTr("Open")
-                icon.source: "qrc:/icon/link.svg"
-                icon.width: 16; icon.height: 16
-
-                onTriggered: documentModule.documentOpen(terminalModuleContextMenu.menuSession.url)
-            }
-
-            MenuItem {
-                text: qsTr("Open Externally")
-                icon.source: "qrc:/icon/open.svg"
-                icon.width: 16; icon.height: 16
-
-                onTriggered: Qt.openUrlExternally(terminalModuleContextMenu.menuSession.url)
-            }
-        }
-    }
-
     Component.onCompleted: {
         const objects = {
             "mainOverlay": mainItem,
@@ -4012,9 +3947,7 @@ Item {
             "portModuleRootMenu": portModuleRootMenu,
 
             "statusModuleEolModeMenu": statusModuleEolModeMenu,
-            "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip,
-
-            "terminalModuleContextMenu": terminalModuleContextMenu
+            "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip
         };
         mainWindow.propertyGet(objects)
     }

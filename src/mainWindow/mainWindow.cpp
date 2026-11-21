@@ -215,11 +215,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_fileModule->propertySet(fileObjects);
 
-    const QVariantHash terminalObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"terminalModuleContextMenu", objects["terminalModuleContextMenu"]}
-    };
-    m_terminalModule->propertySet(terminalObjects);
+    m_terminalModule->propertySet();
 
     m_threadpoolModule->propertySet();
 
