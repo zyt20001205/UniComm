@@ -2,22 +2,19 @@
 #define UNICOMM_PORTMODULE_H
 
 #include <QJsonObject>
-#include <QStandardItemModel>
+#include <QtQmlIntegration/qqmlintegration.h>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
 #include "basePort.h"
 
-class QPushButton;
 class QQuickWidget;
-class QTabWidget;
-class QVBoxLayout;
-
 class PortSetting;
-class PortModel;
 
-class PortModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class PortModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
-    Q_PROPERTY(PortModel* model READ modelGet CONSTANT)
+    QML_ELEMENT
+    QML_UNCREATABLE("PortModule is created by C++.")
+    Q_PROPERTY(QVariantList ports READ portsGet NOTIFY portsChanged)
 
 public:
     explicit PortModule();
@@ -26,8 +23,8 @@ public:
 
     void propertySet(const QVariantHash &objects);
 
-    [[nodiscard]] PortModel *modelGet() const {
-        return m_model;
+    [[nodiscard]] const QVariantList &portsGet() const {
+        return m_ports;
     }
 
     void portConfigSave();
@@ -50,48 +47,31 @@ public:
 
     Q_INVOKABLE void portToggle(int index);
 
-    void portRefresh(const QString &portName, bool active) const;
+    void portRefresh(const QString &portName, bool active);
 
     QHash<QString, BasePort *> m_portHash{};
+
 signals:
+    void portsChanged();
+
     void appendLog(int type, const QString &prefix, const QString &message);
 
 private:
     static void portDefaults(QJsonObject &portConfig);
 
+    [[nodiscard]] int portIndexGet(const QString &portName) const;
+
     void _portInsert(int index, const QJsonObject &portConfig);
 
-    void _portRemove(const QString &portName);
+    void _portRemove(int index);
 
-    void _portEdit(int index, const QString &oldPortName, const QJsonObject &portConfig);
+    void _portEdit(int index, const QJsonObject &portConfig);
 
     void _portMove(int src, int dst);
 
     QQuickWidget *m_widget{};
-    QObject *m_root{};
     PortSetting *m_portSetting{};
-    PortModel *m_model{};
-};
-
-class PortModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit PortModel(QObject *parent = nullptr);
-
-    enum Role {
-        ActiveRole = Qt::UserRole + 1
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-    signals:
-        void emptyChanged();
+    QVariantList m_ports{};
 };
 
 #endif //UNICOMM_PORTMODULE_H

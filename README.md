@@ -105,7 +105,7 @@ as the boundary between those concerns:
 |:-----------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Agent                  | Solo and Team strategies, planning, permission gates, user input, steering, context compaction, MCP tools, Lua hooks, workspace changes, execution traces, and evaluation. |
 | Lua runtime            | Embedded execution, language-server support, diagnostics, debugging, multiple threads, and access to UniComm modules.                                                      |
-| Connectivity           | Serial, TCP, UDP, SSL, WebSocket, Bluetooth LE, VISA, and video/OCR-oriented port workflows.                                                                               |
+| Connectivity           | Serial, TCP, UDP, SSL, WebSocket, Bluetooth LE, and video/OCR-oriented port workflows.                                                                                     |
 | Protocols and services | Modbus RTU/ASCII/TCP, HTTP, FTP, SMTP, IMAP, and lower-level port I/O.                                                                                                     |
 | Data and workspace     | Script-owned database and table windows, CSV export, files, terminal sessions, Git tools, and document viewers.                                                            |
 

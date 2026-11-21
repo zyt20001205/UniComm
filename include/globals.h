@@ -1,8 +1,6 @@
 #ifndef UNICOMM_GLOBALS_H
 #define UNICOMM_GLOBALS_H
 
-#include <visa.h>
-
 #include "mainWindow/mainWindow.h"
 
 extern GlobalManager *g_globalManager;
@@ -12,8 +10,6 @@ extern QUrl g_workspaceUrl;
 extern QString g_gitRootPath;
 extern QJsonObject g_mainConfig;
 extern QJsonObject g_workspaceConfig;
-
-extern ViSession g_rm;
 
 extern QVariantMap g_cursorPosition;
 extern QHash<QChar, int> g_gitStatusCode;
@@ -55,8 +51,7 @@ namespace PortType {
         WebSocketClient,
         WebSocketServer,
         UdpSocket,
-        BluetoothLe,
-        Visa
+        BluetoothLe
     };
 }
 

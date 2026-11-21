@@ -1,10 +1,16 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
+import QtQml.Models
+
+import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property PortModule portModule
     anchors.fill: parent
 
     Rectangle {
@@ -12,179 +18,201 @@ Item {
         color: global.theme.general.back
     }
 
-    Item {
+    Button {
+        anchors.centerIn: parent
+        visible: listView.count === 0
+        flat: true
+        text: qsTr("Click to create port.")
+        font.pixelSize: 16
+        onClicked: root.portModule.portSetting()
+    }
+
+    ListView {
+        id: listView
         anchors.fill: parent
-        visible: portModule.model.empty
+        visible: count > 0
+        clip: true
+        focusPolicy: Qt.ClickFocus
+        keyNavigationEnabled: true
+        model: visualModel
 
-        RowLayout {
-            anchors.centerIn: parent
+        moveDisplaced: Transition {
+            NumberAnimation {
+                property: "y"
+                duration: AnimationDuration.Reorder
+                easing.type: Easing.OutCubic
+            }
+        }
 
-            Button {
-                flat: true
-                text: qsTr("Click to create port.")
-                font.pixelSize: 16
-                Layout.alignment: Qt.AlignVCenter
+        ScrollBar.vertical: ScrollBar {
+            id: scrollBar
+            minimumSize: Math.min(1, 20 / Math.max(1, height))
+            palette {
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
+            }
+        }
 
-                onClicked: portModule.portSetting()
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onSingleTapped: (eventPoint) => {
+                const point = listView.contentItem.mapFromItem(listView, eventPoint.position)
+                const row = listView.itemAt(point.x, point.y)
+                if (row) {
+                    contextMenu.portName = row.modelData.name
+                    contextMenu.popup()
+                } else {
+                    rootMenu.popup()
+                }
             }
         }
     }
 
-    Item {
-        anchors.fill: parent
-        visible: !portModule.model.empty
+    DelegateModel {
+        id: visualModel
+        model: root.portModule.ports
 
-        VerticalHeaderView {
-            id: verticalHeaderView
-            anchors.left: parent.left
-            width: 32; height: parent.height
-            syncView: tableView
-            clip: true
-            interactive: false
-            movableRows: true
-            delegate: VerticalHeaderViewDelegate {
-                id: verticalHeaderViewDelegate
-                implicitWidth: verticalHeaderView.width; implicitHeight: 32
-                padding: 0
+        delegate: DropArea {
+            id: row
+            required property int index
+            required property var modelData
+            readonly property int visualIndex: DelegateModel.itemsIndex
+            width: listView.width
+            height: 28
+            keys: ["port"]
+            onEntered: drag => {
+                const from = drag.source.visualIndex
+                if (from !== visualIndex) visualModel.items.move(from, visualIndex)
+            }
 
-                contentItem: Rectangle {
-                    width: 32; height: 32
-                    color: global.theme.general.back
+            ItemDelegate {
+                id: entry
+                anchors.left: parent.left; anchors.top: parent.top
+                width: row.width; height: row.height
+                leftPadding: 11; rightPadding: 6 + scrollBar.width
+                topPadding: 0; bottomPadding: 0
+                highlighted: row.ListView.isCurrentItem
+                focusPolicy: Qt.ClickFocus
+                onClicked: listView.currentIndex = row.visualIndex
 
+                Drag.active: handle.drag.active
+                Drag.source: row
+                Drag.keys: ["port"]
+                Drag.hotSpot.x: leftPadding + handle.width / 2
+                Drag.hotSpot.y: height / 2
+
+                contentItem: RowLayout {
+                    spacing: 4
                     IconImage {
-                        width: 16; height: 16
-                        anchors.centerIn: parent
-                        color: global.theme.general.fore
                         source: "qrc:/icon/drag.svg"
-                    }
-                }
-
-                HoverHandler {
-                    onHoveredChanged: cursorShape = Qt.OpenHandCursor
-                }
-            }
-            property var moves: []
-
-            Rectangle {
-                anchors.fill: parent
-                color: global.theme.general.stroke
-            }
-
-            Timer {
-                id: timer
-                interval: 10
-                onTriggered: {
-                    let index = -1
-                    let distance = -1
-                    let currentDistance;
-                    for (let i = 0; i < verticalHeaderView.moves.length; ++i) {
-                        let move = verticalHeaderView.moves[i]
-                        currentDistance = Math.abs(move.oldVisualIndex - move.newVisualIndex)
-                        if (currentDistance > distance) {
-                            distance = currentDistance
-                            index = i
+                        color: global.theme.general.fore
+                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                        MouseArea {
+                            id: handle
+                            anchors.fill: parent
+                            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                            preventStealing: true
+                            drag.target: entry
+                            drag.axis: Drag.YAxis
+                            onPressed: {
+                                listView.forceActiveFocus()
+                                listView.currentIndex = row.visualIndex
+                            }
+                            onReleased: {
+                                const targetIndex = row.visualIndex
+                                if (row.index >= 0 && row.index !== targetIndex) {
+                                    root.portModule.portMove(row.index, targetIndex)
+                                    listView.currentIndex = targetIndex
+                                }
+                            }
+                            onCanceled: {
+                                if (row.index >= 0 && row.visualIndex >= 0 && row.index !== row.visualIndex)
+                                    visualModel.items.move(row.visualIndex, row.index)
+                            }
                         }
                     }
-                    let move = verticalHeaderView.moves[index]
-                    portModule.portMove(move.oldVisualIndex, move.newVisualIndex)
-                    verticalHeaderView.clearRowReordering()
-                    tableView.clearRowReordering()
-                    verticalHeaderView.moves = []
-                }
-            }
-
-            onRowMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
-                moves.push({oldVisualIndex, newVisualIndex})
-                timer.restart()
-            }
-        }
-
-        TableView {
-            id: tableView
-            anchors.left: verticalHeaderView.right; anchors.right: parent.right
-            height: parent.height
-            alternatingRows: false
-            clip: true
-            editTriggers: TableView.NoEditTriggers
-            rowSpacing: 1
-            model: portModule.model
-            contentWidth: width
-            property int hoveredRow: -1
-
-            ScrollBar.vertical: ScrollBar {
-                minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
-                palette {
-                    mid: global.theme.general.stroke
-                    dark: global.theme.general.strokePressed
-                }
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: global.theme.general.stroke
-            }
-
-            delegate: Item {
-                id: portDelegate
-                implicitWidth: tableView.width; implicitHeight: 36
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: global.theme.general.back
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    color: global.theme.general.backHover
-                    opacity: tableView.hoveredRow === row ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
-                    }
-                }
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 6
-
                     Label {
-                        horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        text: model.display || ""
+                        text: row.modelData.name
                         elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
-
                     Switch {
-                        checked: model.active
-
-                        onClicked: portModule.portToggle(model.row)
+                        checked: row.modelData.active
+                        onClicked: {
+                            checked = Qt.binding(() => row.modelData.active)
+                            root.portModule.portToggle(row.index)
+                        }
                     }
                 }
 
-                HoverHandler {
-                    id: hoverHandler
-                }
-
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    gesturePolicy: TapHandler.DragWithinBounds
-
-                    onSingleTapped: {
-                        tableMenu.portIndex = model.row
-                        tableMenu.portName = model.display
-                        tableMenu.popup()
-                    }
+                states: State {
+                    when: handle.pressed
+                    ParentChange { target: entry; parent: listView.contentItem }
+                    AnchorChanges { target: entry; anchors.top: undefined; anchors.left: undefined }
+                    PropertyChanges { entry.z: 2 }
                 }
             }
+        }
+    }
 
-            TapHandler {
-                acceptedButtons: Qt.RightButton
+    Menu {
+        id: contextMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property string portName
+        readonly property int portIndex: root.portModule.ports.findIndex(port => port.name === portName)
 
-                onSingleTapped: rootMenu.popup()
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("New")
+            icon.source: "qrc:/icon/add.svg"
+            icon.width: 16; icon.height: 16
+            onTriggered: root.portModule.portSetting()
+        }
+        MenuItem {
+            text: qsTr("Edit")
+            icon.source: "qrc:/icon/edit.svg"
+            icon.width: 16; icon.height: 16
+            enabled: contextMenu.portIndex >= 0
+            onTriggered: root.portModule.portSetting(contextMenu.portIndex)
+        }
+        Menu {
+            title: qsTr("Delete")
+            icon.source: "qrc:/icon/delete.svg"
+            icon.width: 16; icon.height: 16
+            enabled: contextMenu.portIndex >= 0
+            DelayButton {
+                delay: 1000
+                text: qsTr("Confirm")
+                onActivated: {
+                    root.portModule.portRemove(contextMenu.portName)
+                    progress = 0
+                    contextMenu.close()
+                }
             }
+        }
+    }
+
+    Menu {
+        id: rootMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("New")
+            icon.source: "qrc:/icon/add.svg"
+            icon.width: 16; icon.height: 16
+            onTriggered: root.portModule.portSetting()
         }
     }
 }

@@ -73,7 +73,7 @@ name, which separates transport configuration from protocol logic. Port objects
 run on dedicated threads and use ring buffers for communication-oriented reads.
 
 Available port families include serial and network transports, WebSocket,
-Bluetooth LE, VISA, and video/OCR workflows. Protocol APIs such as Modbus operate
+Bluetooth LE, and video/OCR workflows. Protocol APIs such as Modbus operate
 on top of configured ports.
 
 ## Data and observability

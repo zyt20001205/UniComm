@@ -37,7 +37,6 @@ Additional or experimental transports:
 - SSL client and server.
 - WebSocket client and server.
 - Bluetooth LE.
-- VISA.
 - Video stream with ROI, image processing, and OCR-oriented reads.
 
 ## Protocol and service APIs

@@ -3680,70 +3680,6 @@ Item {
         }
     }
 
-    // port module
-    Menu {
-        id: portModuleTableMenu
-        property int portIndex
-        property string portName
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("New")
-            icon.source: "qrc:/icon/add.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: portModule.portSetting()
-        }
-
-        MenuItem {
-            text: qsTr("Edit")
-            icon.source: "qrc:/icon/edit.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: portModule.portSetting(portModuleTableMenu.portIndex)
-        }
-
-        Menu {
-            title: qsTr("Delete")
-            icon.source: "qrc:/icon/delete.svg"
-            icon.width: 16; icon.height: 16
-
-            DelayButton {
-                delay: 1000
-                text: qsTr("Confirm")
-
-                onActivated: {
-                    portModule.portRemove(portModuleTableMenu.portName)
-                    progress = 0
-                    portModuleTableMenu.close()
-                }
-            }
-        }
-    }
-
-    Menu {
-        id: portModuleRootMenu
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("New")
-            icon.source: "qrc:/icon/add.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: portModule.portSetting()
-        }
-    }
-
     // status module
     Menu {
         id: statusModuleEolModeMenu
@@ -3942,9 +3878,6 @@ Item {
             "menuModuleCodeMenu": menuModuleCodeMenu,
             "menuModuleExecMenu": menuModuleExecMenu,
             "menuModuleGitMenu": menuModuleGitMenu,
-
-            "portModuleTableMenu": portModuleTableMenu,
-            "portModuleRootMenu": portModuleRootMenu,
 
             "statusModuleEolModeMenu": statusModuleEolModeMenu,
             "statusModuleBackgroundToolTip": statusModuleBackgroundToolTip

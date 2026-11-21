@@ -8,8 +8,6 @@ QString g_gitRootPath = {};
 QJsonObject g_mainConfig = {};
 QJsonObject g_workspaceConfig = {};
 
-ViSession g_rm = VI_NULL;
-
 QVariantMap g_cursorPosition = {
     {"url", QUrl()},
     {"line", -1},

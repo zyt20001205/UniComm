@@ -177,11 +177,6 @@ file(GLOB TESSERACT_LIB "${TESSERACT_DIR}/lib/*.a")
 set(TESSERACT_BIN "${TESSERACT_DIR}/bin")
 set(TESSERACT_LANG "${TESSERACT_DIR}/lang")
 
-set(VISA_DIR "${CMAKE_SOURCE_DIR}/3rd/visa")
-set(VISA_INCLUDE "${VISA_DIR}/include")
-file(GLOB VISA_LIB "${VISA_DIR}/bin/*.dll")
-set(VISA_BIN "${VISA_DIR}/bin")
-
 set(VTERM_DIR "${CMAKE_SOURCE_DIR}/3rd/vterm-unicomm")
 add_subdirectory("${VTERM_DIR}" "${CMAKE_BINARY_DIR}/3rd/vterm-unicomm")
 
@@ -201,6 +196,7 @@ target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}/analysis
         ${UNICOMM_INCLUDE}/core
         ${UNICOMM_INCLUDE}/debug
+        ${UNICOMM_INCLUDE}/port
         ${UNICOMM_INCLUDE}/qml
         ${UNICOMM_INCLUDE}/runtime
         ${UNICOMM_INCLUDE}/service
@@ -221,7 +217,6 @@ target_include_directories(UniComm PRIVATE
         ${SIMPLEBLE_INCLUDE}
         ${SOL2_INCLUDE}
         ${TESSERACT_INCLUDE}
-        ${VISA_INCLUDE}
         ${WEBVIEW2_INCLUDE}
         ${WHISPER_INCLUDE}
 )
@@ -260,7 +255,6 @@ target_link_libraries(UniComm PRIVATE
         ${SCINTILLA_LIB}
         ${SIMPLEBLE_LIB}
         ${TESSERACT_LIB}
-        ${VISA_LIB}
         ${WHISPER_LIB}
         UniComm_Vterm
         ${WEBVIEW2_LIB}
@@ -342,7 +336,6 @@ set(UNICOMM_RUNTIME_BIN_DIRS
         "${SCINTILLA_BIN}"
         "${SIMPLEBLE_BIN}"
         "${TESSERACT_BIN}"
-        "${VISA_BIN}"
         "${WHISPER_BIN}"
         "${WEBVIEW2_BIN}"
 )
@@ -513,12 +506,6 @@ else ()
             "${TESSERACT_BIN}"
             "${CMAKE_BINARY_DIR}"
             COMMENT "TESSERACT BIN COPIED")
-    #visa
-    add_custom_command(TARGET UniComm POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${VISA_BIN}"
-            "${CMAKE_BINARY_DIR}"
-            COMMENT "VISA BIN COPIED")
     #whisper.cpp-1.9.1
     add_custom_command(TARGET UniComm POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory

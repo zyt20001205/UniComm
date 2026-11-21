@@ -91,7 +91,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
     m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
-    m_overlay->rootContext()->setContextProperty("portModule", m_portModule);
     m_overlay->rootContext()->setContextProperty("statusModule", m_statusModule);
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
@@ -193,12 +192,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_menuModule->propertySet(menuObjects);
 
-    const QVariantHash portObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"portModuleTableMenu", objects["portModuleTableMenu"]},
-        {"portModuleRootMenu", objects["portModuleRootMenu"]}
-    };
-    m_portModule->propertySet(portObjects);
+    m_portModule->propertySet({{"mainWindowToolTip", objects["mainWindowToolTip"]}});
 
     m_serviceModule->propertySet();
 

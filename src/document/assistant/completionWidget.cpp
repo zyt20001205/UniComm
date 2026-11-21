@@ -275,13 +275,13 @@ void CompletionWidget::textReplace() {
 
 void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantList &model) const {
     if (placeholder == "\"__PLACEHOLDER__PORTNAME__\"") {
-        const auto *ports = g_globalManager->portModuleGet()->modelGet();
+        const auto &ports = g_globalManager->portModuleGet()->portsGet();
         const auto theme = g_globalManager->themeGet();
         const auto general = theme["general"].toObject();
         const auto color = theme["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(general["fore"].toString());
         const int typed = m_completionSession["typed"].toInt();
-        for (int i = 0; i < ports->rowCount(); ++i) {
-            const QString insertText = "\"" + ports->item(i, 0)->text() + "\"";
+        for (const auto &port: ports) {
+            const QString insertText = "\"" + port.toHash().value("name").toString() + "\"";
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
                 general["foreDisabled"].toString(),
                 insertText.left(typed).toHtmlEscaped(),
