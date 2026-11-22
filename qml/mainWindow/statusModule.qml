@@ -123,7 +123,7 @@ Item {
             Layout.preferredWidth: positionButtonTextMetrics.width + 8; Layout.preferredHeight: 20
 
             enabled: text.length > 0
-            onClicked: statusModule.documentGoto(global.documentModule.focusedUrl)
+            onClicked: global.documentModule.documentGoto()
 
             TextMetrics {
                 id: positionButtonTextMetrics

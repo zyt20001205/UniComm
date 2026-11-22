@@ -25,8 +25,6 @@ public:
 
     [[nodiscard]] virtual QString documentSave();
 
-    void documentGoto();
-
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
@@ -37,6 +35,8 @@ signals:
     void changeSelection(const QHash<QString, int> &selection);
 
     void changeContent();
+
+    void gotoDocument();
 
 protected:
     virtual void shortcutInit();
@@ -98,7 +98,6 @@ private:
 
     QJsonObject m_config{};
     QObject *m_propertyDialog{};
-    QObject *m_gotoDialog{};
     SearchWidget *m_searchWidget{};
 
     QHash<QChar, QChar> m_pair{};

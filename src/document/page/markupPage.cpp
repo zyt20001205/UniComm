@@ -24,6 +24,7 @@ MarkupPage::MarkupPage(const QJsonObject &documentConfig, const QUrl &documentUr
     connect(m_editorWidget, &EditorWidget::appendLog, this, &MarkupPage::appendLog);
     connect(m_editorWidget, &EditorWidget::changeSavepoint, this, &MarkupPage::savepointChange);
     connect(m_editorWidget, &EditorWidget::changeSelection, this, &MarkupPage::changeSelection);
+    connect(m_editorWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
     connect(m_editorWidget, &EditorWidget::changeContent, this, &MarkupPage::previewUpdate);
 }
 
@@ -31,8 +32,7 @@ void MarkupPage::propertySet(const QVariantHash &objects) const {
     m_editorWidget->propertySet(QVariantHash{
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]}
+        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]}
     });
 }
 

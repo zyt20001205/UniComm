@@ -140,9 +140,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"breakpointModuleEditDialog", objects["breakpointModuleEditDialog"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]},
-        {"documentModuleRenameDialog", objects["documentModuleRenameDialog"]},
-        {"documentModuleSaveDialog", objects["documentModuleSaveDialog"]},
         {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]},
         {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
         {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]},
@@ -422,7 +419,7 @@ void MainWindow::moduleInit() {
     connect(lspManager, &LspManager::responseHover, m_documentModule, &DocumentModule::hoverResponse);
     connect(lspManager, &LspManager::responseImplementation, m_documentModule, &DocumentModule::implementationResponse);
     connect(lspManager, &LspManager::responseOnTypeFormatting, m_documentModule, &DocumentModule::onTypeFormattingResponse);
-    connect(lspManager, &LspManager::responsePrepareRename, m_documentModule, &DocumentModule::prepareRenameResponse);
+    connect(lspManager, &LspManager::responsePrepareRename, m_documentModule, &DocumentModule::showRenameDialog);
     connect(lspManager, &LspManager::responseRangeFormatting, m_documentModule, &DocumentModule::rangeFormattingResponse);
     connect(lspManager, &LspManager::responseReferences, m_documentModule, &DocumentModule::referencesResponse);
     connect(lspManager, &LspManager::responseRename, m_documentModule, &DocumentModule::renameResponse);
@@ -475,8 +472,6 @@ void MainWindow::moduleInit() {
     connect(m_nuspellModule, &NuspellModule::responseSpellCheck, m_documentModule, &DocumentModule::spellCheckResponse);
 
     connect(m_portModule, &PortModule::appendLog, m_logModule, &LogModule::logAppend);
-
-    connect(m_statusModule, &StatusModule::gotoDocument, m_documentModule, &DocumentModule::documentGoto);
 
     connect(m_structureModule, &StructureModule::setFocus, m_documentModule, &DocumentModule::focusSet);
     connect(m_structureModule, &StructureModule::setIndex, m_documentModule, &DocumentModule::indexSet);

@@ -509,121 +509,6 @@ Item {
     }
 
     // document module
-    Dialog {
-        id: documentModuleGotoDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Goto Line[:Character]")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        property string documentUrl
-        property int line
-        property int character
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-        onAboutToShow: {
-            documentModuleGotoTextField.text = (documentModuleGotoDialog.line + 1) + ":" + documentModuleGotoDialog.character
-            documentModuleGotoTextField.forceActiveFocus()
-            documentModuleGotoTextField.selectAll()
-        }
-        onAccepted: {
-            const parts = documentModuleGotoTextField.text.split(":")
-            const line = parseInt(parts[0]) - 1
-            const character = parts.length > 1 ? parseInt(parts[1]) : 0
-            global.documentModule.indexSet(documentModuleGotoDialog.documentUrl, line, character)
-        }
-
-        TextField {
-            id: documentModuleGotoTextField
-            width: parent.width
-
-            onAccepted: documentModuleGotoDialog.accept()
-            Keys.onEscapePressed: documentModuleGotoDialog.reject()
-        }
-    }
-
-    Dialog {
-        id: documentModuleRenameDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Rename Symbol")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        property string documentUrl
-        property int line
-        property int character
-        property string oldName
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-        }
-        onClosed: widgetCount -= 1
-        onAboutToShow: {
-            documentModuleRenameTextField.text = documentModuleRenameDialog.oldName
-            documentModuleRenameTextField.forceActiveFocus()
-            documentModuleRenameTextField.selectAll()
-        }
-        onAccepted: {
-            const newName = documentModuleRenameTextField.text
-            if (newName !== "" && newName !== documentModuleRenameDialog.oldName) {
-                global.documentModule.renameRequest(documentModuleRenameDialog.documentUrl, documentModuleRenameDialog.line, documentModuleRenameDialog.character, newName)
-            }
-        }
-
-        TextField {
-            id: documentModuleRenameTextField
-            width: parent.width
-
-            onAccepted: documentModuleRenameDialog.accept()
-            Keys.onEscapePressed: documentModuleRenameDialog.reject()
-        }
-    }
-
-    Dialog {
-        id: documentModuleSaveDialog
-        parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
-        width: 600
-        modal: true
-        title: qsTr("Save and Exit")
-        standardButtons: Dialog.Yes | Dialog.No | Dialog.Cancel
-        property string documentUrl
-        property string documentName
-        property int closeDecision: Dialog.Cancel
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, true)
-            widgetCount += 1
-            closeDecision = Dialog.Cancel
-        }
-        onClosed: {
-            widgetCount -= 1
-            if (closeDecision !== Dialog.Cancel)
-                global.documentModule.documentClose(documentUrl, closeDecision === Dialog.Yes)
-        }
-        onAccepted: closeDecision = Dialog.Yes
-
-        Label {
-            text: qsTr("Do you want to save changes to " + documentModuleSaveDialog.documentName + "?")
-        }
-
-        Component.onCompleted: {
-            documentModuleSaveDialog.standardButton(Dialog.No).clicked.connect(function () {
-                documentModuleSaveDialog.closeDecision = Dialog.No
-            })
-        }
-    }
-
     Menu {
         id: documentModuleEditorMenu
         focus: false
@@ -3844,9 +3729,6 @@ Item {
             "agentModuleModeMenu": agentModuleModeMenu,
             "agentModuleModelMenu": agentModuleModelMenu,
 
-            "documentModuleGotoDialog": documentModuleGotoDialog,
-            "documentModuleRenameDialog": documentModuleRenameDialog,
-            "documentModuleSaveDialog": documentModuleSaveDialog,
             "documentModuleEditorMenu": documentModuleEditorMenu,
             "documentModuleCompletionToolTip": documentModuleCompletionToolTip,
             "documentModuleCompletionListView": documentModuleCompletionListView,

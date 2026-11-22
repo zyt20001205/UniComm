@@ -72,7 +72,6 @@ EditorWidget::EditorWidget(const QJsonObject &documentConfig, const QUrl &docume
 void EditorWidget::propertySet(const QVariantHash &objects) {
     m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
     m_propertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
-    m_gotoDialog = qvariant_cast<QObject *>(objects["documentModuleGotoDialog"]);
     m_searchWidget->propertySet();
     shortcutInit();
     miscInit();
@@ -112,13 +111,6 @@ QString EditorWidget::documentSave() {
     m_scintillaWidget->savepointSet();
     emit appendLog(LogType::Info, "document saved", QString("<a href='%1'>%2</a>").arg(m_documentUrl.toString(), m_documentUrl.toString()));
     return {};
-}
-
-void EditorWidget::documentGoto() {
-    m_gotoDialog->setProperty("documentUrl", m_documentUrl);
-    m_gotoDialog->setProperty("line", m_selection["line"]);
-    m_gotoDialog->setProperty("character", m_selection["character"]);
-    QMetaObject::invokeMethod(m_gotoDialog, "open");
 }
 
 bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
@@ -173,7 +165,7 @@ void EditorWidget::shortcutInit() {
     connect(shortcutDuplicate, &QShortcut::activated, m_scintillaWidget, &ScintillaWidget::lineDuplicate);
     auto shortcutGoto = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_G), this); // NOLINT
     shortcutGoto->setContext(Qt::WidgetWithChildrenShortcut);
-    connect(shortcutGoto, &QShortcut::activated, this, &EditorWidget::documentGoto);
+    connect(shortcutGoto, &QShortcut::activated, this, &EditorWidget::gotoDocument);
     auto shortcutSearch = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_F), this); // NOLINT
     shortcutSearch->setContext(Qt::WidgetWithChildrenShortcut);
     connect(shortcutSearch, &QShortcut::activated, this, &EditorWidget::searchShow);

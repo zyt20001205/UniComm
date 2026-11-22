@@ -16,14 +16,14 @@ TextPage::TextPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_editorWidget, &EditorWidget::appendLog, this, &TextPage::appendLog);
     connect(m_editorWidget, &EditorWidget::changeSavepoint, this, &TextPage::savepointChange);
     connect(m_editorWidget, &EditorWidget::changeSelection, this, &TextPage::changeSelection);
+    connect(m_editorWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
 }
 
 void TextPage::propertySet(const QVariantHash &objects) const {
     m_editorWidget->propertySet(QVariantHash{
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]}
+        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]}
     });
 }
 

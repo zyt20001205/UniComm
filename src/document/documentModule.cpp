@@ -6,6 +6,7 @@
 #include <QFileSystemWatcher>
 #include <QImageReader>
 #include <QProcess>
+#include <QQmlComponent>
 #include <QSet>
 #include <QSharedPointer>
 #include <QTextBrowser>
@@ -62,12 +63,13 @@ DocumentModule::~DocumentModule() {
 }
 
 void DocumentModule::propertySet(const QVariantHash &objects) {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/document/documentModule.qml"));
+    if (auto *root = component.create()) root->setParent(this);
+    else qWarning().noquote() << component.errorString();
+
     m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
     m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
     m_systemPropertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
-    m_gotoDialog = qvariant_cast<QObject *>(objects["documentModuleGotoDialog"]);
-    m_renameDialog = qvariant_cast<QObject *>(objects["documentModuleRenameDialog"]);
-    m_saveDialog = qvariant_cast<QObject *>(objects["documentModuleSaveDialog"]);
     m_editorMenu = qvariant_cast<QObject *>(objects["documentModuleEditorMenu"]);
 
     // const auto focusedUrl = QUrl(m_config["documentFocused"].toString());
@@ -267,8 +269,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             conflictPage->propertySet(QVariantHash{
                 {"mainWindowToast", QVariant::fromValue(m_toast)},
                 {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
-                {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
+                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
             });
             connect(conflictPage, &ConflictPage::appendLog, this, &DocumentModule::appendLog);
             connect(conflictPage, &ConflictPage::changeSelection, this, &DocumentModule::selectionSet);
@@ -296,7 +297,6 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"mainWindowToast", QVariant::fromValue(m_toast)},
                 {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
                 {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
-                {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)},
                 {"documentModuleEditorMenu", QVariant::fromValue(m_editorMenu)}
             });
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
@@ -328,8 +328,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             markupPage->propertySet(QVariantHash{
                 {"mainWindowToast", QVariant::fromValue(m_toast)},
                 {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
-                {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
+                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
             });
             connect(markupPage, &MarkupPage::appendLog, this, &DocumentModule::appendLog);
             connect(markupPage, &MarkupPage::changeSelection, this, &DocumentModule::selectionSet);
@@ -348,8 +347,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             textPage->propertySet(QVariantHash{
                 {"mainWindowToast", QVariant::fromValue(m_toast)},
                 {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
-                {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
+                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
             });
             connect(textPage, &TextPage::appendLog, this, &DocumentModule::appendLog);
             connect(textPage, &TextPage::changeSelection, this, &DocumentModule::selectionSet);
@@ -369,11 +367,10 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         m_watcher->addPath(documentUrl.toLocalFile());
     }
     m_pageHash[documentUrl] = documentPage;
+    connect(documentPage, &DocumentPage::gotoDocument, this, &DocumentModule::documentGoto);
     connect(documentPage, &DocumentPage::isFocusedChanged, this, [this, documentPage](const bool status) { documentFocus(documentPage, status); });
     connect(documentPage, &DocumentPage::closeRequest, this, [this, documentUrl] {
-        m_saveDialog->setProperty("documentUrl", documentUrl.toString());
-        m_saveDialog->setProperty("documentName", documentUrl.fileName());
-        QMetaObject::invokeMethod(m_saveDialog, "open");
+        emit showSaveDialog(documentUrl, documentUrl.fileName());
     });
     connect(documentPage, &DocumentPage::closeDocument, this, qOverload<const QUrl &>(&DocumentModule::documentClose));
     return documentPage;
@@ -405,14 +402,11 @@ void DocumentModule::documentOpen(const QUrl &documentUrl) {
     m_pageHash[documentUrl]->setFocus(Qt::FocusReason::MouseFocusReason);
 }
 
-void DocumentModule::documentGoto(const QUrl &documentUrl) const {
-    const auto *handler = handlerGet(documentUrl);
+void DocumentModule::documentGoto() const {
+    const auto *handler = handlerGet(m_focusedUrl);
     if (handler == nullptr) return;
     const auto index = handler->cast<ScintillaWidget::Utf16Index>(handler->positionGet());
-    m_gotoDialog->setProperty("documentUrl", documentUrl);
-    m_gotoDialog->setProperty("line", index.line);
-    m_gotoDialog->setProperty("character", index.character);
-    QMetaObject::invokeMethod(m_gotoDialog, "open");
+    emit showGotoDialog(m_focusedUrl, index.line, index.character);
 }
 
 QString DocumentModule::documentSave(const QUrl &documentUrl) const {
@@ -917,7 +911,7 @@ void DocumentModule::hoverRequest(const QUrl &documentUrl, int line, int charact
     emit requestJson("textDocument/hover", hoverParams);
 }
 
-void DocumentModule::hoverResponse(const QUrl &documentUrl, const QString &message) const {
+void DocumentModule::hoverResponse(const QUrl &, const QString &message) const {
     // call hover show
     const QVariantHash hoverSession = {
         {"position", QCursor::pos()}
@@ -993,10 +987,7 @@ void DocumentModule::onTypeFormattingResponse(const QUrl &documentUrl, const QJs
 }
 
 void DocumentModule::prepareRenameRequest(const QUrl &documentUrl, const int line, const int character) {
-    m_renameDialog->setProperty("documentUrl", documentUrl);
-    m_renameDialog->setProperty("line", line);
-    m_renameDialog->setProperty("character", character);
-
+    emit prepareRenameDialog(documentUrl, line, character);
     const QJsonObject prepareRenameParams{
         {
             "textDocument", QJsonObject{
@@ -1011,11 +1002,6 @@ void DocumentModule::prepareRenameRequest(const QUrl &documentUrl, const int lin
         }
     };
     emit requestJson("textDocument/prepareRename", prepareRenameParams);
-}
-
-void DocumentModule::prepareRenameResponse(const QUrl &documentUrl, const QString &oldName) const {
-    m_renameDialog->setProperty("oldName", oldName);
-    QMetaObject::invokeMethod(m_renameDialog, "open");
 }
 
 void DocumentModule::rangeFormattingRequest(const QUrl &documentUrl, const int startLine, const int startCharacter, const int endLine, const int endCharacter) {

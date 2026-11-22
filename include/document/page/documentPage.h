@@ -36,6 +36,8 @@ signals:
 
     void closeDocument(const QUrl &documentUrl);
 
+    void gotoDocument();
+
 protected:
     [[nodiscard]] virtual bool documentModified() const {
         return false;

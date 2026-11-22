@@ -78,10 +78,6 @@ void StatusModule::backgroundInfo(const int taskId) const {
     if (callback) callback();
 }
 
-void StatusModule::documentGoto(const QUrl &documentUrl) {
-    emit gotoDocument(documentUrl);
-}
-
 void StatusModule::documentFocus(const QUrl &documentUrl, const QVariantHash &session) const {
     rootContext()->setContextProperty("documentUrl", documentUrl);
     const QString documentPath = documentUrl.toLocalFile();

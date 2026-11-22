@@ -22,6 +22,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &EditorWidget::appendLog, this, &CodePage::appendLog);
     connect(m_codeWidget, &EditorWidget::changeSavepoint, this, &CodePage::savepointChange);
     connect(m_codeWidget, &EditorWidget::changeSelection, this, &CodePage::changeSelection);
+    connect(m_codeWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
     connect(m_codeWidget, &CodeWidget::toggleBreakpoint, this, &CodePage::toggleBreakpoint);
     connect(m_codeWidget, &CodeWidget::notificationJson, this, &CodePage::notificationJson);
     connect(m_codeWidget, &CodeWidget::requestCompletion, this, &CodePage::requestCompletion);
@@ -52,7 +53,6 @@ void CodePage::propertySet(const QVariantHash &objects) const {
         {"mainWindowToast", objects["mainWindowToast"]},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
         {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleGotoDialog", objects["documentModuleGotoDialog"]},
         {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]}
     });
     m_symbolWidget->propertySet();

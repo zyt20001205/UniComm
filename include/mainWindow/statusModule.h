@@ -28,12 +28,7 @@ public:
 
     Q_INVOKABLE void backgroundInfo(int taskId) const;
 
-    Q_INVOKABLE void documentGoto(const QUrl &documentUrl);
-
     void documentFocus(const QUrl &documentUrl, const QVariantHash &session) const;
-
-signals:
-    void gotoDocument(const QUrl &documentUrl);
 
 private:
     void backgroundUpdate() const;

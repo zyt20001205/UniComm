@@ -60,7 +60,7 @@ public:
 
     Q_INVOKABLE void documentOpen(const QUrl &documentUrl);
 
-    void documentGoto(const QUrl &documentUrl) const;
+    Q_INVOKABLE void documentGoto() const;
 
     [[nodiscard]] QJsonArray directoryList(const QUrl &directoryUrl) const;
 
@@ -169,7 +169,7 @@ public:
 
     void hoverRequest(const QUrl &documentUrl, int line, int character);
 
-    void hoverResponse(const QUrl &documentUrl, const QString &message) const;
+    void hoverResponse(const QUrl &, const QString &message) const;
 
     Q_INVOKABLE void implementationRequest(const QUrl &documentUrl, int line, int character);
 
@@ -180,8 +180,6 @@ public:
     void onTypeFormattingResponse(const QUrl &documentUrl, const QJsonObject &newText) const;
 
     Q_INVOKABLE void prepareRenameRequest(const QUrl &documentUrl, int line, int character);
-
-    void prepareRenameResponse(const QUrl &documentUrl, const QString &oldName) const;
 
     Q_INVOKABLE void rangeFormattingRequest(const QUrl &documentUrl, int startLine, int startCharacter, int endLine, int endCharacter);
 
@@ -210,6 +208,14 @@ public:
     void spellCheckResponse(const QUrl &documentUrl, const QVariantList &typos);
 
 signals:
+    void showGotoDialog(const QUrl &documentUrl, int line, int character) const;
+
+    void prepareRenameDialog(const QUrl &documentUrl, int line, int character);
+
+    void showRenameDialog(const QUrl &documentUrl, const QString &oldName);
+
+    void showSaveDialog(const QUrl &documentUrl, const QString &documentName);
+
     void focusedUrlChanged();
 
     void selectionChanged();
@@ -305,9 +311,6 @@ private:
     ToastModule *m_toast{};
     QObject *m_toolTip{};
     QObject *m_systemPropertyDialog{};
-    QObject *m_gotoDialog{};
-    QObject *m_renameDialog{};
-    QObject *m_saveDialog{};
     QObject *m_editorMenu{};
     QUrl m_focusedUrl{};
     QVariantHash m_selection{};
