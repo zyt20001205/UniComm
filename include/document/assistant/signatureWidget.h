@@ -39,7 +39,7 @@ signals:
 
     void textChanged();
 
-    void showSignature(const QPoint &position, bool reposition);
+    void showSignature(const QPoint &position);
 
     void hideSignature();
 
@@ -51,7 +51,7 @@ private:
     QFont m_font{};
     QString m_text{};
     bool m_visible{};
-    QVariantHash m_signatureSession{};
+    QUrl m_documentUrl{};
 };
 
 #endif //UNICOMM_SIGNATUREWIDGET_H

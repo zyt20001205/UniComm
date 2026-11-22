@@ -16,8 +16,8 @@ ToolTip {
     Connections {
         target: root.signatureWidget
 
-        function onShowSignature(position, reposition) {
-            if (reposition) root.position = position
+        function onShowSignature(position) {
+            root.position = position
             root.open()
         }
 
