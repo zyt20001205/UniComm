@@ -192,7 +192,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_menuModule->propertySet(menuObjects);
 
-    m_portModule->propertySet({{"mainWindowToolTip", objects["mainWindowToolTip"]}});
+    m_portModule->propertySet();
 
     m_serviceModule->propertySet();
 

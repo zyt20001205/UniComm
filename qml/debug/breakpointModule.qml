@@ -254,7 +254,6 @@ Item {
                         id: conditionField
                         placeholderText: "true"
                         clearable: true
-                        tooltip: mainTooltip
                         Layout.fillWidth: true
 
                         onValueCommitted: {

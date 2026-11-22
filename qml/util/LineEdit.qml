@@ -8,7 +8,6 @@ TextField {
 
     property bool revealable: false
     property bool clearable: false
-    property QtObject tooltip: mainToolTip
     enum FileMode { OpenFile, OpenFiles, SaveFile, Folder }
     property int fileMode: LineEdit.OpenFile
     property bool browsable: fileMode === LineEdit.Folder
@@ -55,10 +54,10 @@ TextField {
             Accessible.name: checked ? qsTr("Hide password") : qsTr("Show password")
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
+                onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
                 onPointChanged: {
-                    control.tooltip.position = parent.mapToGlobal(point.position)
-                    control.tooltip.text = parent.Accessible.name
+                    mainTooltip.position = parent.mapToGlobal(point.position)
+                    mainTooltip.text = parent.Accessible.name
                 }
             }
         }
@@ -82,10 +81,10 @@ TextField {
             }
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
+                onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
                 onPointChanged: {
-                    control.tooltip.position = parent.mapToGlobal(point.position)
-                    control.tooltip.text = parent.Accessible.name
+                    mainTooltip.position = parent.mapToGlobal(point.position)
+                    mainTooltip.text = parent.Accessible.name
                 }
             }
         }
@@ -122,10 +121,10 @@ TextField {
             }
 
             HoverHandler {
-                onHoveredChanged: { if (!hovered) control.tooltip.text = "" }
+                onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
                 onPointChanged: {
-                    control.tooltip.position = parent.mapToGlobal(point.position)
-                    control.tooltip.text = parent.Accessible.name
+                    mainTooltip.position = parent.mapToGlobal(point.position)
+                    mainTooltip.text = parent.Accessible.name
                 }
             }
         }

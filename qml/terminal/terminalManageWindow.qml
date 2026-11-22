@@ -202,7 +202,6 @@ Item {
                 id: nameField
                 Layout.fillWidth: true
                 clearable: true
-                tooltip: mainTooltip
                 onValueCommitted: draft.setProperty(listView.currentIndex, "name", text.trim())
             }
 
@@ -212,7 +211,6 @@ Item {
                 Layout.fillWidth: true
                 clearable: true
                 browsable: true
-                tooltip: mainTooltip
                 nameFilters: ["Executable files (*.exe)", "All files (*)"]
                 onValueCommitted: draft.setProperty(listView.currentIndex, "program", text)
             }
@@ -222,7 +220,6 @@ Item {
                 id: argumentsField
                 Layout.fillWidth: true
                 clearable: true
-                tooltip: mainTooltip
                 onValueCommitted: draft.setProperty(listView.currentIndex, "arguments", text)
             }
 
@@ -232,7 +229,6 @@ Item {
                 Layout.fillWidth: true
                 clearable: true
                 fileMode: LineEdit.Folder
-                tooltip: mainTooltip
                 onValueCommitted: draft.setProperty(listView.currentIndex, "workingDirectory", text)
             }
 
@@ -241,7 +237,6 @@ Item {
                 id: environmentField
                 Layout.fillWidth: true
                 clearable: true
-                tooltip: mainTooltip
                 placeholderText: "NAME=value;NAME2=value"
                 onValueCommitted: draft.setProperty(listView.currentIndex, "environment", text)
             }
