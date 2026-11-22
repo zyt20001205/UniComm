@@ -47,31 +47,31 @@ Rectangle {
             DebugButton {
                 icon.source: "qrc:/icon/play.svg"
                 Accessible.name: qsTr("Resume")
-                onClicked: root.debugModule.interpreterStateSet(InterpreterState.Resume)
+                onClicked: global.threadpoolModule.interpreterStateSet(root.debugModule.currentThread, InterpreterState.Resume)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/pause.svg"
                 Accessible.name: qsTr("Pause")
-                onClicked: root.debugModule.interpreterStateSet(InterpreterState.Pause)
+                onClicked: global.threadpoolModule.interpreterStateSet(root.debugModule.currentThread, InterpreterState.Pause)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepOver.svg"
                 Accessible.name: qsTr("Step Over")
-                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepOver)
+                onClicked: global.threadpoolModule.interpreterStateSet(root.debugModule.currentThread, InterpreterState.StepOver)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepInto.svg"
                 Accessible.name: qsTr("Step Into")
-                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepInto)
+                onClicked: global.threadpoolModule.interpreterStateSet(root.debugModule.currentThread, InterpreterState.StepInto)
             }
 
             DebugButton {
                 icon.source: "qrc:/icon/debugStepOut.svg"
                 Accessible.name: qsTr("Step Out")
-                onClicked: root.debugModule.interpreterStateSet(InterpreterState.StepOut)
+                onClicked: global.threadpoolModule.interpreterStateSet(root.debugModule.currentThread, InterpreterState.StepOut)
             }
         }
 

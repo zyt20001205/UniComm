@@ -39,8 +39,6 @@ public:
 
     [[nodiscard]] QVariantList callStackGet(const QString &threadId) const { return m_callStacks.value(threadId); }
 
-    Q_INVOKABLE void interpreterStateSet(InterpreterState::Value state);
-
     void callStackSet(const QString &threadId, const QVariantList &frames);
 
     [[nodiscard]] QFuture<QJsonObject> debugWait(const QString &threadId);
@@ -63,8 +61,6 @@ signals:
     void setEolAnnotation(const QUrl &documentUrl, int line, const QString &text);
 
     void setThreadStatus(const QString &threadId, ThreadStatus::Value status);
-
-    void setInterpreterState(const QString &threadId, InterpreterState::Value state, const QUrl &cursorUrl = {}, int cursorLine = -1);
 
 private:
     void debugRefresh();

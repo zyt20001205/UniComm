@@ -47,11 +47,6 @@ void DebugModule::currentThreadSet(const QString &threadId) {
     debugRefresh();
 }
 
-void DebugModule::interpreterStateSet(const InterpreterState::Value state) {
-    if (m_currentThread.isEmpty()) return;
-    emit setInterpreterState(m_currentThread, state);
-}
-
 void DebugModule::callStackSet(const QString &threadId, const QVariantList &frames) {
     const bool paused = !frames.isEmpty();
     if (paused) {
