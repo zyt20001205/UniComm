@@ -2621,7 +2621,7 @@ Item {
                         if (root.portType === PortType.Vision) {
                             root.portManageWindow.width = 1600
                             root.portManageWindow.height = 900
-                            root.portManageWindow.visionCapture()
+                            root.portManageWindow.visionCapture(videoOutput.videoSink)
                         }
                         swipeView.currentIndex = swipeView.currentIndex + 1
                     } else {
@@ -3092,7 +3092,6 @@ Item {
     Component.onCompleted: {
         root.portManageWindow.propertyGet({
             "swipeView": swipeView,
-            "videoSink": videoOutput.videoSink,
             "previewImage": previewImage
         })
     }

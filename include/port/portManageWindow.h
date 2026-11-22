@@ -2,13 +2,12 @@
 #define UNICOMM_PORTMANAGEWINDOW_H
 
 #include <QFuture>
-#include <QJsonObject>
-#include <QPixmap>
 #include <QQuickImageProvider>
 #include <QQuickView>
 #include <QStandardItemModel>
 #include <QStringList>
 #include <QVariantList>
+#include <QVideoSink>
 
 #include "port/module/imageProcess.h"
 #include "types/portTypes.h"
@@ -16,7 +15,6 @@
 class QCamera;
 class QMediaCaptureSession;
 class QScreenCapture;
-class QVideoSink;
 
 class ImageProvider;
 class RoiModel;
@@ -51,7 +49,7 @@ public:
 
     Q_INVOKABLE void bleConnect(const QVariant &peripheral);
 
-    Q_INVOKABLE void visionCapture();
+    Q_INVOKABLE void visionCapture(QVideoSink *videoSink);
 
     Q_INVOKABLE void previewLoad(int index) const;
 
@@ -125,7 +123,6 @@ private:
     QVariantHash m_config{};
 
     QObject *m_swipeView{};
-    QVideoSink *m_videoSink{};
     QObject *m_previewImage{};
 };
 

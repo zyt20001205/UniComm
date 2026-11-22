@@ -10,7 +10,6 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QScreenCapture>
-#include <QVideoSink>
 #include <QtConcurrentRun>
 #include <simpleble/Peripheral.h>
 
@@ -60,8 +59,6 @@ void PortManageWindow::propertySet() {
 
 void PortManageWindow::propertyGet(const QVariantMap &objects) {
     m_swipeView = objects["swipeView"].value<QObject *>();
-    m_videoSink = objects["videoSink"].value<QVideoSink *>();
-    m_mediaCaptureSession->setVideoSink(m_videoSink);
     m_previewImage = objects["previewImage"].value<QObject *>();
 }
 
@@ -257,7 +254,7 @@ void PortManageWindow::bleConnect(const QVariant &peripheral) {
     });
 }
 
-void PortManageWindow::visionCapture() {
+void PortManageWindow::visionCapture(QVideoSink *videoSink) {
     if (m_screenCapture) {
         m_mediaCaptureSession->setScreenCapture(nullptr);
         m_screenCapture->stop();
@@ -269,6 +266,7 @@ void PortManageWindow::visionCapture() {
         m_cameraCapture->deleteLater();
         m_cameraCapture = nullptr;
     }
+    m_mediaCaptureSession->setVideoSink(videoSink);
     const auto deviceName = m_config.value("deviceName").toString();
     for (QScreen *screen: QGuiApplication::screens()) {
         if (deviceName == screen->name()) {
@@ -312,7 +310,7 @@ void PortManageWindow::previewLoad(const int index) const {
         {"pipeline", pipeline},
         {"recognition", recognition}
     };
-    m_imageProvider->preview(m_videoSink, config);
+    m_imageProvider->preview(m_mediaCaptureSession->videoSink(), config);
     m_previewImage->setProperty("source", "image://capture/" + QString::number(QDateTime::currentMSecsSinceEpoch()));
     m_previewImage->setProperty("recognition", m_imageProvider->recognition());
 }
