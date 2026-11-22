@@ -417,9 +417,7 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
             break;
         }
         case PortType::Vision: {
-            auto devices = DeviceDiscovery::screens();
-            devices.append(DeviceDiscovery::cameras());
-            if (!devices.contains(portConfig.value("deviceName").toString())) return "Port check failed: vision source is unavailable.";
+            if (portConfig.value("deviceName").toString().trimmed().isEmpty()) return "Port check failed: deviceName is empty.";
             return {};
         }
         case PortType::TcpClient: {
@@ -553,24 +551,23 @@ QString PortModule::portInsert(int index, QJsonObject portConfig, const QString 
 }
 
 QString PortModule::portRemove(const QString &portName, const QString &undoGroupId) {
-    const auto name = portName.trimmed();
-    const int index = portIndexGet(name);
-    if (index < 0) return QString("Port remove failed: '%1' does not exist.").arg(name);
+    const int index = portIndexGet(portName);
+    if (index < 0) return QString("Port remove failed: '%1' does not exist.").arg(portName);
 
     const auto portIndex = QSharedPointer<int>::create(index);
-    const auto portConfig = m_portHash.value(name)->config();
+    const auto portConfig = m_portHash.value(portName)->config();
     const auto error = g_globalManager->undoModuleGet()->push(
-        tr("Port Remove (%1)").arg(name),
-        [this, portIndex, name, portConfig] {
-            const auto port = m_portHash.value(name);
-            if (port == nullptr) return QString("Port remove failed: '%1' does not exist.").arg(name);
-            if (port->config() != portConfig) return QString("Port remove failed: '%1' configuration has changed.").arg(name);
-            *portIndex = portIndexGet(name);
+        tr("Port Remove (%1)").arg(portName),
+        [this, portIndex, portName, portConfig] {
+            const auto port = m_portHash.value(portName);
+            if (port == nullptr) return QString("Port remove failed: '%1' does not exist.").arg(portName);
+            if (port->config() != portConfig) return QString("Port remove failed: '%1' configuration has changed.").arg(portName);
+            *portIndex = portIndexGet(portName);
             _portRemove(*portIndex);
             return QString{};
         },
-        [this, portIndex, name, portConfig] {
-            if (m_portHash.contains(name)) return QString("Port remove undo failed: '%1' already exists.").arg(name);
+        [this, portIndex, portName, portConfig] {
+            if (m_portHash.contains(portName)) return QString("Port remove undo failed: '%1' already exists.").arg(portName);
             if (const auto exception = portCheck(portConfig); !exception.isEmpty()) return exception;
             if (*portIndex < 0 || *portIndex > m_ports.size()) return QString("Port remove undo failed: invalid index %1.").arg(*portIndex);
             _portInsert(*portIndex, portConfig);

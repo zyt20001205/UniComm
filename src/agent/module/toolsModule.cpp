@@ -1490,14 +1490,14 @@ ToolResult ToolsModule::toolExecute(const QString &name, const QJsonObject &obje
         const auto portType = m_portTypes.value(object.value("port_type").toString(), static_cast<PortType::Value>(-1));
         auto config = object.value("config").toObject();
         config["portType"] = portType;
-        const auto portName = config.value("portName").toString().trimmed();
+        const auto portName = config.value("portName").toString();
         const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_globalManager->agentModuleGet()->undoGroupIdGet();
         const auto error = g_globalManager->portModuleGet()->portInsert(-1, config, undoGroupId);
         if (!error.isEmpty()) return {.content = error, .success = false};
         return {.content = QString("Port '%1' created.").arg(portName)};
     }
     if (name == "port_delete") {
-        const auto portName = object.value("port_name").toString().trimmed();
+        const auto portName = object.value("port_name").toString();
         const auto undoGroupId = runtimeId.isEmpty() ? QString{} : g_globalManager->agentModuleGet()->undoGroupIdGet();
         const auto error = g_globalManager->portModuleGet()->portRemove(portName, undoGroupId);
         if (!error.isEmpty()) return {.content = error, .success = false};

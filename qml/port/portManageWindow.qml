@@ -2366,7 +2366,7 @@ Item {
                                     id: previewLoader
                                     readonly property bool available: root.pageIndex === 2 && root.portType === PortType.Vision
                                         && root.Window.window.visible && roiListView.currentIndex >= 0 && root.rois.length > 0
-                                    readonly property bool active: available && roiSelection.step === 0
+                                    readonly property bool active: available && previewLayout.expanded && roiSelection.step === 0
                                     property int framerate: 0
                                     property int frames: 0
                                     property double timestamp: 0

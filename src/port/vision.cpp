@@ -38,30 +38,33 @@ QJsonObject Vision::config() {
 bool Vision::open() {
     // port init
     if (m_mediaCaptureSession == nullptr) {
-        m_mediaCaptureSession = new QMediaCaptureSession(this);
-        m_videoSink = new QVideoSink(this);
-        m_mediaCaptureSession->setVideoSink(m_videoSink);
         const auto deviceName = m_portConfig["deviceName"].toString();
         for (QScreen *screen: QGuiApplication::screens()) {
             if (deviceName == screen->name()) {
                 m_screenCapture = new QScreenCapture(this);
                 m_screenCapture->setScreen(screen);
-                m_mediaCaptureSession->setScreenCapture(m_screenCapture);
                 break;
             }
         }
-        for (const QCameraDevice &camera: QMediaDevices::videoInputs()) {
-            if (deviceName == camera.description()) {
-                m_cameraCapture = new QCamera(camera, this);
-                m_mediaCaptureSession->setCamera(m_cameraCapture);
-                break;
+        if (!m_screenCapture) {
+            for (const QCameraDevice &camera: QMediaDevices::videoInputs()) {
+                if (deviceName == camera.description()) {
+                    m_cameraCapture = new QCamera(camera, this);
+                    break;
+                }
+            }
+            if (!m_cameraCapture) {
+                emit refreshPort(m_portConfig["portName"].toString(), false);
+                emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), QString("vision source is unavailable: %1").arg(deviceName));
+                return false;
             }
         }
-    }
-    if (!m_screenCapture && !m_cameraCapture) {
-        emit refreshPort(m_portConfig["portName"].toString(), false);
-        emit appendLog(LogType::Error, QString("[%1]").arg(m_portConfig["portName"].toString()), "open failed");
-        return false;
+
+        m_mediaCaptureSession = new QMediaCaptureSession(this);
+        m_videoSink = new QVideoSink(this);
+        m_mediaCaptureSession->setVideoSink(m_videoSink);
+        if (m_screenCapture) m_mediaCaptureSession->setScreenCapture(m_screenCapture);
+        else m_mediaCaptureSession->setCamera(m_cameraCapture);
     }
     // port open
     QEventLoop loop;
