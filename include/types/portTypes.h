@@ -32,6 +32,9 @@ namespace ImageOperation {
 
     enum Value : int {
         Scale,
+        Rotate,
+        Flip,
+        Blur,
         Threshold
     };
 

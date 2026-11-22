@@ -4,6 +4,8 @@
 #include <QPainter>
 #include <QPixmap>
 
+#include <cmath>
+
 #include "types/portTypes.h"
 #include "opencv2/imgproc.hpp"
 #include "tesseract/baseapi.h"
@@ -26,6 +28,7 @@ ImageProcess::~ImageProcess() {
 
 QList<ImageProcess::ProcessResult> ImageProcess::process(const QImage &frame) {
     QList<ProcessResult> results{};
+    const auto steps = m_config["pipeline"].toArray();
     auto rois = m_config["rois"].toArray();
     if (rois.isEmpty()) rois.append(QJsonArray{0, 0, frame.width(), frame.height()});
     for (const QJsonValue &value: rois) {
@@ -33,7 +36,14 @@ QList<ImageProcess::ProcessResult> ImageProcess::process(const QImage &frame) {
         // roi
         processResult.roiFrame = roi(frame, value.toArray());
         // pipeline
-        processResult.pipelineFrame = pipeline(processResult.roiFrame, m_config["pipeline"].toArray());
+        processResult.pipelineFrame = processResult.roiFrame.convertToFormat(QImage::Format_BGR888);
+        if (!steps.isEmpty()) {
+            const auto &source = processResult.pipelineFrame;
+            const cv::Mat input(source.height(), source.width(), CV_8UC3, const_cast<uchar *>(source.constBits()), source.bytesPerLine());
+            const auto output = pipeline(input, steps);
+            const auto format = output.channels() == 1 ? QImage::Format_Grayscale8 : QImage::Format_BGR888;
+            processResult.pipelineFrame = QImage(output.data, output.cols, output.rows, output.step, format).copy();
+        }
         // recognition
         processResult.result = recognition(processResult.pipelineFrame.convertToFormat(QImage::Format_Grayscale8), m_config["recognition"].toObject());
         processResult.result["width"] = processResult.pipelineFrame.width();
@@ -83,10 +93,8 @@ QImage ImageProcess::roi(const QImage &frame, const QJsonArray &roi) {
     return {};
 }
 
-QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline) {
-    const auto &source = roiFrame.convertToFormat(QImage::Format_BGR888);
-    cv::Mat frame(source.height(), source.width(), CV_8UC3, const_cast<uchar *>(source.constBits()), source.bytesPerLine());
-    for (const auto &value: pipeline) {
+cv::Mat ImageProcess::pipeline(cv::Mat frame, const QJsonArray &steps) {
+    for (const auto &value: steps) {
         const auto step = value.toObject();
         switch (static_cast<ImageOperation::Value>(step["type"].toInt())) {
             case ImageOperation::Scale: {
@@ -95,6 +103,15 @@ QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline
                 frame = scale(frame, ratio, interpolation);
             }
             break;
+            case ImageOperation::Rotate:
+                frame = rotate(frame, step["angle"].toDouble());
+                break;
+            case ImageOperation::Flip:
+                frame = flip(frame, step["direction"].toInt(1));
+                break;
+            case ImageOperation::Blur:
+                frame = blur(frame, step["method"].toInt(), step["kernelSize"].toInt(3));
+                break;
             case ImageOperation::Threshold: {
                 const int thresh = step["thresh"].toInt();
                 const int maxval = step["maxval"].toInt();
@@ -105,8 +122,7 @@ QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline
             default: break;
         }
     }
-    const auto format = frame.channels() == 1 ? QImage::Format_Grayscale8 : QImage::Format_BGR888;
-    return QImage(frame.data, frame.cols, frame.rows, frame.step, format).copy();
+    return frame;
 }
 
 QVariantHash ImageProcess::recognition(const QImage &pipelineFrame, const QJsonObject &recognition) {
@@ -194,6 +210,41 @@ cv::Mat ImageProcess::scale(const cv::Mat &input, const float ratio, const int i
     const int newHeight = static_cast<int>(input.rows * ratio);
     cv::Mat output{};
     cv::resize(input, output, cv::Size(newWidth, newHeight), 0, 0, interpolation);
+    return output;
+}
+
+cv::Mat ImageProcess::rotate(const cv::Mat &input, const double angle) {
+    if (angle == 0) return input;
+    cv::Mat output{};
+    if (angle == 90 || angle == -90 || std::abs(angle) == 180) {
+        const auto direction = angle == 90 ? cv::ROTATE_90_COUNTERCLOCKWISE : angle == -90 ? cv::ROTATE_90_CLOCKWISE : cv::ROTATE_180;
+        cv::rotate(input, output, direction);
+        return output;
+    }
+
+    const cv::Point2f center((input.cols - 1) * 0.5f, (input.rows - 1) * 0.5f);
+    auto matrix = cv::getRotationMatrix2D(center, angle, 1);
+    const double cosine = std::abs(matrix.at<double>(0, 0));
+    const double sine = std::abs(matrix.at<double>(0, 1));
+    const cv::Size size(static_cast<int>(std::ceil(input.cols * cosine + input.rows * sine)),
+                        static_cast<int>(std::ceil(input.cols * sine + input.rows * cosine)));
+    // Center the rotated image in the expanded canvas.
+    matrix.at<double>(0, 2) += (size.width - input.cols) * 0.5;
+    matrix.at<double>(1, 2) += (size.height - input.rows) * 0.5;
+    cv::warpAffine(input, output, matrix, size, cv::INTER_LINEAR);
+    return output;
+}
+
+cv::Mat ImageProcess::flip(const cv::Mat &input, const int direction) {
+    cv::Mat output{};
+    cv::flip(input, output, direction);
+    return output;
+}
+
+cv::Mat ImageProcess::blur(const cv::Mat &input, const int method, const int kernelSize) {
+    cv::Mat output{};
+    if (method == 0) cv::GaussianBlur(input, output, cv::Size(kernelSize, kernelSize), 0);
+    else cv::medianBlur(input, output, kernelSize);
     return output;
 }
 

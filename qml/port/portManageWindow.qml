@@ -1901,7 +1901,7 @@ Item {
                                         keys: ["pipeline"]
                                         height: 28 + details.implicitHeight
                                         readonly property var step: view.entries[index]
-                                        readonly property bool scale: step?.type === ImageOperation.Scale
+                                        readonly property int operation: step?.type ?? -1
                                         // OpenCV stores the base mode in the low three bits.
                                         readonly property int mode: (step?.mode ?? 0) & 7
                                         readonly property int method: (step?.mode ?? 0) & ~7
@@ -1916,7 +1916,16 @@ Item {
                                                 Layout.fillWidth: true
                                                 Layout.preferredHeight: 28
                                                 Label {
-                                                    text: stepRow.scale ? qsTr("Scale") : qsTr("Threshold")
+                                                    text: {
+                                                        switch (stepRow.operation) {
+                                                        case ImageOperation.Scale: return qsTr("Scale")
+                                                        case ImageOperation.Rotate: return qsTr("Rotate")
+                                                        case ImageOperation.Flip: return qsTr("Flip")
+                                                        case ImageOperation.Blur: return qsTr("Blur")
+                                                        case ImageOperation.Threshold: return qsTr("Threshold")
+                                                        default: return ""
+                                                        }
+                                                    }
                                                     elide: Text.ElideRight
                                                     Layout.fillWidth: true
                                                 }
@@ -1959,82 +1968,163 @@ Item {
                                                     }
                                                 }
 
-                                                GridLayout {
+                                                Loader {
                                                     id: settings
                                                     width: parent.width
-                                                    columns: 2
-
-                                                    Label { text: qsTr("Ratio"); visible: stepRow.scale }
-                                                    DoubleSpinBox {
-                                                        visible: stepRow.scale
-                                                        value: stepRow.step?.ratio ?? 1
-                                                        from: 0.1; to: 10; stepSize: 0.1
-                                                        editable: true
-                                                        Layout.fillWidth: true
-                                                        textFromValue: value => "×" + value.toFixed(2)
-                                                        valueFromText: text => Number(text.replace(/^[x×]/, ""))
-                                                        onValueModified: stepRow.setParameter("ratio", value)
-                                                    }
-
-                                                    Label { text: stepRow.scale ? qsTr("Interpolation") : qsTr("Mode") }
-                                                    ComboBox {
-                                                        model: stepRow.scale
-                                                            ? [qsTr("Nearest"), qsTr("Linear"), qsTr("Cubic"), qsTr("Area"), qsTr("Lanczos4"), qsTr("Linear Exact"), qsTr("Nearest Exact")]
-                                                            : [qsTr("Binary"), qsTr("Binary Inv"), qsTr("Trunc"), qsTr("To Zero"), qsTr("To Zero Inv")]
-                                                        currentIndex: stepRow.scale ? (stepRow.step?.interpolation ?? -1) : stepRow.mode
-                                                        Layout.fillWidth: true
-                                                        onActivated: {
-                                                            if (stepRow.scale) stepRow.setParameter("interpolation", currentIndex)
-                                                            else stepRow.setParameter("mode", stepRow.method | currentIndex)
+                                                    active: detailsButton.checked || details.reveal > 0
+                                                    sourceComponent: {
+                                                        switch (stepRow.operation) {
+                                                        case ImageOperation.Scale: return scaleSettings
+                                                        case ImageOperation.Rotate: return rotateSettings
+                                                        case ImageOperation.Flip: return flipSettings
+                                                        case ImageOperation.Blur: return blurSettings
+                                                        case ImageOperation.Threshold: return thresholdSettings
+                                                        default: return null
                                                         }
                                                     }
+                                                }
 
-                                                    Label { text: qsTr("Method"); visible: !stepRow.scale }
-                                                    RowLayout {
-                                                        visible: !stepRow.scale
-                                                        Layout.fillWidth: true
-                                                        spacing: 2
-                                                        ButtonGroup { id: methodGroup }
-                                                        Repeater {
-                                                            model: [
-                                                                { label: qsTr("Manual"), flag: 0 },
-                                                                { label: qsTr("Otsu"), flag: 8 },
-                                                                { label: qsTr("Triangle"), flag: 16 }
-                                                            ]
-                                                            Button {
-                                                                required property var modelData
-                                                                text: modelData.label
-                                                                leftPadding: 4; rightPadding: 4
-                                                                Layout.preferredWidth: implicitContentWidth + leftPadding + rightPadding
-                                                                Layout.fillWidth: true
-                                                                ButtonGroup.group: methodGroup
-                                                                checkable: true
-                                                                checked: stepRow.method === modelData.flag
-                                                                onClicked: stepRow.setParameter("mode", stepRow.mode | modelData.flag)
+                                                Component {
+                                                    id: scaleSettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Ratio") }
+                                                        DoubleSpinBox {
+                                                            value: stepRow.step?.ratio ?? 1
+                                                            from: 0.1; to: 10; stepSize: 0.1
+                                                            editable: true
+                                                            Layout.fillWidth: true
+                                                            textFromValue: value => "×" + value.toFixed(2)
+                                                            valueFromText: text => Number(text.replace(/^[x×]/, ""))
+                                                            onValueModified: stepRow.setParameter("ratio", value)
+                                                        }
+
+                                                        Label { text: qsTr("Interpolation") }
+                                                        ComboBox {
+                                                            model: [qsTr("Nearest"), qsTr("Linear"), qsTr("Cubic"), qsTr("Area"), qsTr("Lanczos4"), qsTr("Linear Exact"), qsTr("Nearest Exact")]
+                                                            currentIndex: stepRow.step?.interpolation ?? -1
+                                                            Layout.fillWidth: true
+                                                            onActivated: stepRow.setParameter("interpolation", currentIndex)
+                                                        }
+                                                    }
+                                                }
+
+                                                Component {
+                                                    id: rotateSettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Angle") }
+                                                        DoubleSpinBox {
+                                                            id: angleInput
+                                                            value: stepRow.step?.angle ?? 0
+                                                            from: -180; to: 180; stepSize: 1
+                                                            decimals: 1
+                                                            editable: true
+                                                            Layout.fillWidth: true
+                                                            validator: RegularExpressionValidator { regularExpression: /[+-]?\d{1,3}(\.\d)?°?/ }
+                                                            textFromValue: value => value.toFixed(1) + "°"
+                                                            valueFromText: text => Number(text.replace("°", ""))
+                                                            onValueModified: stepRow.setParameter("angle", value)
+
+                                                            HoverHandler {
+                                                                onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                                                                onPointChanged: {
+                                                                    mainTooltip.position = angleInput.mapToGlobal(point.position)
+                                                                    mainTooltip.text = qsTr("Positive angles rotate counterclockwise.")
+                                                                }
                                                             }
                                                         }
                                                     }
+                                                }
 
-                                                    Label { text: qsTr("Threshold"); visible: thresholdInput.visible }
-                                                    SpinBox {
-                                                        id: thresholdInput
-                                                        visible: !stepRow.scale && stepRow.method === 0
-                                                        from: 0; to: 255
-                                                        value: stepRow.step?.thresh ?? 0
-                                                        editable: true
-                                                        Layout.fillWidth: true
-                                                        onValueModified: stepRow.setParameter("thresh", value)
+                                                Component {
+                                                    id: flipSettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Direction") }
+                                                        PipelineChoices {
+                                                            options: [{ label: qsTr("Horizontal"), value: 1 }, { label: qsTr("Vertical"), value: 0 }]
+                                                            value: stepRow.step?.direction ?? 1
+                                                            onSelected: direction => stepRow.setParameter("direction", direction)
+                                                        }
                                                     }
+                                                }
 
-                                                    Label { text: qsTr("Max Value"); visible: maxValueInput.visible }
-                                                    SpinBox {
-                                                        id: maxValueInput
-                                                        visible: !stepRow.scale && (stepRow.mode === 0 || stepRow.mode === 1)
-                                                        from: 0; to: 255
-                                                        value: stepRow.step?.maxval ?? 255
-                                                        editable: true
-                                                        Layout.fillWidth: true
-                                                        onValueModified: stepRow.setParameter("maxval", value)
+                                                Component {
+                                                    id: blurSettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Method") }
+                                                        PipelineChoices {
+                                                            options: [{ label: qsTr("Gaussian"), value: 0 }, { label: qsTr("Median"), value: 1 }]
+                                                            value: stepRow.step?.method ?? 0
+                                                            onSelected: method => stepRow.setParameter("method", method)
+                                                        }
+
+                                                        Label { text: qsTr("Kernel Size") }
+                                                        ComboBox {
+                                                            model: [
+                                                                { label: "3 × 3", size: 3 },
+                                                                { label: "5 × 5", size: 5 },
+                                                                { label: "7 × 7", size: 7 }
+                                                            ]
+                                                            textRole: "label"; valueRole: "size"
+                                                            currentValue: stepRow.step?.kernelSize ?? 3
+                                                            Layout.fillWidth: true
+                                                            onActivated: stepRow.setParameter("kernelSize", currentValue)
+                                                        }
+                                                    }
+                                                }
+
+                                                Component {
+                                                    id: thresholdSettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Mode") }
+                                                        ComboBox {
+                                                            model: [qsTr("Binary"), qsTr("Binary Inv"), qsTr("Trunc"), qsTr("To Zero"), qsTr("To Zero Inv")]
+                                                            currentIndex: stepRow.mode
+                                                            Layout.fillWidth: true
+                                                            onActivated: stepRow.setParameter("mode", stepRow.method | currentIndex)
+                                                        }
+
+                                                        Label { text: qsTr("Method") }
+                                                        PipelineChoices {
+                                                            options: [
+                                                                { label: qsTr("Manual"), value: 0 },
+                                                                { label: qsTr("Otsu"), value: 8 },
+                                                                { label: qsTr("Triangle"), value: 16 }
+                                                            ]
+                                                            value: stepRow.method
+                                                            onSelected: flag => stepRow.setParameter("mode", stepRow.mode | flag)
+                                                        }
+
+                                                        Label { text: qsTr("Threshold"); visible: thresholdInput.visible }
+                                                        SpinBox {
+                                                            id: thresholdInput
+                                                            visible: stepRow.method === 0
+                                                            from: 0; to: 255
+                                                            value: stepRow.step?.thresh ?? 0
+                                                            editable: true
+                                                            Layout.fillWidth: true
+                                                            onValueModified: stepRow.setParameter("thresh", value)
+                                                        }
+
+                                                        Label { text: qsTr("Max Value"); visible: maxValueInput.visible }
+                                                        SpinBox {
+                                                            id: maxValueInput
+                                                            visible: stepRow.mode === 0 || stepRow.mode === 1
+                                                            from: 0; to: 255
+                                                            value: stepRow.step?.maxval ?? 255
+                                                            editable: true
+                                                            Layout.fillWidth: true
+                                                            onValueModified: stepRow.setParameter("maxval", value)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2392,6 +2482,31 @@ Item {
         }
     }
 
+    component PipelineChoices: RowLayout {
+        id: choices
+        required property var options
+        required property int value
+        signal selected(int value)
+        Layout.fillWidth: true
+        spacing: 2
+
+        ButtonGroup { id: group }
+        Repeater {
+            model: choices.options
+            Button {
+                required property var modelData
+                text: modelData.label
+                leftPadding: 4; rightPadding: 4
+                Layout.preferredWidth: implicitContentWidth + leftPadding + rightPadding
+                Layout.fillWidth: true
+                ButtonGroup.group: group
+                checkable: true
+                checked: choices.value === modelData.value
+                onClicked: choices.selected(modelData.value)
+            }
+        }
+    }
+
     component VisionListView: ListView {
         id: view
         required property var entries
@@ -2566,6 +2681,30 @@ Item {
             icon.width: 16; icon.height: 16
 
             onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Scale, ratio: 1.0, interpolation: 1 })
+        }
+
+        MenuItem {
+            text: qsTr("Rotate")
+            icon.source: "qrc:/icon/arrowRotateClockwise.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Rotate, angle: 0.0 })
+        }
+
+        MenuItem {
+            text: qsTr("Flip")
+            icon.source: "qrc:/icon/flipHorizontal.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Flip, direction: 1 })
+        }
+
+        MenuItem {
+            text: qsTr("Blur")
+            icon.source: "qrc:/icon/blur.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Blur, method: 0, kernelSize: 3 })
         }
 
         MenuItem {
@@ -2959,5 +3098,4 @@ Item {
             ]
         }
     }
-
 }
