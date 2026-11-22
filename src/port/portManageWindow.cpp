@@ -59,7 +59,6 @@ void PortManageWindow::propertySet() {
 
 void PortManageWindow::propertyGet(const QVariantMap &objects) {
     m_swipeView = objects["swipeView"].value<QObject *>();
-    m_previewImage = objects["previewImage"].value<QObject *>();
 }
 
 void PortManageWindow::open(const QJsonObject &portConfig) {
@@ -287,14 +286,11 @@ void PortManageWindow::visionCapture(QVideoSink *videoSink) {
     }
 }
 
-void PortManageWindow::previewLoad(const int index) const {
-    if (index == -1 || !m_roiModel->item(index, 0)) {
-        m_previewImage->setProperty("source", "qrc:/icon/null.svg");
-        m_previewImage->setProperty("recognition", QVariantHash{});
-        return;
-    }
+QVariantHash PortManageWindow::previewLoad(const int index) const {
+    const auto *item = m_roiModel->item(index, 0);
+    if (!item) return {{"source", "qrc:/icon/null.svg"}, {"recognition", QVariantHash{}}};
     QJsonArray roiArray{};
-    const QJsonArray roi = QJsonArray::fromVariantList(m_roiModel->item(index, 0)->data(Qt::WhatsThisRole).toList());
+    const QJsonArray roi = QJsonArray::fromVariantList(item->data(Qt::WhatsThisRole).toList());
     roiArray.append(roi);
     QJsonArray pipeline{};
     for (int i = 0; i < m_pipelineModel->rowCount(); ++i) {
@@ -303,16 +299,18 @@ void PortManageWindow::previewLoad(const int index) const {
     }
     const auto recognition = QJsonObject::fromVariantHash(m_config.value("recognition").toHash());
     const auto mode = recognition.value("mode").toInt(RecognitionMethod::OCR);
-    if (mode < RecognitionMethod::OCR || mode > RecognitionMethod::TemplateMatch) return;
-    if (mode == RecognitionMethod::TemplateMatch && recognition.value("template").toString().isEmpty()) return;
+    if (mode < RecognitionMethod::OCR || mode > RecognitionMethod::TemplateMatch) return {};
+    if (mode == RecognitionMethod::TemplateMatch && recognition.value("template").toString().isEmpty()) return {};
     const QJsonObject config{
         {"roi", roiArray},
         {"pipeline", pipeline},
         {"recognition", recognition}
     };
     m_imageProvider->preview(m_mediaCaptureSession->videoSink(), config);
-    m_previewImage->setProperty("source", "image://capture/" + QString::number(QDateTime::currentMSecsSinceEpoch()));
-    m_previewImage->setProperty("recognition", m_imageProvider->recognition());
+    return {
+        {"source", "image://capture/" + QString::number(QDateTime::currentMSecsSinceEpoch())},
+        {"recognition", m_imageProvider->recognition()}
+    };
 }
 
 void PortManageWindow::roiInsert(const QVariantList &roi) const {

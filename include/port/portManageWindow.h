@@ -51,7 +51,7 @@ public:
 
     Q_INVOKABLE void visionCapture(QVideoSink *videoSink);
 
-    Q_INVOKABLE void previewLoad(int index) const;
+    Q_INVOKABLE [[nodiscard]] QVariantHash previewLoad(int index) const;
 
     Q_INVOKABLE void roiInsert(const QVariantList &roi) const;
 
@@ -123,7 +123,6 @@ private:
     QVariantHash m_config{};
 
     QObject *m_swipeView{};
-    QObject *m_previewImage{};
 };
 
 class ImageProvider final: public QQuickImageProvider {

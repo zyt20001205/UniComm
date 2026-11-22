@@ -2495,7 +2495,11 @@ Item {
                                             stop()
                                             return
                                         }
-                                        root.portManageWindow.previewLoad(roiTableView.selectedRow)
+                                        const result = root.portManageWindow.previewLoad(roiTableView.selectedRow)
+                                        if (result.source) {
+                                            previewImage.source = result.source
+                                            previewImage.recognition = result.recognition
+                                        }
                                         ++frames
                                         const now = Date.now()
                                         if (now - timestamp >= 1000) {
@@ -3091,8 +3095,7 @@ Item {
 
     Component.onCompleted: {
         root.portManageWindow.propertyGet({
-            "swipeView": swipeView,
-            "previewImage": previewImage
+            "swipeView": swipeView
         })
     }
 }
