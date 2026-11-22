@@ -1,7 +1,7 @@
 #include "document/assistant/signatureWidget.h"
 
 #include <QJsonArray>
-#include <QFont>
+#include <QQmlComponent>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -11,22 +11,16 @@ SignatureWidget::SignatureWidget(QObject *parent)
     : QObject(parent) {
 }
 
-void SignatureWidget::propertySet(const QVariantHash &objects) {
-    m_tooltip = qvariant_cast<QObject *>(objects["documentModuleSignatureToolTip"]);
-    m_tooltip->setProperty("signatureWidget", QVariant::fromValue(this));
+void SignatureWidget::propertySet() {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/document/assistant/signatureWidget.qml"));
+    if (auto *root = component.createWithInitialProperties({{"signatureWidget", QVariant::fromValue(this)}})) root->setParent(this);
+    else qWarning().noquote() << component.errorString();
 }
 
-void SignatureWidget::fontSet(const QString &family, const int pointSize) const {
-    if (!m_tooltip) return;
-    auto font = m_tooltip->property("font").value<QFont>();
-    font.setFamily(family);
-    font.setPointSize(pointSize);
-    m_tooltip->setProperty("font", font);
-}
-
-bool SignatureWidget::isVisible() const {
-    if (!m_tooltip) return false;
-    return m_tooltip->property("visible").toBool();
+void SignatureWidget::fontSet(const QString &family, const int pointSize) {
+    m_font.setFamily(family);
+    m_font.setPointSize(pointSize);
+    emit fontChanged();
 }
 
 void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const QJsonArray &signatures) {
@@ -67,15 +61,11 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
         m_text = helpText;
         emit textChanged();
     }
-    if (reposition) {
-        const auto position = signatureSession["position"].toPoint();
-        m_tooltip->setProperty("position", position);
-    }
-    QMetaObject::invokeMethod(m_tooltip, "open");
+    emit showSignature(signatureSession["position"].toPoint(), reposition);
 }
 
 void SignatureWidget::signatureHide() {
-    QMetaObject::invokeMethod(m_tooltip, "close");
+    emit hideSignature();
     if (m_text.isEmpty()) return;
     m_text.clear();
     emit textChanged();

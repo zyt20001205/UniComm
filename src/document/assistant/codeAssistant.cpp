@@ -55,9 +55,7 @@ void CodeAssistant::propertySet(const QVariantHash &objects) const {
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]}
     });
     m_searchWindow->propertySet();
-    m_signatureWidget->propertySet(QVariantHash{
-        {"documentModuleSignatureToolTip", objects["documentModuleSignatureToolTip"]}
-    });
+    m_signatureWidget->propertySet();
 }
 
 void CodeAssistant::fontSet(const QString &family, const int pointSize) const {

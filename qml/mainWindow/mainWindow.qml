@@ -1100,34 +1100,6 @@ Item {
         }
     }
 
-    ToolTip {
-        id: documentModuleSignatureToolTip
-        parent: Overlay.overlay
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
-        property point position
-        property var signatureWidget
-
-        onOpened: {
-            mainWindow.overlayFlagSet(false, false)
-            widgetCount += 1
-        }
-        onClosed: {
-            widgetCount -= 1
-            signatureWidget.signatureHide()
-        }
-        onAboutToShow: {
-            position = Overlay.overlay.mapFromGlobal(position)
-            x = position.x - 6
-            y = position.y - documentModuleSignatureToolTip.implicitHeight
-        }
-
-        contentItem: Label {
-            text: documentModuleSignatureToolTip.signatureWidget ? documentModuleSignatureToolTip.signatureWidget.text : ""
-            font: documentModuleSignatureToolTip.font
-            textFormat: Text.RichText
-        }
-    }
-
     // explorer module
     Dialog {
         id: explorerModuleFileNewDialog
@@ -3252,7 +3224,6 @@ Item {
             "documentModuleNavigationToolTip": documentModuleNavigationToolTip,
             "documentModuleNavigationListView": documentModuleNavigationListView,
             "documentModulePositionTooltip": documentModulePositionTooltip,
-            "documentModuleSignatureToolTip": documentModuleSignatureToolTip,
 
             "explorerModuleFileMenu": explorerModuleFileMenu,
             "explorerModuleFolderMenu": explorerModuleFolderMenu,
