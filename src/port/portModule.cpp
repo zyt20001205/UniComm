@@ -117,6 +117,7 @@ QJsonObject PortModule::portConfigGet(const PortType::Value portType) {
             portConfig = {
                 {"type", "object"},
                 {"required", QJsonArray{"portName", "deviceName"}},
+                {"defaults", QJsonObject{{"recognition", QJsonObject{{"mode", RecognitionMethod::OCR}}}}},
                 {
                     "properties", QJsonObject{
                         {"portName", QJsonObject{{"type", "string"}}},
