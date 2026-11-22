@@ -13,7 +13,7 @@ public:
 
     ~WebPage() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] WebviewWidget *handler() const { return m_webviewWidget; }
 

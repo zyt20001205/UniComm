@@ -3,8 +3,6 @@
 
 #include <QVariantHash>
 
-class ToastModule;
-
 class FileModule final : public QObject {
     Q_OBJECT
 
@@ -13,13 +11,15 @@ public:
 
     ~FileModule() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void fileOpenInExplorer(const QUrl &fileUrl);
 
     Q_INVOKABLE void fileOpenInApplication(const QUrl &fileUrl);
 
     Q_INVOKABLE static QVariantHash fileInfo(const QUrl &fileUrl);
+
+    Q_INVOKABLE bool fileRename(const QUrl &sourceUrl, const QUrl &targetUrl);
 
     Q_INVOKABLE void fileWritable(const QUrl &fileUrl, bool status);
 
@@ -34,6 +34,12 @@ public:
     // void textSet();
 
 signals:
+    void showPropertyDialog(const QUrl &documentUrl);
+
+    void showRenameDialog(const QUrl &documentUrl);
+
+    void showPermissionDialog(const QUrl &documentUrl);
+
     void setPermission(const QUrl &documentUrl);
 
     void appendBackground(int &taskId, const std::function<void()> &abort, const std::function<void()> &info);
@@ -41,9 +47,6 @@ signals:
     void removeBackground(int taskId);
 
     void refreshBackground(int taskId, const QString &message);
-
-private:
-    ToastModule *m_toast{};
 };
 
 #endif //UNICOMM_FILEMODULE_H

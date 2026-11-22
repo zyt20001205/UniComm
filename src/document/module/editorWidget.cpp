@@ -69,9 +69,7 @@ EditorWidget::EditorWidget(const QJsonObject &documentConfig, const QUrl &docume
     connect(m_contentTimer, &QTimer::timeout, this, &EditorWidget::contentChange);
 }
 
-void EditorWidget::propertySet(const QVariantHash &objects) {
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
-    m_propertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
+void EditorWidget::propertySet() {
     m_searchWidget->propertySet();
     shortcutInit();
     miscInit();
@@ -119,14 +117,14 @@ bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
         if (keyEvent->matches(QKeySequence::Undo)) {
             event->accept();
             if (!m_scintillaWidget->undoable()) {
-                m_toast->show(ToastLevel::Info, tr("Undo"), tr("Nothing to undo."));
+                g_globalManager->toastModuleGet()->show(ToastLevel::Info, tr("Undo"), tr("Nothing to undo."));
             }
             return true;
         }
         if (keyEvent->matches(QKeySequence::Redo)) {
             event->accept();
             if (!m_scintillaWidget->redoable()) {
-                m_toast->show(ToastLevel::Info, tr("Redo"), tr("Nothing to redo."));
+                g_globalManager->toastModuleGet()->show(ToastLevel::Info, tr("Redo"), tr("Nothing to redo."));
             }
             return true;
         }
@@ -825,9 +823,7 @@ void EditorWidget::documentOpen() const {
 }
 
 void EditorWidget::permissionSet() const {
-    m_propertyDialog->setProperty("documentUrl", m_documentUrl);
-    QMetaObject::invokeMethod(m_propertyDialog, "permission");
-    QMetaObject::invokeMethod(m_propertyDialog, "open");
+    emit showPermissionDialog(m_documentUrl);
 }
 
 // private: search

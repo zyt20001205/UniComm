@@ -15,7 +15,7 @@ ResolveWidget::ResolveWidget(QWidget *parent)
     setAttribute(Qt::WA_AlwaysStackOnTop);
 }
 
-void ResolveWidget::propertySet(const QVariantHash &objects) {
+void ResolveWidget::propertySet() {
     rootContext()->setContextProperty("resolveWidget", this);
     rootContext()->setContextProperty("global", g_globalManager);
 

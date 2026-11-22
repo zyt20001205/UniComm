@@ -13,7 +13,7 @@ PdfPage::PdfPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     m_doc->load(m_documentUrl.toLocalFile());
 }
 
-void PdfPage::propertySet(const QVariantHash &objects) {
+void PdfPage::propertySet() {
     m_pdfWidget->rootContext()->setContextProperty("pdfPage", this);
     m_pdfWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_pdfWidget->setSource(QUrl("qrc:/qml/document/module/pdfWidget.qml"));

@@ -56,6 +56,8 @@ public:
 
     Q_INVOKABLE void themeSet(int theme);
 
+    void tooltipSet(const QString &text) const;
+
     Q_INVOKABLE void workspaceOpen();
 
     Q_INVOKABLE void workspaceSave(const QUrl &configUrl = QUrl());
@@ -88,6 +90,7 @@ private:
     std::unique_ptr<ToastModule> m_toastModule{};
     QObject *m_closeDialog{};
     QObject *m_quitDialog{};
+    QObject *m_tooltip{};
 
     ConfigManager *m_configManager{};
     ServiceModule *m_serviceModule{};

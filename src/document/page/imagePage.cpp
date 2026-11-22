@@ -14,7 +14,7 @@ ImagePage::ImagePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     setWidget(m_imageWidget);
 }
 
-void ImagePage::propertySet(const QVariantHash &objects) {
+void ImagePage::propertySet() {
     m_imageWidget->rootContext()->setContextProperty("global", g_globalManager);
     m_imageWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_imageWidget->setSource(QUrl("qrc:/qml/util/ImageViewer.qml"));

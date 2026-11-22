@@ -67,11 +67,6 @@ void DocumentModule::propertySet(const QVariantHash &objects) {
     if (auto *root = component.create()) root->setParent(this);
     else qWarning().noquote() << component.errorString();
 
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
-    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    m_systemPropertyDialog = qvariant_cast<QObject *>(objects["fileModulePropertyDialog"]);
-    m_editorMenu = qvariant_cast<QObject *>(objects["documentModuleEditorMenu"]);
-
     // const auto focusedUrl = QUrl(m_config["documentFocused"].toString());
     // if (!focusedUrl.isEmpty() && m_pageHash.contains(focusedUrl)) {
     //     QTimer::singleShot(0, this, [this, focusedUrl] {
@@ -79,8 +74,7 @@ void DocumentModule::propertySet(const QVariantHash &objects) {
     //     });
     // }
 
-    m_welcomePage->propertySet(QVariantHash{
-    });
+    m_welcomePage->propertySet();
     m_codeAssistant->propertySet(objects);
     m_codeAssistant->fontSet(m_config["fontFamily"].toString(), m_config["fontSize"].toInt());
 }
@@ -139,7 +133,7 @@ QString DocumentModule::directoryCreate(const QUrl &directoryUrl, const QString 
     };
     const auto undo = [this, directoryUrl, trashUrl] { return _directoryDelete(directoryUrl, *trashUrl); };
     if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
-    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Directory"), error); });
 }
 
 QString DocumentModule::directoryRename(const QUrl &sourceUrl, const QUrl &targetUrl, const QString &undoGroupId) {
@@ -159,7 +153,7 @@ QString DocumentModule::directoryRename(const QUrl &sourceUrl, const QUrl &targe
     const auto redo = [this, sourceUrl, targetUrl] { return _directoryRename(sourceUrl, targetUrl); };
     const auto undo = [this, sourceUrl, targetUrl] { return _directoryRename(targetUrl, sourceUrl); };
     const auto error = undoGroupId.isEmpty()
-                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Directory"), message); })
+                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &message) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Directory"), message); })
                            : g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
     if (error.isEmpty() && !undoGroupId.isEmpty()) _transactionRename(undoGroupId, sourceUrl, targetUrl, true);
     return error;
@@ -181,7 +175,7 @@ QString DocumentModule::directoryDelete(const QUrl &directoryUrl, const QString 
     const auto redo = [this, directoryUrl, trashUrl] { return _directoryDelete(directoryUrl, *trashUrl); };
     const auto undo = [this, directoryUrl, trashUrl] { return _directoryRestore(directoryUrl, *trashUrl); };
     if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
-    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Directory"), error); });
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Directory"), error); });
 }
 
 // public: document
@@ -202,7 +196,7 @@ QString DocumentModule::documentCreate(const QUrl &documentUrl, const QString &u
     };
     const auto undo = [this, documentUrl, trashUrl] { return _documentDelete(documentUrl, *trashUrl); };
     if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
-    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Document"), error); });
 }
 
 QString DocumentModule::documentRename(const QUrl &sourceUrl, const QUrl &targetUrl, const QString &undoGroupId) {
@@ -222,7 +216,7 @@ QString DocumentModule::documentRename(const QUrl &sourceUrl, const QUrl &target
     const auto redo = [this, sourceUrl, targetUrl] { return _documentRename(sourceUrl, targetUrl); };
     const auto undo = [this, sourceUrl, targetUrl] { return _documentRename(targetUrl, sourceUrl); };
     const auto error = undoGroupId.isEmpty()
-                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &message) { m_toast->show(ToastLevel::Error, tr("Document"), message); })
+                           ? g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &message) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Document"), message); })
                            : g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
     if (error.isEmpty() && !undoGroupId.isEmpty()) _transactionRename(undoGroupId, sourceUrl, targetUrl, false);
     return error;
@@ -244,7 +238,7 @@ QString DocumentModule::documentDelete(const QUrl &documentUrl, const QString &u
     const auto redo = [this, documentUrl, trashUrl] { return _documentDelete(documentUrl, *trashUrl); };
     const auto undo = [this, documentUrl, trashUrl] { return _documentRestore(documentUrl, *trashUrl); };
     if (!undoGroupId.isEmpty()) return g_globalManager->undoModuleGet()->push(text, redo, undo, undoGroupId);
-    return g_globalManager->undoModuleGet()->push(text, redo, undo, [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Document"), error); });
+    return g_globalManager->undoModuleGet()->push(text, redo, undo, [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Document"), error); });
 }
 
 DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
@@ -254,8 +248,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
     if (scheme == "http" || scheme == "https") {
         documentPage = new WebPage(m_config, documentUrl);
         auto *webPage = qobject_cast<WebPage *>(documentPage);
-        webPage->propertySet(QVariantHash{
-        });
+        webPage->propertySet();
     }
     // conflict page
     else if (g_globalManager->gitModuleGet()->gitEnabledGet()) {
@@ -266,11 +259,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         if (process.exitCode() == 0 && !process.readAllStandardOutput().isEmpty()) {
             documentPage = new ConflictPage(m_config, documentUrl);
             auto *conflictPage = qobject_cast<ConflictPage *>(documentPage);
-            conflictPage->propertySet(QVariantHash{
-                {"mainWindowToast", QVariant::fromValue(m_toast)},
-                {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
-            });
+            conflictPage->propertySet();
             connect(conflictPage, &ConflictPage::appendLog, this, &DocumentModule::appendLog);
             connect(conflictPage, &ConflictPage::changeSelection, this, &DocumentModule::selectionSet);
             connect(conflictPage, &ConflictPage::reloadDocument, this, &DocumentModule::documentReload);
@@ -286,21 +275,16 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         if (QImageReader::supportedImageFormats().contains(suffix)) {
             documentPage = new ImagePage(m_config, documentUrl);
             auto *imagePage = qobject_cast<ImagePage *>(documentPage);
-            imagePage->propertySet(QVariantHash{
-            });
+            imagePage->propertySet();
         }
         // code page
         else if (codeType.contains(suffix)) {
             documentPage = new CodePage(m_config, documentUrl);
             auto *codePage = qobject_cast<CodePage *>(documentPage);
-            codePage->propertySet(QVariantHash{
-                {"mainWindowToast", QVariant::fromValue(m_toast)},
-                {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)},
-                {"documentModuleEditorMenu", QVariant::fromValue(m_editorMenu)}
-            });
+            codePage->propertySet();
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
             connect(codePage, &CodePage::changeSelection, this, &DocumentModule::selectionSet);
+            connect(codePage, &CodePage::showEditorMenu, this, &DocumentModule::showEditorMenu);
             connect(codePage, &CodePage::toggleBreakpoint, this, &DocumentModule::toggleBreakpoint);
             connect(codePage, &CodePage::notificationJson, this, &DocumentModule::notificationJson);
             connect(codePage, &CodePage::requestCompletion, this, &DocumentModule::completionRequest);
@@ -325,11 +309,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         else if (suffix == "md" || suffix == "html") {
             documentPage = new MarkupPage(m_config, documentUrl);
             auto *markupPage = qobject_cast<MarkupPage *>(documentPage);
-            markupPage->propertySet(QVariantHash{
-                {"mainWindowToast", QVariant::fromValue(m_toast)},
-                {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
-            });
+            markupPage->propertySet();
             connect(markupPage, &MarkupPage::appendLog, this, &DocumentModule::appendLog);
             connect(markupPage, &MarkupPage::changeSelection, this, &DocumentModule::selectionSet);
         }
@@ -337,18 +317,13 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         else if (suffix == "pdf") {
             documentPage = new PdfPage(m_config, documentUrl);
             auto *pdfPage = qobject_cast<PdfPage *>(documentPage);
-            pdfPage->propertySet(QVariantHash{
-            });
+            pdfPage->propertySet();
         }
         // text page
         else {
             documentPage = new TextPage(m_config, documentUrl);
             auto *textPage = qobject_cast<TextPage *>(documentPage);
-            textPage->propertySet(QVariantHash{
-                {"mainWindowToast", QVariant::fromValue(m_toast)},
-                {"mainWindowToolTip", QVariant::fromValue(m_toolTip)},
-                {"fileModulePropertyDialog", QVariant::fromValue(m_systemPropertyDialog)}
-            });
+            textPage->propertySet();
             connect(textPage, &TextPage::appendLog, this, &DocumentModule::appendLog);
             connect(textPage, &TextPage::changeSelection, this, &DocumentModule::selectionSet);
         }
@@ -368,6 +343,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
     }
     m_pageHash[documentUrl] = documentPage;
     connect(documentPage, &DocumentPage::gotoDocument, this, &DocumentModule::documentGoto);
+    connect(documentPage, &DocumentPage::showPermissionDialog, this, &DocumentModule::showPermissionDialog);
     connect(documentPage, &DocumentPage::isFocusedChanged, this, [this, documentPage](const bool status) { documentFocus(documentPage, status); });
     connect(documentPage, &DocumentPage::closeRequest, this, [this, documentUrl] {
         emit showSaveDialog(documentUrl, documentUrl.fileName());
@@ -427,7 +403,7 @@ void DocumentModule::documentClose(const QUrl &documentUrl, const bool save) con
     if (save) {
         const auto error = documentSave(documentUrl);
         if (!error.isEmpty()) {
-            m_toast->show(ToastLevel::Error, tr("Document save failed"), error);
+            g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Document save failed"), error);
             return;
         }
     }
@@ -889,7 +865,7 @@ void DocumentModule::formattingRequest(const QUrl &documentUrl) {
 }
 
 void DocumentModule::formattingResponse(const QUrl &documentUrl, const QString &newText) const {
-    if (newText.isEmpty()) m_toast->show(ToastLevel::Info, tr("Format"), tr("File is already formatted."));
+    if (newText.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Info, tr("Format"), tr("File is already formatted."));
     else if (const auto *codePage = qobject_cast<CodePage *>(m_pageHash.value(documentUrl))) codePage->formattingResponse(newText);
 }
 
@@ -1143,12 +1119,12 @@ void DocumentModule::renameResponse(const QUrl &documentUrl, const QJsonObject &
         }
 
         const auto transactionError = transactionCommit(undoGroupId);
-        if (!transactionError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Rename"), transactionError);
+        if (!transactionError.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rename"), transactionError);
         const auto commitError = g_globalManager->undoModuleGet()->undoGroupCommit(
             undoGroupId,
             tr("LSP Rename"),
-            [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Rename"), error); });
-        if (!commitError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Rename"), commitError);
+            [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rename"), error); });
+        if (!commitError.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rename"), commitError);
         g_globalManager->undoModuleGet()->undoGroupRelease(undoGroupId);
     }
 }

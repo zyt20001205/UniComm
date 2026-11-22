@@ -14,7 +14,7 @@ public:
 
     ~PdfPage() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 

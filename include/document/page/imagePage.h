@@ -13,7 +13,7 @@ public:
 
     ~ImagePage() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
 private:
     QQuickWidget *m_imageWidget{};

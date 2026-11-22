@@ -9,7 +9,6 @@
 #include "types/logTypes.h"
 
 class SearchWidget;
-class ToastModule;
 
 class EditorWidget : public QWidget {
     Q_OBJECT
@@ -19,7 +18,7 @@ public:
 
     ~EditorWidget() override = default;
 
-    virtual void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] ScintillaWidget *handler() const { return m_scintillaWidget; }
 
@@ -37,6 +36,8 @@ signals:
     void changeContent();
 
     void gotoDocument();
+
+    void showPermissionDialog(const QUrl &documentUrl) const;
 
 protected:
     virtual void shortcutInit();
@@ -64,7 +65,6 @@ protected:
     void replaceShow() const;
 
     QUrl m_documentUrl{};
-    ToastModule *m_toast{};
     ScintillaWidget *m_scintillaWidget{};
     QHash<QString, int> m_selection{};
 
@@ -97,7 +97,6 @@ private:
     void allReplace(const QString &text);
 
     QJsonObject m_config{};
-    QObject *m_propertyDialog{};
     SearchWidget *m_searchWidget{};
 
     QHash<QChar, QChar> m_pair{};

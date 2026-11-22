@@ -4,6 +4,8 @@ import QtQuick.Layouts
 
 Item {
     id: rootItem
+    required property QtObject searchWindow
+    required property QtObject searchModel
     anchors.fill: parent
 
     Rectangle {
@@ -26,7 +28,7 @@ Item {
                     anchors.fill: parent
                     rightPadding: 120
 
-                    onTextChanged: searchWindow.searchRequest()
+                    onTextChanged: rootItem.searchWindow.searchRequest()
                 }
 
                 RowLayout {
@@ -54,19 +56,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWindow.searchRequest()
+                            rootItem.searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWindow.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Match Case") : qsTr("Enable Match Case")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Match Case") : qsTr("Enable Match Case")
                             }
                         }
                     }
@@ -81,19 +83,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWindow.searchRequest()
+                            rootItem.searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWindow.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Whole Word") : qsTr("Enable Whole Word")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Whole Word") : qsTr("Enable Whole Word")
                             }
                         }
                     }
@@ -108,19 +110,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWindow.searchRequest()
+                            rootItem.searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWindow.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Word Start") : qsTr("Enable Word Start")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Word Start") : qsTr("Enable Word Start")
                             }
                         }
                     }
@@ -135,19 +137,19 @@ Item {
                         icon.width: 16; icon.height: 16
 
                         onClicked: {
-                            searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
-                            searchWindow.searchRequest()
+                            rootItem.searchWindow.searchFlagsSet(matchCaseButton.checked, wholeWordButton.checked, wordStartButton.checked, regExpButton.checked)
+                            rootItem.searchWindow.searchRequest()
                         }
 
                         HoverHandler {
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = parent.checked ? qsTr("Disable Regular Expression") : qsTr("Enable Regular Expression")
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = parent.checked ? qsTr("Disable Regular Expression") : qsTr("Enable Regular Expression")
                             }
                         }
                     }
@@ -161,7 +163,7 @@ Item {
             Label {
                 id: searchStatLabel
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                text: searchModel.empty ? "0/0" : (tableView.selectedRow + 1) + "/" + matchCount
+                text: rootItem.searchModel.empty ? "0/0" : (tableView.selectedRow + 1) + "/" + matchCount
                 Layout.preferredHeight: 24
                 property int matchCount
             }
@@ -171,7 +173,7 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
 
             Label {
-                visible: searchModel.empty
+                visible: rootItem.searchModel.empty
                 anchors.fill: parent
                 text: qsTr("Nothing Found")
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
@@ -179,12 +181,12 @@ Item {
 
             TableView {
                 id: tableView
-                visible: !searchModel.empty
+                visible: !rootItem.searchModel.empty
                 anchors.fill: parent
                 alternatingRows: false
                 clip: true
                 editTriggers: TableView.NoEditTriggers
-                model: searchModel
+                model: rootItem.searchModel
                 contentWidth: width
                 property int hoveredRow: -1
                 property int selectedRow: -1
@@ -274,7 +276,7 @@ Item {
 
                         onSingleTapped: tableView.selectedRow = row
 
-                        onDoubleTapped: searchWindow.searchNavigate(model.documentUrl, model.line)
+                        onDoubleTapped: rootItem.searchWindow.searchNavigate(model.documentUrl, model.line)
                     }
                 }
 
@@ -293,6 +295,6 @@ Item {
             "searchTextField": searchTextField,
             "searchStatLabel": searchStatLabel
         };
-        searchWindow.propertyGet(objects)
+        rootItem.searchWindow.propertyGet(objects)
     }
 }

@@ -14,7 +14,7 @@ public:
 
     ~CodePage() override = default;
 
-    void propertySet(const QVariantHash &objects) const;
+    void propertySet() const;
 
     [[nodiscard]] ScintillaWidget *handler() const { return m_codeWidget->handler(); }
 
@@ -48,6 +48,8 @@ public:
 
 signals:
     void changeSelection(const QHash<QString, int> &selection);
+
+    void showEditorMenu();
 
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 

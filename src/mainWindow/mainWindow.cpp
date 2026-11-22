@@ -3,18 +3,17 @@
 #include <QCameraDevice>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QCursor>
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QMediaDevices>
 #include <QProcess>
 #include <QQmlContext>
 #include <QQmlEngine>
-#include <QQuickItem>
 #include <QScreen>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QStatusBar>
-#include <QThread>
 #include <QTimer>
 #include <QToolBar>
 #include <kddockwidgets/LayoutSaver.h>
@@ -113,7 +112,8 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTextView", objects["mainWindowTextView"]);
-    g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", objects["mainWindowToolTip"]);
+    m_tooltip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", m_tooltip);
 
     m_closeDialog = qvariant_cast<QObject *>(objects["mainWindowCloseDialog"]);
     m_quitDialog = qvariant_cast<QObject *>(objects["mainWindowQuitDialog"]);
@@ -136,11 +136,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_diagnosticsModule->propertySet();
 
     const QVariantHash documentObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"breakpointModuleEditDialog", objects["breakpointModuleEditDialog"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]},
         {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
         {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]},
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
@@ -199,10 +194,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     m_structureModule->propertySet();
 
-    const QVariantHash fileObjects = {
-        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())}
-    };
-    m_fileModule->propertySet(fileObjects);
+    m_fileModule->propertySet();
 
     m_terminalModule->propertySet();
 
@@ -297,6 +289,11 @@ void MainWindow::themeSet(const int theme) {
     terminate();
 }
 
+void MainWindow::tooltipSet(const QString &text) const {
+    if (!text.isEmpty()) m_tooltip->setProperty("position", QCursor::pos());
+    m_tooltip->setProperty("text", text);
+}
+
 void MainWindow::workspaceOpen() {
     // ask for new workspace location
     const auto workspaceDir = QFileDialog::getExistingDirectory(
@@ -372,7 +369,7 @@ void MainWindow::moduleInit() {
     m_diagnosticsModule = new DiagnosticsModule();
     m_documentModule = new DocumentModule(this);
     m_explorerModule = new ExplorerModule();
-    m_fileModule = new FileModule();
+    m_fileModule = new FileModule(this);
     m_gitModule = new GitModule();
     m_agentModule = new AgentModule();
     m_logModule = new LogModule();
@@ -450,6 +447,7 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
+    connect(m_documentModule, &DocumentModule::showPermissionDialog, m_fileModule, &FileModule::showPermissionDialog);
     connect(m_documentModule, &DocumentModule::toggleBreakpoint, m_breakpointModule, &BreakpointModule::breakpointToggle);
 
     connect(m_explorerModule, &ExplorerModule::appendLog, m_logModule, &LogModule::logAppend);

@@ -38,6 +38,8 @@ signals:
 
     void gotoDocument();
 
+    void showPermissionDialog(const QUrl &documentUrl);
+
 protected:
     [[nodiscard]] virtual bool documentModified() const {
         return false;

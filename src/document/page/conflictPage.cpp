@@ -28,18 +28,14 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
     connect(m_conflictWidget, &ConflictWidget::changeSavepoint, this, &ConflictPage::savepointChange);
     connect(m_conflictWidget, &ConflictWidget::changeSelection, this, &ConflictPage::changeSelection);
     connect(m_conflictWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
+    connect(m_conflictWidget, &EditorWidget::showPermissionDialog, this, &DocumentPage::showPermissionDialog);
     connect(m_conflictWidget, &ConflictWidget::statResolve, m_resolveWidget, &ResolveWidget::resolveStat);
     connect(m_resolveWidget, &ResolveWidget::finishResolve, this, &ConflictPage::resolveFinish);
 }
 
-void ConflictPage::propertySet(const QVariantHash &objects) const {
-    m_conflictWidget->propertySet(QVariantHash{
-        {"mainWindowToast", objects["mainWindowToast"]},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]}
-    });
-    m_resolveWidget->propertySet(QVariantHash{
-    });
+void ConflictPage::propertySet() const {
+    m_conflictWidget->propertySet();
+    m_resolveWidget->propertySet();
 }
 
 QString ConflictPage::documentSave() {

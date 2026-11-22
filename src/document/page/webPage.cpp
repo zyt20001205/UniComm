@@ -14,5 +14,5 @@ WebPage::WebPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     m_webviewWidget->navigate(documentUrl);
 }
 
-void WebPage::propertySet(const QVariantHash &objects) {
+void WebPage::propertySet() {
 }

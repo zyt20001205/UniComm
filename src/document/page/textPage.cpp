@@ -17,14 +17,11 @@ TextPage::TextPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_editorWidget, &EditorWidget::changeSavepoint, this, &TextPage::savepointChange);
     connect(m_editorWidget, &EditorWidget::changeSelection, this, &TextPage::changeSelection);
     connect(m_editorWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
+    connect(m_editorWidget, &EditorWidget::showPermissionDialog, this, &DocumentPage::showPermissionDialog);
 }
 
-void TextPage::propertySet(const QVariantHash &objects) const {
-    m_editorWidget->propertySet(QVariantHash{
-        {"mainWindowToast", objects["mainWindowToast"]},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]}
-    });
+void TextPage::propertySet() const {
+    m_editorWidget->propertySet();
 }
 
 QString TextPage::documentSave() {

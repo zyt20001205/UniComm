@@ -22,7 +22,6 @@ class CodePage;
 class EditorWidget;
 class ScintillaWidget;
 class SignatureWidget;
-class ToastModule;
 
 class DocumentModule : public QObject {
     Q_OBJECT
@@ -228,6 +227,10 @@ signals:
 
     void focusDocument(const QUrl &documentUrl, const QVariantHash &session);
 
+    void showEditorMenu();
+
+    void showPermissionDialog(const QUrl &documentUrl);
+
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 
     void requestJson(const QString &method, const QJsonObject &params);
@@ -308,10 +311,6 @@ private:
     void didDeleteFilesNotification(const QUrl &documentUrl);
 
     QJsonObject m_config{};
-    ToastModule *m_toast{};
-    QObject *m_toolTip{};
-    QObject *m_systemPropertyDialog{};
-    QObject *m_editorMenu{};
     QUrl m_focusedUrl{};
     QVariantHash m_selection{};
     QFileSystemWatcher *m_watcher{};

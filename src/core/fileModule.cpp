@@ -4,8 +4,11 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QQmlComponent>
 
 #include "globals.h"
+#include "core/globalManager.h"
+#include "document/documentModule.h"
 #include "mainWindow/toastModule.h"
 #include "util/uniCast.h"
 
@@ -14,8 +17,10 @@ FileModule::FileModule(QObject *parent)
     : QObject(parent) {
 }
 
-void FileModule::propertySet(const QVariantHash &objects) {
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
+void FileModule::propertySet() {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/core/fileModule.qml"));
+    if (auto *dialog = component.create()) dialog->setParent(this);
+    else qWarning().noquote() << component.errorString();
 }
 
 void FileModule::fileOpenInExplorer(const QUrl &fileUrl) {
@@ -100,6 +105,16 @@ QVariantHash FileModule::fileInfo(const QUrl &fileUrl) {
     return infoSession;
 }
 
+bool FileModule::fileRename(const QUrl &sourceUrl, const QUrl &targetUrl) {
+    auto *document = g_globalManager->documentModuleGet();
+    const auto error = QFileInfo(sourceUrl.toLocalFile()).isDir()
+                           ? document->directoryRename(sourceUrl, targetUrl)
+                           : document->documentRename(sourceUrl, targetUrl);
+    if (error.isEmpty()) return true;
+    g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rename failed"), error);
+    return false;
+}
+
 void FileModule::fileWritable(const QUrl &fileUrl, const bool status) {
     const auto filePath = fileUrl.toLocalFile();
     const QFileInfo fileInfo(filePath);
@@ -113,7 +128,7 @@ void FileModule::fileWritable(const QUrl &fileUrl, const bool status) {
 void FileModule::copyToClipboard(const QString &text) const {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->setText(text);
-    m_toast->show(ToastLevel::Success, tr("Copied to clipboard"));
+    g_globalManager->toastModuleGet()->show(ToastLevel::Success, tr("Copied to clipboard"));
 }
 
 int FileModule::lineCountGet(const QUrl &documentUrl) {

@@ -23,6 +23,8 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &EditorWidget::changeSavepoint, this, &CodePage::savepointChange);
     connect(m_codeWidget, &EditorWidget::changeSelection, this, &CodePage::changeSelection);
     connect(m_codeWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
+    connect(m_codeWidget, &EditorWidget::showPermissionDialog, this, &DocumentPage::showPermissionDialog);
+    connect(m_codeWidget, &CodeWidget::showEditorMenu, this, &CodePage::showEditorMenu);
     connect(m_codeWidget, &CodeWidget::toggleBreakpoint, this, &CodePage::toggleBreakpoint);
     connect(m_codeWidget, &CodeWidget::notificationJson, this, &CodePage::notificationJson);
     connect(m_codeWidget, &CodeWidget::requestCompletion, this, &CodePage::requestCompletion);
@@ -48,13 +50,8 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_symbolWidget, &SymbolWidget::fillIndicator, handler(), &ScintillaWidget::indicatorFill);
 }
 
-void CodePage::propertySet(const QVariantHash &objects) const {
-    m_codeWidget->propertySet(QVariantHash{
-        {"mainWindowToast", objects["mainWindowToast"]},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModulePropertyDialog", objects["fileModulePropertyDialog"]},
-        {"documentModuleEditorMenu", objects["documentModuleEditorMenu"]}
-    });
+void CodePage::propertySet() const {
+    m_codeWidget->propertySet();
     m_symbolWidget->propertySet();
 }
 

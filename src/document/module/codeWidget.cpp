@@ -8,6 +8,7 @@
 #include "core/globalManager.h"
 #include "debug/breakpointModule.h"
 #include "document/module/scintillaWidget.h"
+#include "mainWindow/mainWindow.h"
 #include "types/lspTypes.h"
 #include "types/scintillaTypes.h"
 #include "util/uniCast.h"
@@ -31,10 +32,8 @@ CodeWidget::CodeWidget(const QJsonObject &documentConfig, const QUrl &documentUr
     connect(m_dwellTimer, &QTimer::timeout, this, &CodeWidget::dwellChange);
 }
 
-void CodeWidget::propertySet(const QVariantHash &objects) {
-    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    m_editorMenu = qvariant_cast<QObject *>(objects["documentModuleEditorMenu"]);
-    EditorWidget::propertySet(objects);
+void CodeWidget::propertySet() {
+    EditorWidget::propertySet();
     QTimer::singleShot(0, [this] {
         didOpenNotification();
         contentChange();
@@ -355,7 +354,7 @@ bool CodeWidget::eventFilter(QObject *watched, QEvent *event) {
             }
             if (mouseEvent->button() == Qt::RightButton) {
                 if (m_scintillaWidget->textGetSelected().isEmpty()) m_scintillaWidget->positionSet(position);
-                QMetaObject::invokeMethod(m_editorMenu, "popup");
+                emit showEditorMenu();
                 return true;
             }
         } else if (event->type() == QEvent::MouseMove) {
@@ -1013,16 +1012,15 @@ bool CodeWidget::navigable(const Scintilla::Position position) const {
 void CodeWidget::navigationToggle(const Scintilla::Position position) const {
     if (position == -1) {
         m_scintillaWidget->indicatorClear(ScintillaIndicator::Hyperlink);
-        m_toolTip->setProperty("text", "");
+        g_globalManager->mainWindowGet()->tooltipSet({});
     } else {
         if (navigable(position)) {
             const auto wordRange = m_scintillaWidget->wordIndexGet(position);
             m_scintillaWidget->indicatorFill(ScintillaIndicator::Hyperlink, wordRange.start.line, wordRange.start.character, wordRange.end.line, wordRange.end.character);
-            m_toolTip->setProperty("position", QCursor::pos());
-            m_toolTip->setProperty("text", tr("Click to navigate"));
+            g_globalManager->mainWindowGet()->tooltipSet(tr("Click to navigate"));
         } else {
             m_scintillaWidget->indicatorClear(ScintillaIndicator::Hyperlink);
-            m_toolTip->setProperty("text", "");
+            g_globalManager->mainWindowGet()->tooltipSet({});
         }
     }
 }

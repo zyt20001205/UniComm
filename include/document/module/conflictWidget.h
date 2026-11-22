@@ -15,7 +15,7 @@ public:
 
     ~ConflictWidget() override = default;
 
-    void propertySet(const QVariantHash &objects) override;
+    void propertySet();
 
     bool eventFilter(QObject *watched, QEvent *event) override;
 
@@ -30,7 +30,6 @@ protected:
     void contentChange() override;
 
 private:
-    QObject *m_toolTip{};
     QList<int> m_head{};
     QHash<int, QList<int>> m_hunk{};
 };

@@ -3,7 +3,6 @@
 #include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QQmlContext>
 #include <QProcess>
 #include <QQuickView>
 #include <QRegularExpression>
@@ -17,7 +16,7 @@
 // public
 SearchWindow::SearchWindow(QObject *parent)
     : QObject(parent),
-      m_searchWindow(new QQuickView()),
+      m_searchWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_searchModel(new SearchModel(this)) {
     m_searchWindow->setTitle("Search");
 }
@@ -26,12 +25,12 @@ SearchWindow::~SearchWindow() {
     delete m_searchWindow;
 }
 
-void SearchWindow::propertySet(const QVariantHash &objects) {
+void SearchWindow::propertySet() {
     m_searchWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
-    m_searchWindow->rootContext()->setContextProperty("searchWindow", this);
-    m_searchWindow->rootContext()->setContextProperty("global", g_globalManager);
-    m_searchWindow->rootContext()->setContextProperty("mainToolTip", qvariant_cast<QObject *>(objects["mainWindowToolTip"]));
-    m_searchWindow->rootContext()->setContextProperty("searchModel", m_searchModel);
+    m_searchWindow->setInitialProperties({
+        {"searchWindow", QVariant::fromValue(this)},
+        {"searchModel", QVariant::fromValue(m_searchModel)}
+    });
 
     m_searchWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_searchWindow->setSource(QUrl("qrc:/qml/document/assistant/searchWindow.qml"));

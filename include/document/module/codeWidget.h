@@ -16,7 +16,7 @@ public:
 
     ~CodeWidget() override = default;
 
-    void propertySet(const QVariantHash &objects) override;
+    void propertySet();
 
     [[nodiscard]] QString documentSave() override;
 
@@ -47,6 +47,8 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
+    void showEditorMenu();
+
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 
     void notificationJson(const QString &method, const QJsonObject &params);
@@ -156,9 +158,6 @@ private:
     [[nodiscard]] bool navigable(Scintilla::Position position) const;
 
     void navigationToggle(Scintilla::Position position = -1) const;
-
-    QObject *m_toolTip{};
-    QObject *m_editorMenu{};
 
     QTimer *m_dwellTimer{};
     QSet<QChar> m_completionTrigger{};

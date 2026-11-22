@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "core/globalManager.h"
 #include "document/module/scintillaWidget.h"
+#include "mainWindow/mainWindow.h"
 #include "types/scintillaTypes.h"
 
 // public
@@ -16,9 +17,8 @@ ConflictWidget::ConflictWidget(const QJsonObject &documentConfig, const QUrl &do
     m_scintillaWidget->viewport()->installEventFilter(this);
 }
 
-void ConflictWidget::propertySet(const QVariantHash &objects) {
-    m_toolTip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
-    EditorWidget::propertySet(objects);
+void ConflictWidget::propertySet() {
+    EditorWidget::propertySet();
     QTimer::singleShot(0, [this] { contentChange(); });
 }
 
@@ -28,7 +28,7 @@ bool ConflictWidget::eventFilter(QObject *watched, QEvent *event) {
         const QPoint localPos = m_scintillaWidget->viewport()->mapFromGlobal(globalPos);
         // within margin
         if (localPos.x() < m_scintillaWidget->marginWidthGet()) {
-            m_toolTip->setProperty("text", QString());
+            g_globalManager->mainWindowGet()->tooltipSet({});
             return false;
         }
         if (event->type() == QEvent::MouseButtonPress) {
@@ -69,11 +69,10 @@ bool ConflictWidget::eventFilter(QObject *watched, QEvent *event) {
             else tooltip = QString();
             if (!tooltip.isEmpty()) {
                 m_scintillaWidget->viewport()->setCursor(Qt::PointingHandCursor);
-                m_toolTip->setProperty("position", QCursor::pos());
             } else {
                 m_scintillaWidget->viewport()->setCursor(Qt::IBeamCursor);
             }
-            m_toolTip->setProperty("text", tooltip);
+            g_globalManager->mainWindowGet()->tooltipSet(tooltip);
             return false;
         }
     }

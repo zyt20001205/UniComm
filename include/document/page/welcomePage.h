@@ -13,7 +13,7 @@ public:
 
     ~WelcomePage() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void workspaceOpen();
 
