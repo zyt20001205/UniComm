@@ -26,8 +26,6 @@ PortManageWindow::PortManageWindow()
     : QQuickView(g_globalManager->engineGet(), nullptr),
       m_bluetoothServices(new QStandardItemModel(this)),
       m_mediaCaptureSession(new QMediaCaptureSession(this)),
-      m_roiModel(new RoiModel(this)),
-      m_pipelineModel(new PipelineModel(this)),
       m_imageProvider(new ImageProvider()) {
     m_bluetoothServices->setItemRoleNames({
         {Qt::DisplayRole, "uuid"},
@@ -47,12 +45,7 @@ void PortManageWindow::propertySet() {
     setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     engine()->addImageProvider("capture", m_imageProvider);
 
-    setInitialProperties({
-        {"portManageWindow", QVariant::fromValue(this)},
-        {"roiModel", QVariant::fromValue(m_roiModel)},
-        {"pipelineModel", QVariant::fromValue(m_pipelineModel)}
-    });
-
+    setInitialProperties({{"portManageWindow", QVariant::fromValue(this)}});
     setResizeMode(SizeRootObjectToView);
     setSource(QUrl("qrc:/qml/port/portManageWindow.qml"));
 }
@@ -62,7 +55,6 @@ void PortManageWindow::open(const QJsonObject &portConfig) {
     localHostRefresh();
     visionRefresh();
     bleRefresh();
-    processRefresh(portConfig);
     m_oldPortName = portConfig["portName"].toString();
     if (portConfig.isEmpty()) {
         m_config.clear();
@@ -122,6 +114,8 @@ void PortManageWindow::typeSelect(const PortType::Value type) {
             const auto deviceName = m_visionSources.value(0);
             m_config.insert("deviceName", deviceName);
             m_config.insert("portName", deviceName);
+            m_config.insert("rois", QVariantList{});
+            m_config.insert("pipeline", QVariantList{});
             m_config.insert("recognition", QVariantHash{{"mode", RecognitionMethod::OCR}});
             break;
         }
@@ -165,16 +159,6 @@ void PortManageWindow::save() {
             m_cameraCapture->deleteLater();
             m_cameraCapture = nullptr;
         }
-        QJsonArray roiArray{};
-        for (int i = 0; i < m_roiModel->rowCount(); ++i) {
-            const QJsonArray roi = QJsonArray::fromVariantList(m_roiModel->item(i, 0)->data(Qt::WhatsThisRole).toList());
-            roiArray.append(roi);
-        }
-        QJsonArray pipelineArray{};
-        for (int i = 0; i < m_pipelineModel->rowCount(); ++i) {
-            const QJsonObject session = QJsonObject::fromVariantHash(m_pipelineModel->item(i, 0)->data(Qt::WhatsThisRole).toHash());
-            pipelineArray.append(session);
-        }
         const auto draft = portConfig.value("recognition").toObject();
         const auto mode = draft.value("mode").toInt(RecognitionMethod::OCR);
         QJsonObject recognition{{"mode", mode}};
@@ -185,10 +169,10 @@ void PortManageWindow::save() {
         }
         portConfig = {
             {"portType", PortType::Vision},
-            {"portName", m_config.value("portName").toString()},
-            {"deviceName", m_config.value("deviceName").toString()},
-            {"roi", roiArray},
-            {"pipeline", pipelineArray},
+            {"portName", portConfig.value("portName")},
+            {"deviceName", portConfig.value("deviceName")},
+            {"rois", portConfig.value("rois").toArray()},
+            {"pipeline", portConfig.value("pipeline").toArray()},
             {"recognition", recognition}
         };
     }
@@ -283,23 +267,15 @@ void PortManageWindow::visionCapture(QVideoSink *videoSink) {
 }
 
 QVariantHash PortManageWindow::previewLoad(const int index) const {
-    const auto *item = m_roiModel->item(index, 0);
-    if (!item) return {{"source", "qrc:/icon/null.svg"}, {"recognition", QVariantHash{}}};
-    QJsonArray roiArray{};
-    const QJsonArray roi = QJsonArray::fromVariantList(item->data(Qt::WhatsThisRole).toList());
-    roiArray.append(roi);
-    QJsonArray pipeline{};
-    for (int i = 0; i < m_pipelineModel->rowCount(); ++i) {
-        const QJsonObject session = QJsonObject::fromVariantHash(m_pipelineModel->item(i, 0)->data(Qt::WhatsThisRole).toHash());
-        pipeline.append(session);
-    }
+    const auto rois = m_config.value("rois").toList();
+    if (index < 0 || index >= rois.size()) return {{"source", "qrc:/icon/null.svg"}, {"recognition", QVariantHash{}}};
     const auto recognition = QJsonObject::fromVariantHash(m_config.value("recognition").toHash());
     const auto mode = recognition.value("mode").toInt(RecognitionMethod::OCR);
     if (mode < RecognitionMethod::OCR || mode > RecognitionMethod::TemplateMatch) return {};
     if (mode == RecognitionMethod::TemplateMatch && recognition.value("template").toString().isEmpty()) return {};
     const QJsonObject config{
-        {"roi", roiArray},
-        {"pipeline", pipeline},
+        {"rois", QJsonArray{QJsonValue::fromVariant(rois.at(index))}},
+        {"pipeline", QJsonArray::fromVariantList(m_config.value("pipeline").toList())},
         {"recognition", recognition}
     };
     m_imageProvider->preview(m_mediaCaptureSession->videoSink(), config);
@@ -307,58 +283,6 @@ QVariantHash PortManageWindow::previewLoad(const int index) const {
         {"source", "image://capture/" + QString::number(QDateTime::currentMSecsSinceEpoch())},
         {"recognition", m_imageProvider->recognition()}
     };
-}
-
-void PortManageWindow::roiInsert(const QVariantList &roi) const {
-    QString text{};
-    if (roi.size() == 4) {
-        text = "Rectangle";
-    } else if (roi.size() == 8) {
-        text = "Quadrilateral";
-    }
-    auto *item = new QStandardItem(text); // NOLINT
-    m_roiModel->appendRow(item);
-    item->setData(roi, Qt::WhatsThisRole);
-    QMetaObject::invokeMethod(rootObject(), "indicatorReload");
-}
-
-void PortManageWindow::roiRemove(const int index) const {
-    m_roiModel->removeRow(index);
-    QMetaObject::invokeMethod(rootObject(), "indicatorReload");
-}
-
-void PortManageWindow::roiSwap(const int src, const int dst) const {
-    const auto tmp = m_roiModel->takeRow(src);
-    m_roiModel->insertRow(dst, tmp);
-    QMetaObject::invokeMethod(rootObject(), "indicatorReload");
-}
-
-void PortManageWindow::pipelineInsert(const QVariantHash &session) const {
-    const auto type = session["type"].value<ImageOperation::Value>();
-    switch (type) {
-        case ImageOperation::Scale: {
-            auto *item = new QStandardItem("Scale"); // NOLINT
-            m_pipelineModel->appendRow(item);
-            item->setData(session, Qt::WhatsThisRole);
-        }
-        break;
-        case ImageOperation::Threshold: {
-            auto *item = new QStandardItem("Threshold"); // NOLINT
-            m_pipelineModel->appendRow(item);
-            item->setData(session, Qt::WhatsThisRole);
-        }
-        break;
-        default: break;
-    }
-}
-
-void PortManageWindow::pipelineRemove(const int index) const {
-    m_pipelineModel->removeRow(index);
-}
-
-void PortManageWindow::pipelineSwap(const int src, const int dst) const {
-    const auto tmp = m_pipelineModel->takeRow(src);
-    m_pipelineModel->insertRow(dst, tmp);
 }
 
 // private
@@ -452,29 +376,12 @@ void PortManageWindow::bleRefresh() {
     });
 }
 
-void PortManageWindow::processRefresh(const QJsonObject &portConfig) const {
-    m_roiModel->clear();
-    m_pipelineModel->clear();
-    QMetaObject::invokeMethod(rootObject(), "indicatorReload");
-    if (!portConfig.isEmpty()) {
-        // roi
-        for (const auto &value: portConfig["roi"].toArray()) {
-            QJsonArray roi = value.toArray();
-            roiInsert(roi.toVariantList());
-        }
-        for (const auto &value: portConfig["pipeline"].toArray()) {
-            QVariantHash session = value.toObject().toVariantHash();
-            pipelineInsert(session);
-        }
-    }
-}
-
 // public
 ImageProvider::ImageProvider()
     : QQuickImageProvider(Pixmap) {
 }
 
-QPixmap ImageProvider::requestPixmap(const QString &id, QSize *size, const QSize &requestedSize) {
+QPixmap ImageProvider::requestPixmap(const QString &, QSize *, const QSize &) {
     return m_preview;
 }
 
@@ -500,20 +407,4 @@ void ImageProvider::preview(const QVideoSink *videoSink, const QJsonObject &conf
 
 QVariantHash ImageProvider::recognition() const {
     return m_recognition;
-}
-
-// public
-RoiModel::RoiModel(QObject *parent)
-    : QStandardItemModel(parent) {
-    connect(this, &QAbstractItemModel::rowsInserted, this, &RoiModel::emptyChanged);
-    connect(this, &QAbstractItemModel::rowsRemoved, this, &RoiModel::emptyChanged);
-    connect(this, &QAbstractItemModel::modelReset, this, &RoiModel::emptyChanged);
-}
-
-// public
-PipelineModel::PipelineModel(QObject *parent)
-    : QStandardItemModel(parent) {
-    connect(this, &QAbstractItemModel::rowsInserted, this, &PipelineModel::emptyChanged);
-    connect(this, &QAbstractItemModel::rowsRemoved, this, &PipelineModel::emptyChanged);
-    connect(this, &QAbstractItemModel::modelReset, this, &PipelineModel::emptyChanged);
 }

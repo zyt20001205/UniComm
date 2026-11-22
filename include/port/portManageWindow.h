@@ -17,8 +17,6 @@ class QMediaCaptureSession;
 class QScreenCapture;
 
 class ImageProvider;
-class RoiModel;
-class PipelineModel;
 
 class PortManageWindow : public QQuickView {
     Q_OBJECT
@@ -50,18 +48,6 @@ public:
     Q_INVOKABLE void visionCapture(QVideoSink *videoSink);
 
     Q_INVOKABLE [[nodiscard]] QVariantHash previewLoad(int index) const;
-
-    Q_INVOKABLE void roiInsert(const QVariantList &roi) const;
-
-    Q_INVOKABLE void roiRemove(int index) const;
-
-    Q_INVOKABLE void roiSwap(int src, int dst) const;
-
-    Q_INVOKABLE void pipelineInsert(const QVariantHash &session) const;
-
-    Q_INVOKABLE void pipelineRemove(int index) const;
-
-    Q_INVOKABLE void pipelineSwap(int src, int dst) const;
 
 signals:
     void configChanged();
@@ -101,8 +87,6 @@ private:
 
     void bleRefresh();
 
-    void processRefresh(const QJsonObject &portConfig) const;
-
     QVariantList m_serialPorts{};
     QStringList m_localHosts{};
     QStringList m_visionSources{};
@@ -114,8 +98,6 @@ private:
     QMediaCaptureSession *m_mediaCaptureSession{};
     QScreenCapture *m_screenCapture{};
     QCamera *m_cameraCapture{};
-    RoiModel *m_roiModel{};
-    PipelineModel *m_pipelineModel{};
     ImageProvider *m_imageProvider{};
     QString m_oldPortName{};
     QVariantHash m_config{};
@@ -139,36 +121,6 @@ private:
     QPixmap m_preview{};
     QVariantHash m_recognition{};
     ImageProcess m_imageProcess{};
-};
-
-class RoiModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit RoiModel(QObject *parent = nullptr);
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-    signals:
-        void emptyChanged();
-};
-
-class PipelineModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit PipelineModel(QObject *parent = nullptr);
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-    signals:
-        void emptyChanged();
 };
 
 #endif //UNICOMM_PORTMANAGEWINDOW_H

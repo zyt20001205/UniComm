@@ -26,9 +26,9 @@ ImageProcess::~ImageProcess() {
 
 QList<ImageProcess::ProcessResult> ImageProcess::process(const QImage &frame) {
     QList<ProcessResult> results{};
-    auto roiArray = m_config["roi"].toArray();
-    if (roiArray.isEmpty()) roiArray.append(QJsonArray{0, 0, frame.width(), frame.height()});
-    for (const QJsonValue &value: roiArray) {
+    auto rois = m_config["rois"].toArray();
+    if (rois.isEmpty()) rois.append(QJsonArray{0, 0, frame.width(), frame.height()});
+    for (const QJsonValue &value: rois) {
         ProcessResult processResult{};
         // roi
         processResult.roiFrame = roi(frame, value.toArray());
@@ -87,18 +87,18 @@ QImage ImageProcess::pipeline(const QImage &roiFrame, const QJsonArray &pipeline
     const auto &source = roiFrame.convertToFormat(QImage::Format_BGR888);
     cv::Mat frame(source.height(), source.width(), CV_8UC3, const_cast<uchar *>(source.constBits()), source.bytesPerLine());
     for (const auto &value: pipeline) {
-        const auto &session = value.toObject();
-        switch (static_cast<ImageOperation::Value>(session["type"].toInt())) {
+        const auto step = value.toObject();
+        switch (static_cast<ImageOperation::Value>(step["type"].toInt())) {
             case ImageOperation::Scale: {
-                const float ratio = static_cast<float>(session["ratio"].toDouble(1));
-                const int interpolation = session["interpolation"].toInt();
+                const float ratio = static_cast<float>(step["ratio"].toDouble(1));
+                const int interpolation = step["interpolation"].toInt();
                 frame = scale(frame, ratio, interpolation);
             }
             break;
             case ImageOperation::Threshold: {
-                const int thresh = session["thresh"].toInt();
-                const int maxval = session["maxval"].toInt();
-                const int mode = session["mode"].toInt();
+                const int thresh = step["thresh"].toInt();
+                const int maxval = step["maxval"].toInt();
+                const int mode = step["mode"].toInt();
                 frame = threshold(frame, thresh, maxval, mode);
             }
             break;

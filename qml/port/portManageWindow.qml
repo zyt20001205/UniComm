@@ -1,4 +1,5 @@
 import QtMultimedia
+import QtQml.Models
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
@@ -10,8 +11,7 @@ import "../util"
 Item {
     id: root
     required property PortManageWindow portManageWindow
-    required property var roiModel
-    required property var pipelineModel
+    readonly property var rois: portManageWindow.config.rois ?? []
     property alias pageIndex: swipeView.currentIndex
     readonly property int portType: root.portManageWindow.config.portType ?? PortType.SerialPort
 
@@ -1506,7 +1506,43 @@ Item {
 
                             VideoOutput {
                                 id: videoOutput
-                                property var indicatorList: []
+                                Repeater {
+                                    model: root.rois
+                                    delegate: Loader {
+                                        id: marker
+                                        required property int index
+                                        required property var modelData
+                                        anchors.fill: parent
+                                        sourceComponent: modelData.length === 4 ? rectangleMarker : quadrilateralMarker
+
+                                        Component {
+                                            id: rectangleMarker
+                                            Item {
+                                                RectIndicator {
+                                                    roiView: roiListView
+                                                    surface: videoOutput
+                                                    portManageWindow: root.portManageWindow
+                                                    index: marker.index
+                                                    x: marker.modelData[0]; y: marker.modelData[1]
+                                                    width: marker.modelData[2]; height: marker.modelData[3]
+                                                }
+                                            }
+                                        }
+                                        Component {
+                                            id: quadrilateralMarker
+                                            QuadIndicator {
+                                                roiView: roiListView
+                                                surface: videoOutput
+                                                portManageWindow: root.portManageWindow
+                                                index: marker.index
+                                                x0: marker.modelData[0]; y0: marker.modelData[1]
+                                                x1: marker.modelData[2]; y1: marker.modelData[3]
+                                                x2: marker.modelData[4]; y2: marker.modelData[5]
+                                                x3: marker.modelData[6]; y3: marker.modelData[7]
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             Rectangle {
@@ -1559,7 +1595,7 @@ Item {
                                             let iy = Math.round(Math.min(roiList[0].y, roiList[1].y))
                                             let iw = Math.round(Math.abs(roiList[1].x - roiList[0].x))
                                             let ih = Math.round(Math.abs(roiList[1].y - roiList[0].y))
-                                            root.portManageWindow.roiInsert([ix, iy, iw, ih])
+                                            roiListView.appendEntry([ix, iy, iw, ih])
                                         } else if (step === 4) {
                                             let ix0 = Math.round(roiList[0].x)
                                             let iy0 = Math.round(roiList[0].y)
@@ -1569,7 +1605,7 @@ Item {
                                             let iy2 = Math.round(roiList[2].y)
                                             let ix3 = Math.round(roiList[3].x)
                                             let iy3 = Math.round(roiList[3].y)
-                                            root.portManageWindow.roiInsert([ix0, iy0, ix1, iy1, ix2, iy2, ix3, iy3])
+                                            roiListView.appendEntry([ix0, iy0, ix1, iy1, ix2, iy2, ix3, iy3])
                                         }
                                         roiSelection.roiStop()
                                     }
@@ -1694,7 +1730,7 @@ Item {
 
                                 Item {
                                     anchors.fill: parent
-                                    visible: root.roiModel.empty
+                                    visible: root.rois.length === 0
 
                                     RowLayout {
                                         anchors.centerIn: parent
@@ -1713,180 +1749,21 @@ Item {
                                     }
                                 }
 
-                                Item {
-                                    anchors.fill: parent
-                                    visible: !root.roiModel.empty
-
-                                    VerticalHeaderView {
-                                        id: roiVerticalHeaderView
-                                        anchors.left: parent.left
-                                        width: 24; height: parent.height
-                                        syncView: roiTableView
-                                        clip: true
-                                        interactive: false
-                                        movableRows: true
-                                        delegate: VerticalHeaderViewDelegate {
-                                            id: roiVerticalHeaderViewDelegate
-                                            implicitWidth: roiVerticalHeaderView.width; implicitHeight: 24
-                                            padding: 0
-
-                                            contentItem: Rectangle {
-                                                width: 24; height: 24
-                                                color: global.theme.general.back
-
-                                                IconImage {
-                                                    anchors.centerIn: parent
-                                                    width: 16; height: 16
-                                                    color: global.theme.general.fore
-                                                    source: "qrc:/icon/drag.svg"
-                                                }
-                                            }
-
-                                            HoverHandler {
-                                                onHoveredChanged: cursorShape = Qt.OpenHandCursor
-                                            }
-                                        }
-                                        property var moves: []
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: global.theme.general.stroke
-                                        }
-
-                                        Timer {
-                                            id: roiTimer
-                                            interval: 10
-                                            onTriggered: {
-                                                let index = -1
-                                                let distance = -1
-                                                let currentDistance;
-                                                for (let i = 0; i < roiVerticalHeaderView.moves.length; ++i) {
-                                                    let move = roiVerticalHeaderView.moves[i]
-                                                    currentDistance = Math.abs(move.oldVisualIndex - move.newVisualIndex)
-                                                    if (currentDistance > distance) {
-                                                        distance = currentDistance
-                                                        index = i
-                                                    }
-                                                }
-                                                let move = roiVerticalHeaderView.moves[index]
-                                                root.portManageWindow.roiSwap(move.oldVisualIndex, move.newVisualIndex)
-                                                roiVerticalHeaderView.clearRowReordering()
-                                                roiTableView.clearRowReordering()
-                                                roiVerticalHeaderView.moves = []
-                                            }
-                                        }
-
-                                        onRowMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
-                                            moves.push({oldVisualIndex, newVisualIndex})
-                                            roiTimer.restart()
-                                        }
-                                    }
-
-                                    TableView {
-                                        id: roiTableView
-                                        anchors.left: roiVerticalHeaderView.right; anchors.right: parent.right
-                                        height: parent.height
-                                        alternatingRows: false
-                                        clip: true
-                                        editTriggers: TableView.NoEditTriggers
-                                        rowSpacing: 1
-                                        model: root.roiModel
-                                        contentWidth: width
-                                        property int hoveredRow: -1
-                                        property int selectedRow: -1
-                                        onSelectedRowChanged: previewLoader.start()
-
-                                        ScrollBar.vertical: ScrollBar {
-                                            minimumSize: Math.min(1, 20 / Math.max(1, height))
-                                            policy: ScrollBar.AsNeeded
-                                            palette {
-                                                mid: global.theme.general.stroke
-                                                dark: global.theme.general.strokePressed
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: global.theme.general.stroke
-                                        }
-
-                                        delegate: Item {
-                                            implicitWidth: parent.width; implicitHeight: 24
-                                            required property int row
-
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                color: global.theme.general.back
-                                            }
-
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                radius: 6
-                                                color: global.theme.general.backHover
-                                                opacity: roiTableView.hoveredRow === row ? 1 : 0
-                                                Behavior on opacity {
-                                                    NumberAnimation {
-                                                        duration: 150
-                                                    }
-                                                }
-                                            }
-
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                radius: 6
-                                                color: roiTableView.selectedRow === row ? global.theme.general.backSelected : "transparent"
-                                            }
-
+                                VisionListView {
+                                    id: roiListView
+                                    entries: root.rois
+                                    onEdited: entries => root.portManageWindow.config.rois = entries
+                                    rowDelegate: VisionRow {
+                                        id: roiRow
+                                        view: roiListView
+                                        keys: ["roi"]
+                                        controls: [
                                             Label {
-                                                id: label
-                                                anchors.fill: parent
-                                                leftPadding: 6
-                                                horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                                                text: model.display || ""
+                                                text: root.rois[roiRow.index]?.length === 4 ? qsTr("Rectangle") : qsTr("Quadrilateral")
                                                 elide: Text.ElideRight
+                                                Layout.fillWidth: true
                                             }
-
-                                            HoverHandler {
-                                                id: hoverHandler
-                                            }
-
-                                            TapHandler {
-                                                acceptedButtons: Qt.LeftButton
-                                                gesturePolicy: TapHandler.DragWithinBounds
-
-                                                onTapped: roiTableView.selectedRow = row
-                                            }
-
-                                            TapHandler {
-                                                acceptedButtons: Qt.RightButton
-                                                gesturePolicy: TapHandler.DragWithinBounds
-
-                                                onSingleTapped: {
-                                                    roiMenu.roiIndex = model.row
-                                                    roiMenu.popup()
-                                                }
-                                            }
-                                        }
-
-                                        TapHandler {
-                                            acceptedButtons: Qt.LeftButton
-                                            gesturePolicy: TapHandler.DragWithinBounds
-
-                                            onTapped: roiTableView.selectedRow = -1
-                                        }
-                                    }
-
-                                    Menu {
-                                        id: roiMenu
-                                        property int roiIndex
-
-                                        MenuItem {
-                                            text: qsTr("Delete")
-                                            icon.source: "qrc:/icon/delete.svg"
-                                            icon.width: 16; icon.height: 16
-
-                                            onTriggered: root.portManageWindow.roiRemove(roiMenu.roiIndex)
-                                        }
+                                        ]
                                     }
                                 }
                             }
@@ -1953,7 +1830,7 @@ Item {
 
                                 Item {
                                     anchors.fill: parent
-                                    visible: root.pipelineModel.empty
+                                    visible: pipelineListView.count === 0
 
                                     RowLayout {
                                         anchors.centerIn: parent
@@ -1966,304 +1843,60 @@ Item {
                                     }
                                 }
 
-                                Item {
-                                    anchors.fill: parent
-                                    visible: !root.pipelineModel.empty
+                                VisionListView {
+                                    id: pipelineListView
+                                    entries: root.portManageWindow.config.pipeline ?? []
+                                    onEdited: entries => root.portManageWindow.config.pipeline = entries
+                                    rowDelegate: VisionRow {
+                                        id: stepRow
+                                        view: pipelineListView
+                                        keys: ["pipeline"]
+                                        height: 80
+                                        readonly property var step: view.entries[index]
+                                        readonly property bool scale: step?.type === ImageOperation.Scale
 
-                                    VerticalHeaderView {
-                                        id: pipelineVerticalHeaderView
-                                        anchors.left: parent.left
-                                        width: 24; height: parent.height
-                                        syncView: pipelineTableView
-                                        clip: true
-                                        interactive: false
-                                        movableRows: true
-                                        delegate: VerticalHeaderViewDelegate {
-                                            id: pipelineVerticalHeaderViewDelegate
-                                            implicitWidth: pipelineVerticalHeaderView.width; implicitHeight: 24
-                                            padding: 0
+                                        function setParameter(key, value) {
+                                            view.currentIndex = index
+                                            root.portManageWindow.config.pipeline[index][key] = value
+                                        }
 
-                                            contentItem: Rectangle {
-                                                width: 24; height: 24
-                                                color: global.theme.general.back
-
-                                                IconImage {
-                                                    anchors.centerIn: parent
-                                                    width: 16; height: 16
-                                                    color: global.theme.general.fore
-                                                    source: "qrc:/icon/drag.svg"
+                                        controls: [
+                                            RowLayout {
+                                                Label {
+                                                    text: stepRow.scale ? qsTr("Scale") : qsTr("Threshold")
+                                                    elide: Text.ElideRight
+                                                    Layout.fillWidth: true
                                                 }
-                                            }
-
-                                            HoverHandler {
-                                                onHoveredChanged: cursorShape = Qt.OpenHandCursor
-                                            }
-                                        }
-                                        property var moves: []
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: global.theme.general.stroke
-                                        }
-
-                                        Timer {
-                                            id: pipelineTimer
-                                            interval: 10
-                                            onTriggered: {
-                                                let index = -1
-                                                let distance = -1
-                                                let currentDistance;
-                                                for (let i = 0; i < pipelineVerticalHeaderView.moves.length; ++i) {
-                                                    let move = pipelineVerticalHeaderView.moves[i]
-                                                    currentDistance = Math.abs(move.oldVisualIndex - move.newVisualIndex)
-                                                    if (currentDistance > distance) {
-                                                        distance = currentDistance
-                                                        index = i
-                                                    }
+                                                ComboBox {
+                                                    model: stepRow.scale
+                                                        ? [qsTr("Nearest"), qsTr("Linear"), qsTr("Cubic"), qsTr("Area"), qsTr("Lanczos4"), qsTr("Linear Exact"), qsTr("Nearest Exact")]
+                                                        : [qsTr("Binary"), qsTr("Binary Inv"), qsTr("Trunc"), qsTr("To Zero"), qsTr("To Zero Inv")]
+                                                    currentIndex: (stepRow.scale ? stepRow.step?.interpolation : stepRow.step?.mode) ?? -1
+                                                    onActivated: stepRow.setParameter(stepRow.scale ? "interpolation" : "mode", currentIndex)
                                                 }
-                                                let move = pipelineVerticalHeaderView.moves[index]
-                                                root.portManageWindow.pipelineSwap(move.oldVisualIndex, move.newVisualIndex)
-                                                pipelineVerticalHeaderView.clearRowReordering()
-                                                pipelineTableView.clearRowReordering()
-                                                pipelineVerticalHeaderView.moves = []
+                                            },
+                                            DoubleSpinBox {
+                                                visible: stepRow.scale
+                                                value: stepRow.step?.ratio ?? 1
+                                                from: 0.1; to: 10; stepSize: 0.1
+                                                editable: true
+                                                Layout.fillWidth: true
+                                                textFromValue: value => "x" + value.toFixed(2)
+                                                valueFromText: text => Number(text.replace("x", ""))
+                                                onValueModified: stepRow.setParameter("ratio", value)
+                                            },
+                                            RangeSlider {
+                                                visible: !stepRow.scale
+                                                first.value: stepRow.step?.thresh ?? 0
+                                                second.value: stepRow.step?.maxval ?? 255
+                                                from: 0; to: 255
+                                                Layout.fillWidth: true
+                                                ToolTip.text: first.value.toFixed(0) + " ~ " + second.value.toFixed(0)
+                                                ToolTip.visible: hovered
+                                                first.onMoved: stepRow.setParameter("thresh", Math.round(first.value))
+                                                second.onMoved: stepRow.setParameter("maxval", Math.round(second.value))
                                             }
-                                        }
-
-                                        onRowMoved: (logicalIndex, oldVisualIndex, newVisualIndex) => {
-                                            moves.push({oldVisualIndex, newVisualIndex})
-                                            pipelineTimer.restart()
-                                        }
-                                    }
-
-                                    TableView {
-                                        id: pipelineTableView
-                                        anchors.left: pipelineVerticalHeaderView.right; anchors.right: parent.right
-                                        height: parent.height
-                                        alternatingRows: false
-                                        clip: true
-                                        editTriggers: TableView.NoEditTriggers
-                                        rowSpacing: 1
-                                        model: root.pipelineModel
-                                        contentWidth: width
-
-                                        ScrollBar.vertical: ScrollBar {
-                                            minimumSize: Math.min(1, 20 / Math.max(1, height))
-                                            policy: ScrollBar.AsNeeded
-                                            palette {
-                                                mid: global.theme.general.stroke
-                                                dark: global.theme.general.strokePressed
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            color: global.theme.general.stroke
-                                        }
-
-                                        delegate: DelegateChooser {
-                                            role: "display"
-
-                                            DelegateChoice {
-                                                roleValue: qsTr("Scale")
-                                                delegate: scaleDelegate
-                                            }
-
-                                            DelegateChoice {
-                                                roleValue: qsTr("Threshold")
-                                                delegate: thresholdDelegate
-                                            }
-                                        }
-
-                                        Component {
-                                            id: scaleDelegate
-
-                                            Item {
-                                                id: scaleItem
-                                                implicitWidth: parent.width; implicitHeight: 80
-                                                property var session: model.whatsThis
-
-                                                Rectangle {
-                                                    anchors.fill: parent
-                                                    color: global.theme.general.back
-                                                }
-
-                                                ColumnLayout {
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: 10
-
-                                                    RowLayout {
-
-                                                        Label {
-                                                            leftPadding: 6
-                                                            horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                                                            text: model.display || ""
-                                                            elide: Text.ElideRight
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        ComboBox {
-                                                            id: scaleComboBox
-                                                            currentIndex: session.interpolation
-                                                            model: [
-                                                                qsTr("Nearest"),
-                                                                qsTr("Linear"),
-                                                                qsTr("Cubic"),
-                                                                qsTr("Area"),
-                                                                qsTr("Lanczos4"),
-                                                                qsTr("Linear Exact"),
-                                                                qsTr("Nearest Exact")
-                                                            ]
-                                                            property bool initialized: false
-
-                                                            Component.onCompleted: {
-                                                                initialized = true
-                                                            }
-
-                                                            onCurrentTextChanged: {
-                                                                if (!scaleComboBox.initialized) return
-                                                                scaleItem.session.interpolation = scaleComboBox.currentIndex
-                                                                const index = root.pipelineModel.index(row, 0);
-                                                                root.pipelineModel.setData(index, scaleItem.session, Qt.WhatsThisRole)
-                                                            }
-                                                        }
-                                                    }
-
-                                                    DoubleSpinBox {
-                                                        value: session.ratio
-                                                        from: 0.1
-                                                        to: 10
-                                                        stepSize: 0.1
-                                                        editable: true
-                                                        Layout.fillWidth: true
-
-                                                        textFromValue: function (value, locale) {
-                                                            return "x" + value.toFixed(2)
-                                                        }
-
-                                                        valueFromText: function (text, locale) {
-                                                            return Number(text.replace("x", ""))
-                                                        }
-
-                                                        onValueModified: {
-                                                            scaleItem.session.ratio = value
-                                                            const index = root.pipelineModel.index(row, 0);
-                                                            root.pipelineModel.setData(index, scaleItem.session, Qt.WhatsThisRole)
-                                                        }
-                                                    }
-                                                }
-
-                                                TapHandler {
-                                                    acceptedButtons: Qt.RightButton
-                                                    gesturePolicy: TapHandler.DragWithinBounds
-
-                                                    onSingleTapped: {
-                                                        pipelineMenu.pipelineIndex = model.row
-                                                        pipelineMenu.popup()
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        Component {
-                                            id: thresholdDelegate
-
-                                            Item {
-                                                id: thresholdItem
-                                                implicitWidth: parent.width; implicitHeight: 80
-                                                property var session: model.whatsThis
-
-                                                Rectangle {
-                                                    anchors.fill: parent
-                                                    color: global.theme.general.back
-                                                }
-
-                                                ColumnLayout {
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: 10
-
-                                                    RowLayout {
-
-                                                        Label {
-                                                            leftPadding: 6
-                                                            horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                                                            text: model.display || ""
-                                                            elide: Text.ElideRight
-                                                            Layout.fillWidth: true
-                                                        }
-
-                                                        ComboBox {
-                                                            id: thresholdComboBox
-                                                            currentIndex: session.mode
-                                                            model: [
-                                                                qsTr("Binary"),
-                                                                qsTr("Binary Inv"),
-                                                                qsTr("Trunc"),
-                                                                qsTr("To Zero"),
-                                                                qsTr("To Zero Inv")
-                                                            ]
-                                                            property bool initialized: false
-
-                                                            Component.onCompleted: {
-                                                                initialized = true
-                                                            }
-
-                                                            onCurrentTextChanged: {
-                                                                if (!thresholdComboBox.initialized) return
-                                                                thresholdItem.session.mode = thresholdComboBox.currentIndex
-                                                                const index = root.pipelineModel.index(row, 0);
-                                                                root.pipelineModel.setData(index, thresholdItem.session, Qt.WhatsThisRole)
-                                                            }
-                                                        }
-                                                    }
-
-                                                    RangeSlider {
-                                                        id: thresholdSlider
-                                                        first.value: session.thresh
-                                                        second.value: session.maxval
-                                                        from: 0
-                                                        to: 255
-                                                        Layout.fillWidth: true
-                                                        ToolTip.text: first.value.toFixed(0) + " ~ " + second.value.toFixed(0)
-                                                        ToolTip.visible: hovered
-
-                                                        first.onMoved: {
-                                                            thresholdItem.session.thresh = Math.round(thresholdSlider.first.value)
-                                                            const index = root.pipelineModel.index(row, 0);
-                                                            root.pipelineModel.setData(index, thresholdItem.session, Qt.WhatsThisRole)
-                                                        }
-
-                                                        second.onMoved: {
-                                                            thresholdItem.session.maxval = Math.round(thresholdSlider.second.value)
-                                                            const index = root.pipelineModel.index(row, 0);
-                                                            root.pipelineModel.setData(index, thresholdItem.session, Qt.WhatsThisRole)
-                                                        }
-                                                    }
-                                                }
-
-                                                TapHandler {
-                                                    acceptedButtons: Qt.RightButton
-                                                    gesturePolicy: TapHandler.DragWithinBounds
-
-                                                    onSingleTapped: {
-                                                        pipelineMenu.pipelineIndex = model.row
-                                                        pipelineMenu.popup()
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Menu {
-                                        id: pipelineMenu
-                                        property int pipelineIndex
-
-                                        MenuItem {
-                                            text: qsTr("Delete")
-                                            icon.source: "qrc:/icon/delete.svg"
-                                            icon.width: 16; icon.height: 16
-
-                                            onTriggered: root.portManageWindow.pipelineRemove(pipelineMenu.pipelineIndex)
-                                        }
+                                        ]
                                     }
                                 }
                             }
@@ -2470,33 +2103,27 @@ Item {
 
                                 Item {
                                     id: previewLoader
-                                    property bool running: false
+                                    readonly property bool active: root.pageIndex === 2 && root.portType === PortType.Vision
+                                        && root.Window.window.visible && roiListView.currentIndex >= 0 && root.rois.length > 0
                                     property int framerate: 0
                                     property int frames: 0
                                     property double timestamp: 0
 
-                                    function start() {
-                                        if (running) return
-                                        running = true
-                                        frames = 0
-                                        timestamp = Date.now()
-                                        next()
-                                    }
-
-                                    function stop() {
-                                        previewImage.source = "qrc:/icon/null.svg"
-                                        previewImage.recognition = ({})
-                                        running = false
-                                        framerate = 0
+                                    onActiveChanged: {
+                                        if (active) {
+                                            frames = 0
+                                            timestamp = Date.now()
+                                            next()
+                                        } else {
+                                            previewImage.source = "qrc:/icon/null.svg"
+                                            previewImage.recognition = ({})
+                                            framerate = 0
+                                        }
                                     }
 
                                     function next() {
-                                        if (!running) return
-                                        if (!root.Window.window.visible || root.roiModel.empty || roiTableView.selectedRow === -1) {
-                                            stop()
-                                            return
-                                        }
-                                        const result = root.portManageWindow.previewLoad(roiTableView.selectedRow)
+                                        if (!active) return
+                                        const result = root.portManageWindow.previewLoad(roiListView.currentIndex)
                                         if (result.source) {
                                             previewImage.source = result.source
                                             previewImage.recognition = result.recognition
@@ -2637,6 +2264,150 @@ Item {
         }
     }
 
+    component VisionListView: ListView {
+        id: view
+        required property var entries
+        required property Component rowDelegate
+        signal edited(var entries)
+
+        anchors.fill: parent
+        visible: count > 0
+        clip: true
+        focusPolicy: Qt.ClickFocus
+        keyNavigationEnabled: true
+        model: DelegateModel {
+            // Keep the selected row when its coordinates or parameters change.
+            model: view.entries.length
+            delegate: view.rowDelegate
+        }
+
+        moveDisplaced: Transition {
+            NumberAnimation {
+                property: "y"
+                duration: AnimationDuration.Reorder
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        ScrollBar.vertical: ScrollBar {
+            minimumSize: Math.min(1, 20 / Math.max(1, height))
+            palette {
+                mid: global.theme.general.stroke
+                dark: global.theme.general.strokePressed
+            }
+        }
+
+        function appendEntry(entry) {
+            edited([...entries, entry])
+            currentIndex = entries.length - 1
+            positionViewAtIndex(currentIndex, ListView.Contain)
+        }
+
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onSingleTapped: eventPoint => {
+                const point = view.contentItem.mapFromItem(view, eventPoint.position)
+                const row = view.itemAt(point.x, point.y)
+                if (row) {
+                    view.currentIndex = row.visualIndex
+                    deleteMenu.popup()
+                }
+            }
+        }
+
+        Menu {
+            id: deleteMenu
+            MenuItem {
+                text: qsTr("Delete")
+                icon.source: "qrc:/icon/delete.svg"
+                icon.width: 16; icon.height: 16
+                onTriggered: {
+                    const index = view.currentIndex
+                    const entries = [...view.entries]
+                    entries.splice(index, 1)
+                    view.edited(entries)
+                    view.currentIndex = Math.min(index, entries.length - 1)
+                }
+            }
+        }
+    }
+
+    component VisionRow: DropArea {
+        id: row
+        required property VisionListView view
+        required property int index
+        readonly property int visualIndex: DelegateModel.itemsIndex
+        property alias controls: fields.data
+        width: view.width
+        height: 28
+        onEntered: drag => {
+            const from = drag.source.visualIndex
+            if (from !== visualIndex) view.model.items.move(from, visualIndex)
+        }
+
+        ItemDelegate {
+            id: entry
+            anchors.left: parent.left; anchors.top: parent.top
+            width: row.width; height: row.height
+            leftPadding: 11; rightPadding: 6 + row.view.ScrollBar.vertical.width
+            topPadding: 0; bottomPadding: 0
+            highlighted: row.ListView.isCurrentItem
+            focusPolicy: Qt.ClickFocus
+            onClicked: row.view.currentIndex = row.visualIndex
+
+            Drag.active: handle.drag.active
+            Drag.source: row
+            Drag.keys: row.keys
+            Drag.hotSpot.x: leftPadding + handle.width / 2
+            Drag.hotSpot.y: height / 2
+
+            contentItem: RowLayout {
+                spacing: 4
+                IconImage {
+                    source: "qrc:/icon/drag.svg"
+                    color: global.theme.general.fore
+                    Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    MouseArea {
+                        id: handle
+                        anchors.fill: parent
+                        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                        preventStealing: true
+                        drag.target: entry
+                        drag.axis: Drag.YAxis
+                        onPressed: {
+                            row.view.forceActiveFocus()
+                            row.view.currentIndex = row.visualIndex
+                        }
+                        onReleased: {
+                            const from = row.index
+                            const to = row.visualIndex
+                            if (from === to) return
+                            const entries = [...row.view.entries]
+                            entries.splice(to, 0, entries.splice(from, 1)[0])
+                            // Rows read by index once the new order is committed.
+                            row.view.model.items.move(to, from)
+                            row.view.edited(entries)
+                            row.view.currentIndex = to
+                        }
+                        onCanceled: {
+                            if (row.index !== row.visualIndex) row.view.model.items.move(row.visualIndex, row.index)
+                        }
+                    }
+                }
+                ColumnLayout {
+                    id: fields
+                    Layout.fillWidth: true
+                }
+            }
+            states: State {
+                when: handle.pressed
+                ParentChange { target: entry; parent: row.view.contentItem }
+                AnchorChanges { target: entry; anchors.top: undefined; anchors.left: undefined }
+                PropertyChanges { entry.z: 2 }
+            }
+        }
+    }
+
     // pipeline
     Menu {
         id: pipelineSlotMenu
@@ -2646,13 +2417,7 @@ Item {
             icon.source: "qrc:/icon/resize.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: {
-                let session = {}
-                session.type = ImageOperation.Scale
-                session.ratio = 1.0
-                session.interpolation = 1
-                root.portManageWindow.pipelineInsert(session)
-            }
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Scale, ratio: 1.0, interpolation: 1 })
         }
 
         MenuItem {
@@ -2660,437 +2425,391 @@ Item {
             icon.source: "qrc:/icon/contrast.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: {
-                let session = {}
-                session.type = ImageOperation.Threshold
-                session.thresh = 0
-                session.maxval = 255
-                session.mode = 0
-                root.portManageWindow.pipelineInsert(session)
-            }
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Threshold, thresh: 0, maxval: 255, mode: 0 })
         }
     }
 
     // indicator
-    Component {
-        id: indicatorRectComponent
+    component RectIndicator: Rectangle {
+        id: indicatorRect
+        color: roiView.currentIndex === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+        border.color: global.theme.general.brandStroke
+        border.width: 1
+        required property int index
+        required property ListView roiView
+        required property Item surface
+        required property PortManageWindow portManageWindow
+
+        Label {
+            x: parent.width / 2 - implicitWidth / 2
+            y: parent.height / 2 - implicitHeight / 2
+            text: index.toString()
+            font.bold: true
+            font.pixelSize: 20
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            cursorShape: Qt.SizeAllCursor
+            preventStealing: true
+            property point lastPos: Qt.point(0, 0)
+
+            onPressed: (mouse) => {
+                roiView.currentIndex = index
+                lastPos = mapToItem(surface, mouse.x, mouse.y)
+            }
+
+            onPositionChanged: (mouse) => {
+                const pos = mapToItem(surface, mouse.x, mouse.y)
+                indicatorRect.x += pos.x - lastPos.x
+                indicatorRect.y += pos.y - lastPos.y
+                lastPos = pos
+            }
+
+            onReleased: indicatorRect.roiSet()
+        }
 
         Rectangle {
-            id: indicatorRect
-            color: roiTableView.selectedRow === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+            id: topLeftHandle
+            visible: roiView.currentIndex === index
+            x: -width / 2
+            y: -height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
             border.color: global.theme.general.brandStroke
             border.width: 1
-            property int index
+            z: 1
 
-            Label {
-                x: parent.width / 2 - implicitWidth / 2
-                y: parent.height / 2 - implicitHeight / 2
-                text: index.toString()
-                font.bold: true
-                font.pixelSize: 20
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point lastPos: Qt.point(0, 0)
+
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    lastPos = mapToItem(surface, mouse.x, mouse.y)
+                }
+
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    const dx = pos.x - lastPos.x
+                    const dy = pos.y - lastPos.y
+                    indicatorRect.x += dx
+                    indicatorRect.y += dy
+                    indicatorRect.width -= dx
+                    indicatorRect.height -= dy
+                    lastPos = pos
+                }
+
+                onReleased: indicatorRect.roiSet()
             }
+        }
+
+        Rectangle {
+            id: bottomRightHandle
+            visible: roiView.currentIndex === index
+            x: parent.width - width / 2
+            y: parent.height - height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
+            border.color: global.theme.general.brandStroke
+            border.width: 1
+            z: 1
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point lastPos: Qt.point(0, 0)
+
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    lastPos = mapToItem(surface, mouse.x, mouse.y)
+                }
+
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    indicatorRect.width += pos.x - lastPos.x
+                    indicatorRect.height += pos.y - lastPos.y
+                    lastPos = pos
+                }
+
+                onReleased: indicatorRect.roiSet()
+            }
+        }
+
+        function roiSet() {
+            const ix = Math.round(indicatorRect.x)
+            const iy = Math.round(indicatorRect.y)
+            const iw = Math.round(indicatorRect.width)
+            const ih = Math.round(indicatorRect.height)
+            portManageWindow.config.rois[index] = [ix, iy, iw, ih]
+        }
+    }
+
+    component QuadIndicator: Shape {
+        id: indicatorQuadShape
+        property int x0
+        property int y0
+        property int x1
+        property int y1
+        property int x2
+        property int y2
+        property int x3
+        property int y3
+        required property int index
+        required property ListView roiView
+        required property Item surface
+        required property PortManageWindow portManageWindow
+
+        ShapePath {
+            fillColor: roiView.currentIndex === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+            strokeColor: global.theme.general.brandStroke
+            strokeWidth: 1
+            startX: x0; startY: y0
+
+            PathLine {
+                x: x1; y: y1
+            }
+            PathLine {
+                x: x2; y: y2
+            }
+            PathLine {
+                x: x3; y: y3
+            }
+            PathLine {
+                x: x0; y: y0
+            }
+        }
+
+        Label {
+            x: indicatorQuadShape.boundingRect.x + indicatorQuadShape.boundingRect.width / 2 - implicitWidth / 2
+            y: indicatorQuadShape.boundingRect.y + indicatorQuadShape.boundingRect.height / 2 - implicitHeight / 2
+            text: index.toString()
+            font.bold: true
+            font.pixelSize: 20
+        }
+
+        Item {
+            x: indicatorQuadShape.boundingRect.x
+            y: indicatorQuadShape.boundingRect.y
+            width: indicatorQuadShape.boundingRect.width
+            height: indicatorQuadShape.boundingRect.height
 
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 cursorShape: Qt.SizeAllCursor
                 preventStealing: true
-                property point lastPos: Qt.point(0, 0)
+                property point startPos: Qt.point(0, 0)
+                property int startX0
+                property int startY0
+                property int startX1
+                property int startY1
+                property int startX2
+                property int startY2
+                property int startX3
+                property int startY3
 
                 onPressed: (mouse) => {
-                    roiTableView.selectedRow = index
-                    lastPos = mapToItem(videoOutput, mouse.x, mouse.y)
+                    roiView.currentIndex = index
+                    startPos = mapToItem(surface, mouse.x, mouse.y)
+                    startX0 = indicatorQuadShape.x0
+                    startY0 = indicatorQuadShape.y0
+                    startX1 = indicatorQuadShape.x1
+                    startY1 = indicatorQuadShape.y1
+                    startX2 = indicatorQuadShape.x2
+                    startY2 = indicatorQuadShape.y2
+                    startX3 = indicatorQuadShape.x3
+                    startY3 = indicatorQuadShape.y3
                 }
 
                 onPositionChanged: (mouse) => {
-                    const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                    indicatorRect.x += pos.x - lastPos.x
-                    indicatorRect.y += pos.y - lastPos.y
-                    lastPos = pos
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    const dx = pos.x - startPos.x
+                    const dy = pos.y - startPos.y
+                    indicatorQuadShape.x0 = Math.round(startX0 + dx)
+                    indicatorQuadShape.y0 = Math.round(startY0 + dy)
+                    indicatorQuadShape.x1 = Math.round(startX1 + dx)
+                    indicatorQuadShape.y1 = Math.round(startY1 + dy)
+                    indicatorQuadShape.x2 = Math.round(startX2 + dx)
+                    indicatorQuadShape.y2 = Math.round(startY2 + dy)
+                    indicatorQuadShape.x3 = Math.round(startX3 + dx)
+                    indicatorQuadShape.y3 = Math.round(startY3 + dy)
                 }
 
-                onReleased: indicatorRect.roiSet()
+                onReleased: indicatorQuadShape.roiSet()
             }
+        }
 
-            Rectangle {
-                id: topLeftHandle
-                visible: roiTableView.selectedRow === index
-                x: -width / 2
-                y: -height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
+        Rectangle {
+            visible: roiView.currentIndex === index
+            x: indicatorQuadShape.x0 - width / 2
+            y: indicatorQuadShape.y0 - height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
+            border.color: global.theme.general.brandStroke
+            border.width: 1
+            z: 1
 
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point lastPos: Qt.point(0, 0)
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point startPos: Qt.point(0, 0)
+                property int startX
+                property int startY
 
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        lastPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        const dx = pos.x - lastPos.x
-                        const dy = pos.y - lastPos.y
-                        indicatorRect.x += dx
-                        indicatorRect.y += dy
-                        indicatorRect.width -= dx
-                        indicatorRect.height -= dy
-                        lastPos = pos
-                    }
-
-                    onReleased: indicatorRect.roiSet()
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    startPos = mapToItem(surface, mouse.x, mouse.y)
+                    startX = indicatorQuadShape.x0
+                    startY = indicatorQuadShape.y0
                 }
-            }
 
-            Rectangle {
-                id: bottomRightHandle
-                visible: roiTableView.selectedRow === index
-                x: parent.width - width / 2
-                y: parent.height - height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point lastPos: Qt.point(0, 0)
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        lastPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        indicatorRect.width += pos.x - lastPos.x
-                        indicatorRect.height += pos.y - lastPos.y
-                        lastPos = pos
-                    }
-
-                    onReleased: indicatorRect.roiSet()
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    indicatorQuadShape.x0 = Math.round(startX + pos.x - startPos.x)
+                    indicatorQuadShape.y0 = Math.round(startY + pos.y - startPos.y)
                 }
-            }
 
-            function roiSet() {
-                const ix = Math.round(indicatorRect.x)
-                const iy = Math.round(indicatorRect.y)
-                const iw = Math.round(indicatorRect.width)
-                const ih = Math.round(indicatorRect.height)
-                const modelIndex = root.roiModel.index(index, 0)
-                root.roiModel.setData(modelIndex, [ix, iy, iw, ih], Qt.WhatsThisRole)
+                onReleased: indicatorQuadShape.roiSet()
             }
+        }
+
+        Rectangle {
+            visible: roiView.currentIndex === index
+            x: indicatorQuadShape.x1 - width / 2
+            y: indicatorQuadShape.y1 - height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
+            border.color: global.theme.general.brandStroke
+            border.width: 1
+            z: 1
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point startPos: Qt.point(0, 0)
+                property int startX
+                property int startY
+
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    startPos = mapToItem(surface, mouse.x, mouse.y)
+                    startX = indicatorQuadShape.x1
+                    startY = indicatorQuadShape.y1
+                }
+
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    indicatorQuadShape.x1 = Math.round(startX + pos.x - startPos.x)
+                    indicatorQuadShape.y1 = Math.round(startY + pos.y - startPos.y)
+                }
+
+                onReleased: indicatorQuadShape.roiSet()
+            }
+        }
+
+        Rectangle {
+            visible: roiView.currentIndex === index
+            x: indicatorQuadShape.x2 - width / 2
+            y: indicatorQuadShape.y2 - height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
+            border.color: global.theme.general.brandStroke
+            border.width: 1
+            z: 1
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point startPos: Qt.point(0, 0)
+                property int startX
+                property int startY
+
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    startPos = mapToItem(surface, mouse.x, mouse.y)
+                    startX = indicatorQuadShape.x2
+                    startY = indicatorQuadShape.y2
+                }
+
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    indicatorQuadShape.x2 = Math.round(startX + pos.x - startPos.x)
+                    indicatorQuadShape.y2 = Math.round(startY + pos.y - startPos.y)
+                }
+
+                onReleased: indicatorQuadShape.roiSet()
+            }
+        }
+
+        Rectangle {
+            visible: roiView.currentIndex === index
+            x: indicatorQuadShape.x3 - width / 2
+            y: indicatorQuadShape.y3 - height / 2
+            width: 10
+            height: 10
+            radius: width / 2
+            color: global.theme.general.brandBackSelected
+            border.color: global.theme.general.brandStroke
+            border.width: 1
+            z: 1
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                preventStealing: true
+                property point startPos: Qt.point(0, 0)
+                property int startX
+                property int startY
+
+                onPressed: (mouse) => {
+                    roiView.currentIndex = index
+                    startPos = mapToItem(surface, mouse.x, mouse.y)
+                    startX = indicatorQuadShape.x3
+                    startY = indicatorQuadShape.y3
+                }
+
+                onPositionChanged: (mouse) => {
+                    const pos = mapToItem(surface, mouse.x, mouse.y)
+                    indicatorQuadShape.x3 = Math.round(startX + pos.x - startPos.x)
+                    indicatorQuadShape.y3 = Math.round(startY + pos.y - startPos.y)
+                }
+
+                onReleased: indicatorQuadShape.roiSet()
+            }
+        }
+
+        function roiSet() {
+            portManageWindow.config.rois[index] = [
+                indicatorQuadShape.x0, indicatorQuadShape.y0,
+                indicatorQuadShape.x1, indicatorQuadShape.y1,
+                indicatorQuadShape.x2, indicatorQuadShape.y2,
+                indicatorQuadShape.x3, indicatorQuadShape.y3
+            ]
         }
     }
 
-    Component {
-        id: indicatorQuadComponent
-
-        Shape {
-            id: indicatorQuadShape
-            property int x0
-            property int y0
-            property int x1
-            property int y1
-            property int x2
-            property int y2
-            property int x3
-            property int y3
-            property int index
-
-            ShapePath {
-                fillColor: roiTableView.selectedRow === index ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
-                strokeColor: global.theme.general.brandStroke
-                strokeWidth: 1
-                startX: x0; startY: y0
-
-                PathLine {
-                    x: x1; y: y1
-                }
-                PathLine {
-                    x: x2; y: y2
-                }
-                PathLine {
-                    x: x3; y: y3
-                }
-                PathLine {
-                    x: x0; y: y0
-                }
-            }
-
-            Label {
-                x: indicatorQuadShape.boundingRect.x + indicatorQuadShape.boundingRect.width / 2 - implicitWidth / 2
-                y: indicatorQuadShape.boundingRect.y + indicatorQuadShape.boundingRect.height / 2 - implicitHeight / 2
-                text: index.toString()
-                font.bold: true
-                font.pixelSize: 20
-            }
-
-            Item {
-                x: indicatorQuadShape.boundingRect.x
-                y: indicatorQuadShape.boundingRect.y
-                width: indicatorQuadShape.boundingRect.width
-                height: indicatorQuadShape.boundingRect.height
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeAllCursor
-                    preventStealing: true
-                    property point startPos: Qt.point(0, 0)
-                    property int startX0
-                    property int startY0
-                    property int startX1
-                    property int startY1
-                    property int startX2
-                    property int startY2
-                    property int startX3
-                    property int startY3
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        startPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        startX0 = indicatorQuadShape.x0
-                        startY0 = indicatorQuadShape.y0
-                        startX1 = indicatorQuadShape.x1
-                        startY1 = indicatorQuadShape.y1
-                        startX2 = indicatorQuadShape.x2
-                        startY2 = indicatorQuadShape.y2
-                        startX3 = indicatorQuadShape.x3
-                        startY3 = indicatorQuadShape.y3
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        const dx = pos.x - startPos.x
-                        const dy = pos.y - startPos.y
-                        indicatorQuadShape.x0 = Math.round(startX0 + dx)
-                        indicatorQuadShape.y0 = Math.round(startY0 + dy)
-                        indicatorQuadShape.x1 = Math.round(startX1 + dx)
-                        indicatorQuadShape.y1 = Math.round(startY1 + dy)
-                        indicatorQuadShape.x2 = Math.round(startX2 + dx)
-                        indicatorQuadShape.y2 = Math.round(startY2 + dy)
-                        indicatorQuadShape.x3 = Math.round(startX3 + dx)
-                        indicatorQuadShape.y3 = Math.round(startY3 + dy)
-                    }
-
-                    onReleased: indicatorQuadShape.roiSet()
-                }
-            }
-
-            Rectangle {
-                visible: roiTableView.selectedRow === index
-                x: indicatorQuadShape.x0 - width / 2
-                y: indicatorQuadShape.y0 - height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point startPos: Qt.point(0, 0)
-                    property int startX
-                    property int startY
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        startPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        startX = indicatorQuadShape.x0
-                        startY = indicatorQuadShape.y0
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        indicatorQuadShape.x0 = Math.round(startX + pos.x - startPos.x)
-                        indicatorQuadShape.y0 = Math.round(startY + pos.y - startPos.y)
-                    }
-
-                    onReleased: indicatorQuadShape.roiSet()
-                }
-            }
-
-            Rectangle {
-                visible: roiTableView.selectedRow === index
-                x: indicatorQuadShape.x1 - width / 2
-                y: indicatorQuadShape.y1 - height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point startPos: Qt.point(0, 0)
-                    property int startX
-                    property int startY
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        startPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        startX = indicatorQuadShape.x1
-                        startY = indicatorQuadShape.y1
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        indicatorQuadShape.x1 = Math.round(startX + pos.x - startPos.x)
-                        indicatorQuadShape.y1 = Math.round(startY + pos.y - startPos.y)
-                    }
-
-                    onReleased: indicatorQuadShape.roiSet()
-                }
-            }
-
-            Rectangle {
-                visible: roiTableView.selectedRow === index
-                x: indicatorQuadShape.x2 - width / 2
-                y: indicatorQuadShape.y2 - height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point startPos: Qt.point(0, 0)
-                    property int startX
-                    property int startY
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        startPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        startX = indicatorQuadShape.x2
-                        startY = indicatorQuadShape.y2
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        indicatorQuadShape.x2 = Math.round(startX + pos.x - startPos.x)
-                        indicatorQuadShape.y2 = Math.round(startY + pos.y - startPos.y)
-                    }
-
-                    onReleased: indicatorQuadShape.roiSet()
-                }
-            }
-
-            Rectangle {
-                visible: roiTableView.selectedRow === index
-                x: indicatorQuadShape.x3 - width / 2
-                y: indicatorQuadShape.y3 - height / 2
-                width: 10
-                height: 10
-                radius: width / 2
-                color: global.theme.general.brandBackSelected
-                border.color: global.theme.general.brandStroke
-                border.width: 1
-                z: 1
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeFDiagCursor
-                    preventStealing: true
-                    property point startPos: Qt.point(0, 0)
-                    property int startX
-                    property int startY
-
-                    onPressed: (mouse) => {
-                        roiTableView.selectedRow = index
-                        startPos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        startX = indicatorQuadShape.x3
-                        startY = indicatorQuadShape.y3
-                    }
-
-                    onPositionChanged: (mouse) => {
-                        const pos = mapToItem(videoOutput, mouse.x, mouse.y)
-                        indicatorQuadShape.x3 = Math.round(startX + pos.x - startPos.x)
-                        indicatorQuadShape.y3 = Math.round(startY + pos.y - startPos.y)
-                    }
-
-                    onReleased: indicatorQuadShape.roiSet()
-                }
-            }
-
-            function roiSet() {
-                const modelIndex = root.roiModel.index(index, 0)
-                root.roiModel.setData(modelIndex, [
-                    indicatorQuadShape.x0, indicatorQuadShape.y0,
-                    indicatorQuadShape.x1, indicatorQuadShape.y1,
-                    indicatorQuadShape.x2, indicatorQuadShape.y2,
-                    indicatorQuadShape.x3, indicatorQuadShape.y3
-                ], Qt.WhatsThisRole)
-            }
-        }
-    }
-
-    function indicatorReload() {
-        for (let i = 0; i < videoOutput.indicatorList.length; ++i) {
-            videoOutput.indicatorList[i].destroy()
-        }
-        videoOutput.indicatorList = []
-        for (let row = 0; row < root.roiModel.rowCount(); ++row) {
-            const index = root.roiModel.index(row, 0)
-            const roi = root.roiModel.data(index, Qt.WhatsThisRole)
-            var indicator
-            if (roi.length === 4) {
-                // rect roi
-                indicator = indicatorRectComponent.createObject(videoOutput, {
-                    x: roi[0],
-                    y: roi[1],
-                    width: roi[2],
-                    height: roi[3],
-                    index: row
-                });
-            } else if (roi.length === 8) {
-                // quad roi
-                indicator = indicatorQuadComponent.createObject(videoOutput, {
-                    x0: roi[0],
-                    y0: roi[1],
-                    x1: roi[2],
-                    y1: roi[3],
-                    x2: roi[4],
-                    y2: roi[5],
-                    x3: roi[6],
-                    y3: roi[7],
-                    index: row
-                });
-            }
-            videoOutput.indicatorList.push(indicator)
-        }
-    }
 }
