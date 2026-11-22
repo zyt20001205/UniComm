@@ -49,7 +49,6 @@ void DebugModule::currentThreadSet(const QString &threadId) {
 
 void DebugModule::interpreterStateSet(const InterpreterState::Value state) {
     if (m_currentThread.isEmpty()) return;
-    if (state == InterpreterState::RunToCursor) emit getIndex();
     emit setInterpreterState(m_currentThread, state);
 }
 

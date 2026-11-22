@@ -52,8 +52,6 @@ signals:
 
     void openDocument(const QUrl &documentUrl);
 
-    void getIndex();
-
     void setIndex(const QUrl &documentUrl, int line, int character);
 
     void addMarker(const QUrl &documentUrl, ScintillaMarker::Value type, int line, int time);
@@ -66,7 +64,7 @@ signals:
 
     void setThreadStatus(const QString &threadId, ThreadStatus::Value status);
 
-    void setInterpreterState(const QString &threadId, InterpreterState::Value state);
+    void setInterpreterState(const QString &threadId, InterpreterState::Value state, const QUrl &cursorUrl = {}, int cursorLine = -1);
 
 private:
     void debugRefresh();

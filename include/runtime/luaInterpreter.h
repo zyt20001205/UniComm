@@ -2,6 +2,7 @@
 #define UNICOMM_LUAINTERPRETER_H
 
 #include <sol/state.hpp>
+#include <QUrl>
 #include <variant>
 
 #include "api/thread.h"
@@ -27,7 +28,7 @@ public:
 
     void inputWrite(const QByteArray &data) const;
 
-    void interpreterStateSet(InterpreterState::Value state);
+    void interpreterStateSet(InterpreterState::Value state, const QUrl &cursorUrl = {}, int cursorLine = -1);
 
     void watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions);
 

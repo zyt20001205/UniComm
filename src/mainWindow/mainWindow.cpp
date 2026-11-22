@@ -435,7 +435,6 @@ void MainWindow::moduleInit() {
     connect(m_breakpointModule, &BreakpointModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);
 
     connect(m_debugModule, &DebugModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
-    connect(m_debugModule, &DebugModule::getIndex, m_documentModule, &DocumentModule::indexGet);
     connect(m_debugModule, &DebugModule::setIndex, m_documentModule, &DocumentModule::indexSet);
     connect(m_debugModule, &DebugModule::addMarker, m_documentModule, &DocumentModule::markerAdd);
     connect(m_debugModule, &DebugModule::deleteMarker, m_documentModule, &DocumentModule::markerDelete);

@@ -3,6 +3,7 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QJsonObject>
+#include <QUrl>
 #include <QVariantHash>
 #include <QtQmlIntegration/qqmlintegration.h>
 
@@ -37,7 +38,7 @@ public:
 
     void inputWrite(const QString &threadId, const QByteArray &data) const;
 
-    void interpreterStateSet(const QString &threadId, InterpreterState::Value state) const;
+    Q_INVOKABLE void interpreterStateSet(const QString &threadId, InterpreterState::Value state, const QUrl &cursorUrl = {}, int cursorLine = -1) const;
 
     void watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions) const;
 

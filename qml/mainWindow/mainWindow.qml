@@ -831,7 +831,7 @@ Item {
             text: qsTr("Run Here")
             icon.source: "qrc:/icon/debugContinue.svg"
             icon.width: 16; icon.height: 16
-            enabled: debugModule.currentThread.length > 0
+            enabled: debugModule.currentThread.length > 0 && global.documentModule.selection.line !== undefined
 
             HoverHandler {
                 onHoveredChanged: {
@@ -840,14 +840,16 @@ Item {
                     }
                 }
                 onPointChanged: {
-                    if (!documentModuleEditorMenuRunHereItem.enabled) {
+                    if (debugModule.currentThread.length === 0) {
                         mainWindowToolTip.position = parent.mapToGlobal(point.position)
                         mainWindowToolTip.text = qsTr("No debug sessions")
                     }
                 }
             }
 
-            onTriggered: debugModule.interpreterStateSet(InterpreterState.RunToCursor)
+            onTriggered: global.threadpoolModule.interpreterStateSet(
+                debugModule.currentThread, InterpreterState.RunToCursor,
+                global.documentModule.focusedUrl, global.documentModule.selection.line)
         }
 
         MenuSeparator {

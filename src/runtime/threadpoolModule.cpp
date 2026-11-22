@@ -122,8 +122,9 @@ void ThreadpoolModule::inputWrite(const QString &threadId, const QByteArray &dat
     if (const auto *interpreter = interpreterGet(threadId)) interpreter->inputWrite(data);
 }
 
-void ThreadpoolModule::interpreterStateSet(const QString &threadId, const InterpreterState::Value state) const {
-    if (auto *interpreter = interpreterGet(threadId)) QMetaObject::invokeMethod(interpreter, &LuaInterpreter::interpreterStateSet, Qt::QueuedConnection, state);
+void ThreadpoolModule::interpreterStateSet(const QString &threadId, const InterpreterState::Value state, const QUrl &cursorUrl, const int cursorLine) const {
+    if (auto *interpreter = interpreterGet(threadId))
+        QMetaObject::invokeMethod(interpreter, &LuaInterpreter::interpreterStateSet, Qt::QueuedConnection, state, cursorUrl, cursorLine);
 }
 
 void ThreadpoolModule::watchExpressionsSet(const QHash<QUrl, QVariantHash> &expressions) const {

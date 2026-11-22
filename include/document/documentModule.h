@@ -110,8 +110,6 @@ public:
 
     Q_INVOKABLE void indexSet(const QUrl &documentUrl, int line, int character);
 
-    void indexGet() const;
-
     void transactionBegin(const QString &undoGroupId);
 
     [[nodiscard]] QString transactionCommit(const QString &undoGroupId);

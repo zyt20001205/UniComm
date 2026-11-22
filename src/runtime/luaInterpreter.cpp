@@ -473,10 +473,13 @@ void LuaInterpreter::inputWrite(const QByteArray &data) const {
     m_io->stdIn(data);
 }
 
-void LuaInterpreter::interpreterStateSet(const InterpreterState::Value state) {
+void LuaInterpreter::interpreterStateSet(const InterpreterState::Value state, const QUrl &cursorUrl, const int cursorLine) {
     m_luaSession["state"] = QVariant::fromValue(state);
     if (state == InterpreterState::StepOver || state == InterpreterState::StepOut) {
         m_luaSession["baseDepth"] = m_luaSession["currentDepth"].toInt();
+    } else if (state == InterpreterState::RunToCursor) {
+        m_luaSession["cursorUrl"] = cursorUrl;
+        m_luaSession["cursorLine"] = cursorLine;
     }
     if (state != InterpreterState::Pause) emit quitLoop();
 }
@@ -765,7 +768,7 @@ void LuaInterpreter::luaDebugHook(lua_State *L, lua_Debug *ar) {
         } else if (state == InterpreterState::StepOver && session["currentDepth"].toInt() <= session["baseDepth"].toInt()) This->interpreterStateSet(InterpreterState::Pause);
         else if (state == InterpreterState::StepOut && session["currentDepth"].toInt() < session["baseDepth"].toInt()) This->interpreterStateSet(InterpreterState::Pause);
         else if (state == InterpreterState::StepInto) This->interpreterStateSet(InterpreterState::Pause);
-        else if (state == InterpreterState::RunToCursor && g_cursorPosition["url"].toUrl() == currentUrl && g_cursorPosition["line"].toInt() == currentLine)
+        else if (state == InterpreterState::RunToCursor && session.value("cursorUrl").toUrl() == currentUrl && session.value("cursorLine").toInt() == currentLine)
             This->interpreterStateSet(InterpreterState::Pause);
         if (session.value("state") == InterpreterState::Pause) {
             This->m_watchValuesRefresh = false;

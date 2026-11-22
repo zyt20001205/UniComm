@@ -8,12 +8,6 @@ QString g_gitRootPath = {};
 QJsonObject g_mainConfig = {};
 QJsonObject g_workspaceConfig = {};
 
-QVariantMap g_cursorPosition = {
-    {"url", QUrl()},
-    {"line", -1},
-    {"character", -1}
-};
-
 QHash<QChar, int> g_gitStatusCode = {
     {'?', GitStatusCode::Untracked},
     {'!', GitStatusCode::Ignored},

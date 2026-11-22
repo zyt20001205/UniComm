@@ -11,7 +11,6 @@ extern QString g_gitRootPath;
 extern QJsonObject g_mainConfig;
 extern QJsonObject g_workspaceConfig;
 
-extern QVariantMap g_cursorPosition;
 extern QHash<QChar, int> g_gitStatusCode;
 
 namespace Theme {

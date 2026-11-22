@@ -535,17 +535,6 @@ void DocumentModule::indexSet(const QUrl &documentUrl, const int line, const int
     if (const auto *handler = handlerGet(documentUrl)) handler->indexSet(line, character);
 }
 
-void DocumentModule::indexGet() const {
-    const auto *handler = handlerGet(m_focusedUrl);
-    if (handler == nullptr) return;
-    const auto index = handler->cast<ScintillaWidget::Utf16Index>(handler->positionGet());
-    g_cursorPosition = {
-        {"url", m_focusedUrl},
-        {"line", index.line},
-        {"character", index.character}
-    };
-}
-
 void DocumentModule::transactionBegin(const QString &undoGroupId) {
     auto transaction = QSharedPointer<DocumentTransaction>::create();
     for (auto page = m_pageHash.cbegin(); page != m_pageHash.cend(); ++page) {
