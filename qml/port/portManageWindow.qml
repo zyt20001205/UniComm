@@ -1668,8 +1668,7 @@ Item {
                             id: roiLayout
                             SplitView.fillWidth: true
                             SplitView.minimumHeight: roiHeader.implicitHeight
-                            SplitView.preferredHeight: expanded ? 150 : roiHeader.implicitHeight
-                            SplitView.maximumHeight: expanded ? 1000000 : roiHeader.implicitHeight
+                            SplitView.maximumHeight: expanded ? Infinity : roiHeader.implicitHeight
                             property bool expanded: false
 
                             RowLayout {
@@ -1745,6 +1744,7 @@ Item {
 
                             Item {
                                 visible: roiLayout.expanded
+                                implicitHeight: roiListView.count ? roiListView.contentHeight : roiHint.implicitHeight
                                 Layout.fillWidth: true; Layout.fillHeight: true
 
                                 Item {
@@ -1752,6 +1752,7 @@ Item {
                                     visible: root.rois.length === 0
 
                                     RowLayout {
+                                        id: roiHint
                                         anchors.centerIn: parent
 
                                         Label {
@@ -1793,8 +1794,7 @@ Item {
                             id: pipelineLayout
                             SplitView.fillWidth: true
                             SplitView.minimumHeight: pipelineHeader.implicitHeight
-                            SplitView.preferredHeight: expanded ? 200 : pipelineHeader.implicitHeight
-                            SplitView.maximumHeight: expanded ? 1000000 : pipelineHeader.implicitHeight
+                            SplitView.maximumHeight: expanded ? Infinity : pipelineHeader.implicitHeight
                             property bool expanded: false
 
                             RowLayout {
@@ -1870,6 +1870,7 @@ Item {
 
                             Item {
                                 visible: pipelineLayout.expanded
+                                implicitHeight: pipelineListView.count ? pipelineListView.contentHeight : pipelineHint.implicitHeight
                                 Layout.fillWidth: true; Layout.fillHeight: true
 
                                 Item {
@@ -1877,6 +1878,7 @@ Item {
                                     visible: pipelineListView.count === 0
 
                                     RowLayout {
+                                        id: pipelineHint
                                         anchors.centerIn: parent
 
                                         Label {
@@ -1889,12 +1891,21 @@ Item {
 
                                 VisionListView {
                                     id: pipelineListView
-                                    property int detailsIndex: -1
+                                    property list<bool> expanded
                                     entries: root.portManageWindow.config.pipeline ?? []
-                                    onEdited: entries => {
-                                        detailsIndex = -1
+                                    onEdited: (entries, from, to) => {
+                                        const open = from < 0 || expanded[from]
+                                        if (from >= 0) expanded.splice(from, 1)
+                                        if (to >= 0) expanded.splice(to, 0, open)
                                         root.portManageWindow.config.pipeline = entries
                                     }
+                                    Connections {
+                                        target: root.portManageWindow
+                                        function onVisibleChanged(visible) {
+                                            if (visible) pipelineListView.expanded = Array(pipelineListView.entries.length).fill(false)
+                                        }
+                                    }
+                                    onCountChanged: expanded.length = count
                                     rowDelegate: VisionRow {
                                         id: stepRow
                                         view: pipelineListView
@@ -1923,6 +1934,8 @@ Item {
                                                         case ImageOperation.Flip: return qsTr("Flip")
                                                         case ImageOperation.Blur: return qsTr("Blur")
                                                         case ImageOperation.Threshold: return qsTr("Threshold")
+                                                        case ImageOperation.ColorMask: return qsTr("Color Mask")
+                                                        case ImageOperation.Morphology: return qsTr("Morphology")
                                                         default: return ""
                                                         }
                                                     }
@@ -1938,10 +1951,10 @@ Item {
                                                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                                     Accessible.name: qsTr("Step details")
                                                     checkable: true
-                                                    checked: pipelineListView.detailsIndex === stepRow.index
+                                                    checked: pipelineListView.expanded[stepRow.index] === true
                                                     onClicked: {
                                                         pipelineListView.currentIndex = stepRow.visualIndex
-                                                        pipelineListView.detailsIndex = checked ? stepRow.index : -1
+                                                        pipelineListView.expanded[stepRow.index] = checked
                                                     }
 
                                                     HoverHandler {
@@ -1979,6 +1992,8 @@ Item {
                                                         case ImageOperation.Flip: return flipSettings
                                                         case ImageOperation.Blur: return blurSettings
                                                         case ImageOperation.Threshold: return thresholdSettings
+                                                        case ImageOperation.ColorMask: return colorMaskSettings
+                                                        case ImageOperation.Morphology: return morphologySettings
                                                         default: return null
                                                         }
                                                     }
@@ -2066,15 +2081,8 @@ Item {
                                                         }
 
                                                         Label { text: qsTr("Kernel Size") }
-                                                        ComboBox {
-                                                            model: [
-                                                                { label: "3 × 3", size: 3 },
-                                                                { label: "5 × 5", size: 5 },
-                                                                { label: "7 × 7", size: 7 }
-                                                            ]
-                                                            textRole: "label"; valueRole: "size"
+                                                        KernelSizeBox {
                                                             currentValue: stepRow.step?.kernelSize ?? 3
-                                                            Layout.fillWidth: true
                                                             onActivated: stepRow.setParameter("kernelSize", currentValue)
                                                         }
                                                     }
@@ -2127,6 +2135,75 @@ Item {
                                                         }
                                                     }
                                                 }
+
+                                                Component {
+                                                    id: colorMaskSettings
+                                                    ColumnLayout {
+                                                        id: maskSettings
+                                                        readonly property color hueColor: Qt.hsva((hueRange.bounds[0] + hueRange.bounds[1]) / 360, 1, 1, 1)
+
+                                                        MaskRange {
+                                                            id: hueRange
+                                                            label: "H"; hint: qsTr("Hue")
+                                                            maximum: 179
+                                                            bounds: stepRow.step.hue
+                                                            onEdited: bounds => stepRow.setParameter("hue", bounds)
+                                                            colors: Gradient {
+                                                                orientation: Gradient.Horizontal
+                                                                GradientStop { position: 0; color: "red" }
+                                                                GradientStop { position: 1 / 6; color: "yellow" }
+                                                                GradientStop { position: 2 / 6; color: "lime" }
+                                                                GradientStop { position: 3 / 6; color: "cyan" }
+                                                                GradientStop { position: 4 / 6; color: "blue" }
+                                                                GradientStop { position: 5 / 6; color: "magenta" }
+                                                                GradientStop { position: 1; color: "red" }
+                                                            }
+                                                        }
+                                                        MaskRange {
+                                                            label: "S"; hint: qsTr("Saturation")
+                                                            maximum: 255
+                                                            bounds: stepRow.step.saturation
+                                                            onEdited: bounds => stepRow.setParameter("saturation", bounds)
+                                                            colors: Gradient {
+                                                                orientation: Gradient.Horizontal
+                                                                GradientStop { position: 0; color: "white" }
+                                                                GradientStop { position: 1; color: maskSettings.hueColor }
+                                                            }
+                                                        }
+                                                        MaskRange {
+                                                            label: "V"; hint: qsTr("Value")
+                                                            maximum: 255
+                                                            bounds: stepRow.step.value
+                                                            onEdited: bounds => stepRow.setParameter("value", bounds)
+                                                            colors: Gradient {
+                                                                orientation: Gradient.Horizontal
+                                                                GradientStop { position: 0; color: "black" }
+                                                                GradientStop { position: 1; color: maskSettings.hueColor }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                Component {
+                                                    id: morphologySettings
+                                                    GridLayout {
+                                                        columns: 2
+
+                                                        Label { text: qsTr("Method") }
+                                                        ComboBox {
+                                                            model: [qsTr("Erode"), qsTr("Dilate"), qsTr("Open"), qsTr("Close")]
+                                                            currentIndex: stepRow.step?.method ?? 2
+                                                            Layout.fillWidth: true
+                                                            onActivated: stepRow.setParameter("method", currentIndex)
+                                                        }
+
+                                                        Label { text: qsTr("Kernel Size") }
+                                                        KernelSizeBox {
+                                                            currentValue: stepRow.step?.kernelSize ?? 3
+                                                            onActivated: stepRow.setParameter("kernelSize", currentValue)
+                                                        }
+                                                    }
+                                                }
                                             }
                                         ]
                                     }
@@ -2139,8 +2216,7 @@ Item {
                             id: recognitionLayout
                             SplitView.fillWidth: true
                             SplitView.minimumHeight: recognitionHeader.implicitHeight
-                            SplitView.preferredHeight: expanded ? 100 : recognitionHeader.implicitHeight
-                            SplitView.maximumHeight: expanded ? 1000000 : recognitionHeader.implicitHeight
+                            SplitView.maximumHeight: expanded ? Infinity : recognitionHeader.implicitHeight
                             property bool expanded: false
 
                             RowLayout {
@@ -2179,40 +2255,15 @@ Item {
                                 }
                             }
 
-                            StackLayout {
-                                visible: recognitionLayout.expanded
+                            LineEdit {
+                                visible: recognitionLayout.expanded && recognitionComboBox.currentIndex === RecognitionMethod.TemplateMatch
+                                clearable: true
+                                browsable: true
+                                nameFilters: [qsTr("Image files (*.png)")]
                                 Layout.fillWidth: true
-                                currentIndex: recognitionComboBox.currentIndex
+                                Binding on text { value: root.portManageWindow.config.recognition?.template ?? "" }
 
-                                // OCR
-                                ColumnLayout {
-                                    Layout.fillWidth: true; Layout.fillHeight: true
-                                }
-
-                                // Shi-Tomasi Corner
-                                ColumnLayout {
-                                    Layout.fillWidth: true; Layout.fillHeight: true
-                                }
-
-                                // Harris Corner
-                                ColumnLayout {
-                                    Layout.fillWidth: true; Layout.fillHeight: true
-                                }
-
-                                // Template Match
-                                ColumnLayout {
-                                    Layout.fillWidth: true; Layout.fillHeight: true
-
-                                    LineEdit {
-                                        clearable: true
-                                        browsable: true
-                                        nameFilters: [qsTr("Image files (*.png)")]
-                                        Layout.fillWidth: true
-                                        Binding on text { value: root.portManageWindow.config.recognition?.template ?? "" }
-
-                                        onValueCommitted: root.portManageWindow.config.recognition.template = text
-                                    }
-                                }
+                                onValueCommitted: root.portManageWindow.config.recognition.template = text
                             }
                         }
 
@@ -2221,14 +2272,12 @@ Item {
                             id: previewLayout
                             SplitView.fillWidth: true; SplitView.fillHeight: true
                             SplitView.minimumHeight: previewHeader.implicitHeight
-                            SplitView.preferredHeight: expanded ? 300 : previewHeader.implicitHeight
-                            SplitView.maximumHeight: expanded ? 1000000 : previewHeader.implicitHeight
+                            SplitView.maximumHeight: expanded ? Infinity : previewHeader.implicitHeight
                             property bool expanded: false
 
                             RowLayout {
                                 id: previewHeader
                                 Layout.fillWidth: true
-                                property int previousHeight
 
                                 Button {
                                     flat: true
@@ -2507,11 +2556,85 @@ Item {
         }
     }
 
+    component KernelSizeBox: ComboBox {
+        model: [
+            { label: "3 × 3", size: 3 },
+            { label: "5 × 5", size: 5 },
+            { label: "7 × 7", size: 7 }
+        ]
+        textRole: "label"; valueRole: "size"
+        Layout.fillWidth: true
+    }
+
+    component MaskRange: ColumnLayout {
+        id: rangeRow
+        required property string label
+        required property string hint
+        required property int maximum
+        required property var bounds
+        required property Gradient colors
+        signal edited(var bounds)
+        Layout.fillWidth: true
+        spacing: 0
+
+        RowLayout {
+            Layout.fillWidth: true
+            Label {
+                text: rangeRow.label
+                Layout.fillWidth: true
+                HoverHandler {
+                    onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = rangeRow.hint
+                    }
+                }
+            }
+            Label { text: slider.first.value + " – " + slider.second.value }
+        }
+        RangeSlider {
+            id: slider
+            Accessible.name: rangeRow.hint
+            Layout.fillWidth: true
+            to: rangeRow.maximum
+            stepSize: 1
+            snapMode: RangeSlider.SnapAlways
+            first.value: rangeRow.bounds[0]
+            second.value: rangeRow.bounds[1]
+            first.onMoved: rangeRow.edited([first.value, second.value])
+            second.onMoved: rangeRow.edited([first.value, second.value])
+
+            background: Item {
+                Rectangle {
+                    id: track
+                    x: slider.leftPadding + slider.first.implicitHandleWidth / 2
+                    width: slider.availableWidth - slider.first.implicitHandleWidth
+                    height: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    gradient: rangeRow.colors
+                    transform: Scale { origin.x: track.width / 2; xScale: slider.mirrored ? -1 : 1 }
+                    Rectangle {
+                        width: track.width * slider.first.position
+                        height: parent.height
+                        color: "#80000000"
+                    }
+                    Rectangle {
+                        anchors.right: parent.right
+                        width: track.width * (1 - slider.second.position)
+                        height: parent.height
+                        color: "#80000000"
+                    }
+                }
+            }
+        }
+    }
+
     component VisionListView: ListView {
         id: view
         required property var entries
         required property Component rowDelegate
-        signal edited(var entries)
+        // A missing source means append; a missing destination means delete.
+        signal edited(var entries, int from, int to)
 
         anchors.fill: parent
         visible: count > 0
@@ -2542,7 +2665,7 @@ Item {
         }
 
         function appendEntry(entry) {
-            edited([...entries, entry])
+            edited([...entries, entry], -1, entries.length)
             currentIndex = entries.length - 1
             positionViewAtIndex(currentIndex, ListView.Contain)
         }
@@ -2552,7 +2675,7 @@ Item {
             if (index < 0) return
             const remaining = [...entries]
             remaining.splice(index, 1)
-            edited(remaining)
+            edited(remaining, index, -1)
             currentIndex = Math.min(index, remaining.length - 1)
         }
     }
@@ -2613,7 +2736,7 @@ Item {
                             entries.splice(to, 0, entries.splice(from, 1)[0])
                             // Rows read by index once the new order is committed.
                             row.view.model.items.move(to, from)
-                            row.view.edited(entries)
+                            row.view.edited(entries, from, to)
                             row.view.currentIndex = to
                         }
                         onCanceled: {
@@ -2713,6 +2836,22 @@ Item {
             icon.width: 16; icon.height: 16
 
             onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Threshold, thresh: 0, maxval: 255, mode: 0 })
+        }
+
+        MenuItem {
+            text: qsTr("Color Mask")
+            icon.source: "qrc:/icon/color.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.ColorMask, hue: [48, 72], saturation: [85, 255], value: [140, 255] })
+        }
+
+        MenuItem {
+            text: qsTr("Morphology")
+            icon.source: "qrc:/icon/shapeUnion.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: pipelineListView.appendEntry({ type: ImageOperation.Morphology, method: 2, kernelSize: 3 })
         }
     }
 

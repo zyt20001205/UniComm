@@ -49,6 +49,10 @@ private:
 
     [[nodiscard]] static cv::Mat threshold(const cv::Mat &input, int thresh, int maxval, int mode);
 
+    [[nodiscard]] static cv::Mat colorMask(const cv::Mat &input, const cv::Scalar &lower, const cv::Scalar &upper);
+
+    [[nodiscard]] static cv::Mat morphology(const cv::Mat &input, int method, int kernelSize);
+
     [[nodiscard]] static QPoint goodFeaturesToTrack(const QImage &image);
 
     [[nodiscard]] static QPoint cornerHarris(const QImage &image);

@@ -119,6 +119,17 @@ cv::Mat ImageProcess::pipeline(cv::Mat frame, const QJsonArray &steps) {
                 frame = threshold(frame, thresh, maxval, mode);
             }
             break;
+            case ImageOperation::ColorMask: {
+                const auto hue = step["hue"].toArray();
+                const auto saturation = step["saturation"].toArray();
+                const auto valueRange = step["value"].toArray();
+                frame = colorMask(frame, {hue.at(0).toDouble(), saturation.at(0).toDouble(), valueRange.at(0).toDouble()},
+                                  {hue.at(1).toDouble(), saturation.at(1).toDouble(), valueRange.at(1).toDouble()});
+            }
+            break;
+            case ImageOperation::Morphology:
+                frame = morphology(frame, step["method"].toInt(cv::MORPH_OPEN), step["kernelSize"].toInt(3));
+                break;
             default: break;
         }
     }
@@ -257,6 +268,22 @@ cv::Mat ImageProcess::threshold(const cv::Mat &input, const int thresh, const in
     } else {
         cv::threshold(input, output, thresh, maxval, mode);
     }
+    return output;
+}
+
+cv::Mat ImageProcess::colorMask(const cv::Mat &input, const cv::Scalar &lower, const cv::Scalar &upper) {
+    cv::Mat bgr = input;
+    if (input.channels() == 1) cv::cvtColor(input, bgr, cv::COLOR_GRAY2BGR);
+    cv::Mat hsv{}, mask{};
+    cv::cvtColor(bgr, hsv, cv::COLOR_BGR2HSV);
+    cv::inRange(hsv, lower, upper, mask);
+    return mask;
+}
+
+cv::Mat ImageProcess::morphology(const cv::Mat &input, const int method, const int kernelSize) {
+    const auto kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(kernelSize, kernelSize));
+    cv::Mat output{};
+    cv::morphologyEx(input, output, method, kernel);
     return output;
 }
 

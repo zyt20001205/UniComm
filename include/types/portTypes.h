@@ -35,7 +35,9 @@ namespace ImageOperation {
         Rotate,
         Flip,
         Blur,
-        Threshold
+        Threshold,
+        ColorMask,
+        Morphology
     };
 
     Q_ENUM_NS(Value)
