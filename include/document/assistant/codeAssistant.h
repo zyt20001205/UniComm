@@ -3,7 +3,6 @@
 
 #include <QObject>
 
-#include "types/logTypes.h"
 #include "types/scintillaTypes.h"
 
 class CompletionWidget;
@@ -46,8 +45,6 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
-
     void addChar(const QUrl &documentUrl, QChar character);
 
     void setIndex(const QUrl &documentUrl, int line, int character);

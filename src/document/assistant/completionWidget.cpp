@@ -1,6 +1,7 @@
 #include "document/assistant/completionWidget.h"
 
 #include <QJsonArray>
+#include <QQmlComponent>
 #include <QtMath>
 
 #include "globals.h"
@@ -17,27 +18,18 @@ CompletionWidget::CompletionWidget(QObject *parent)
       }) {
 }
 
-void CompletionWidget::propertySet(const QVariantHash &objects) {
-    m_tooltip = qvariant_cast<QObject *>(objects["documentModuleCompletionToolTip"]);
-    m_listView = qvariant_cast<QObject *>(objects["documentModuleCompletionListView"]);
-    m_font = m_tooltip->property("font").value<QFont>();
-    sizesRefresh();
-    m_tooltip->setProperty("completionWidget", QVariant::fromValue(this));
+void CompletionWidget::propertySet() {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/document/assistant/completionWidget.qml"));
+    if (auto *root = component.createWithInitialProperties({{"completionWidget", QVariant::fromValue(this)}})) root->setParent(this);
+    else qWarning().noquote() << component.errorString();
 }
 
 void CompletionWidget::fontSet(const QString &family, const int pointSize) {
-    if (!m_tooltip) return;
-    auto font = m_tooltip->property("font").value<QFont>();
-    font.setFamily(family);
-    font.setPointSize(pointSize);
-    m_tooltip->setProperty("font", font);
-    m_font = font;
+    m_font.setFamily(family);
+    m_font.setPointSize(pointSize);
+    emit fontChanged();
     sizesRefresh();
-}
-
-bool CompletionWidget::isVisible() const {
-    if (!m_tooltip) return false;
-    return m_tooltip->property("visible").toBool();
+    if (!m_model.isEmpty()) emit modelChanged();
 }
 
 void CompletionWidget::completionShow(const QVariantHash &completionSession, const QJsonArray &items) {
@@ -46,7 +38,6 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
     int completionMode = Full;
     const auto theme = g_globalManager->themeGet();
     const auto general = theme["general"].toObject();
-    const auto colors = theme["lua"].toObject()["completion"].toObject();
     const int typed = completionSession["typed"].toInt();
     for (const auto &value: items) {
         QJsonObject item = value.toObject();
@@ -72,92 +63,6 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
         // duplicate item check
         if (model.isEmpty() || insertText != recordInsertText) {
             recordInsertText = insertText;
-            QString iconColor{};
-            QUrl iconSource{};
-            switch (kind) {
-                case LspCompletionKind::Text: {
-                    iconColor = colors["text"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolString.svg";
-                }
-                break;
-                case LspCompletionKind::Method:
-                case LspCompletionKind::Function: {
-                    iconColor = colors[kind == LspCompletionKind::Method ? "method" : "function"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolMethod.svg";
-                }
-                break;
-                case LspCompletionKind::Field: {
-                    iconColor = colors["field"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolField.svg";
-                }
-                break;
-                case LspCompletionKind::Variable: {
-                    iconColor = colors["variable"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolVariable.svg";
-                }
-                break;
-                case LspCompletionKind::Enum: {
-                    iconColor = colors["enum"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolEnum.svg";
-                }
-                break;
-                case LspCompletionKind::Keyword: {
-                    iconColor = colors["keyword"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolKeyword.svg";
-                }
-                break;
-                case LspCompletionKind::Snippet: {
-                    iconColor = colors["snippet"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolSnippet.svg";
-                }
-                break;
-                case LspCompletionKind::File: {
-                    iconColor = colors["file"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolFile.svg";
-                }
-                break;
-                case LspCompletionKind::EnumMember: {
-                    iconColor = colors["enumMember"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolEnumMember.svg";
-                }
-                break;
-                case LspCompletionKind::Event: {
-                    iconColor = colors["event"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolEvent.svg";
-                }
-                break;
-                case LspCompletionKind::Class: {
-                    iconColor = colors["class"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolMisc.svg";
-                }
-                break;
-                case LspCompletionKind::Interface: {
-                    iconColor = colors["interface"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolVariable.svg";
-                }
-                break;
-                case LspCompletionKind::Property: {
-                    iconColor = colors["property"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolField.svg";
-                }
-                break;
-                case LspCompletionKind::Value: {
-                    iconColor = colors["value"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolConstant.svg";
-                }
-                break;
-                case LspCompletionKind::Operator: {
-                    iconColor = colors["operator"].toObject()["fore"].toString(general["fore"].toString());
-                    iconSource = "qrc:/icon/symbolKeyword.svg";
-                }
-                break;
-                default: {
-                    iconColor = general["fore"].toString();
-                    iconSource = "qrc:/icon/symbolMisc.svg";
-                    emit appendLog(LogType::Warning, "contact author:", QString("unsupported completion (kind:%1, text:%2)").arg(QString::number(kind), insertText));
-                }
-                break;
-            }
             const auto displayText = QString("<span style='color: %1;'>%2</span>%3").arg(
                 general["foreDisabled"].toString(),
                 insertText.left(typed).toHtmlEscaped(),
@@ -165,8 +70,6 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
             model.append(QVariantHash{
                 {"text", insertText},
                 {"displayText", displayText},
-                {"source", iconSource},
-                {"iconColor", iconColor},
                 {"kind", kind},
                 {"labels", QStringList{label}}
             });
@@ -178,55 +81,26 @@ void CompletionWidget::completionShow(const QVariantHash &completionSession, con
             model.last() = item;
         }
     }
+    if (model.isEmpty()) {
+        completionHide();
+        return;
+    }
     m_model = model;
-    m_detailModel.clear();
     sizesRefresh();
     emit modelChanged();
-    emit detailModelChanged();
-    if (!m_model.isEmpty()) {
-        const auto position = completionSession["position"].toPoint();
-        m_tooltip->setProperty("position", position);
-        m_listView->setProperty("currentIndex", 0);
-        QMetaObject::invokeMethod(m_tooltip, "open");
-    } else {
-        completionHide();
-    }
+    emit showCompletion(completionSession["position"].toPoint());
 }
 
 void CompletionWidget::completionHide() {
-    QMetaObject::invokeMethod(m_tooltip, "close");
-    if (m_model.isEmpty() && m_detailModel.isEmpty()) return;
-    m_model.clear();
-    m_detailModel.clear();
-    sizesRefresh();
-    emit modelChanged();
-    emit detailModelChanged();
-}
-
-void CompletionWidget::completionPrev() const {
-    QMetaObject::invokeMethod(m_listView, "decrementCurrentIndex");
-}
-
-void CompletionWidget::completionNext() const {
-    QMetaObject::invokeMethod(m_listView, "incrementCurrentIndex");
-}
-
-void CompletionWidget::detailReload(const int index) {
-    QVariantList model{};
-    if (index >= 0 && index < m_model.size()) {
-        const auto labels = m_model[index].toHash()["labels"].toStringList();
-        for (const auto &label: labels) {
-            model.append(QVariantHash{{"text", label}});
-        }
+    if (!m_model.isEmpty()) {
+        m_model.clear();
+        sizesRefresh();
+        emit modelChanged();
     }
-    if (m_detailModel == model) return;
-    m_detailModel = model;
-    sizesRefresh();
-    emit detailModelChanged();
+    if (m_visible) emit hideCompletion();
 }
 
-void CompletionWidget::textReplace() {
-    const int index = m_listView->property("currentIndex").toInt();
+void CompletionWidget::textReplace(const int index) {
     if (index < 0 || index >= m_model.size()) return;
     const auto item = m_model[index].toHash();
     const int kind = item["kind"].toInt();
@@ -278,7 +152,6 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
         const auto &ports = g_globalManager->portModuleGet()->portsGet();
         const auto theme = g_globalManager->themeGet();
         const auto general = theme["general"].toObject();
-        const auto color = theme["lua"].toObject()["completion"].toObject()["enumMember"].toObject()["fore"].toString(general["fore"].toString());
         const int typed = m_completionSession["typed"].toInt();
         for (const auto &port: ports) {
             const QString insertText = "\"" + port.toHash().value("name").toString() + "\"";
@@ -289,8 +162,6 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
             model.append(QVariantHash{
                 {"text", insertText},
                 {"displayText", displayText},
-                {"source", QUrl("qrc:/icon/symbolEnumMember.svg")},
-                {"iconColor", color},
                 {"kind", LspCompletionKind::EnumMember},
                 {"labels", QStringList{insertText}}
             });
@@ -301,19 +172,19 @@ void CompletionWidget::placeholderExpand(const QString &placeholder, QVariantLis
 
 void CompletionWidget::sizesRefresh() {
     const QFontMetricsF metrics(m_font);
-    const qreal rowHeight = qMax<qreal>(24, qCeil(metrics.height()) + 4);
-    const auto measure = [&metrics, rowHeight](const QVariantList &model) {
-        qreal width = 0;
-        for (const auto &value: model) {
-            width = qMax(width, metrics.horizontalAdvance(value.toHash()["text"].toString()));
-        }
-        return QSizeF(qCeil(width), model.size() * rowHeight);
-    };
-    const auto contentSize = measure(m_model);
-    const auto detailContentSize = measure(m_detailModel);
-    if (m_rowHeight == rowHeight && m_contentSize == contentSize && m_detailContentSize == detailContentSize) return;
+    const qreal rowHeight = qMax<qreal>(28, qCeil(metrics.height()) + 4);
+    qreal width = 0;
+    for (auto &value: m_model) {
+        auto &item = get<QVariantHash>(value);
+        width = qMax(width, metrics.horizontalAdvance(item.value("text").toString()));
+        qreal detailWidth = 0;
+        const auto labels = item.value("labels").toStringList();
+        for (const auto &label: labels) detailWidth = qMax(detailWidth, metrics.horizontalAdvance(label));
+        item.insert("detailWidth", qCeil(detailWidth));
+    }
+    const QSizeF contentSize(qCeil(width), m_model.size() * rowHeight);
+    if (m_rowHeight == rowHeight && m_contentSize == contentSize) return;
     m_rowHeight = rowHeight;
     m_contentSize = contentSize;
-    m_detailContentSize = detailContentSize;
     emit sizesChanged();
 }

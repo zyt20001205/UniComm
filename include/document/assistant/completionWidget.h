@@ -2,32 +2,27 @@
 #define UNICOMM_COMPLETIONPOPUP_H
 
 #include <QFont>
+#include <QObject>
 #include <QSizeF>
 #include <QVariant>
-
-#include "types/logTypes.h"
 
 class CompletionWidget final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
-    Q_PROPERTY(QVariantList detailModel READ detailModelGet NOTIFY detailModelChanged)
+    Q_PROPERTY(QFont font MEMBER m_font NOTIFY fontChanged)
+    Q_PROPERTY(bool visible MEMBER m_visible)
     Q_PROPERTY(qreal rowHeight READ rowHeightGet NOTIFY sizesChanged)
     Q_PROPERTY(QSizeF contentSize READ contentSizeGet NOTIFY sizesChanged)
-    Q_PROPERTY(QSizeF detailContentSize READ detailContentSizeGet NOTIFY sizesChanged)
 
 public:
     explicit CompletionWidget(QObject *parent = nullptr);
 
     ~CompletionWidget() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] QVariantList modelGet() const {
         return m_model;
-    }
-
-    [[nodiscard]] QVariantList detailModelGet() const {
-        return m_detailModel;
     }
 
     [[nodiscard]] qreal rowHeightGet() const {
@@ -38,34 +33,38 @@ public:
         return m_contentSize;
     }
 
-    [[nodiscard]] QSizeF detailContentSizeGet() const {
-        return m_detailContentSize;
-    }
-
     void fontSet(const QString &family, int pointSize);
 
-    [[nodiscard]] bool isVisible() const;
+    [[nodiscard]] bool isVisible() const { return m_visible; }
 
     void completionShow(const QVariantHash &completionSession, const QJsonArray &items);
 
     Q_INVOKABLE void completionHide();
 
-    void completionPrev() const;
+    void completionPrev() { emit selectPrevious(); }
 
-    void completionNext() const;
+    void completionNext() { emit selectNext(); }
 
-    Q_INVOKABLE void detailReload(int index);
+    void completionAccept() { emit acceptSelection(); }
 
-    Q_INVOKABLE void textReplace();
+    Q_INVOKABLE void textReplace(int index);
 
 signals:
+    void fontChanged();
+
+    void showCompletion(const QPoint &position);
+
+    void hideCompletion();
+
+    void selectPrevious();
+
+    void selectNext();
+
+    void acceptSelection();
+
     void modelChanged();
 
-    void detailModelChanged();
-
     void sizesChanged();
-
-    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void setIndex(const QUrl &documentUrl, int line, int character);
 
@@ -80,16 +79,13 @@ private:
 
     void sizesRefresh();
 
-    QObject *m_tooltip{};
-    QObject *m_listView{};
+    bool m_visible{};
     QVariantHash m_completionSession{};
     QSet<QString > m_placeholderSet{};
     QVariantList m_model{};
-    QVariantList m_detailModel{};
     QFont m_font{};
-    qreal m_rowHeight{24};
+    qreal m_rowHeight{28};
     QSizeF m_contentSize{0, 0};
-    QSizeF m_detailContentSize{0, 0};
 
     enum CompletionMode {
         Full,

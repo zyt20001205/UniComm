@@ -17,7 +17,6 @@ CodeAssistant::CodeAssistant(QWidget *parent)
       m_positionWidget(new PositionWidget(parent)),
       m_searchWindow(new SearchWindow(parent)),
       m_signatureWidget(new SignatureWidget(parent)) {
-    connect(m_completionWidget, &CompletionWidget::appendLog, this, &CodeAssistant::appendLog);
     connect(m_completionWidget, &CompletionWidget::addChar, this, &CodeAssistant::addChar);
     connect(m_completionWidget, &CompletionWidget::setIndex, this, &CodeAssistant::setIndex);
     connect(m_completionWidget, &CompletionWidget::setText, this, &CodeAssistant::setText);
@@ -36,10 +35,7 @@ CodeAssistant::CodeAssistant(QWidget *parent)
 }
 
 void CodeAssistant::propertySet(const QVariantHash &objects) const {
-    m_completionWidget->propertySet(QVariantHash{
-        {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
-        {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]}
-    });
+    m_completionWidget->propertySet();
     m_dwellWidget->propertySet(QVariantHash{
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
         {"documentModuleDwellDiagnosticTextArea", objects["documentModuleDwellDiagnosticTextArea"]},
@@ -145,7 +141,7 @@ bool CodeAssistant::eventFilter(QObject *watched, QEvent *event) {
             // completion keys
             case Qt::Key_Tab: {
                 if (m_completionWidget->isVisible()) {
-                    m_completionWidget->textReplace();
+                    m_completionWidget->completionAccept();
                     return true;
                 }
                 if (m_signatureWidget->isVisible()) {

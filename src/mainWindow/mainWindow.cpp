@@ -136,8 +136,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_diagnosticsModule->propertySet();
 
     const QVariantHash documentObjects = {
-        {"documentModuleCompletionToolTip", objects["documentModuleCompletionToolTip"]},
-        {"documentModuleCompletionListView", objects["documentModuleCompletionListView"]},
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
         {"documentModuleDwellDiagnosticTextArea", objects["documentModuleDwellDiagnosticTextArea"]},
         {"documentModuleDwellHoverTextArea", objects["documentModuleDwellHoverTextArea"]},
