@@ -95,7 +95,6 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_widget->rootContext()->setContextProperty("global", g_globalManager);
     m_widget->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     m_widget->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_widget->rootContext()->setContextProperty("documentModule", objects["documentModule"]);
     m_widget->rootContext()->setContextProperty("fileModule", objects["fileModule"]);
     m_widget->rootContext()->setContextProperty("renameDialog", objects["agentModuleRenameDialog"]);
     m_widget->rootContext()->setContextProperty("conversationListModel", m_conversationListModel);

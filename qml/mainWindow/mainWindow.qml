@@ -194,7 +194,7 @@ Item {
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: documentModule.documentOpen(mainWindowLinkMenu.url)
+            onTriggered: global.documentModule.documentOpen(mainWindowLinkMenu.url)
         }
 
         MenuItem {
@@ -536,7 +536,7 @@ Item {
             const parts = documentModuleGotoTextField.text.split(":")
             const line = parseInt(parts[0]) - 1
             const character = parts.length > 1 ? parseInt(parts[1]) : 0
-            documentModule.indexSet(documentModuleGotoDialog.documentUrl, line, character)
+            global.documentModule.indexSet(documentModuleGotoDialog.documentUrl, line, character)
         }
 
         TextField {
@@ -575,7 +575,7 @@ Item {
         onAccepted: {
             const newName = documentModuleRenameTextField.text
             if (newName !== "" && newName !== documentModuleRenameDialog.oldName) {
-                documentModule.renameRequest(documentModuleRenameDialog.documentUrl, documentModuleRenameDialog.line, documentModuleRenameDialog.character, newName)
+                global.documentModule.renameRequest(documentModuleRenameDialog.documentUrl, documentModuleRenameDialog.line, documentModuleRenameDialog.character, newName)
             }
         }
 
@@ -609,7 +609,7 @@ Item {
         onClosed: {
             widgetCount -= 1
             if (closeDecision !== Dialog.Cancel)
-                documentModule.documentClose(documentUrl, closeDecision === Dialog.Yes)
+                global.documentModule.documentClose(documentUrl, closeDecision === Dialog.Yes)
         }
         onAccepted: closeDecision = Dialog.Yes
 
@@ -635,7 +635,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: menuSession = documentModule.menuLoad("editor")
+        onAboutToShow: menuSession = global.documentModule.menuLoad("editor")
 
         MenuItem {
             contentItem: RowLayout {
@@ -706,7 +706,7 @@ Item {
                 icon.source: "qrc:/icon/collapse.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldContractTop(documentModuleEditorMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldContractTop(documentModuleEditorMenu.menuSession.documentUrl)
             }
 
             MenuItem {
@@ -714,7 +714,7 @@ Item {
                 icon.source: "qrc:/icon/collapse.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldContractRecursively(documentModuleEditorMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldContractRecursively(documentModuleEditorMenu.menuSession.documentUrl)
             }
 
             MenuItem {
@@ -722,7 +722,7 @@ Item {
                 icon.source: "qrc:/icon/expand.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldExpandRecursively(documentModuleEditorMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldExpandRecursively(documentModuleEditorMenu.menuSession.documentUrl)
             }
         }
 
@@ -753,9 +753,9 @@ Item {
 
             onTriggered: {
                 if (documentModuleEditorMenu.menuSession.text) {
-                    documentModule.rangeFormattingRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.startLine, documentModuleEditorMenu.menuSession.startCharacter, documentModuleEditorMenu.menuSession.endLine, documentModuleEditorMenu.menuSession.endCharacter)
+                    global.documentModule.rangeFormattingRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.startLine, documentModuleEditorMenu.menuSession.startCharacter, documentModuleEditorMenu.menuSession.endLine, documentModuleEditorMenu.menuSession.endCharacter)
                 } else {
-                    documentModule.formattingRequest(documentModuleEditorMenu.menuSession.documentUrl)
+                    global.documentModule.formattingRequest(documentModuleEditorMenu.menuSession.documentUrl)
                 }
             }
         }
@@ -765,7 +765,7 @@ Item {
             icon.source: "qrc:/icon/rename.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: documentModule.prepareRenameRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
+            onTriggered: global.documentModule.prepareRenameRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
         }
 
         Menu {
@@ -777,25 +777,25 @@ Item {
             MenuItem {
                 text: qsTr("Definition(s)")
 
-                onTriggered: documentModule.definitionRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
+                onTriggered: global.documentModule.definitionRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
             }
 
             MenuItem {
                 text: qsTr("References(s)")
 
-                onTriggered: documentModule.referencesRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
+                onTriggered: global.documentModule.referencesRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
             }
 
             MenuItem {
                 text: qsTr("Implementation(s)")
 
-                onTriggered: documentModule.implementationRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
+                onTriggered: global.documentModule.implementationRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
             }
 
             MenuItem {
                 text: qsTr("Type Definition(s)")
 
-                onTriggered: documentModule.typeDefinitionRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
+                onTriggered: global.documentModule.typeDefinitionRequest(documentModuleEditorMenu.menuSession.documentUrl, documentModuleEditorMenu.menuSession.line, documentModuleEditorMenu.menuSession.character)
             }
         }
 
@@ -1208,7 +1208,7 @@ Item {
                         acceptedButtons: Qt.LeftButton
                         onTapped: {
                             if (documentModuleDwellHoverTextArea.hoveredLink) {
-                                documentModule.documentOpen(documentModuleDwellHoverTextArea.hoveredLink)
+                                global.documentModule.documentOpen(documentModuleDwellHoverTextArea.hoveredLink)
                             }
                         }
                     }
@@ -1532,7 +1532,7 @@ Item {
             if (!explorerModuleFileNameTextField.acceptableInput) {
                 return
             }
-            operationErrorShow(documentModule.documentCreate(explorerModuleFileNewDialog.documentUrl + "/" + explorerModuleFileNameTextField.text))
+            operationErrorShow(global.documentModule.documentCreate(explorerModuleFileNewDialog.documentUrl + "/" + explorerModuleFileNameTextField.text))
         }
 
         Binding {
@@ -1576,7 +1576,7 @@ Item {
             explorerModuleFolderNameTextField.forceActiveFocus()
         }
         onAccepted: operationErrorShow(
-            documentModule.directoryCreate(explorerModuleFolderNewDialog.documentUrl + "/" + explorerModuleFolderNameTextField.text))
+            global.documentModule.directoryCreate(explorerModuleFolderNewDialog.documentUrl + "/" + explorerModuleFolderNameTextField.text))
 
         TextField {
             id: explorerModuleFolderNameTextField
@@ -1663,7 +1663,7 @@ Item {
                 text: qsTr("Confirm")
 
                 onActivated: {
-                    operationErrorShow(documentModule.documentDelete(explorerModuleFileMenu.documentUrl))
+                    operationErrorShow(global.documentModule.documentDelete(explorerModuleFileMenu.documentUrl))
                     progress = 0
                     explorerModuleFileMenu.close()
                 }
@@ -1806,7 +1806,7 @@ Item {
                 text: qsTr("Confirm")
 
                 onActivated: {
-                    operationErrorShow(documentModule.directoryDelete(explorerModuleFolderMenu.documentUrl))
+                    operationErrorShow(global.documentModule.directoryDelete(explorerModuleFolderMenu.documentUrl))
                     progress = 0
                     explorerModuleFolderMenu.close()
                 }
@@ -1998,8 +1998,8 @@ Item {
                 const targetUrl = fileModulePropertyDialog.infoSession.parentUrl + "/"
                     + encodeURIComponent(fileModulePropertyNameTextField.text + suffix)
                 const error = fileModulePropertyDialog.directory
-                    ? documentModule.directoryRename(fileModulePropertyDialog.documentUrl, targetUrl)
-                    : documentModule.documentRename(fileModulePropertyDialog.documentUrl, targetUrl)
+                    ? global.documentModule.directoryRename(fileModulePropertyDialog.documentUrl, targetUrl)
+                    : global.documentModule.documentRename(fileModulePropertyDialog.documentUrl, targetUrl)
                 operationErrorShow(error)
             }
             if (fileModulePropertyWritableCheckBox.checked !== fileModulePropertyDialog.infoSession.writable) {
@@ -2692,7 +2692,7 @@ Item {
                 id: menuModuleOpenFileItemDialog
                 fileMode: FileDialog.OpenFile
                 nameFilters: ["All files (*)"]
-                onAccepted: documentModule.documentOpen(selectedFile)
+                onAccepted: global.documentModule.documentOpen(selectedFile)
             }
         }
 
@@ -2822,7 +2822,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: menuModuleEditMenu.menuSession = documentModule.menuLoad("edit")
+        onAboutToShow: menuModuleEditMenu.menuSession = global.documentModule.menuLoad("edit")
 
         Menu {
             id: menuModuleEditUndoMenu
@@ -2907,7 +2907,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.menuCall("cut")
+            onTriggered: global.documentModule.menuCall("cut")
         }
 
         MenuItem {
@@ -2938,7 +2938,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.menuCall("copy")
+            onTriggered: global.documentModule.menuCall("copy")
         }
 
         MenuItem {
@@ -2969,7 +2969,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.menuCall("paste")
+            onTriggered: global.documentModule.menuCall("paste")
         }
 
         MenuSeparator {
@@ -3000,7 +3000,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.menuCall("search")
+            onTriggered: global.documentModule.menuCall("search")
         }
 
         MenuItem {
@@ -3028,7 +3028,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.menuCall("replace")
+            onTriggered: global.documentModule.menuCall("replace")
         }
     }
 
@@ -3193,7 +3193,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: menuModuleNavMenu.menuSession = documentModule.menuLoad("nav")
+        onAboutToShow: menuModuleNavMenu.menuSession = global.documentModule.menuLoad("nav")
 
         MenuItem {
             id: menuModuleNavPrevItem
@@ -3228,7 +3228,7 @@ Item {
                 onActivated: menuModuleNavPrevItem.triggered()
             }
 
-            onTriggered: documentModule.navigationPrev()
+            onTriggered: global.documentModule.navigationPrev()
         }
 
         MenuItem {
@@ -3264,7 +3264,7 @@ Item {
                 onActivated: menuModuleNavNextItem.triggered()
             }
 
-            onTriggered: documentModule.navigationNext()
+            onTriggered: global.documentModule.navigationNext()
         }
 
         MenuSeparator {
@@ -3290,7 +3290,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.definitionRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
+            onTriggered: global.documentModule.definitionRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
         }
 
         MenuItem {
@@ -3313,7 +3313,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.referencesRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
+            onTriggered: global.documentModule.referencesRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
         }
 
         MenuItem {
@@ -3336,7 +3336,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.implementationRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
+            onTriggered: global.documentModule.implementationRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
         }
 
         MenuItem {
@@ -3359,7 +3359,7 @@ Item {
                 }
             }
 
-            onTriggered: documentModule.typeDefinitionRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
+            onTriggered: global.documentModule.typeDefinitionRequest(menuModuleNavMenu.menuSession.documentUrl, menuModuleNavMenu.menuSession.line, menuModuleNavMenu.menuSession.character)
         }
     }
 
@@ -3373,7 +3373,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: menuModuleCodeMenu.menuSession = documentModule.menuLoad("code")
+        onAboutToShow: menuModuleCodeMenu.menuSession = global.documentModule.menuLoad("code")
 
         MenuItem {
             id: menuModuleCodeCompletionItem
@@ -3405,12 +3405,12 @@ Item {
             Shortcut {
                 sequence: "Ctrl+Space"
                 onActivated: {
-                    menuModuleCodeMenu.menuSession = documentModule.menuLoad("code")
+                    menuModuleCodeMenu.menuSession = global.documentModule.menuLoad("code")
                     menuModuleCodeCompletionItem.triggered()
                 }
             }
 
-            onTriggered: documentModule.completionRequest(menuModuleCodeMenu.menuSession.documentUrl, menuModuleCodeMenu.menuSession.line, menuModuleCodeMenu.menuSession.character)
+            onTriggered: global.documentModule.completionRequest(menuModuleCodeMenu.menuSession.documentUrl, menuModuleCodeMenu.menuSession.line, menuModuleCodeMenu.menuSession.character)
         }
 
         MenuItem {
@@ -3443,16 +3443,16 @@ Item {
             Shortcut {
                 sequence: "Ctrl+Alt+L"
                 onActivated: {
-                    menuModuleCodeMenu.menuSession = documentModule.menuLoad("code")
+                    menuModuleCodeMenu.menuSession = global.documentModule.menuLoad("code")
                     menuModuleCodeReformatItem.triggered()
                 }
             }
 
             onTriggered: {
                 if (menuModuleCodeMenu.menuSession.text) {
-                    documentModule.rangeFormattingRequest(menuModuleCodeMenu.menuSession.documentUrl, menuModuleCodeMenu.menuSession.startLine, menuModuleCodeMenu.menuSession.startCharacter, menuModuleCodeMenu.menuSession.endLine, menuModuleCodeMenu.menuSession.endCharacter)
+                    global.documentModule.rangeFormattingRequest(menuModuleCodeMenu.menuSession.documentUrl, menuModuleCodeMenu.menuSession.startLine, menuModuleCodeMenu.menuSession.startCharacter, menuModuleCodeMenu.menuSession.endLine, menuModuleCodeMenu.menuSession.endCharacter)
                 } else {
-                    documentModule.formattingRequest(menuModuleCodeMenu.menuSession.documentUrl)
+                    global.documentModule.formattingRequest(menuModuleCodeMenu.menuSession.documentUrl)
                 }
             }
         }
@@ -3467,7 +3467,7 @@ Item {
                 icon.source: "qrc:/icon/collapse.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldContractTop(menuModuleCodeMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldContractTop(menuModuleCodeMenu.menuSession.documentUrl)
             }
 
             MenuItem {
@@ -3475,7 +3475,7 @@ Item {
                 icon.source: "qrc:/icon/collapse.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldContractRecursively(menuModuleCodeMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldContractRecursively(menuModuleCodeMenu.menuSession.documentUrl)
             }
 
             MenuItem {
@@ -3483,7 +3483,7 @@ Item {
                 icon.source: "qrc:/icon/expand.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: documentModule.foldExpandRecursively(menuModuleCodeMenu.menuSession.documentUrl)
+                onTriggered: global.documentModule.foldExpandRecursively(menuModuleCodeMenu.menuSession.documentUrl)
             }
         }
     }
@@ -3498,7 +3498,7 @@ Item {
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAboutToShow: menuModuleExecMenu.menuSession = documentModule.menuLoad("exec")
+        onAboutToShow: menuModuleExecMenu.menuSession = global.documentModule.menuLoad("exec")
 
         MenuItem {
             id: menuModuleExecRunItem
@@ -3530,7 +3530,7 @@ Item {
             Shortcut {
                 sequence: "Shift+F10"
                 onActivated: {
-                    menuModuleExecMenu.menuSession = documentModule.menuLoad("exec")
+                    menuModuleExecMenu.menuSession = global.documentModule.menuLoad("exec")
                     menuModuleExecRunItem.triggered()
                 }
             }
@@ -3568,7 +3568,7 @@ Item {
             Shortcut {
                 sequence: "Shift+F9"
                 onActivated: {
-                    menuModuleExecMenu.menuSession = documentModule.menuLoad("exec")
+                    menuModuleExecMenu.menuSession = global.documentModule.menuLoad("exec")
                     menuModuleExecDebugItem.triggered()
                 }
             }
@@ -3693,15 +3693,15 @@ Item {
         }
         onClosed: widgetCount -= 1
         onAboutToShow: {
-            statusModuleEolModeMenu.eolMode = documentModule.eolModeGet(documentUrl)
-            statusModuleEolModeViewItem.checked = documentModule.eolViewGet(documentUrl)
+            statusModuleEolModeMenu.eolMode = global.documentModule.eolModeGet(documentUrl)
+            statusModuleEolModeViewItem.checked = global.documentModule.eolViewGet(documentUrl)
         }
 
         MenuItem {
             text: "CRLF"
             enabled: statusModuleEolModeMenu.eolMode !== 0
             onTriggered: {
-                documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 0)
+                global.documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 0)
                 statusModuleEolModeMenu.eolModeButton.text = "CRLF"
             }
         }
@@ -3710,7 +3710,7 @@ Item {
             text: "CR"
             enabled: statusModuleEolModeMenu.eolMode !== 1
             onTriggered: {
-                documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 1)
+                global.documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 1)
                 statusModuleEolModeMenu.eolModeButton.text = "CR"
             }
         }
@@ -3719,7 +3719,7 @@ Item {
             text: "LF"
             enabled: statusModuleEolModeMenu.eolMode !== 2
             onTriggered: {
-                documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 2)
+                global.documentModule.eolModeSet(statusModuleEolModeMenu.documentUrl, 2)
                 statusModuleEolModeMenu.eolModeButton.text = "LF"
             }
         }
@@ -3732,7 +3732,7 @@ Item {
             checkable: true
             text: qsTr("View EOL")
 
-            onTriggered: documentModule.eolViewSet(statusModuleEolModeMenu.documentUrl, statusModuleEolModeViewItem.checked)
+            onTriggered: global.documentModule.eolViewSet(statusModuleEolModeMenu.documentUrl, statusModuleEolModeViewItem.checked)
         }
     }
 

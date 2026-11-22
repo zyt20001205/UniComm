@@ -87,7 +87,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("agentModule", m_agentModule);
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
-    m_overlay->rootContext()->setContextProperty("documentModule", m_documentModule);
     m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
     m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
@@ -123,7 +122,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"mainWindowLinkMenu", objects["mainWindowLinkMenu"]},
         {"mainWindowToast", QVariant::fromValue(m_toastModule.get())},
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"documentModule", QVariant::fromValue(m_documentModule)},
         {"fileModule", QVariant::fromValue(m_fileModule)},
         {"agentModuleRenameDialog", objects["agentModuleRenameDialog"]},
         {"agentModuleModeMenu", objects["agentModuleModeMenu"]},

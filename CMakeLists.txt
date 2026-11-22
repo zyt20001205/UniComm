@@ -196,6 +196,7 @@ target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}/analysis
         ${UNICOMM_INCLUDE}/core
         ${UNICOMM_INCLUDE}/debug
+        ${UNICOMM_INCLUDE}/document
         ${UNICOMM_INCLUDE}/port
         ${UNICOMM_INCLUDE}/qml
         ${UNICOMM_INCLUDE}/runtime

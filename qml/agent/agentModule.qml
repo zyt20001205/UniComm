@@ -1492,7 +1492,7 @@ Item {
                                     }
                                 }
 
-                                onClicked: documentModule.documentOpen(attachmentChip.attachmentUrl)
+                                onClicked: global.documentModule.documentOpen(attachmentChip.attachmentUrl)
                             }
 
                             Button {
@@ -2260,7 +2260,7 @@ Item {
                                         acceptedButtons: Qt.LeftButton
 
                                         onTapped: {
-                                            if (markdownText.hoveredLink) documentModule.documentOpen(markdownText.hoveredLink)
+                                            if (markdownText.hoveredLink) global.documentModule.documentOpen(markdownText.hoveredLink)
                                         }
                                     }
 
@@ -2465,7 +2465,7 @@ Item {
                                                                 acceptedButtons: Qt.LeftButton
 
                                                                 onTapped: {
-                                                                    if (tableHeaderText.hoveredLink) documentModule.documentOpen(tableHeaderText.hoveredLink)
+                                                                    if (tableHeaderText.hoveredLink) global.documentModule.documentOpen(tableHeaderText.hoveredLink)
                                                                 }
                                                             }
 
@@ -2544,7 +2544,7 @@ Item {
                                                                 acceptedButtons: Qt.LeftButton
 
                                                                 onTapped: {
-                                                                    if (tableCellText.hoveredLink) documentModule.documentOpen(tableCellText.hoveredLink)
+                                                                    if (tableCellText.hoveredLink) global.documentModule.documentOpen(tableCellText.hoveredLink)
                                                                 }
                                                             }
 
@@ -2614,7 +2614,7 @@ Item {
                                 }
                             }
 
-                            onClicked: documentModule.documentOpen(messageAttachmentChip.modelData.attachmentUrl)
+                            onClicked: global.documentModule.documentOpen(messageAttachmentChip.modelData.attachmentUrl)
                         }
                     }
                 }

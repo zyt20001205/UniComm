@@ -3,6 +3,7 @@
 
 #include <QJsonObject>
 #include <QSharedPointer>
+#include <QtQmlIntegration/qqmlintegration.h>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 
 #include "document/page/welcomePage.h"
@@ -23,8 +24,10 @@ class ScintillaWidget;
 class SignatureWidget;
 class ToastModule;
 
-class DocumentModule final : public QObject {
+class DocumentModule : public QObject {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("DocumentModule is created by C++.")
     Q_PROPERTY(QUrl focusedUrl READ focusedUrlGet NOTIFY focusedUrlChanged)
 
 public:
