@@ -10,6 +10,8 @@
 class NavigationWidget final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
+    Q_PROPERTY(QFont font MEMBER m_font NOTIFY fontChanged)
+    Q_PROPERTY(bool visible MEMBER m_visible)
     Q_PROPERTY(QString detailText READ detailTextGet NOTIFY detailTextChanged)
     Q_PROPERTY(qreal rowHeight READ rowHeightGet NOTIFY sizesChanged)
     Q_PROPERTY(QSizeF contentSize READ contentSizeGet NOTIFY sizesChanged)
@@ -19,7 +21,7 @@ public:
 
     ~NavigationWidget() override = default;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] QVariantList modelGet() const {
         return m_model;
@@ -39,21 +41,35 @@ public:
 
     void fontSet(const QString &family, int pointSize);
 
-    [[nodiscard]] bool isVisible() const;
+    [[nodiscard]] bool isVisible() const { return m_visible; }
 
     void navigationShow(const QVariantHash &navigationSession, const QJsonArray &navigations);
 
     Q_INVOKABLE void navigationHide();
 
-    void navigationPrev() const;
+    void navigationPrev() { emit selectPrevious(); }
 
-    void navigationNext() const;
+    void navigationNext() { emit selectNext(); }
+
+    void navigationAccept() { emit acceptSelection(); }
 
     Q_INVOKABLE void detailReload(int index);
 
-    Q_INVOKABLE void indicatorInsert();
+    Q_INVOKABLE void indicatorInsert(int index);
 
 signals:
+    void fontChanged();
+
+    void showNavigation(const QPoint &position);
+
+    void hideNavigation();
+
+    void selectPrevious();
+
+    void selectNext();
+
+    void acceptSelection();
+
     void modelChanged();
 
     void detailTextChanged();
@@ -71,12 +87,11 @@ signals:
 private:
     void sizesRefresh();
 
-    QObject *m_tooltip{};
-    QObject *m_listView{};
+    bool m_visible{};
     QVariantList m_model{};
     QString m_detailText{};
     QFont m_font{};
-    qreal m_rowHeight{24};
+    qreal m_rowHeight{28};
     QSizeF m_contentSize{0, 0};
 };
 

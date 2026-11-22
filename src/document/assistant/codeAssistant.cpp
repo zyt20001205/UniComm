@@ -47,10 +47,7 @@ void CodeAssistant::propertySet(const QVariantHash &objects) const {
         {"documentModuleDwellCodeActionMenu", objects["documentModuleDwellCodeActionMenu"]},
         {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]}
     });
-    m_navigationWidget->propertySet(QVariantHash{
-        {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
-        {"documentModuleNavigationListView", objects["documentModuleNavigationListView"]}
-    });
+    m_navigationWidget->propertySet();
     m_positionWidget->propertySet(QVariantHash{
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]}
     });
@@ -111,6 +108,8 @@ bool CodeAssistant::eventFilter(QObject *watched, QEvent *event) {
         switch (keyEvent->key()) {
             // hide keys
             case Qt::Key_Escape:
+                m_navigationWidget->navigationHide();
+                [[fallthrough]];
             case Qt::Key_Backspace:
             case Qt::Key_Left:
             case Qt::Key_Right: {
@@ -159,7 +158,7 @@ bool CodeAssistant::eventFilter(QObject *watched, QEvent *event) {
             case Qt::Key_Return:
             case Qt::Key_Enter: {
                 if (m_navigationWidget->isVisible()) {
-                    m_navigationWidget->indicatorInsert();
+                    m_navigationWidget->navigationAccept();
                     return true;
                 }
                 return false;

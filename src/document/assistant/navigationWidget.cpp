@@ -1,6 +1,7 @@
 #include "document/assistant/navigationWidget.h"
 
 #include <QJsonArray>
+#include <QQmlComponent>
 #include <QtMath>
 
 #include "globals.h"
@@ -14,27 +15,17 @@ NavigationWidget::NavigationWidget(QObject *parent)
     : QObject(parent) {
 }
 
-void NavigationWidget::propertySet(const QVariantHash &objects) {
-    m_tooltip = qvariant_cast<QObject *>(objects["documentModuleNavigationToolTip"]);
-    m_listView = qvariant_cast<QObject *>(objects["documentModuleNavigationListView"]);
-    m_font = m_tooltip->property("font").value<QFont>();
-    sizesRefresh();
-    m_tooltip->setProperty("navigationWidget", QVariant::fromValue(this));
+void NavigationWidget::propertySet() {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/document/assistant/navigationWidget.qml"));
+    if (auto *root = component.createWithInitialProperties({{"navigationWidget", QVariant::fromValue(this)}})) root->setParent(this);
+    else qWarning().noquote() << component.errorString();
 }
 
 void NavigationWidget::fontSet(const QString &family, const int pointSize) {
-    if (!m_tooltip) return;
-    auto font = m_tooltip->property("font").value<QFont>();
-    font.setFamily(family);
-    font.setPointSize(pointSize);
-    m_tooltip->setProperty("font", font);
-    m_font = font;
+    m_font.setFamily(family);
+    m_font.setPointSize(pointSize);
+    emit fontChanged();
     sizesRefresh();
-}
-
-bool NavigationWidget::isVisible() const {
-    if (!m_tooltip) return false;
-    return m_tooltip->property("visible").toBool();
 }
 
 void NavigationWidget::navigationShow(const QVariantHash &navigationSession, const QJsonArray &navigations) {
@@ -64,18 +55,11 @@ void NavigationWidget::navigationShow(const QVariantHash &navigationSession, con
         sizesRefresh();
         emit modelChanged();
     }
-    if (!m_model.isEmpty()) {
-        const auto position = navigationSession["position"].toPoint();
-        m_tooltip->setProperty("position", position);
-        m_listView->setProperty("currentIndex", 0);
-        QMetaObject::invokeMethod(m_tooltip, "open");
-    } else {
-        navigationHide();
-    }
+    if (!m_model.isEmpty()) emit showNavigation(navigationSession["position"].toPoint());
+    else navigationHide();
 }
 
 void NavigationWidget::navigationHide() {
-    QMetaObject::invokeMethod(m_tooltip, "close");
     if (!m_model.isEmpty()) {
         m_model.clear();
         sizesRefresh();
@@ -85,14 +69,7 @@ void NavigationWidget::navigationHide() {
         m_detailText.clear();
         emit detailTextChanged();
     }
-}
-
-void NavigationWidget::navigationPrev() const {
-    QMetaObject::invokeMethod(m_listView, "decrementCurrentIndex");
-}
-
-void NavigationWidget::navigationNext() const {
-    QMetaObject::invokeMethod(m_listView, "incrementCurrentIndex");
+    if (m_visible) emit hideNavigation();
 }
 
 void NavigationWidget::detailReload(const int index) {
@@ -133,8 +110,7 @@ void NavigationWidget::detailReload(const int index) {
     emit detailTextChanged();
 }
 
-void NavigationWidget::indicatorInsert() {
-    const int index = m_listView->property("currentIndex").toInt();
+void NavigationWidget::indicatorInsert(const int index) {
     if (index < 0 || index >= m_model.size()) return;
     const auto position = m_model[index].toHash()["position"].toHash();
     emit recordNavigation(QUrl(), 0, 0);
@@ -159,7 +135,7 @@ void NavigationWidget::indicatorInsert() {
 
 void NavigationWidget::sizesRefresh() {
     const QFontMetricsF metrics(m_font);
-    const qreal rowHeight = qMax<qreal>(24, qCeil(metrics.height()) + 4);
+    const qreal rowHeight = qMax<qreal>(28, qCeil(metrics.height()) + 4);
     qreal width = 0;
     for (const auto &value: m_model) {
         width = qMax(width, metrics.horizontalAdvance(value.toHash()["text"].toString()));

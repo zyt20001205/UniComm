@@ -143,8 +143,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"documentModuleDwellHoverTextArea", objects["documentModuleDwellHoverTextArea"]},
         {"documentModuleDwellCodeActionMenu", objects["documentModuleDwellCodeActionMenu"]},
         {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]},
-        {"documentModuleNavigationToolTip", objects["documentModuleNavigationToolTip"]},
-        {"documentModuleNavigationListView", objects["documentModuleNavigationListView"]},
         {"documentModulePositionTooltip", objects["documentModulePositionTooltip"]}
     };
     m_documentModule->propertySet(documentObjects);
