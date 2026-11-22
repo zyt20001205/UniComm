@@ -57,10 +57,6 @@ void PortManageWindow::propertySet() {
     setSource(QUrl("qrc:/qml/port/portManageWindow.qml"));
 }
 
-void PortManageWindow::propertyGet(const QVariantMap &objects) {
-    m_swipeView = objects["swipeView"].value<QObject *>();
-}
-
 void PortManageWindow::open(const QJsonObject &portConfig) {
     serialPortRefresh();
     localHostRefresh();
@@ -100,7 +96,7 @@ void PortManageWindow::open(const QJsonObject &portConfig) {
         }
         emit configChanged();
     }
-    m_swipeView->setProperty("currentIndex", portConfig.isEmpty() ? 0 : 1);
+    rootObject()->setProperty("pageIndex", portConfig.isEmpty() ? 0 : 1);
     resize(600, 500);
     show();
 }

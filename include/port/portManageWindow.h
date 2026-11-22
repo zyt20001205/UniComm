@@ -39,8 +39,6 @@ public:
 
     void propertySet();
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
-
     void open(const QJsonObject &portConfig = QJsonObject());
 
     Q_INVOKABLE void typeSelect(PortType::Value type);
@@ -121,8 +119,6 @@ private:
     ImageProvider *m_imageProvider{};
     QString m_oldPortName{};
     QVariantHash m_config{};
-
-    QObject *m_swipeView{};
 };
 
 class ImageProvider final: public QQuickImageProvider {

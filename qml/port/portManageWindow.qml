@@ -12,6 +12,7 @@ Item {
     required property PortManageWindow portManageWindow
     required property var roiModel
     required property var pipelineModel
+    property alias pageIndex: swipeView.currentIndex
     readonly property int portType: root.portManageWindow.config.portType ?? PortType.SerialPort
 
     Rectangle {
@@ -3091,11 +3092,5 @@ Item {
             }
             videoOutput.indicatorList.push(indicator)
         }
-    }
-
-    Component.onCompleted: {
-        root.portManageWindow.propertyGet({
-            "swipeView": swipeView
-        })
     }
 }
