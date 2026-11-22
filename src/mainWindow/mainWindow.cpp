@@ -455,7 +455,6 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
     connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
-    connect(m_documentModule, &DocumentModule::changeSelection, m_statusModule, &StatusModule::selectionChange);
     connect(m_documentModule, &DocumentModule::toggleBreakpoint, m_breakpointModule, &BreakpointModule::breakpointToggle);
 
     connect(m_explorerModule, &ExplorerModule::appendLog, m_logModule, &LogModule::logAppend);

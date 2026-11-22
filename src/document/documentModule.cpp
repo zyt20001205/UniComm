@@ -271,7 +271,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
             connect(conflictPage, &ConflictPage::appendLog, this, &DocumentModule::appendLog);
-            connect(conflictPage, &ConflictPage::changeSelection, this, &DocumentModule::changeSelection);
+            connect(conflictPage, &ConflictPage::changeSelection, this, &DocumentModule::selectionSet);
             connect(conflictPage, &ConflictPage::reloadDocument, this, &DocumentModule::documentReload);
         }
     }
@@ -300,7 +300,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"documentModuleEditorMenu", QVariant::fromValue(m_editorMenu)}
             });
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
-            connect(codePage, &CodePage::changeSelection, this, &DocumentModule::changeSelection);
+            connect(codePage, &CodePage::changeSelection, this, &DocumentModule::selectionSet);
             connect(codePage, &CodePage::toggleBreakpoint, this, &DocumentModule::toggleBreakpoint);
             connect(codePage, &CodePage::notificationJson, this, &DocumentModule::notificationJson);
             connect(codePage, &CodePage::requestCompletion, this, &DocumentModule::completionRequest);
@@ -332,7 +332,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
             connect(markupPage, &MarkupPage::appendLog, this, &DocumentModule::appendLog);
-            connect(markupPage, &MarkupPage::changeSelection, this, &DocumentModule::changeSelection);
+            connect(markupPage, &MarkupPage::changeSelection, this, &DocumentModule::selectionSet);
         }
         // pdf page
         else if (suffix == "pdf") {
@@ -352,7 +352,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
                 {"documentModuleGotoDialog", QVariant::fromValue(m_gotoDialog)}
             });
             connect(textPage, &TextPage::appendLog, this, &DocumentModule::appendLog);
-            connect(textPage, &TextPage::changeSelection, this, &DocumentModule::changeSelection);
+            connect(textPage, &TextPage::changeSelection, this, &DocumentModule::selectionSet);
         }
     }
     // path disambiguation
@@ -1546,10 +1546,7 @@ ScintillaWidget *DocumentModule::handlerGet(const QUrl &documentUrl) const {
 }
 
 void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status) {
-    if (status && m_pageHash.contains(documentPage->documentUrl()) && m_focusedUrl != documentPage->documentUrl()) {
-        m_focusedUrl = documentPage->documentUrl();
-        emit focusedUrlChanged();
-    }
+    if (status && m_pageHash.contains(documentPage->documentUrl())) focusedUrlSet(documentPage->documentUrl());
     auto *handler = handlerGet(documentPage->documentUrl());
     if (handler == nullptr) return;
     if (status) {
@@ -1566,19 +1563,31 @@ void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status
     }
 }
 
+void DocumentModule::focusedUrlSet(const QUrl &documentUrl) {
+    if (m_focusedUrl == documentUrl) return;
+    m_focusedUrl = documentUrl;
+    const auto *handler = handlerGet(documentUrl);
+    selectionSet(handler ? handler->selectionGet() : QHash<QString, int>{});
+    emit focusedUrlChanged();
+}
+
+void DocumentModule::selectionSet(const QHash<QString, int> &selection) {
+    const QVariantHash values(selection.cbegin(), selection.cend());
+    if (m_selection == values) return;
+    m_selection = values;
+    emit selectionChanged();
+}
+
 void DocumentModule::documentClose(const QUrl &documentUrl) {
     if (documentUrl.isLocalFile()) m_watcher->removePath(documentUrl.toLocalFile());
-    const auto previousFocusedUrl = m_focusedUrl;
     m_pageHash.remove(documentUrl);
     if (g_terminating) return;
     if (m_pageHash.isEmpty()) {
-        m_focusedUrl.clear();
+        focusedUrlSet({});
         m_welcomePage->open();
     } else if (documentUrl == m_focusedUrl) {
-        const auto begin = m_pageHash.begin();
-        m_focusedUrl = begin.key();
+        focusedUrlSet(m_pageHash.constBegin().key());
     }
-    if (previousFocusedUrl != m_focusedUrl) emit focusedUrlChanged();
     emit appendLog(LogType::Info, "document closed", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 }
 

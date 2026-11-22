@@ -29,6 +29,7 @@ class DocumentModule : public QObject {
     QML_ELEMENT
     QML_UNCREATABLE("DocumentModule is created by C++.")
     Q_PROPERTY(QUrl focusedUrl READ focusedUrlGet NOTIFY focusedUrlChanged)
+    Q_PROPERTY(QVariantHash selection READ selectionGet NOTIFY selectionChanged)
 
 public:
     explicit DocumentModule(QWidget *parent = nullptr);
@@ -39,6 +40,10 @@ public:
 
     [[nodiscard]] QUrl focusedUrlGet() const {
         return m_pageHash.contains(m_focusedUrl) ? m_focusedUrl : QUrl{};
+    }
+
+    [[nodiscard]] QVariantHash selectionGet() const {
+        return m_selection;
     }
 
     [[nodiscard]] KDDockWidgets::QtWidgets::DockWidget *welcomePage() const {
@@ -209,6 +214,8 @@ public:
 signals:
     void focusedUrlChanged();
 
+    void selectionChanged();
+
     void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void updateDiff(const QString &undoGroupId, const QVariantMap &fileDiffs, int additions, int deletions);
@@ -216,8 +223,6 @@ signals:
     void openWorkspace();
 
     void focusDocument(const QUrl &documentUrl, const QVariantHash &session);
-
-    void changeSelection(const QHash<QString, int> &selection);
 
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 
@@ -280,6 +285,10 @@ private:
 
     void documentFocus(DocumentPage *documentPage, bool status);
 
+    void focusedUrlSet(const QUrl &documentUrl);
+
+    void selectionSet(const QHash<QString, int> &selection);
+
     void documentClose(const QUrl &documentUrl);
 
     void charAdd(const QUrl &documentUrl, QChar character) const;
@@ -303,6 +312,7 @@ private:
     QObject *m_saveDialog{};
     QObject *m_editorMenu{};
     QUrl m_focusedUrl{};
+    QVariantHash m_selection{};
     QFileSystemWatcher *m_watcher{};
     WelcomePage *m_welcomePage{}; // TODO: inherits base page later
     CodeAssistant *m_codeAssistant{};

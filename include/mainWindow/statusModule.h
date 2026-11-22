@@ -32,8 +32,6 @@ public:
 
     void documentFocus(const QUrl &documentUrl, const QVariantHash &session) const;
 
-    void selectionChange(const QHash<QString, int> &selection) const;
-
 signals:
     void gotoDocument(const QUrl &documentUrl);
 
@@ -41,7 +39,6 @@ private:
     void backgroundUpdate() const;
 
     QObject *m_root{};
-    QObject *m_positionButton{};
     QObject *m_eolModeButton{};
     QObject *m_codePageButton{};
     int m_taskId{};

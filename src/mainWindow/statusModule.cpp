@@ -35,7 +35,6 @@ void StatusModule::propertySet(const QVariantHash &objects) {
 }
 
 void StatusModule::propertyGet(const QVariantMap &objects) {
-    m_positionButton = qvariant_cast<QObject *>(objects["positionButton"]);
     m_eolModeButton = qvariant_cast<QObject *>(objects["eolModeButton"]);
     m_codePageButton = qvariant_cast<QObject *>(objects["codePageButton"]);
 }
@@ -117,13 +116,6 @@ void StatusModule::documentFocus(const QUrl &documentUrl, const QVariantHash &se
             break;
         default: break;
     }
-}
-
-void StatusModule::selectionChange(const QHash<QString, int> &selection) const {
-    const auto current = QString("%1:%2").arg(QString::number(selection["line"] + 1), QString::number(selection["character"]));
-    const auto charsText = selection["characters"] == 0 ? "" : QString(" [%1 chars]").arg(QString::number(selection["characters"]));
-    const auto linesText = selection["lines"] == 0 ? "" : QString(" [%1 lines]").arg(QString::number(selection["lines"]));
-    m_positionButton->setProperty("text", QString("%1%2%3").arg(current, charsText, linesText));
 }
 
 // private

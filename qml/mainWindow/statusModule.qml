@@ -111,10 +111,19 @@ Item {
         Button {
             id: positionButton
             flat: true
+            text: {
+                const selection = global.documentModule.selection
+                if (selection.line === undefined) return ""
+                let position = (selection.line + 1) + ":" + selection.character
+                if (selection.characters) position += qsTr(" [%1 chars]").arg(selection.characters)
+                if (selection.lines) position += qsTr(" [%1 lines]").arg(selection.lines)
+                return position
+            }
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
             Layout.preferredWidth: positionButtonTextMetrics.width + 8; Layout.preferredHeight: 20
 
-            onClicked: statusModule.documentGoto(documentUrl)
+            enabled: text.length > 0
+            onClicked: statusModule.documentGoto(global.documentModule.focusedUrl)
 
             TextMetrics {
                 id: positionButtonTextMetrics
@@ -171,7 +180,6 @@ Item {
 
     Component.onCompleted: {
         const objects = {
-            "positionButton": positionButton,
             "eolModeButton": eolModeButton,
             "codePageButton": codePageButton
         };
