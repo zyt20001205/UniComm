@@ -24,7 +24,7 @@ Item {
         flat: true
         text: qsTr("Click to create port.")
         font.pixelSize: 16
-        onClicked: root.portModule.portSetting()
+        onClicked: root.portModule.portManage()
     }
 
     ListView {
@@ -172,14 +172,14 @@ Item {
             text: qsTr("New")
             icon.source: "qrc:/icon/add.svg"
             icon.width: 16; icon.height: 16
-            onTriggered: root.portModule.portSetting()
+            onTriggered: root.portModule.portManage()
         }
         MenuItem {
             text: qsTr("Edit")
             icon.source: "qrc:/icon/edit.svg"
             icon.width: 16; icon.height: 16
             enabled: contextMenu.portIndex >= 0
-            onTriggered: root.portModule.portSetting(contextMenu.portIndex)
+            onTriggered: root.portModule.portManage(contextMenu.portIndex)
         }
         Menu {
             title: qsTr("Delete")
@@ -212,7 +212,7 @@ Item {
             text: qsTr("New")
             icon.source: "qrc:/icon/add.svg"
             icon.width: 16; icon.height: 16
-            onTriggered: root.portModule.portSetting()
+            onTriggered: root.portModule.portManage()
         }
     }
 }

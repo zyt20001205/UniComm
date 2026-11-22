@@ -9,7 +9,7 @@ local client = Port.create({
     -- False keeps TLS encryption but ignores all certificate settings below.
     secure = false,
     -- With secure=true, empty uses the default trust store. For a private CA,
-    -- select its PEM file in Port Setting and use the resulting file URL here.
+    -- select its PEM file in Manage Port and use the resulting file URL here.
     caCertificate = "",
     -- For client authentication, provide both PEM file URLs. The certificate
     -- chain starts with the client certificate; the key must match it.

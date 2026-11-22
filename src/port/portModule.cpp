@@ -11,7 +11,7 @@
 #include "port/basePort.h"
 #include "port/bluetoothLe.h"
 #include "port/module/deviceDiscovery.h"
-#include "port/portSetting.h"
+#include "port/portManageWindow.h"
 #include "port/serialPort.h"
 #include "port/tcpClient.h"
 #include "port/tcpServer.h"
@@ -26,10 +26,10 @@
 PortModule::PortModule()
     : DockWidget("Port"),
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
-      m_portSetting(new PortSetting(this)) {
+      m_portManageWindow(new PortManageWindow(this)) {
     setWidget(m_widget);
-    connect(m_portSetting, &PortSetting::insertPort, this, &PortModule::portInsert);
-    connect(m_portSetting, &PortSetting::editPort, this, &PortModule::portEdit);
+    connect(m_portManageWindow, &PortManageWindow::insertPort, this, &PortModule::portInsert);
+    connect(m_portManageWindow, &PortManageWindow::editPort, this, &PortModule::portEdit);
     for (const auto &value: g_workspaceConfig["portConfig"].toArray()) {
         auto portConfig = value.toObject();
         portDefaults(portConfig);
@@ -48,12 +48,12 @@ PortModule::~PortModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void PortModule::propertySet(const QVariantHash &objects) {
+void PortModule::propertySet() {
     m_widget->setInitialProperties({{"portModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/port/portModule.qml"));
 
-    m_portSetting->propertySet(objects);
+    m_portManageWindow->propertySet();
 }
 
 void PortModule::portConfigSave() {
@@ -496,14 +496,14 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
     return {};
 }
 
-void PortModule::portSetting(const int index) const {
+void PortModule::portManage(const int index) const {
     if (index == -1) {
-        m_portSetting->portSettingImport();
+        m_portManageWindow->open();
     } else {
         const auto portName = m_ports.at(index).toHash().value("name").toString();
         const auto &portObject = m_portHash[portName];
         const auto &portConfig = portObject->config();
-        m_portSetting->portSettingImport(portConfig);
+        m_portManageWindow->open(portConfig);
     }
 }
 

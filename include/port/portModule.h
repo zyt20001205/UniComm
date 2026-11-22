@@ -8,7 +8,7 @@
 #include "basePort.h"
 
 class QQuickWidget;
-class PortSetting;
+class PortManageWindow;
 
 class PortModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
@@ -21,7 +21,7 @@ public:
 
     ~PortModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     [[nodiscard]] const QVariantList &portsGet() const {
         return m_ports;
@@ -35,7 +35,7 @@ public:
 
     [[nodiscard]] QString portCheck(const QJsonObject &portConfig, const QString &oldPortName = QString()) const;
 
-    Q_INVOKABLE void portSetting(int index = -1) const;
+    Q_INVOKABLE void portManage(int index = -1) const;
 
     [[nodiscard]] QString portInsert(int index, QJsonObject portConfig, const QString &undoGroupId = {});
 
@@ -70,7 +70,7 @@ private:
     void _portMove(int src, int dst);
 
     QQuickWidget *m_widget{};
-    PortSetting *m_portSetting{};
+    PortManageWindow *m_portManageWindow{};
     QVariantList m_ports{};
 };
 
