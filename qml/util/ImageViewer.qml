@@ -7,6 +7,7 @@ Item {
 
     property url source
     property bool cache: true
+    property alias annotations: image.data
 
     Rectangle {
         anchors.fill: parent

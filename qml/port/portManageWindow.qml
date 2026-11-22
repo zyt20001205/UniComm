@@ -1512,6 +1512,7 @@ Item {
                                         id: marker
                                         required property int index
                                         required property var modelData
+                                        enabled: roiSelection.step === 0
                                         anchors.fill: parent
                                         sourceComponent: modelData.length === 4 ? rectangleMarker : quadrilateralMarker
 
@@ -1548,11 +1549,32 @@ Item {
                             Rectangle {
                                 id: roiSelection
                                 anchors.fill: videoOutput
-                                color: global.theme.general.stroke
-                                opacity: 0.3
+                                color: Qt.alpha(global.theme.general.stroke, 0.3)
                                 visible: step !== 0
                                 property int step: 0
                                 property var roiList: []
+
+                                Shape {
+                                    anchors.fill: parent
+                                    ShapePath {
+                                        strokeWidth: 1
+                                        strokeColor: global.theme.general.brandStroke
+                                        fillColor: roiHover.hovered && roiSelection.roiList.length === roiSelection.step - 1
+                                            ? Qt.alpha(global.theme.general.brandBackSelected, 0.3) : "transparent"
+                                        PathPolyline {
+                                            path: {
+                                                const points = roiSelection.roiList
+                                                if (!roiHover.hovered || !points.length) return points
+                                                const cursor = roiHover.point.position
+                                                const first = points[0]
+                                                if (roiSelection.step === 2)
+                                                    return [first, Qt.point(cursor.x, first.y), cursor, Qt.point(first.x, cursor.y), first]
+                                                if (points.length === 3) return [...points, cursor, first]
+                                                return [...points, cursor]
+                                            }
+                                        }
+                                    }
+                                }
 
                                 TapHandler {
                                     acceptedButtons: Qt.LeftButton
@@ -1572,6 +1594,7 @@ Item {
                                 }
 
                                 HoverHandler {
+                                    id: roiHover
                                     onHoveredChanged: {
                                         if (!hovered) {
                                             mainTooltip.text = ""
@@ -1588,7 +1611,7 @@ Item {
                                 }
 
                                 function roiRecord(position) {
-                                    roiList.push(position)
+                                    roiList = [...roiList, position]
                                     if (roiList.length === step) {
                                         if (step === 2) {
                                             let ix = Math.round(Math.min(roiList[0].x, roiList[1].x))
@@ -1612,6 +1635,7 @@ Item {
                                 }
 
                                 function roiStart(step) {
+                                    roiSelection.roiList = []
                                     roiSelection.step = step
                                 }
 
@@ -1620,58 +1644,6 @@ Item {
                                     roiSelection.roiList = []
                                     mainTooltip.text = ""
                                 }
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-
-                            Button {
-                                flat: true
-                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                icon.source: "qrc:/icon/rectangle.svg"
-                                icon.width: 32; icon.height: 32
-                                Layout.preferredWidth: 48; Layout.preferredHeight: 48
-
-                                onClicked: roiSelection.roiStart(2)
-
-                                HoverHandler {
-                                    onHoveredChanged: {
-                                        if (!hovered) {
-                                            mainTooltip.text = ""
-                                        }
-                                    }
-                                    onPointChanged: {
-                                        mainTooltip.position = parent.mapToGlobal(point.position)
-                                        mainTooltip.text = qsTr("Rectangular")
-                                    }
-                                }
-                            }
-
-                            Button {
-                                flat: true
-                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                icon.source: "qrc:/icon/quadrilateral.svg"
-                                icon.width: 32; icon.height: 32
-                                Layout.preferredWidth: 48; Layout.preferredHeight: 48
-
-                                onClicked: roiSelection.roiStart(4)
-
-                                HoverHandler {
-                                    onHoveredChanged: {
-                                        if (!hovered) {
-                                            mainTooltip.text = ""
-                                        }
-                                    }
-                                    onPointChanged: {
-                                        mainTooltip.position = parent.mapToGlobal(point.position)
-                                        mainTooltip.text = qsTr("Quadrilateral")
-                                    }
-                                }
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
                             }
                         }
                     }
@@ -1721,6 +1693,53 @@ Item {
                                     text: qsTr("ROI")
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
+                                }
+
+                                Button {
+                                    id: roiAddButton
+                                    flat: true
+                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                    icon.source: "qrc:/icon/addSquare.svg"
+                                    icon.width: 16; icon.height: 16
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                    Accessible.name: qsTr("Add ROI")
+
+                                    onClicked: {
+                                        mainTooltip.text = ""
+                                        const position = roiAddButton.mapToGlobal(0, roiAddButton.height)
+                                        const localPosition = mainOverlay.mapFromGlobal(position)
+                                        roiAddMenu.popup(localPosition.x, localPosition.y)
+                                    }
+
+                                    HoverHandler {
+                                        enabled: !roiAddMenu.visible
+                                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                                        onPointChanged: {
+                                            mainTooltip.position = roiAddButton.mapToGlobal(point.position)
+                                            mainTooltip.text = roiAddButton.Accessible.name
+                                        }
+                                    }
+                                }
+
+                                Button {
+                                    id: roiDeleteButton
+                                    flat: true
+                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                    icon.source: "qrc:/icon/delete.svg"
+                                    icon.width: 16; icon.height: 16
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                    Accessible.name: qsTr("Delete ROI")
+                                    enabled: roiListView.currentIndex >= 0
+
+                                    onClicked: roiListView.deleteEntry()
+
+                                    HoverHandler {
+                                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                                        onPointChanged: {
+                                            mainTooltip.position = roiDeleteButton.mapToGlobal(point.position)
+                                            mainTooltip.text = roiDeleteButton.Accessible.name
+                                        }
+                                    }
                                 }
                             }
 
@@ -1802,23 +1821,48 @@ Item {
                                 }
 
                                 Button {
+                                    id: pipelineAddButton
                                     flat: true
                                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                                    icon.source: "qrc:/icon/add.svg"
-                                    icon.width: 24; icon.height: 24
+                                    icon.source: "qrc:/icon/addSquare.svg"
+                                    icon.width: 16; icon.height: 16
                                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                    Accessible.name: qsTr("Add step")
 
-                                    onClicked: pipelineSlotMenu.popup()
+                                    onClicked: {
+                                        mainTooltip.text = ""
+                                        const position = pipelineAddButton.mapToGlobal(0, pipelineAddButton.height)
+                                        const localPosition = mainOverlay.mapFromGlobal(position)
+                                        pipelineAddMenu.popup(localPosition.x, localPosition.y)
+                                    }
 
                                     HoverHandler {
-                                        onHoveredChanged: {
-                                            if (!hovered) {
-                                                mainTooltip.text = ""
-                                            }
-                                        }
+                                        enabled: !pipelineAddMenu.visible
+                                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
                                         onPointChanged: {
-                                            mainTooltip.position = parent.mapToGlobal(point.position)
-                                            mainTooltip.text = qsTr("Add Pipeline")
+                                            mainTooltip.position = pipelineAddButton.mapToGlobal(point.position)
+                                            mainTooltip.text = pipelineAddButton.Accessible.name
+                                        }
+                                    }
+                                }
+
+                                Button {
+                                    id: pipelineDeleteButton
+                                    flat: true
+                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                    icon.source: "qrc:/icon/delete.svg"
+                                    icon.width: 16; icon.height: 16
+                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                    Accessible.name: qsTr("Delete step")
+                                    enabled: pipelineListView.currentIndex >= 0
+
+                                    onClicked: pipelineListView.deleteEntry()
+
+                                    HoverHandler {
+                                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                                        onPointChanged: {
+                                            mainTooltip.position = pipelineDeleteButton.mapToGlobal(point.position)
+                                            mainTooltip.text = pipelineDeleteButton.Accessible.name
                                         }
                                     }
                                 }
@@ -1845,15 +1889,22 @@ Item {
 
                                 VisionListView {
                                     id: pipelineListView
+                                    property int detailsIndex: -1
                                     entries: root.portManageWindow.config.pipeline ?? []
-                                    onEdited: entries => root.portManageWindow.config.pipeline = entries
+                                    onEdited: entries => {
+                                        detailsIndex = -1
+                                        root.portManageWindow.config.pipeline = entries
+                                    }
                                     rowDelegate: VisionRow {
                                         id: stepRow
                                         view: pipelineListView
                                         keys: ["pipeline"]
-                                        height: 80
+                                        height: 28 + details.implicitHeight
                                         readonly property var step: view.entries[index]
                                         readonly property bool scale: step?.type === ImageOperation.Scale
+                                        // OpenCV stores the base mode in the low three bits.
+                                        readonly property int mode: (step?.mode ?? 0) & 7
+                                        readonly property int method: (step?.mode ?? 0) & ~7
 
                                         function setParameter(key, value) {
                                             view.currentIndex = index
@@ -1862,39 +1913,130 @@ Item {
 
                                         controls: [
                                             RowLayout {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 28
                                                 Label {
                                                     text: stepRow.scale ? qsTr("Scale") : qsTr("Threshold")
                                                     elide: Text.ElideRight
                                                     Layout.fillWidth: true
                                                 }
-                                                ComboBox {
-                                                    model: stepRow.scale
-                                                        ? [qsTr("Nearest"), qsTr("Linear"), qsTr("Cubic"), qsTr("Area"), qsTr("Lanczos4"), qsTr("Linear Exact"), qsTr("Nearest Exact")]
-                                                        : [qsTr("Binary"), qsTr("Binary Inv"), qsTr("Trunc"), qsTr("To Zero"), qsTr("To Zero Inv")]
-                                                    currentIndex: (stepRow.scale ? stepRow.step?.interpolation : stepRow.step?.mode) ?? -1
-                                                    onActivated: stepRow.setParameter(stepRow.scale ? "interpolation" : "mode", currentIndex)
+                                                Button {
+                                                    id: detailsButton
+                                                    flat: true
+                                                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                                    icon.source: "qrc:/icon/moreHorizontal.svg"
+                                                    icon.width: 16; icon.height: 16
+                                                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                                                    Accessible.name: qsTr("Step details")
+                                                    checkable: true
+                                                    checked: pipelineListView.detailsIndex === stepRow.index
+                                                    onClicked: {
+                                                        pipelineListView.currentIndex = stepRow.visualIndex
+                                                        pipelineListView.detailsIndex = checked ? stepRow.index : -1
+                                                    }
+
+                                                    HoverHandler {
+                                                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                                                        onPointChanged: {
+                                                            mainTooltip.position = detailsButton.mapToGlobal(point.position)
+                                                            mainTooltip.text = detailsButton.Accessible.name
+                                                        }
+                                                    }
                                                 }
                                             },
-                                            DoubleSpinBox {
-                                                visible: stepRow.scale
-                                                value: stepRow.step?.ratio ?? 1
-                                                from: 0.1; to: 10; stepSize: 0.1
-                                                editable: true
+                                            Item {
+                                                id: details
+                                                property real reveal: detailsButton.checked ? 1 : 0
+                                                implicitHeight: settings.implicitHeight * reveal
                                                 Layout.fillWidth: true
-                                                textFromValue: value => "x" + value.toFixed(2)
-                                                valueFromText: text => Number(text.replace("x", ""))
-                                                onValueModified: stepRow.setParameter("ratio", value)
-                                            },
-                                            RangeSlider {
-                                                visible: !stepRow.scale
-                                                first.value: stepRow.step?.thresh ?? 0
-                                                second.value: stepRow.step?.maxval ?? 255
-                                                from: 0; to: 255
-                                                Layout.fillWidth: true
-                                                ToolTip.text: first.value.toFixed(0) + " ~ " + second.value.toFixed(0)
-                                                ToolTip.visible: hovered
-                                                first.onMoved: stepRow.setParameter("thresh", Math.round(first.value))
-                                                second.onMoved: stepRow.setParameter("maxval", Math.round(second.value))
+                                                clip: true
+                                                enabled: detailsButton.checked
+
+                                                Behavior on reveal {
+                                                    NumberAnimation {
+                                                        duration: detailsButton.checked ? AnimationDuration.PaneOpen : AnimationDuration.PaneClose
+                                                        easing.type: Easing.OutCubic
+                                                    }
+                                                }
+
+                                                GridLayout {
+                                                    id: settings
+                                                    width: parent.width
+                                                    columns: 2
+
+                                                    Label { text: qsTr("Ratio"); visible: stepRow.scale }
+                                                    DoubleSpinBox {
+                                                        visible: stepRow.scale
+                                                        value: stepRow.step?.ratio ?? 1
+                                                        from: 0.1; to: 10; stepSize: 0.1
+                                                        editable: true
+                                                        Layout.fillWidth: true
+                                                        textFromValue: value => "×" + value.toFixed(2)
+                                                        valueFromText: text => Number(text.replace(/^[x×]/, ""))
+                                                        onValueModified: stepRow.setParameter("ratio", value)
+                                                    }
+
+                                                    Label { text: stepRow.scale ? qsTr("Interpolation") : qsTr("Mode") }
+                                                    ComboBox {
+                                                        model: stepRow.scale
+                                                            ? [qsTr("Nearest"), qsTr("Linear"), qsTr("Cubic"), qsTr("Area"), qsTr("Lanczos4"), qsTr("Linear Exact"), qsTr("Nearest Exact")]
+                                                            : [qsTr("Binary"), qsTr("Binary Inv"), qsTr("Trunc"), qsTr("To Zero"), qsTr("To Zero Inv")]
+                                                        currentIndex: stepRow.scale ? (stepRow.step?.interpolation ?? -1) : stepRow.mode
+                                                        Layout.fillWidth: true
+                                                        onActivated: {
+                                                            if (stepRow.scale) stepRow.setParameter("interpolation", currentIndex)
+                                                            else stepRow.setParameter("mode", stepRow.method | currentIndex)
+                                                        }
+                                                    }
+
+                                                    Label { text: qsTr("Method"); visible: !stepRow.scale }
+                                                    RowLayout {
+                                                        visible: !stepRow.scale
+                                                        Layout.fillWidth: true
+                                                        spacing: 2
+                                                        ButtonGroup { id: methodGroup }
+                                                        Repeater {
+                                                            model: [
+                                                                { label: qsTr("Manual"), flag: 0 },
+                                                                { label: qsTr("Otsu"), flag: 8 },
+                                                                { label: qsTr("Triangle"), flag: 16 }
+                                                            ]
+                                                            Button {
+                                                                required property var modelData
+                                                                text: modelData.label
+                                                                leftPadding: 4; rightPadding: 4
+                                                                Layout.preferredWidth: implicitContentWidth + leftPadding + rightPadding
+                                                                Layout.fillWidth: true
+                                                                ButtonGroup.group: methodGroup
+                                                                checkable: true
+                                                                checked: stepRow.method === modelData.flag
+                                                                onClicked: stepRow.setParameter("mode", stepRow.mode | modelData.flag)
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Label { text: qsTr("Threshold"); visible: thresholdInput.visible }
+                                                    SpinBox {
+                                                        id: thresholdInput
+                                                        visible: !stepRow.scale && stepRow.method === 0
+                                                        from: 0; to: 255
+                                                        value: stepRow.step?.thresh ?? 0
+                                                        editable: true
+                                                        Layout.fillWidth: true
+                                                        onValueModified: stepRow.setParameter("thresh", value)
+                                                    }
+
+                                                    Label { text: qsTr("Max Value"); visible: maxValueInput.visible }
+                                                    SpinBox {
+                                                        id: maxValueInput
+                                                        visible: !stepRow.scale && (stepRow.mode === 0 || stepRow.mode === 1)
+                                                        from: 0; to: 255
+                                                        value: stepRow.step?.maxval ?? 255
+                                                        editable: true
+                                                        Layout.fillWidth: true
+                                                        onValueModified: stepRow.setParameter("maxval", value)
+                                                    }
+                                                }
                                             }
                                         ]
                                     }
@@ -2018,35 +2160,15 @@ Item {
                                 }
                             }
 
-                            Flickable {
+                            ImageViewer {
+                                id: previewImage
+                                property var recognition: ({})
                                 visible: previewLayout.expanded
-                                clip: true
-                                contentWidth: previewImage.width
-                                contentHeight: previewImage.height
                                 Layout.fillWidth: true; Layout.fillHeight: true
+                                source: "qrc:/icon/null.svg"
+                                cache: false
 
-                                ScrollBar.vertical: ScrollBar {
-                                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                                    policy: ScrollBar.AsNeeded
-                                    palette {
-                                        mid: global.theme.general.stroke
-                                        dark: global.theme.general.strokePressed
-                                    }
-                                }
-                                ScrollBar.horizontal: ScrollBar {
-                                    minimumSize: Math.min(1, 20 / Math.max(1, width))
-                                    policy: ScrollBar.AsNeeded
-                                    palette {
-                                        mid: global.theme.general.stroke
-                                        dark: global.theme.general.strokePressed
-                                    }
-                                }
-
-                                Image {
-                                    id: previewImage
-                                    source: "qrc:/icon/null.svg"
-                                    property var recognition: ({})
-
+                                annotations: [
                                     Repeater {
                                         model: previewImage.recognition.items || []
 
@@ -2099,24 +2221,30 @@ Item {
                                             }
                                         }
                                     }
-                                }
+                                ]
 
-                                Item {
+                                QtObject {
                                     id: previewLoader
-                                    readonly property bool active: root.pageIndex === 2 && root.portType === PortType.Vision
+                                    readonly property bool available: root.pageIndex === 2 && root.portType === PortType.Vision
                                         && root.Window.window.visible && roiListView.currentIndex >= 0 && root.rois.length > 0
+                                    readonly property bool active: available && roiSelection.step === 0
                                     property int framerate: 0
                                     property int frames: 0
                                     property double timestamp: 0
+
+                                    onAvailableChanged: {
+                                        if (!available) {
+                                            previewImage.source = "qrc:/icon/null.svg"
+                                            previewImage.recognition = ({})
+                                        }
+                                    }
 
                                     onActiveChanged: {
                                         if (active) {
                                             frames = 0
                                             timestamp = Date.now()
-                                            next()
+                                            Qt.callLater(next)
                                         } else {
-                                            previewImage.source = "qrc:/icon/null.svg"
-                                            previewImage.recognition = ({})
                                             framerate = 0
                                         }
                                     }
@@ -2275,6 +2403,7 @@ Item {
         clip: true
         focusPolicy: Qt.ClickFocus
         keyNavigationEnabled: true
+        Keys.onDeletePressed: deleteEntry()
         model: DelegateModel {
             // Keep the selected row when its coordinates or parameters change.
             model: view.entries.length
@@ -2303,32 +2432,13 @@ Item {
             positionViewAtIndex(currentIndex, ListView.Contain)
         }
 
-        TapHandler {
-            acceptedButtons: Qt.RightButton
-            onSingleTapped: eventPoint => {
-                const point = view.contentItem.mapFromItem(view, eventPoint.position)
-                const row = view.itemAt(point.x, point.y)
-                if (row) {
-                    view.currentIndex = row.visualIndex
-                    deleteMenu.popup()
-                }
-            }
-        }
-
-        Menu {
-            id: deleteMenu
-            MenuItem {
-                text: qsTr("Delete")
-                icon.source: "qrc:/icon/delete.svg"
-                icon.width: 16; icon.height: 16
-                onTriggered: {
-                    const index = view.currentIndex
-                    const entries = [...view.entries]
-                    entries.splice(index, 1)
-                    view.edited(entries)
-                    view.currentIndex = Math.min(index, entries.length - 1)
-                }
-            }
+        function deleteEntry() {
+            const index = currentIndex
+            if (index < 0) return
+            const remaining = [...entries]
+            remaining.splice(index, 1)
+            edited(remaining)
+            currentIndex = Math.min(index, remaining.length - 1)
         }
     }
 
@@ -2359,7 +2469,7 @@ Item {
             Drag.source: row
             Drag.keys: row.keys
             Drag.hotSpot.x: leftPadding + handle.width / 2
-            Drag.hotSpot.y: height / 2
+            Drag.hotSpot.y: handle.height / 2 + 6
 
             contentItem: RowLayout {
                 spacing: 4
@@ -2367,6 +2477,8 @@ Item {
                     source: "qrc:/icon/drag.svg"
                     color: global.theme.general.fore
                     Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    Layout.alignment: Qt.AlignTop
+                    Layout.topMargin: 6
                     MouseArea {
                         id: handle
                         anchors.fill: parent
@@ -2396,6 +2508,7 @@ Item {
                 }
                 ColumnLayout {
                     id: fields
+                    spacing: 0
                     Layout.fillWidth: true
                 }
             }
@@ -2408,9 +2521,44 @@ Item {
         }
     }
 
+    // roi
+    Menu {
+        id: roiAddMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Rectangle")
+            icon.source: "qrc:/icon/rectangle.svg"
+            icon.width: 16; icon.height: 16
+            onTriggered: roiSelection.roiStart(2)
+        }
+
+        MenuItem {
+            text: qsTr("Quadrilateral")
+            icon.source: "qrc:/icon/quadrilateral.svg"
+            icon.width: 16; icon.height: 16
+            onTriggered: roiSelection.roiStart(4)
+        }
+    }
+
     // pipeline
     Menu {
-        id: pipelineSlotMenu
+        id: pipelineAddMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
 
         MenuItem {
             text: qsTr("Scale")
