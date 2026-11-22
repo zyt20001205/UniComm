@@ -116,11 +116,12 @@ QJsonObject PortModule::portConfigGet(const PortType::Value portType) {
             devices.removeDuplicates();
             portConfig = {
                 {"type", "object"},
-                {"required", QJsonArray{"portName"}},
+                {"required", QJsonArray{"portName", "deviceName"}},
                 {
                     "properties", QJsonObject{
+                        {"portName", QJsonObject{{"type", "string"}}},
                         {
-                            "portName", QJsonObject{
+                            "deviceName", QJsonObject{
                                 {"type", "string"},
                                 {"enum", QJsonArray::fromStringList(devices)},
                                 {"description", "The exact name of an available screen or camera."}
@@ -413,7 +414,7 @@ QString PortModule::portCheck(const QJsonObject &portConfig, const QString &oldP
         case PortType::Vision: {
             auto devices = DeviceDiscovery::screens();
             devices.append(DeviceDiscovery::cameras());
-            if (!devices.contains(portName)) return "Port check failed: vision source is unavailable.";
+            if (!devices.contains(portConfig.value("deviceName").toString())) return "Port check failed: vision source is unavailable.";
             return {};
         }
         case PortType::TcpClient: {

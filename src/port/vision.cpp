@@ -41,9 +41,9 @@ bool Vision::open() {
         m_mediaCaptureSession = new QMediaCaptureSession(this);
         m_videoSink = new QVideoSink(this);
         m_mediaCaptureSession->setVideoSink(m_videoSink);
-        const auto &portName = m_portConfig["portName"].toString();
+        const auto deviceName = m_portConfig["deviceName"].toString();
         for (QScreen *screen: QGuiApplication::screens()) {
-            if (portName == screen->name()) {
+            if (deviceName == screen->name()) {
                 m_screenCapture = new QScreenCapture(this);
                 m_screenCapture->setScreen(screen);
                 m_mediaCaptureSession->setScreenCapture(m_screenCapture);
@@ -51,7 +51,7 @@ bool Vision::open() {
             }
         }
         for (const QCameraDevice &camera: QMediaDevices::videoInputs()) {
-            if (portName == camera.description()) {
+            if (deviceName == camera.description()) {
                 m_cameraCapture = new QCamera(camera, this);
                 m_mediaCaptureSession->setCamera(m_cameraCapture);
                 break;
