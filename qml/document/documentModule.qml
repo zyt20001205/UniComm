@@ -14,7 +14,7 @@ Item {
     Connections {
         target: global.documentModule
 
-        function onShowEditorMenu() { contextMenu.popup() }
+        function onShowContextMenu() { contextMenu.popup() }
 
         function onShowGotoDialog(documentUrl, line, character) {
             gotoDialog.documentUrl = documentUrl

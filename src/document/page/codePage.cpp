@@ -24,7 +24,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &EditorWidget::changeSelection, this, &CodePage::changeSelection);
     connect(m_codeWidget, &EditorWidget::gotoDocument, this, &DocumentPage::gotoDocument);
     connect(m_codeWidget, &EditorWidget::showPermissionDialog, this, &DocumentPage::showPermissionDialog);
-    connect(m_codeWidget, &CodeWidget::showEditorMenu, this, &CodePage::showEditorMenu);
+    connect(m_codeWidget, &CodeWidget::showContextMenu, this, &CodePage::showContextMenu);
     connect(m_codeWidget, &CodeWidget::toggleBreakpoint, this, &CodePage::toggleBreakpoint);
     connect(m_codeWidget, &CodeWidget::notificationJson, this, &CodePage::notificationJson);
     connect(m_codeWidget, &CodeWidget::requestCompletion, this, &CodePage::requestCompletion);

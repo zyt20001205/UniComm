@@ -49,7 +49,7 @@ public:
 signals:
     void changeSelection(const QHash<QString, int> &selection);
 
-    void showEditorMenu();
+    void showContextMenu();
 
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 

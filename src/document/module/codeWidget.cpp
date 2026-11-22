@@ -354,7 +354,7 @@ bool CodeWidget::eventFilter(QObject *watched, QEvent *event) {
             }
             if (mouseEvent->button() == Qt::RightButton) {
                 if (m_scintillaWidget->textGetSelected().isEmpty()) m_scintillaWidget->positionSet(position);
-                emit showEditorMenu();
+                emit showContextMenu();
                 return true;
             }
         } else if (event->type() == QEvent::MouseMove) {

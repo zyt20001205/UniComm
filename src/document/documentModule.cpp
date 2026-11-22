@@ -284,7 +284,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
             codePage->propertySet();
             connect(codePage, &CodePage::appendLog, this, &DocumentModule::appendLog);
             connect(codePage, &CodePage::changeSelection, this, &DocumentModule::selectionSet);
-            connect(codePage, &CodePage::showEditorMenu, this, &DocumentModule::showEditorMenu);
+            connect(codePage, &CodePage::showContextMenu, this, &DocumentModule::showContextMenu);
             connect(codePage, &CodePage::toggleBreakpoint, this, &DocumentModule::toggleBreakpoint);
             connect(codePage, &CodePage::notificationJson, this, &DocumentModule::notificationJson);
             connect(codePage, &CodePage::requestCompletion, this, &DocumentModule::completionRequest);

@@ -47,7 +47,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
-    void showEditorMenu();
+    void showContextMenu();
 
     void toggleBreakpoint(const QUrl &documentUrl, int line);
 

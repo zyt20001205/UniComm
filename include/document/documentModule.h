@@ -227,7 +227,7 @@ signals:
 
     void focusDocument(const QUrl &documentUrl, const QVariantHash &session);
 
-    void showEditorMenu();
+    void showContextMenu();
 
     void showPermissionDialog(const QUrl &documentUrl);
 
