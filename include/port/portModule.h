@@ -1,6 +1,8 @@
 #ifndef UNICOMM_PORTMODULE_H
 #define UNICOMM_PORTMODULE_H
 
+#include <memory>
+
 #include <QJsonObject>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
@@ -70,7 +72,7 @@ private:
     void _portMove(int src, int dst);
 
     QQuickWidget *m_widget{};
-    PortManageWindow *m_portManageWindow{};
+    std::unique_ptr<PortManageWindow> m_portManageWindow{};
     QVariantList m_ports{};
 };
 

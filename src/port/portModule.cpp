@@ -26,10 +26,10 @@
 PortModule::PortModule()
     : DockWidget("Port"),
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
-      m_portManageWindow(new PortManageWindow(this)) {
+      m_portManageWindow(std::make_unique<PortManageWindow>()) {
     setWidget(m_widget);
-    connect(m_portManageWindow, &PortManageWindow::insertPort, this, &PortModule::portInsert);
-    connect(m_portManageWindow, &PortManageWindow::editPort, this, &PortModule::portEdit);
+    connect(m_portManageWindow.get(), &PortManageWindow::insertPort, this, &PortModule::portInsert);
+    connect(m_portManageWindow.get(), &PortManageWindow::editPort, this, &PortModule::portEdit);
     for (const auto &value: g_workspaceConfig["portConfig"].toArray()) {
         auto portConfig = value.toObject();
         portDefaults(portConfig);

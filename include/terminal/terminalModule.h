@@ -1,6 +1,8 @@
 #ifndef UNICOMM_TERMINALMODULE_H
 #define UNICOMM_TERMINALMODULE_H
 
+#include <memory>
+
 #include <QJsonObject>
 #include <QObject>
 #include <QVariantList>
@@ -48,7 +50,7 @@ signals:
 
 private:
     QJsonObject m_config{};
-    QQuickView *m_manageWindow{};
+    std::unique_ptr<QQuickView> m_manageWindow{};
 
     QHash<QString, TerminalPage *> m_terminalPageHash{};
 };

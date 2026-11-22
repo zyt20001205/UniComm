@@ -15,11 +15,10 @@
 TerminalModule::TerminalModule(QWidget *parent)
     : QObject(parent),
       m_config(g_workspaceConfig["terminalConfig"].toObject()),
-      m_manageWindow(new QQuickView(g_globalManager->engineGet(), nullptr)) {
+      m_manageWindow(std::make_unique<QQuickView>(g_globalManager->engineGet(), nullptr)) {
 }
 
 TerminalModule::~TerminalModule() {
-    delete m_manageWindow;
     const auto timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     qDebug() << QString("[%1] terminal module destructed").arg(timestamp);
 }
