@@ -10,7 +10,6 @@ import UniComm
 Item {
     id: root
     readonly property ExplorerModule explorerModule: global.explorerModule
-    required property QtObject sortFilterProxyModel
     required property var modelRootIndex
     required property url modelRootUrl
     anchors.fill: parent
@@ -93,15 +92,16 @@ Item {
         TreeView {
             id: treeView
             clip: true
-            model: root.sortFilterProxyModel
+            acceptedButtons: Qt.NoButton
+            model: root.explorerModule.model
             reuseItems: false
             rootIndex: root.modelRootIndex
             Layout.fillWidth: true; Layout.fillHeight: true
             property int selectedRow: -1
 
             ScrollBar.vertical: ScrollBar {
+                id: treeScrollBar
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.theme.general.stroke
                     dark: global.theme.general.strokePressed
@@ -137,7 +137,7 @@ Item {
                     opacity: hoverHandler.hovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 150
+                            duration: AnimationDuration.Fade
                         }
                     }
                 }
@@ -150,6 +150,7 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
+                    anchors.rightMargin: treeScrollBar.width
                     spacing: 0
 
                     Item {

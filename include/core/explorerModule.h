@@ -2,25 +2,21 @@
 #define UNICOMM_EXPLORER_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
-#include <QSortFilterProxyModel>
+#include <QFileSystemModel>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include "service/git/gitService.h"
 #include "types/logTypes.h"
 #include "types/runtimeTypes.h"
 
-class QAbstractProxyModel;
-class QFileSystemModel;
-class QFileSystemWatcher;
 class QQuickWidget;
-class QStandardItemModel;
-
-class SortFilterProxyModel;
+class ExplorerModel;
 
 class ExplorerModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("ExplorerModule is created by C++.")
+    Q_PROPERTY(QAbstractItemModel *model MEMBER m_model CONSTANT)
 
 public:
     explicit ExplorerModule();
@@ -50,19 +46,15 @@ signals:
 
 private:
     QQuickWidget *m_widget{};
-    QFileSystemModel *m_fileSystemModel{};
-    SortFilterProxyModel *m_sortFilterProxyModel{};
-    QHash<QUrl, GitStatusResult::Entry> m_documentStatus{};
+    ExplorerModel *m_model{};
 };
 
-class SortFilterProxyModel final : public QSortFilterProxyModel {
-    Q_OBJECT
-
+class ExplorerModel final : public QFileSystemModel {
 public:
-    explicit SortFilterProxyModel(const QHash<QUrl, GitStatusResult::Entry> *documentStatus, QObject *parent = nullptr);
+    using QFileSystemModel::QFileSystemModel;
 
     enum Role {
-        SourceRole = Qt::UserRole + 4,
+        SourceRole = FilePermissions + 1,
         IsDirRole,
         DocumentUrlRole,
         GitRole
@@ -72,10 +64,14 @@ public:
 
     [[nodiscard]] QVariant data(const QModelIndex &index, int role) const override;
 
-    [[nodiscard]] int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
+
+    void gitStatusSet(const QHash<QUrl, GitStatusResult::Entry> &files);
 
 private:
-    const QHash<QUrl, GitStatusResult::Entry> *m_documentStatus{};
+    void gitStatusNotify(const QModelIndex &parent);
+
+    QHash<QUrl, GitStatusResult::Entry> m_documentStatus{};
 };
 
 #endif //UNICOMM_EXPLORER_H

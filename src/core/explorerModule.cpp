@@ -1,6 +1,5 @@
 #include "core/explorerModule.h"
 
-#include <QFileSystemModel>
 #include <QQuickWidget>
 
 #include "globals.h"
@@ -12,10 +11,13 @@
 ExplorerModule::ExplorerModule()
     : DockWidget("Explorer"),
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
-      m_fileSystemModel(new QFileSystemModel(this)),
-      m_sortFilterProxyModel(new SortFilterProxyModel(&m_documentStatus)) {
+      m_model(new ExplorerModel(this)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);
+    auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
+    connect(git, &GitService::hasRepositoryChanged, this, [this, git] {
+        if (!git->hasRepositoryGet()) m_model->gitStatusSet({});
+    });
 }
 
 ExplorerModule::~ExplorerModule() {
@@ -24,16 +26,12 @@ ExplorerModule::~ExplorerModule() {
 }
 
 void ExplorerModule::propertySet() const {
-    const auto modelRootPath = g_workspaceUrl.toLocalFile();
-    m_fileSystemModel->setRootPath(modelRootPath);
-    m_fileSystemModel->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
-    m_sortFilterProxyModel->setSourceModel(m_fileSystemModel);
-    const QModelIndex modelRootIndex = m_sortFilterProxyModel->mapFromSource(m_fileSystemModel->index(modelRootPath));
+    m_model->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
+    const auto modelRootIndex = m_model->setRootPath(g_workspaceUrl.toLocalFile());
 
     m_widget->setInitialProperties({
         {"modelRootIndex", QVariant::fromValue(modelRootIndex)},
-        {"modelRootUrl", g_workspaceUrl},
-        {"sortFilterProxyModel", QVariant::fromValue<QAbstractItemModel *>(m_sortFilterProxyModel)}
+        {"modelRootUrl", g_workspaceUrl}
     });
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
@@ -45,8 +43,7 @@ void ExplorerModule::indexUpdate() {
     if (!git->hasRepositoryGet()) return;
     git->statusGet(true).then(this, [this](const GitStatusResult &result) {
         if (!result.success) return;
-        m_documentStatus = result.files;
-        m_sortFilterProxyModel->invalidate();
+        m_model->gitStatusSet(result.files);
     });
 }
 
@@ -67,13 +64,8 @@ bool ExplorerModule::eventFilter(QObject *watched, QEvent *event) {
     return DockWidget::eventFilter(watched, event);
 }
 
-SortFilterProxyModel::SortFilterProxyModel(const QHash<QUrl, GitStatusResult::Entry> *documentStatus, QObject *parent)
-    : QSortFilterProxyModel(parent),
-      m_documentStatus(documentStatus) {
-}
-
-QHash<int, QByteArray> SortFilterProxyModel::roleNames() const {
-    auto roles = QSortFilterProxyModel::roleNames();
+QHash<int, QByteArray> ExplorerModel::roleNames() const {
+    auto roles = QFileSystemModel::roleNames();
     roles[SourceRole] = "source";
     roles[IsDirRole] = "isDir";
     roles[DocumentUrlRole] = "documentUrl";
@@ -81,31 +73,32 @@ QHash<int, QByteArray> SortFilterProxyModel::roleNames() const {
     return roles;
 }
 
-QVariant SortFilterProxyModel::data(const QModelIndex &index, const int role) const {
-    const auto sourceIndex = mapToSource(index);
-    const auto *fileModel = qobject_cast<QFileSystemModel *>(sourceModel());
-    const auto fileInfo = fileModel->fileInfo(sourceIndex);
-    const auto documentUrl = QUrl::fromLocalFile(fileInfo.filePath());
-    if (role == SourceRole) {
-        const auto &source = uni_cast<QFileIcon>(documentUrl);
-        return source.value;
+QVariant ExplorerModel::data(const QModelIndex &index, const int role) const {
+    switch (role) {
+        case SourceRole: return uni_cast<QFileIcon>(QUrl::fromLocalFile(filePath(index))).value;
+        case IsDirRole: return isDir(index);
+        case DocumentUrlRole: return QUrl::fromLocalFile(filePath(index));
+        case GitRole: {
+            const auto entry = m_documentStatus.constFind(QUrl::fromLocalFile(filePath(index)));
+            if (entry == m_documentStatus.cend()) return {};
+            return QVariantHash{{"indexStatus", entry->indexStatus}, {"workingTreeStatus", entry->workingTreeStatus}};
+        }
+        default: return QFileSystemModel::data(index, role);
     }
-    if (role == IsDirRole) {
-        return fileInfo.isDir();
-    }
-    if (role == DocumentUrlRole) {
-        return documentUrl;
-    }
-    if (role == GitRole) {
-        if (g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet().isEmpty()) return {};
-        const auto entry = m_documentStatus->constFind(documentUrl);
-        if (entry == m_documentStatus->cend()) return {};
-        return QVariantHash{{"indexStatus", entry->indexStatus}, {"workingTreeStatus", entry->workingTreeStatus}};
-    }
-    return QSortFilterProxyModel::data(index, role);
 }
 
-int SortFilterProxyModel::columnCount(const QModelIndex &parent) const {
-    Q_UNUSED(parent)
-    return 1;
+int ExplorerModel::columnCount(const QModelIndex &parent) const {
+    return parent.column() > 0 ? 0 : 1;
+}
+
+void ExplorerModel::gitStatusSet(const QHash<QUrl, GitStatusResult::Entry> &files) {
+    m_documentStatus = files;
+    gitStatusNotify(index(rootPath()));
+}
+
+void ExplorerModel::gitStatusNotify(const QModelIndex &parent) {
+    const int rows = rowCount(parent);
+    if (!rows) return;
+    emit dataChanged(index(0, 0, parent), index(rows - 1, 0, parent), {GitRole});
+    for (int row = 0; row < rows; ++row) gitStatusNotify(index(row, 0, parent));
 }
