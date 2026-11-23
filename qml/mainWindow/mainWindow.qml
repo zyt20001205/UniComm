@@ -316,7 +316,7 @@ Item {
         Behavior on width {
             enabled: mainWindowToolTip.visible
             NumberAnimation {
-                duration: 80
+                duration: AnimationDuration.Follow
                 easing.type: Easing.OutCubic
             }
         }
@@ -324,7 +324,7 @@ Item {
         Behavior on height {
             enabled: mainWindowToolTip.visible
             NumberAnimation {
-                duration: 80
+                duration: AnimationDuration.Follow
                 easing.type: Easing.OutCubic
             }
         }
@@ -332,7 +332,7 @@ Item {
         Behavior on x {
             enabled: mainWindowToolTip.visible
             SmoothedAnimation {
-                duration: 80
+                duration: AnimationDuration.Follow
                 velocity: -1
             }
         }
@@ -340,7 +340,7 @@ Item {
         Behavior on y {
             enabled: mainWindowToolTip.visible
             SmoothedAnimation {
-                duration: 80
+                duration: AnimationDuration.Follow
                 velocity: -1
             }
         }

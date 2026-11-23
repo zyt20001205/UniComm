@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 
+import UniComm
+
 ToolTip {
     id: root
     parent: mainOverlay
@@ -28,10 +30,10 @@ ToolTip {
 
     Behavior on x {
         enabled: root.visible
-        NumberAnimation { duration: 50; easing.type: Easing.Linear }
+        SmoothedAnimation { duration: AnimationDuration.Follow; velocity: -1 }
     }
     Behavior on y {
         enabled: root.visible
-        NumberAnimation { duration: 50; easing.type: Easing.Linear }
+        SmoothedAnimation { duration: AnimationDuration.Follow; velocity: -1 }
     }
 }
