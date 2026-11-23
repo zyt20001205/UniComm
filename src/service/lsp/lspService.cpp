@@ -194,8 +194,9 @@ void LspService::parser() {
             const auto documentUrl = m_urls[id];
             m_methods.remove(id);
             m_urls.remove(id);
-            eventAppend(method, json);
-            if ((method == "initialize" || method == "shutdown") && json.contains("error"))
+            const bool success = !json.contains("error");
+            eventAppend(method, success, json);
+            if ((method == "initialize" || method == "shutdown") && !success)
                 statusSet(Status::Error);
             if (method == "initialize") {
                 // initialize response

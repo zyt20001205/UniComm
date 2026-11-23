@@ -131,7 +131,7 @@ QFuture<QHttpServerResponse> McpService::requestHandle(const QHttpServerRequest 
 QHttpServerResponse McpService::responseResult(const QJsonValue &id, const QString &event, QJsonObject result, const bool modern) const {
     if (modern) result["resultType"] = "complete";
     const QJsonObject response{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}};
-    eventAppend(event, response);
+    eventAppend(event, !result.value("isError").toBool(), response);
     return {response};
 }
 

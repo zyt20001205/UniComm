@@ -199,6 +199,7 @@ Item {
 
                 delegate: Item {
                     id: headerCell
+                    required property int column
                     required property string display
                     implicitWidth: 120; implicitHeight: 32
 
@@ -207,7 +208,7 @@ Item {
                         text: headerCell.display
                         color: global.theme.general.fore
                         font.bold: true
-                        leftPadding: 6; rightPadding: 6
+                        leftPadding: headerCell.column === 1 ? 0 : 6; rightPadding: 6
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
                     }
@@ -230,15 +231,17 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 editTriggers: TableView.NoEditTriggers
 
+                readonly property int statusWidth: 11
                 readonly property int timeWidth: 112
                 readonly property int eventWidth: 144
 
                 columnWidthProvider: function(column: int): real {
+                    if (column === 0) return statusWidth
                     const resizedWidth = explicitColumnWidth(column)
                     if (resizedWidth >= 0) return resizedWidth
-                    if (column === 0) return timeWidth
-                    if (column === 1) return eventWidth
-                    return Math.max(160, Math.floor(width) - timeWidth - eventWidth)
+                    if (column === 1) return timeWidth
+                    if (column === 2) return eventWidth
+                    return Math.max(160, Math.floor(width) - statusWidth - timeWidth - eventWidth)
                 }
 
                 onWidthChanged: forceLayout()
@@ -280,12 +283,22 @@ Item {
 
                     Label {
                         anchors.fill: parent
+                        visible: eventCell.column !== 0
                         text: eventCell.display ?? ""
                         textFormat: Text.PlainText
                         color: global.theme.general.fore
-                        leftPadding: 6; rightPadding: 6 + (eventCell.column === eventTable.columns - 1 ? verticalScrollBar.width : 0)
+                        leftPadding: eventCell.column === 1 ? 0 : 6
+                        rightPadding: 6 + (eventCell.column === eventTable.columns - 1 ? verticalScrollBar.width : 0)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
+                    }
+
+                    Rectangle {
+                        visible: eventCell.column === 0
+                        anchors.centerIn: parent
+                        width: 3; height: 16
+                        radius: width * 0.5
+                        color: eventCell.display ? global.theme.general.successBack3 : global.theme.general.dangerBack3
                     }
 
                     HoverHandler {

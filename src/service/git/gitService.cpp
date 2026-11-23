@@ -82,7 +82,7 @@ void GitService::processFinish() {
 
     // record command
     auto [arguments, promise] = std::move(m_queue.front());
-    eventAppend(arguments.first(), success ? "git " + arguments.join(' ') : output);
+    eventAppend(arguments.first(), success, success ? "git " + arguments.join(' ') : output);
     m_queue.pop();
     const bool hasNext = !m_queue.empty();
     promise.addResult(GitResult{.success = success, .output = output});

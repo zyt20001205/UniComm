@@ -43,9 +43,9 @@ protected:
         emit changeDetail();
     }
 
-    void eventAppend(const QString &event, const QJsonObject &response) const;
+    void eventAppend(const QString &event, bool success, const QJsonObject &response) const;
 
-    void eventAppend(const QString &event, const QString &detail, const QString &toolTip = {}) const;
+    void eventAppend(const QString &event, bool success, const QString &detail, const QString &toolTip = {}) const;
 
     struct Status {
         enum {

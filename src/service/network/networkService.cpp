@@ -31,10 +31,11 @@ NetworkService::NetworkService(QObject *parent)
         connect(reply, &QNetworkReply::finished, this, [this, reply, source, detail]() mutable {
             const auto statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
             if (statusCode.isValid()) detail.insert("statusCode", statusCode.toInt());
-            if (reply->error() != QNetworkReply::NoError) detail.insert("error", reply->errorString());
+            const bool success = reply->error() == QNetworkReply::NoError;
+            if (!success) detail.insert("error", reply->errorString());
             --m_activeRequests;
             detailSet(tr("Active requests: %1").arg(m_activeRequests));
-            eventAppend(source, detail);
+            eventAppend(source, success, detail);
         });
     });
 }

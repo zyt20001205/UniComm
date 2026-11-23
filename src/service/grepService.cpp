@@ -54,6 +54,6 @@ QJsonObject GrepService::grep(const QString &pattern) {
         {"truncated", truncated},
         {"result", result}
     };
-    eventAppend("grep", response);
+    eventAppend("grep", success, response);
     return response;
 }
