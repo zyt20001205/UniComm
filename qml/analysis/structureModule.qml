@@ -37,7 +37,6 @@ Item {
         if (searchField.query.length > 0)
             Qt.callLater(() => treeView.expandRecursively())
     }
-    SymbolKindStyle { id: symbolStyle }
 
     Connections {
         target: root.structureModule
@@ -309,8 +308,8 @@ Item {
                         IconImage {
                             anchors.centerIn: parent
                             width: 20; height: 20
-                            source: symbolStyle.kindIcon(node.kind)
-                            color: symbolStyle.kindColor(node.kind)
+                            source: SymbolKindStyle.icon(node.kind)
+                            color: SymbolKindStyle.color(node.kind)
                         }
                     }
 
@@ -453,8 +452,8 @@ Item {
                 height: 30
                 leftPadding: 12; rightPadding: 12; topPadding: 3; bottomPadding: 3
                 text: Qt.enumValueToString(LspSymbolKind.Value, kindDelegate.modelData)
-                icon.source: symbolStyle.kindIcon(kindDelegate.modelData)
-                icon.color: symbolStyle.kindColor(kindDelegate.modelData)
+                icon.source: SymbolKindStyle.icon(kindDelegate.modelData)
+                icon.color: SymbolKindStyle.color(kindDelegate.modelData)
                 icon.width: 16; icon.height: 16
                 checked: root.selectedKinds === null
                     || root.selectedKinds.includes(kindDelegate.modelData)

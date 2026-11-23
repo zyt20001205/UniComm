@@ -56,12 +56,26 @@ file(GLOB_RECURSE UNICOMM_QML CONFIGURE_DEPENDS
         "qml/*.qml"
 )
 
+set_source_files_properties(
+        qml/util/CompletionKindStyle.qml
+        qml/util/GitFileStatusStyle.qml
+        qml/util/SymbolKindStyle.qml
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE
+)
+
 qt_add_qml_module(UniComm
         URI UniComm
         RESOURCE_PREFIX "/"
         NO_RESOURCE_TARGET_PATH
         QML_FILES
         ${UNICOMM_QML}
+)
+
+# Publish the module descriptor on Qt's import path while keeping the existing qrc:/qml URLs.
+qt_add_resources(UniComm "qml_import"
+        PREFIX "/qt/qml/UniComm"
+        BASE "${CMAKE_CURRENT_BINARY_DIR}/UniComm"
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/UniComm/qmldir"
 )
 
 file(GLOB_RECURSE UNICOMM_ICON CONFIGURE_DEPENDS

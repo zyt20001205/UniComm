@@ -115,6 +115,20 @@ Item {
                 required property bool expanded
                 required property int depth
                 required property int row
+                readonly property int gitStatus: {
+                    const git = node.model.git
+                    if (!git) return GitFileStatus.Unmodified
+                    switch (git.indexStatus) {
+                        case GitFileStatus.Untracked:
+                        case GitFileStatus.Ignored:
+                        case GitFileStatus.Added:
+                        case GitFileStatus.Renamed:
+                            return git.indexStatus
+                    }
+                    if (git.workingTreeStatus === GitFileStatus.Modified || git.workingTreeStatus === GitFileStatus.Unmerged)
+                        return git.workingTreeStatus
+                    return GitFileStatus.Unmodified
+                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -182,15 +196,7 @@ Item {
 
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        color: !node.model.git ? global.theme.general.fore
-                            : node.model.git.indexStatus === GitFileStatus.Untracked ? global.theme.general.successFore3
-                                : node.model.git.indexStatus === GitFileStatus.Ignored ? global.theme.general.stroke
-                                    : node.model.git.indexStatus === GitFileStatus.Added ? global.theme.general.successFore2
-                                        : node.model.git.indexStatus === GitFileStatus.Renamed ? global.theme.general.warningFore3
-                                            : node.model.git.workingTreeStatus === GitFileStatus.Unmodified ? global.theme.general.fore
-                                                : node.model.git.workingTreeStatus === GitFileStatus.Modified ? global.theme.general.brandBack
-                                                    : node.model.git.workingTreeStatus === GitFileStatus.Unmerged ? global.theme.general.dangerFore3
-                                                        : global.theme.general.fore
+                        color: GitFileStatusStyle.color(node.gitStatus)
                         text: node.model.display || ""
                         elide: Text.ElideRight
                         Layout.fillWidth: true; Layout.preferredHeight: 24
@@ -207,23 +213,8 @@ Item {
                     }
                     onPointChanged: {
                         mainTooltip.position = parent.mapToGlobal(point.position)
-                        if (node.model.git) {
-                            if (node.model.git.indexStatus === GitFileStatus.Untracked) {
-                                mainTooltip.text = "Untracked"
-                            } else if (node.model.git.indexStatus === GitFileStatus.Ignored) {
-                                mainTooltip.text = "Ignored"
-                            } else if (node.model.git.indexStatus === GitFileStatus.Added) {
-                                mainTooltip.text = "Added"
-                            } else if (node.model.git.indexStatus === GitFileStatus.Renamed) {
-                                mainTooltip.text = "Renamed"
-                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Unmodified) {
-                                // mainTooltip.text = "Unmodified"
-                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Modified) {
-                                mainTooltip.text = "Modified"
-                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Unmerged) {
-                                mainTooltip.text = "Unmerged"
-                            }
-                        }
+                        mainTooltip.text = node.gitStatus === GitFileStatus.Unmodified ? ""
+                            : Qt.enumValueToString(GitFileStatus.Value, node.gitStatus)
                     }
                 }
 

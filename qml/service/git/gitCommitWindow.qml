@@ -136,24 +136,7 @@ Item {
                                     horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                                     text: model.display
                                     elide: Text.ElideRight
-                                    color: {
-                                        switch (model.status) {
-                                            case GitFileStatus.Untracked:
-                                                return global.theme.general.successFore3
-                                            case GitFileStatus.Modified:
-                                                return global.theme.general.brandBack
-                                            case GitFileStatus.Added:
-                                                return global.theme.general.successFore2
-                                            case GitFileStatus.Deleted:
-                                                return global.theme.general.stroke
-                                            case GitFileStatus.Renamed:
-                                                return global.theme.general.warningFore3
-                                            case GitFileStatus.Unmerged:
-                                                return global.theme.general.dangerFore3
-                                            default:
-                                                return global.theme.general.fore
-                                        }
-                                    }
+                                    color: GitFileStatusStyle.color(model.status)
                                     Layout.fillWidth: true; Layout.preferredHeight: 24
                                 }
                             }
@@ -426,24 +409,7 @@ Item {
                                     horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                                     text: model.display
                                     elide: Text.ElideRight
-                                    color: {
-                                        switch (model.status) {
-                                            case GitFileStatus.Untracked:
-                                                return global.theme.general.successFore3
-                                            case GitFileStatus.Modified:
-                                                return global.theme.general.brandBack
-                                            case GitFileStatus.Added:
-                                                return global.theme.general.successFore2
-                                            case GitFileStatus.Deleted:
-                                                return global.theme.general.stroke
-                                            case GitFileStatus.Renamed:
-                                                return global.theme.general.warningFore3
-                                            case GitFileStatus.Unmerged:
-                                                return global.theme.general.dangerFore3
-                                            default:
-                                                return global.theme.general.fore
-                                        }
-                                    }
+                                    color: GitFileStatusStyle.color(model.status)
                                     Layout.fillWidth: true; Layout.preferredHeight: 24
                                 }
                             }

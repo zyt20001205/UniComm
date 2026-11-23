@@ -240,20 +240,7 @@ Item {
                                 horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                                 text: model.display || ""
                                 elide: Text.ElideRight
-                                color: {
-                                    switch (model.status) {
-                                        case GitFileStatus.Modified:
-                                            return global.theme.general.brandBack
-                                        case GitFileStatus.Added:
-                                            return global.theme.general.successFore2
-                                        case GitFileStatus.Deleted:
-                                            return global.theme.general.stroke
-                                        case GitFileStatus.Renamed:
-                                            return global.theme.general.warningFore3
-                                        default:
-                                            return global.theme.general.fore
-                                    }
-                                }
+                                color: GitFileStatusStyle.color(model.status)
                                 Layout.preferredHeight: 24; Layout.fillWidth: true
                             }
                         }

@@ -1,9 +1,11 @@
+pragma Singleton
+
 import QtQml
 
 import UniComm
 
 QtObject {
-    function kindIcon(kind: int): string {
+    function icon(kind: int): string {
         switch (kind) {
             case LspSymbolKind.Package:
                 return "qrc:/icon/symbolPackage.svg"
@@ -27,7 +29,7 @@ QtObject {
         }
     }
 
-    function kindColor(kind: int): string {
+    function color(kind: int): string {
         let key
         switch (kind) {
             case LspSymbolKind.Package:
