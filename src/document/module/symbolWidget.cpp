@@ -1,11 +1,9 @@
 #include "document/module/symbolWidget.h"
 
-#include <QJsonArray>
+#include <QJsonObject>
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "types/lspTypes.h"
-#include "types/scintillaTypes.h"
 
 // public
 SymbolWidget::SymbolWidget(QWidget *parent)
@@ -22,8 +20,12 @@ void SymbolWidget::propertySet() {
     setSource(QUrl("qrc:/qml/document/module/symbolWidget.qml"));
 }
 
-void SymbolWidget::documentSymbolShow(const QJsonArray &result, const int line, const int character) {
-    const auto symbolList = symbolParse(result, line, character);
+void SymbolWidget::documentSymbolSet(const QJsonArray &result) {
+    m_symbol = result;
+}
+
+void SymbolWidget::documentSymbolShow(const int line, const int character) {
+    const auto symbolList = symbolParse(m_symbol, line, character);
     if (m_model == symbolList) return;
     m_model = symbolList;
     emit modelChanged();
@@ -45,14 +47,8 @@ void SymbolWidget::indicatorFill(const QVariantHash &position) {
 
 QVariantList SymbolWidget::symbolParse(const QJsonArray &result, const int line, const int character) {
     QVariantList symbolList{};
-    const auto theme = g_globalManager->themeGet();
-    const auto general = theme["general"].toObject();
-    const auto colors = theme["lua"].toObject()["structure"].toObject();
     for (const auto &value: result) {
         const auto symbol = value.toObject();
-        const auto kind = symbol["kind"].toInt();
-        const auto detail = symbol["detail"].toString().trimmed();
-        const auto name = symbol["name"].toString();
         const auto range = symbol["range"].toObject();
         const auto start = range["start"].toObject();
         const auto end = range["end"].toObject();
@@ -65,66 +61,10 @@ QVariantList SymbolWidget::symbolParse(const QJsonArray &result, const int line,
             {"endLine", end["line"].toInt()},
             {"endCharacter", end["character"].toInt()}
         };
-        QUrl source{};
-        QString iconColor = general["fore"].toString();
-        switch (kind) {
-            case LspSymbolKind::Package: {
-                iconColor = colors["package"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolPackage.svg";
-            }
-            break;
-            case LspSymbolKind::Method:
-            case LspSymbolKind::Function: {
-                iconColor = colors[kind == LspSymbolKind::Method ? "method" : "function"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolMethod.svg";
-            }
-            break;
-            case LspSymbolKind::Variable: {
-                iconColor = colors["variable"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolVariable.svg";
-            }
-            break;
-            case LspSymbolKind::Constant: {
-                iconColor = colors["constant"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolConstant.svg";
-            }
-            break;
-            case LspSymbolKind::String: {
-                iconColor = colors["string"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolString.svg";
-            }
-            break;
-            case LspSymbolKind::Number: {
-                iconColor = colors["number"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolNumeric.svg";
-            }
-            break;
-            case LspSymbolKind::Boolean: {
-                iconColor = colors["boolean"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolBoolean.svg";
-            }
-            break;
-            case LspSymbolKind::Array: {
-                iconColor = colors["array"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolArray.svg";
-            }
-            break;
-            case LspSymbolKind::Object: {
-                iconColor = colors["object"].toObject()["fore"].toString(general["fore"].toString());
-                source = "qrc:/icon/symbolMisc.svg";
-            }
-            break;
-            default: {
-                source = "qrc:/icon/symbolMisc.svg";
-                emit appendLog(LogType::Warning, "contact author:", QString("unsupported symbol (kind:%1, name:%2, detail:%3)").arg(QString::number(kind), name, detail));
-            }
-            break;
-        }
         symbolList.append(QVariantHash{
-            {"text", name},
-            {"source", source},
-            {"iconColor", iconColor},
-            {"detail", detail},
+            {"kind", symbol["kind"].toInt()},
+            {"text", symbol["name"].toString()},
+            {"detail", symbol["detail"].toString().trimmed()},
             {"position", position}
         });
         if (symbol.contains("children")) {

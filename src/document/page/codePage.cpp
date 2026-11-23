@@ -43,8 +43,7 @@ CodePage::CodePage(const QJsonObject &documentConfig, const QUrl &documentUrl)
     connect(m_codeWidget, &CodeWidget::requestSpellCheck, this, &CodePage::requestSpellCheck);
     connect(m_codeWidget, &CodeWidget::requestTypeDefinition, this, &CodePage::requestTypeDefinition);
     connect(m_codeWidget, &CodeWidget::showDiagnostic, this, &CodePage::showDiagnostic);
-    connect(m_codeWidget, &CodeWidget::showDocumentSymbol, this, [this](const int line, const int character) { m_symbolWidget->documentSymbolShow(m_symbol, line, character); });
-    connect(m_symbolWidget, &SymbolWidget::appendLog, this, &CodePage::appendLog);
+    connect(m_codeWidget, &CodeWidget::showDocumentSymbol, m_symbolWidget, &SymbolWidget::documentSymbolShow);
     connect(m_symbolWidget, &SymbolWidget::setFocus, handler(), &ScintillaWidget::focusSet);
     connect(m_symbolWidget, &SymbolWidget::setIndex, handler(), &ScintillaWidget::indexSet);
     connect(m_symbolWidget, &SymbolWidget::fillIndicator, handler(), &ScintillaWidget::indicatorFill);
@@ -75,9 +74,9 @@ void CodePage::documentHighlightResponse(const QJsonArray &result) const {
     m_codeWidget->documentHighlightResponse(result);
 }
 
-void CodePage::documentSymbolResponse(const QJsonArray &result) {
+void CodePage::documentSymbolResponse(const QJsonArray &result) const {
     if (!m_documentUrl.toString().endsWith(".lua")) return;
-    m_symbol = result;
+    m_symbolWidget->documentSymbolSet(result);
 }
 
 void CodePage::foldingRangeResponse(const QJsonArray &result) const {

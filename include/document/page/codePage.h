@@ -29,7 +29,7 @@ public:
 
     void documentHighlightResponse(const QJsonArray &result) const;
 
-    void documentSymbolResponse(const QJsonArray &result);
+    void documentSymbolResponse(const QJsonArray &result) const;
 
     void foldingRangeResponse(const QJsonArray &result) const;
 
@@ -95,8 +95,6 @@ private:
 
     CodeWidget *m_codeWidget{};
     SymbolWidget *m_symbolWidget{};
-
-    QJsonArray m_symbol{};
 };
 
 #endif //UNICOMM_CODEPAGE_H

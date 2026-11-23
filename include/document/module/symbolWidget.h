@@ -1,13 +1,16 @@
 #ifndef UNICOMM_SYMBOLWIDGET_H
 #define UNICOMM_SYMBOLWIDGET_H
 
+#include <QJsonArray>
 #include <QQuickWidget>
+#include <QtQmlIntegration/qqmlintegration.h>
 
-#include "types/logTypes.h"
 #include "types/scintillaTypes.h"
 
-class SymbolWidget final : public QQuickWidget {
+class SymbolWidget : public QQuickWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("SymbolWidget is created by C++.")
     Q_PROPERTY(QVariantList model READ modelGet NOTIFY modelChanged)
 
 public:
@@ -19,14 +22,14 @@ public:
         return m_model;
     }
 
-    void documentSymbolShow(const QJsonArray &result, int line, int character);
+    void documentSymbolSet(const QJsonArray &result);
+
+    void documentSymbolShow(int line, int character);
 
     Q_INVOKABLE void indicatorFill(const QVariantHash &position);
 
 signals:
     void modelChanged();
-
-    void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void setFocus(bool status);
 
@@ -35,9 +38,10 @@ signals:
     void fillIndicator(ScintillaIndicator::Value type, int startLine, int startCharacter, int endLine, int endCharacter, int time);
 
 private:
-    QVariantList symbolParse(const QJsonArray &result, int line, int character);
+    static QVariantList symbolParse(const QJsonArray &result, int line, int character);
 
     QVariantList m_model{};
+    QJsonArray m_symbol{};
 };
 
 #endif //UNICOMM_SYMBOLWIDGET_H

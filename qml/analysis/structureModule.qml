@@ -37,56 +37,7 @@ Item {
         if (searchField.query.length > 0)
             Qt.callLater(() => treeView.expandRecursively())
     }
-    function kindIcon(kind: int): string {
-        switch (kind) {
-            case LspSymbolKind.Package:
-                return "qrc:/icon/symbolPackage.svg"
-            case LspSymbolKind.Method:
-            case LspSymbolKind.Function:
-                return "qrc:/icon/symbolMethod.svg"
-            case LspSymbolKind.Variable:
-                return "qrc:/icon/symbolVariable.svg"
-            case LspSymbolKind.Constant:
-                return "qrc:/icon/symbolConstant.svg"
-            case LspSymbolKind.String:
-                return "qrc:/icon/symbolString.svg"
-            case LspSymbolKind.Number:
-                return "qrc:/icon/symbolNumeric.svg"
-            case LspSymbolKind.Boolean:
-                return "qrc:/icon/symbolBoolean.svg"
-            case LspSymbolKind.Array:
-                return "qrc:/icon/symbolArray.svg"
-            default:
-                return "qrc:/icon/symbolMisc.svg"
-        }
-    }
-    function kindColor(kind: int): string {
-        const colors = global.theme.lua.structure
-        switch (kind) {
-            case LspSymbolKind.Package:
-                return colors.package.fore
-            case LspSymbolKind.Method:
-                return colors.method.fore
-            case LspSymbolKind.Function:
-                return colors.function.fore
-            case LspSymbolKind.Variable:
-                return colors.variable.fore
-            case LspSymbolKind.Constant:
-                return colors.constant.fore
-            case LspSymbolKind.String:
-                return colors.string.fore
-            case LspSymbolKind.Number:
-                return colors.number.fore
-            case LspSymbolKind.Boolean:
-                return colors.boolean.fore
-            case LspSymbolKind.Array:
-                return colors.array.fore
-            case LspSymbolKind.Object:
-                return colors.object.fore
-            default:
-                return global.theme.general.fore
-        }
-    }
+    SymbolKindStyle { id: symbolStyle }
 
     Connections {
         target: root.structureModule
@@ -358,8 +309,8 @@ Item {
                         IconImage {
                             anchors.centerIn: parent
                             width: 20; height: 20
-                            source: root.kindIcon(node.kind)
-                            color: root.kindColor(node.kind)
+                            source: symbolStyle.kindIcon(node.kind)
+                            color: symbolStyle.kindColor(node.kind)
                         }
                     }
 
@@ -502,8 +453,8 @@ Item {
                 height: 30
                 leftPadding: 12; rightPadding: 12; topPadding: 3; bottomPadding: 3
                 text: Qt.enumValueToString(LspSymbolKind.Value, kindDelegate.modelData)
-                icon.source: root.kindIcon(kindDelegate.modelData)
-                icon.color: root.kindColor(kindDelegate.modelData)
+                icon.source: symbolStyle.kindIcon(kindDelegate.modelData)
+                icon.color: symbolStyle.kindColor(kindDelegate.modelData)
                 icon.width: 16; icon.height: 16
                 checked: root.selectedKinds === null
                     || root.selectedKinds.includes(kindDelegate.modelData)

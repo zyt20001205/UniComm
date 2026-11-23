@@ -1,11 +1,19 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import "../../util"
+
+import UniComm
+
 Item {
-    id: rootItem
-    required property QtObject symbolWidget
+    id: root
+    required property SymbolWidget symbolWidget
+
+    SymbolKindStyle { id: symbolStyle }
 
     Rectangle {
         anchors.fill: parent
@@ -25,7 +33,7 @@ Item {
 
         RowLayout {
             Repeater {
-                model: rootItem.symbolWidget.model
+                model: root.symbolWidget.model
 
                 delegate: RowLayout {
                     id: breadcrumbItem
@@ -43,13 +51,13 @@ Item {
                     Button {
                         flat: true
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                        icon.source: breadcrumbItem.modelData.source
-                        icon.color: breadcrumbItem.modelData.iconColor
+                        icon.source: symbolStyle.kindIcon(breadcrumbItem.modelData.kind)
+                        icon.color: symbolStyle.kindColor(breadcrumbItem.modelData.kind)
                         icon.width: 16; icon.height: 16
                         text: breadcrumbItem.modelData.text
                         Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
 
-                        onClicked: rootItem.symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
+                        onClicked: root.symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
 
                         HoverHandler {
                             onHoveredChanged: {
@@ -62,7 +70,6 @@ Item {
                                 mainTooltip.text = breadcrumbItem.modelData.detail
                             }
                         }
-
                     }
                 }
             }
