@@ -3,6 +3,7 @@
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
 #include <QSortFilterProxyModel>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/logTypes.h"
 #include "types/runtimeTypes.h"
@@ -16,17 +17,17 @@ class QStandardItemModel;
 
 class SortFilterProxyModel;
 
-class ExplorerModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class ExplorerModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("ExplorerModule is created by C++.")
 
 public:
     explicit ExplorerModule();
 
     ~ExplorerModule() override;
 
-    void propertySet(const QVariantHash &objects);
-
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    void propertySet() const;
 
     void indexUpdate() const;
 
@@ -39,6 +40,8 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 signals:
+    void clearSelection();
+
     void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void openDocument(const QUrl &documentUrl);
@@ -51,7 +54,6 @@ private:
     QQuickWidget *m_widget{};
     QFileSystemModel *m_fileSystemModel{};
     SortFilterProxyModel *m_sortFilterProxyModel{};
-    QObject *m_treeView{};
     QProcess *m_process{};
     QHash<QUrl, QVariant> m_documentStatus{};
 };

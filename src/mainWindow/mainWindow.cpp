@@ -86,7 +86,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("agentModule", m_agentModule);
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
-    m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
     m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
@@ -143,13 +142,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_documentModule->propertySet(documentObjects);
 
-    const QVariantHash explorerObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"explorerModuleFileMenu", objects["explorerModuleFileMenu"]},
-        {"explorerModuleFolderMenu", objects["explorerModuleFolderMenu"]},
-        {"explorerModuleRootMenu", objects["explorerModuleRootMenu"]}
-    };
-    m_explorerModule->propertySet(explorerObjects);
+    m_explorerModule->propertySet();
 
     const QVariantHash gitObjects = {
         {"mainWindowToolTip", objects["mainWindowToolTip"]},
@@ -377,6 +370,7 @@ void MainWindow::moduleInit() {
     g_globalManager->breakpointModuleSet(m_breakpointModule);
     g_globalManager->debugModuleSet(m_debugModule);
     g_globalManager->documentModuleSet(m_documentModule);
+    g_globalManager->explorerModuleSet(m_explorerModule);
     g_globalManager->fileModuleSet(m_fileModule);
     g_globalManager->gitModuleSet(m_gitModule);
     g_globalManager->logModuleSet(m_logModule);

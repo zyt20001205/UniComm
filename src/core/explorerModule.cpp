@@ -3,7 +3,6 @@
 #include <QFileSystemModel>
 #include <QFileSystemWatcher>
 #include <QProcess>
-#include <QQmlContext>
 #include <QQuickWidget>
 
 #include "globals.h"
@@ -14,7 +13,7 @@
 // public
 ExplorerModule::ExplorerModule()
     : DockWidget("Explorer"),
-      m_widget(new QQuickWidget()),
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_fileSystemModel(new QFileSystemModel(this)),
       m_sortFilterProxyModel(new SortFilterProxyModel(&m_documentStatus)),
       m_process(new QProcess(this)) {
@@ -29,30 +28,21 @@ ExplorerModule::~ExplorerModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void ExplorerModule::propertySet(const QVariantHash &objects) {
+void ExplorerModule::propertySet() const {
     const auto modelRootPath = g_workspaceUrl.toLocalFile();
     m_fileSystemModel->setRootPath(modelRootPath);
     m_fileSystemModel->setFilter(QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
     m_sortFilterProxyModel->setSourceModel(m_fileSystemModel);
     const QModelIndex modelRootIndex = m_sortFilterProxyModel->mapFromSource(m_fileSystemModel->index(modelRootPath));
 
-    m_widget->rootContext()->setContextProperty("explorerModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_widget->rootContext()->setContextProperty("fileMenu", objects["explorerModuleFileMenu"]);
-    m_widget->rootContext()->setContextProperty("folderMenu", objects["explorerModuleFolderMenu"]);
-    m_widget->rootContext()->setContextProperty("rootMenu", objects["explorerModuleRootMenu"]);
-    m_widget->rootContext()->setContextProperty("modelRootIndex", modelRootIndex);
-    m_widget->rootContext()->setContextProperty("modelRootPath", modelRootPath);
-    m_widget->rootContext()->setContextProperty("modelRootUrl", g_workspaceUrl);
-    m_widget->rootContext()->setContextProperty("sortFilterProxyModel", m_sortFilterProxyModel);
+    m_widget->setInitialProperties({
+        {"modelRootIndex", QVariant::fromValue(modelRootIndex)},
+        {"modelRootUrl", g_workspaceUrl},
+        {"sortFilterProxyModel", QVariant::fromValue<QAbstractItemModel *>(m_sortFilterProxyModel)}
+    });
 
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/core/explorerModule.qml"));
-}
-
-void ExplorerModule::propertyGet(const QVariantMap &objects) {
-    m_treeView = qvariant_cast<QObject *>(objects["treeView"]);
 }
 
 void ExplorerModule::indexUpdate() const {
@@ -72,11 +62,7 @@ void ExplorerModule::documentOpen(const QUrl &documentUrl) {
 }
 
 bool ExplorerModule::eventFilter(QObject *watched, QEvent *event) {
-    if (watched == m_widget) {
-        if (event->type() == QEvent::FocusOut) {
-            m_treeView->setProperty("selectedRow", -1);
-        }
-    }
+    if (watched == m_widget && event->type() == QEvent::FocusOut) emit clearSelection();
     return DockWidget::eventFilter(watched, event);
 }
 

@@ -1,11 +1,24 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import UniComm
+
 Item {
-    id: rootItem
+    id: root
+    readonly property ExplorerModule explorerModule: global.explorerModule
+    required property QtObject sortFilterProxyModel
+    required property var modelRootIndex
+    required property url modelRootUrl
     anchors.fill: parent
+
+    Connections {
+        target: root.explorerModule
+        function onClearSelection() { treeView.selectedRow = -1 }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -40,12 +53,12 @@ Item {
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Collapse All")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Collapse All")
                     }
                 }
             }
@@ -66,12 +79,12 @@ Item {
                 HoverHandler {
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = qsTr("Expand All")
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Expand All")
                     }
                 }
             }
@@ -80,9 +93,9 @@ Item {
         TreeView {
             id: treeView
             clip: true
-            model: sortFilterProxyModel
+            model: root.sortFilterProxyModel
             reuseItems: false
-            rootIndex: modelRootIndex
+            rootIndex: root.modelRootIndex
             Layout.fillWidth: true; Layout.fillHeight: true
             property int selectedRow: -1
 
@@ -96,8 +109,9 @@ Item {
             }
 
             delegate: Item {
+                id: node
                 implicitWidth: treeView.width; implicitHeight: 24
-                required property TreeView treeView
+                required property var model
                 required property bool expanded
                 required property int depth
                 required property int row
@@ -117,7 +131,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
-                    color: treeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
+                    color: treeView.selectedRow === node.row ? global.theme.general.backSelected : "transparent"
                 }
 
                 RowLayout {
@@ -125,7 +139,7 @@ Item {
                     spacing: 0
 
                     Item {
-                        Layout.preferredWidth: depth * 24; Layout.preferredHeight: 24
+                        Layout.preferredWidth: node.depth * 24; Layout.preferredHeight: 24
                     }
 
                     Item {
@@ -134,9 +148,9 @@ Item {
                         IconImage {
                             anchors.centerIn: parent
                             width: 16; height: 16
-                            source: expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
+                            source: node.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
                             color: global.theme.general.fore
-                            visible: model.isDir === true
+                            visible: node.model.isDir === true
                         }
 
                         TapHandler {
@@ -144,9 +158,9 @@ Item {
                             gesturePolicy: TapHandler.DragWithinBounds
 
                             onTapped: {
-                                treeView.selectedRow = row
-                                if (model.isDir) {
-                                    treeView.toggleExpanded(row)
+                                treeView.selectedRow = node.row
+                                if (node.model.isDir) {
+                                    treeView.toggleExpanded(node.row)
                                 }
                             }
                         }
@@ -158,26 +172,26 @@ Item {
                         Image {
                             anchors.centerIn: parent
                             width: 20; height: 20
-                            source: !expanded ? model.source
-                                : model.source == "qrc:/icon/fileTypeFolder.svg" ? "qrc:/icon/fileTypeFolderOpen.svg"
-                                    : model.source == "qrc:/icon/fileTypeFolderGit.svg" ? "qrc:/icon/fileTypeFolderOpenGit.svg"
-                                        : model.source == "qrc:/icon/fileTypeFolderIntellij.svg" ? "qrc:/icon/fileTypeFolderOpenIntellij.svg"
-                                            : model.source
+                            source: !node.expanded ? node.model.source
+                                : node.model.source == "qrc:/icon/fileTypeFolder.svg" ? "qrc:/icon/fileTypeFolderOpen.svg"
+                                    : node.model.source == "qrc:/icon/fileTypeFolderGit.svg" ? "qrc:/icon/fileTypeFolderOpenGit.svg"
+                                        : node.model.source == "qrc:/icon/fileTypeFolderIntellij.svg" ? "qrc:/icon/fileTypeFolderOpenIntellij.svg"
+                                            : node.model.source
                         }
                     }
 
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        color: !model.git ? global.theme.general.fore
-                            : model.git.indexStatus === 0 ? global.theme.general.successFore3
-                                : model.git.indexStatus === 1 ? global.theme.general.stroke
-                                    : model.git.indexStatus === 5 ? global.theme.general.successFore2
-                                        : model.git.indexStatus === 7 ? global.theme.general.warningFore3
-                                            : model.git.workingTreeStatus === 2 ? global.theme.general.fore
-                                                : model.git.workingTreeStatus === 3 ? global.theme.general.brandBack
-                                                    : model.git.workingTreeStatus === 9 ? global.theme.general.dangerFore3
+                        color: !node.model.git ? global.theme.general.fore
+                            : node.model.git.indexStatus === 0 ? global.theme.general.successFore3
+                                : node.model.git.indexStatus === 1 ? global.theme.general.stroke
+                                    : node.model.git.indexStatus === 5 ? global.theme.general.successFore2
+                                        : node.model.git.indexStatus === 7 ? global.theme.general.warningFore3
+                                            : node.model.git.workingTreeStatus === 2 ? global.theme.general.fore
+                                                : node.model.git.workingTreeStatus === 3 ? global.theme.general.brandBack
+                                                    : node.model.git.workingTreeStatus === 9 ? global.theme.general.dangerFore3
                                                         : global.theme.general.fore
-                        text: model.display || ""
+                        text: node.model.display || ""
                         elide: Text.ElideRight
                         Layout.fillWidth: true; Layout.preferredHeight: 24
                     }
@@ -188,26 +202,26 @@ Item {
 
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        if (model.git) {
-                            if (model.git.indexStatus === 0) {
-                                mainToolTip.text = "Untracked"
-                            } else if (model.git.indexStatus === 1) {
-                                mainToolTip.text = "Ignored"
-                            } else if (model.git.indexStatus === 5) {
-                                mainToolTip.text = "Added"
-                            } else if (model.git.indexStatus === 7) {
-                                mainToolTip.text = "Renamed"
-                            } else if (model.git.workingTreeStatus === 2) {
-                                // mainToolTip.text = "Unmodified"
-                            } else if (model.git.workingTreeStatus === 3) {
-                                mainToolTip.text = "Modified"
-                            } else if (model.git.workingTreeStatus === 9) {
-                                mainToolTip.text = "Unmerged"
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        if (node.model.git) {
+                            if (node.model.git.indexStatus === 0) {
+                                mainTooltip.text = "Untracked"
+                            } else if (node.model.git.indexStatus === 1) {
+                                mainTooltip.text = "Ignored"
+                            } else if (node.model.git.indexStatus === 5) {
+                                mainTooltip.text = "Added"
+                            } else if (node.model.git.indexStatus === 7) {
+                                mainTooltip.text = "Renamed"
+                            } else if (node.model.git.workingTreeStatus === 2) {
+                                // mainTooltip.text = "Unmodified"
+                            } else if (node.model.git.workingTreeStatus === 3) {
+                                mainTooltip.text = "Modified"
+                            } else if (node.model.git.workingTreeStatus === 9) {
+                                mainTooltip.text = "Unmerged"
                             }
                         }
                     }
@@ -217,27 +231,10 @@ Item {
                     acceptedButtons: Qt.LeftButton
                     gesturePolicy: TapHandler.DragWithinBounds
 
-                    onTapped: treeView.selectedRow = row
+                    onTapped: treeView.selectedRow = node.row
                     onDoubleTapped: {
-                        if (!model.isDir) {
-                            explorerModule.documentOpen(model.documentUrl)
-                        }
-                    }
-                }
-
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    gesturePolicy: TapHandler.DragWithinBounds
-
-                    onTapped: {
-                        if (model.isDir) {
-                            folderMenu.documentUrl = model.documentUrl
-                            folderMenu.popup()
-                        } else {
-                            fileMenu.gitUntracked = model.git ? model.git.indexStatus === 0 : false
-                            fileMenu.gitIgnored = model.git ? model.git.indexStatus === 1 : false
-                            fileMenu.documentUrl = model.documentUrl
-                            fileMenu.popup()
+                        if (!node.model.isDir) {
+                            root.explorerModule.documentOpen(node.model.documentUrl)
                         }
                     }
                 }
@@ -253,17 +250,467 @@ Item {
                 acceptedButtons: Qt.RightButton
 
                 onTapped: {
-                    rootMenu.documentUrl = modelRootUrl
-                    rootMenu.popup()
+                    const position = parent.mapToGlobal(point.position)
+                    const cell = treeView.cellAtPosition(treeView.contentItem.mapFromItem(parent, point.position))
+                    const node = cell.y >= 0 ? treeView.itemAtCell(cell) : null
+                    const localPosition = mainOverlay.mapFromGlobal(position)
+                    if (!node) {
+                        rootMenu.popup(localPosition.x, localPosition.y)
+                    } else if (node.model.isDir) {
+                        folderMenu.documentUrl = node.model.documentUrl
+                        folderMenu.popup(localPosition.x, localPosition.y)
+                    } else {
+                        fileMenu.documentUrl = node.model.documentUrl
+                        fileMenu.gitUntracked = node.model.git?.indexStatus === 0
+                        fileMenu.gitIgnored = node.model.git?.indexStatus === 1
+                        fileMenu.popup(localPosition.x, localPosition.y)
+                    }
                 }
             }
         }
     }
 
-    Component.onCompleted: {
-        const objects = {
-            "treeView": treeView
-        };
-        explorerModule.propertyGet(objects)
+    Dialog {
+        id: fileNewDialog
+        parent: mainOverlay
+        popupType: Popup.Item
+        x: mainOverlay.mainGeometry.x + (mainOverlay.mainGeometry.width - width) / 2
+        y: mainOverlay.mainGeometry.y + (mainOverlay.mainGeometry.height - height) / 2
+        width: 600
+        modal: true
+        title: qsTr("New File")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        property string documentUrl
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            fileNameTextField.clear()
+            fileNameTextField.forceActiveFocus()
+        }
+        onAccepted: {
+            if (!fileNameTextField.acceptableInput) {
+                return
+            }
+            mainOverlay.operationErrorShow(global.documentModule.documentCreate(fileNewDialog.documentUrl + "/" + fileNameTextField.text))
+        }
+
+        Binding {
+            target: fileNewDialog.visible
+                ? fileNewDialog.standardButton(Dialog.Ok) : null
+            property: "enabled"
+            value: fileNameTextField.acceptableInput
+        }
+
+        TextField {
+            id: fileNameTextField
+            width: parent.width
+            placeholderText: qsTr("Enter file name:")
+            validator: RegularExpressionValidator {
+                regularExpression: /.*\..*/
+            }
+
+            onAccepted: fileNewDialog.accept()
+            Keys.onEscapePressed: fileNewDialog.reject()
+        }
+    }
+
+    Dialog {
+        id: folderNewDialog
+        parent: mainOverlay
+        popupType: Popup.Item
+        x: mainOverlay.mainGeometry.x + (mainOverlay.mainGeometry.width - width) / 2
+        y: mainOverlay.mainGeometry.y + (mainOverlay.mainGeometry.height - height) / 2
+        width: 600
+        modal: true
+        title: qsTr("New Folder")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        property string documentUrl
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            folderNameTextField.clear()
+            folderNameTextField.forceActiveFocus()
+        }
+        onAccepted: mainOverlay.operationErrorShow(
+            global.documentModule.directoryCreate(folderNewDialog.documentUrl + "/" + folderNameTextField.text))
+
+        TextField {
+            id: folderNameTextField
+            width: parent.width
+            placeholderText: qsTr("Enter folder name:")
+
+            onAccepted: folderNewDialog.accept()
+            Keys.onEscapePressed: folderNewDialog.reject()
+        }
+    }
+
+    Menu {
+        id: fileMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property bool gitUntracked
+        property bool gitIgnored
+        property string documentUrl
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Run")
+            icon.source: "qrc:/icon/play.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.explorerModule.scriptRun(fileMenu.documentUrl)
+        }
+
+        MenuItem {
+            text: qsTr("Debug")
+            icon.source: "qrc:/icon/bug.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.explorerModule.scriptDebug(fileMenu.documentUrl)
+        }
+
+        MenuSeparator {
+        }
+
+        Menu {
+            title: qsTr("Open In")
+            icon.source: "qrc:/icon/open.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("Explorer")
+                icon.source: "qrc:/icon/folder.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.fileModule.fileOpenInExplorer(fileMenu.documentUrl)
+            }
+
+            MenuItem {
+                text: qsTr("Application")
+                icon.source: "qrc:/icon/apps.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.fileModule.fileOpenInApplication(fileMenu.documentUrl)
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Rename")
+            icon.source: "qrc:/icon/rename.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.showRenameDialog(fileMenu.documentUrl)
+        }
+
+        Menu {
+            title: qsTr("Delete")
+            icon.source: "qrc:/icon/delete.svg"
+            icon.width: 16; icon.height: 16
+
+            DelayButton {
+                delay: 1000
+                text: qsTr("Confirm")
+
+                onActivated: {
+                    mainOverlay.operationErrorShow(global.documentModule.documentDelete(fileMenu.documentUrl))
+                    progress = 0
+                    fileMenu.close()
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Property")
+            icon.source: "qrc:/icon/property.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.showPropertyDialog(fileMenu.documentUrl)
+        }
+
+        MenuSeparator {
+        }
+
+        Menu {
+            title: qsTr("Git")
+            enabled: global.gitModule.gitEnabled
+            icon.source: "qrc:/icon/fileTypeGit.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("Add")
+                enabled: fileMenu.gitUntracked
+                icon.source: "qrc:/icon/add.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    global.gitModule.gitAdd(fileMenu.documentUrl)
+                }
+            }
+
+            Menu {
+                title: qsTr("Restore")
+                enabled: !fileMenu.gitUntracked && !fileMenu.gitIgnored
+                icon.source: "qrc:/icon/reset.svg"
+                icon.width: 16; icon.height: 16
+
+                MenuItem {
+                    text: qsTr("Worktree")
+
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 0)
+                }
+
+                MenuItem {
+                    text: qsTr("Staged")
+
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 1)
+                }
+
+                MenuItem {
+                    text: qsTr("Both")
+
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 2)
+                }
+            }
+
+            MenuItem {
+                text: fileMenu.gitIgnored ? qsTr("Unignore") : qsTr("Ignore")
+                icon.source: "qrc:/icon/prohibited.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.gitModule.gitIgnore(fileMenu.documentUrl, !fileMenu.gitIgnored)
+            }
+        }
+    }
+
+    Menu {
+        id: folderMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property string documentUrl
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Open In Explorer")
+            icon.source: "qrc:/icon/open.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.fileOpenInExplorer(folderMenu.documentUrl)
+        }
+
+        Menu {
+            title: qsTr("New")
+            icon.source: "qrc:/icon/add.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("File")
+                icon.source: "qrc:/icon/document.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    fileNewDialog.documentUrl = folderMenu.documentUrl
+                    fileNewDialog.open()
+                }
+            }
+
+            MenuItem {
+                text: qsTr("Folder")
+                icon.source: "qrc:/icon/folder.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    folderNewDialog.documentUrl = folderMenu.documentUrl
+                    folderNewDialog.open()
+                }
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Rename")
+            icon.source: "qrc:/icon/rename.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.showRenameDialog(folderMenu.documentUrl)
+        }
+
+        Menu {
+            title: qsTr("Delete")
+            icon.source: "qrc:/icon/delete.svg"
+            icon.width: 16; icon.height: 16
+
+            DelayButton {
+                delay: 1000
+                text: qsTr("Confirm")
+
+                onActivated: {
+                    mainOverlay.operationErrorShow(global.documentModule.directoryDelete(folderMenu.documentUrl))
+                    progress = 0
+                    folderMenu.close()
+                }
+            }
+        }
+
+        MenuSeparator {
+        }
+
+        Menu {
+            title: qsTr("Git")
+            enabled: global.gitModule.gitEnabled
+            icon.source: "qrc:/icon/fileTypeGit.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("Add Folder")
+                icon.source: "qrc:/icon/add.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    global.gitModule.gitAdd(folderMenu.documentUrl)
+                }
+            }
+
+            Menu {
+                title: qsTr("Restore Folder")
+                icon.source: "qrc:/icon/reset.svg"
+                icon.width: 16; icon.height: 16
+
+                MenuItem {
+                    text: qsTr("Worktree")
+
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 0)
+                }
+
+                MenuItem {
+                    text: qsTr("Staged")
+
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 1)
+                }
+
+                MenuItem {
+                    text: qsTr("Both")
+
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 2)
+                }
+            }
+
+            MenuItem {
+                text: qsTr("Ignore")
+                icon.source: "qrc:/icon/prohibited.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.gitModule.gitIgnore(folderMenu.documentUrl, true)
+            }
+        }
+    }
+
+    Menu {
+        id: rootMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        readonly property url documentUrl: root.modelRootUrl
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Open In Explorer")
+            icon.source: "qrc:/icon/open.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: global.fileModule.fileOpenInExplorer(rootMenu.documentUrl)
+        }
+
+        Menu {
+            title: qsTr("New")
+            icon.source: "qrc:/icon/add.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("File")
+                icon.source: "qrc:/icon/document.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    fileNewDialog.documentUrl = rootMenu.documentUrl
+                    fileNewDialog.open()
+                }
+            }
+
+            MenuItem {
+                text: qsTr("Folder")
+                icon.source: "qrc:/icon/folder.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    folderNewDialog.documentUrl = rootMenu.documentUrl
+                    folderNewDialog.open()
+                }
+            }
+        }
+
+        MenuSeparator {
+        }
+
+        Menu {
+            title: qsTr("Git")
+            enabled: global.gitModule.gitEnabled
+            icon.source: "qrc:/icon/fileTypeGit.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("Add All")
+                icon.source: "qrc:/icon/add.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: {
+                    global.gitModule.gitAdd()
+                }
+            }
+
+            Menu {
+                title: qsTr("Restore All")
+                icon.source: "qrc:/icon/reset.svg"
+                icon.width: 16; icon.height: 16
+
+                MenuItem {
+                    text: qsTr("Worktree")
+
+                    onTriggered: global.gitModule.gitRestore("", 0)
+                }
+
+                MenuItem {
+                    text: qsTr("Staged")
+
+                    onTriggered: global.gitModule.gitRestore("", 1)
+                }
+
+                MenuItem {
+                    text: qsTr("Both")
+
+                    onTriggered: global.gitModule.gitRestore("", 2)
+                }
+            }
+        }
     }
 }

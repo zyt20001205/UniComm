@@ -11,6 +11,7 @@ class AudioService;
 class BreakpointModule;
 class DebugModule;
 class DocumentModule;
+class ExplorerModule;
 class FileModule;
 class GitModule;
 class LogModule;
@@ -26,6 +27,7 @@ class WatchModule;
 
 Q_MOC_INCLUDE("agent/agentModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
+Q_MOC_INCLUDE("core/explorerModule.h")
 Q_MOC_INCLUDE("core/fileModule.h")
 Q_MOC_INCLUDE("core/logModule.h")
 Q_MOC_INCLUDE("core/undoModule.h")
@@ -47,6 +49,7 @@ class GlobalManager final : public QObject {
     Q_PROPERTY(AgentModule* agentModule READ agentModuleGet CONSTANT)
     Q_PROPERTY(DebugModule* debugModule READ debugModuleGet CONSTANT)
     Q_PROPERTY(DocumentModule* documentModule READ documentModuleGet CONSTANT)
+    Q_PROPERTY(ExplorerModule* explorerModule READ explorerModuleGet CONSTANT)
     Q_PROPERTY(FileModule* fileModule READ fileModuleGet CONSTANT)
     Q_PROPERTY(GitModule* gitModule READ gitModuleGet CONSTANT)
     Q_PROPERTY(LogModule* logModule READ logModuleGet CONSTANT)
@@ -91,6 +94,14 @@ public:
 
     void documentModuleSet(DocumentModule *module) {
         m_documentModule = module;
+    }
+
+    [[nodiscard]] ExplorerModule *explorerModuleGet() const {
+        return m_explorerModule;
+    }
+
+    void explorerModuleSet(ExplorerModule *module) {
+        m_explorerModule = module;
     }
 
     [[nodiscard]] FileModule *fileModuleGet() const {
@@ -225,6 +236,7 @@ private:
     BreakpointModule *m_breakpointModule{};
     DebugModule *m_debugModule{};
     DocumentModule *m_documentModule{};
+    ExplorerModule *m_explorerModule{};
     FileModule *m_fileModule{};
     GitModule *m_gitModule{};
     LogModule *m_logModule{};
