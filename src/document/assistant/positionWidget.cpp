@@ -1,54 +1,59 @@
 #include "document/assistant/positionWidget.h"
 
+#include <QQmlComponent>
 #include <QTimer>
 #include <windows.h>
 
 #include "globals.h"
+#include "core/globalManager.h"
 
 // public
 PositionWidget::PositionWidget(QObject *parent)
     : QObject(parent),
       m_timer(new QTimer(this)) {
     m_timer->setInterval(16); // 60Hz
-    connect(m_timer, &QTimer::timeout, this, [this] {
-        if (g_terminating) {
-            m_timer->stop();
-            return;
-        }
-        m_tooltip->setProperty("position", QCursor::pos());
-        POINT physicalPos{};
-        GetCursorPos(&physicalPos);
-        m_tooltip->setProperty("text", QString("%1, %2").arg(QString::number(physicalPos.x), QString::number(physicalPos.y)));
+    connect(m_timer, &QTimer::timeout, this, &PositionWidget::positionUpdate);
+    connect(this, &PositionWidget::visibleChanged, this, [this] {
+        if (m_visible) m_timer->start();
+        else m_timer->stop();
     });
 }
 
-void PositionWidget::propertySet(const QVariantHash &objects) {
-    m_tooltip = qvariant_cast<QObject *>(objects["documentModulePositionTooltip"]);
-}
-
-bool PositionWidget::isVisible() const {
-    if (!m_tooltip) return false;
-    return m_tooltip->property("visible").toBool();
+void PositionWidget::propertySet() {
+    QQmlComponent component(g_globalManager->engineGet(), QUrl("qrc:/qml/document/assistant/positionWidget.qml"));
+    if (auto *root = component.createWithInitialProperties({{"positionWidget", QVariant::fromValue(this)}})) root->setParent(this);
+    else qWarning().noquote() << component.errorString();
 }
 
 void PositionWidget::positionShow(const QVariantMap &positionSession) {
     m_positionSession = positionSession;
-    m_timer->start();
-    QMetaObject::invokeMethod(m_tooltip, "open");
+    positionUpdate();
+    emit showPosition();
 }
 
-void PositionWidget::positionHide() const {
-    m_timer->stop();
-    QMetaObject::invokeMethod(m_tooltip, "close");
+void PositionWidget::positionHide() {
+    if (m_visible) emit hidePosition();
 }
 
 void PositionWidget::textReplace() {
     emit setText(
         m_positionSession["documentUrl"].toUrl(),
-        m_tooltip->property("text").toString(),
+        m_text,
         m_positionSession["line"].toInt(),
         m_positionSession["character"].toInt(),
         m_positionSession["line"].toInt(),
         m_positionSession["character"].toInt());
     positionHide();
+}
+
+// private
+void PositionWidget::positionUpdate() {
+    if (g_terminating) {
+        m_timer->stop();
+        return;
+    }
+    POINT physicalPos{};
+    GetCursorPos(&physicalPos);
+    m_text = QString("%1, %2").arg(physicalPos.x).arg(physicalPos.y);
+    emit setPosition(QCursor::pos(), m_text);
 }

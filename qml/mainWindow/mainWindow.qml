@@ -765,34 +765,6 @@ Item {
         }
     }
 
-    ToolTip {
-        id: documentModulePositionTooltip
-        parent: Overlay.overlay
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnReleaseOutside
-        property point position
-
-        onPositionChanged: {
-            let p = Overlay.overlay.mapFromGlobal(position)
-            x = p.x + 10
-            y = p.y + 10
-        }
-
-        Behavior on x {
-            enabled: documentModulePositionTooltip.visible
-            NumberAnimation {
-                duration: 50
-                easing.type: Easing.Linear
-            }
-        }
-        Behavior on y {
-            enabled: documentModulePositionTooltip.visible
-            NumberAnimation {
-                duration: 50
-                easing.type: Easing.Linear
-            }
-        }
-    }
-
     // explorer module
     Dialog {
         id: explorerModuleFileNewDialog
@@ -2912,7 +2884,6 @@ Item {
             "documentModuleDwellHoverTextArea": documentModuleDwellHoverTextArea,
             "documentModuleDwellCodeActionMenu": documentModuleDwellCodeActionMenu,
             "documentModuleDwellSuggestionMenu": documentModuleDwellSuggestionMenu,
-            "documentModulePositionTooltip": documentModulePositionTooltip,
 
             "explorerModuleFileMenu": explorerModuleFileMenu,
             "explorerModuleFolderMenu": explorerModuleFolderMenu,
