@@ -38,6 +38,15 @@ void ScintillaWidget::eolViewSet(const bool status) const {
     send(SCI_SETVIEWEOL, status); // NOLINT
 }
 
+bool ScintillaWidget::useTabsGet() const {
+    return send(SCI_GETUSETABS);
+}
+
+int ScintillaWidget::indentWidthGet() const {
+    const auto width = send(SCI_GETINDENT);
+    return static_cast<int>(width == 0 ? send(SCI_GETTABWIDTH) : width);
+}
+
 bool ScintillaWidget::modifyGet() const {
     return send(SCI_GETMODIFY);
 }

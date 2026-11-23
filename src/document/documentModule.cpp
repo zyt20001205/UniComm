@@ -472,6 +472,16 @@ void DocumentModule::eolViewSet(const QUrl &documentUrl, const bool status) cons
     if (const auto *handler = handlerGet(documentUrl)) handler->eolViewSet(status);
 }
 
+bool DocumentModule::useTabsGet() const {
+    if (const auto *handler = handlerGet(m_focusedUrl)) return handler->useTabsGet();
+    return false;
+}
+
+int DocumentModule::indentWidthGet() const {
+    if (const auto *handler = handlerGet(m_focusedUrl)) return handler->indentWidthGet();
+    return 0;
+}
+
 // public: document
 void DocumentModule::foldContractTop(const QUrl &documentUrl) {
     if (!m_pageHash.contains(documentUrl)) documentOpen(documentUrl);

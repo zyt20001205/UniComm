@@ -31,6 +31,8 @@ class DocumentModule : public QObject {
     Q_PROPERTY(QVariantHash selection READ selectionGet NOTIFY selectionChanged)
     Q_PROPERTY(ScintillaCodePage::Value codePage READ codePageGet NOTIFY focusedUrlChanged)
     Q_PROPERTY(ScintillaEolMode::Value eolMode READ eolModeGet NOTIFY eolModeChanged)
+    Q_PROPERTY(bool useTabs READ useTabsGet NOTIFY focusedUrlChanged)
+    Q_PROPERTY(int indentWidth READ indentWidthGet NOTIFY focusedUrlChanged)
 
 public:
     explicit DocumentModule(QWidget *parent = nullptr);
@@ -98,6 +100,10 @@ public:
     Q_INVOKABLE [[nodiscard]] bool eolViewGet(const QUrl &documentUrl) const;
 
     Q_INVOKABLE void eolViewSet(const QUrl &documentUrl, bool status) const;
+
+    [[nodiscard]] bool useTabsGet() const;
+
+    [[nodiscard]] int indentWidthGet() const;
 
     Q_INVOKABLE void foldContractTop(const QUrl &documentUrl);
 

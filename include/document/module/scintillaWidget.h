@@ -89,6 +89,10 @@ public:
 
     void eolViewSet(bool status) const;
 
+    [[nodiscard]] bool useTabsGet() const;
+
+    [[nodiscard]] int indentWidthGet() const;
+
     [[nodiscard]] bool modifyGet() const;
 
     void readonlySet(bool status) const;

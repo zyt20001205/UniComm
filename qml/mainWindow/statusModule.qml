@@ -162,6 +162,25 @@ Item {
                 font: codePageButton.font
             }
         }
+
+        Button {
+            id: indentationButton
+            visible: global.documentModule.indentWidth > 0
+            text: {
+                if (global.documentModule.useTabs) return qsTr("Tabs")
+                const width = global.documentModule.indentWidth
+                return width === 1 ? qsTr("1 Space") : qsTr("%1 Spaces").arg(width)
+            }
+            flat: true
+            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+            Layout.preferredWidth: indentationButtonTextMetrics.width + 8; Layout.preferredHeight: 20
+
+            TextMetrics {
+                id: indentationButtonTextMetrics
+                text: indentationButton.text
+                font: indentationButton.font
+            }
+        }
     }
 
     Menu {
