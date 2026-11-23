@@ -2,95 +2,46 @@
 #define UNICOMM_STATUSMODULE_H
 
 #include <QQuickWidget>
-#include <QStandardItemModel>
+#include <QtQmlIntegration/qqmlintegration.h>
+#include <functional>
 
-class BackgroundModel;
-
-class StatusModule final : public QQuickWidget {
+class StatusModule : public QQuickWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("StatusModule is created by C++.")
+    Q_PROPERTY(QVariantList tasks READ tasksGet NOTIFY tasksChanged)
 
 public:
     explicit StatusModule(QWidget *parent = nullptr);
 
     ~StatusModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
+    [[nodiscard]] const QVariantList &tasksGet() const { return m_tasks; }
+
+    Q_INVOKABLE [[nodiscard]] QStringList documentPathGet(const QUrl &documentUrl) const;
 
     void backgroundAppend(int &taskId, const std::function<void()> &abort, const std::function<void()> &info);
 
     void backgroundRemove(int taskId);
 
-    void backgroundRefresh(int taskId, const QString &message) const;
+    void backgroundRefresh(int taskId, const QString &message);
 
     Q_INVOKABLE void backgroundAbort(int taskId);
 
     Q_INVOKABLE void backgroundInfo(int taskId) const;
 
-    void documentFocus(const QUrl &documentUrl, const QVariantHash &session) const;
+signals:
+    void tasksChanged();
 
 private:
-    void backgroundUpdate() const;
+    [[nodiscard]] qsizetype taskIndexGet(int taskId) const;
 
-    QObject *m_root{};
-    QObject *m_eolModeButton{};
-    QObject *m_codePageButton{};
     int m_taskId{};
+    QVariantList m_tasks{};
     QHash<int, std::function<void()>> m_abortCallbacks{};
     QHash<int, std::function<void()>> m_infoCallbacks{};
-    BackgroundModel *m_backgroundModel{};
-};
-
-class BackgroundModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(QString title READ titleGet NOTIFY titleChanged)
-    Q_PROPERTY(int taskId READ taskIdGet NOTIFY taskIdChanged)
-    Q_PROPERTY(int taskCount READ taskCountGet NOTIFY taskCountChanged)
-
-public:
-    explicit BackgroundModel(QObject *parent = nullptr);
-
-    enum Role {
-        TaskIdRole = Qt::UserRole + 1
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] QString titleGet() const {
-        return m_title;
-    }
-
-    void titleSet(const QString &title) {
-        if (m_title == title) return;
-        m_title = title;
-        emit titleChanged();
-    }
-
-    [[nodiscard]] int taskIdGet() const {
-        return m_taskId;
-    }
-
-    void taskIdSet(const int taskId) {
-        if (m_taskId == taskId) return;
-        m_taskId = taskId;
-        emit taskIdChanged();
-    }
-
-    [[nodiscard]] int taskCountGet() const {
-        return rowCount();
-    }
-
-signals:
-    void titleChanged();
-
-    void taskIdChanged();
-
-    void taskCountChanged();
-
-private:
-    QString m_title{};
-    int m_taskId = 0;
 };
 
 #endif //UNICOMM_STATUSMODULE_H
