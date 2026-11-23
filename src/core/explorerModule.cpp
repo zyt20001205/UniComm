@@ -1,15 +1,11 @@
 #include "core/explorerModule.h"
 
 #include <QFileSystemModel>
-#include <QFileSystemWatcher>
-#include <QProcess>
 #include <QQuickWidget>
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "service/git/gitService.h"
 #include "service/serviceModule.h"
-#include "types/gitTypes.h"
 #include "util/uniCast.h"
 
 // public
@@ -17,11 +13,9 @@ ExplorerModule::ExplorerModule()
     : DockWidget("Explorer"),
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_fileSystemModel(new QFileSystemModel(this)),
-      m_sortFilterProxyModel(new SortFilterProxyModel(&m_documentStatus)),
-      m_process(new QProcess(this)) {
+      m_sortFilterProxyModel(new SortFilterProxyModel(&m_documentStatus)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);
-    connect(m_process, &QProcess::finished, this, [this](const int exitcode) { processFinished(exitcode); });
 }
 
 ExplorerModule::~ExplorerModule() {
@@ -46,11 +40,14 @@ void ExplorerModule::propertySet() const {
     m_widget->setSource(QUrl("qrc:/qml/core/explorerModule.qml"));
 }
 
-void ExplorerModule::indexUpdate() const {
-    const auto &rootPath = g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet();
-    if (rootPath.isEmpty()) return;
-    m_process->setWorkingDirectory(rootPath);
-    m_process->start("git", {"--no-optional-locks", "status", "-uall", "--porcelain", "--ignored"});
+void ExplorerModule::indexUpdate() {
+    auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
+    if (!git->hasRepositoryGet()) return;
+    git->statusGet(true).then(this, [this](const GitStatusResult &result) {
+        if (!result.success) return;
+        m_documentStatus = result.files;
+        m_sortFilterProxyModel->invalidate();
+    });
 }
 
 void ExplorerModule::scriptRun(const QUrl &documentUrl) {
@@ -70,28 +67,7 @@ bool ExplorerModule::eventFilter(QObject *watched, QEvent *event) {
     return DockWidget::eventFilter(watched, event);
 }
 
-void ExplorerModule::processFinished(const int exitcode) {
-    const auto output = m_process->readAllStandardOutput();
-    const auto lines = QString(output).split('\n', Qt::SkipEmptyParts);
-    m_documentStatus.clear();
-    for (const auto &line: lines) {
-        const auto indexStatus = GitFileStatus::fromCode(line.at(0));
-        const auto workingTreeStatus = GitFileStatus::fromCode(line.at(1));
-        auto filePath = line.mid(3).trimmed();
-        if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
-            GitFileStatus::Copied)
-            filePath = filePath.section(" -> ", 1);
-        const auto documentPath = QDir(m_process->workingDirectory()).filePath(filePath);
-        const auto documentUrl = QUrl::fromLocalFile(documentPath);
-        m_documentStatus[documentUrl] = QVariantHash{
-            {"indexStatus", indexStatus},
-            {"workingTreeStatus", workingTreeStatus}
-        };
-    }
-    m_sortFilterProxyModel->invalidate();
-}
-
-SortFilterProxyModel::SortFilterProxyModel(const QHash<QUrl, QVariant> *documentStatus, QObject *parent)
+SortFilterProxyModel::SortFilterProxyModel(const QHash<QUrl, GitStatusResult::Entry> *documentStatus, QObject *parent)
     : QSortFilterProxyModel(parent),
       m_documentStatus(documentStatus) {
 }
@@ -122,7 +98,9 @@ QVariant SortFilterProxyModel::data(const QModelIndex &index, const int role) co
     }
     if (role == GitRole) {
         if (g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet().isEmpty()) return {};
-        return m_documentStatus->value(documentUrl);
+        const auto entry = m_documentStatus->constFind(documentUrl);
+        if (entry == m_documentStatus->cend()) return {};
+        return QVariantHash{{"indexStatus", entry->indexStatus}, {"workingTreeStatus", entry->workingTreeStatus}};
     }
     return QSortFilterProxyModel::data(index, role);
 }

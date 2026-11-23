@@ -6,9 +6,11 @@
 #include <QProcess>
 #include <QPromise>
 #include <QTimer>
+#include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include "service/baseService.h"
+#include "types/gitTypes.h"
 
 struct GitResult {
     bool success{};
@@ -18,6 +20,15 @@ struct GitResult {
 struct GitRepositoryResult : GitResult {
     QString rootPath{};
     QString gitDirPath{};
+};
+
+struct GitStatusResult : GitResult {
+    struct Entry {
+        GitFileStatus::Value indexStatus;
+        GitFileStatus::Value workingTreeStatus;
+    };
+
+    QHash<QUrl, Entry> files{};
 };
 
 class GitService : public BaseService {
@@ -50,6 +61,8 @@ public:
     QFuture<GitResult> versionGet();
 
     QFuture<GitRepositoryResult> repositoryGet();
+
+    QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 
 signals:
     void availableChanged();

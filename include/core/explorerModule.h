@@ -5,13 +5,13 @@
 #include <QSortFilterProxyModel>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "service/git/gitService.h"
 #include "types/logTypes.h"
 #include "types/runtimeTypes.h"
 
 class QAbstractProxyModel;
 class QFileSystemModel;
 class QFileSystemWatcher;
-class QProcess;
 class QQuickWidget;
 class QStandardItemModel;
 
@@ -29,7 +29,7 @@ public:
 
     void propertySet() const;
 
-    void indexUpdate() const;
+    void indexUpdate();
 
     Q_INVOKABLE void scriptRun(const QUrl &documentUrl);
 
@@ -49,20 +49,17 @@ signals:
     void startThread(const QUrl &documentUrl, RunMode::Value mode, void *closure = nullptr);
 
 private:
-    void processFinished(int exitcode);
-
     QQuickWidget *m_widget{};
     QFileSystemModel *m_fileSystemModel{};
     SortFilterProxyModel *m_sortFilterProxyModel{};
-    QProcess *m_process{};
-    QHash<QUrl, QVariant> m_documentStatus{};
+    QHash<QUrl, GitStatusResult::Entry> m_documentStatus{};
 };
 
 class SortFilterProxyModel final : public QSortFilterProxyModel {
     Q_OBJECT
 
 public:
-    explicit SortFilterProxyModel(const QHash<QUrl, QVariant> *documentStatus, QObject *parent = nullptr);
+    explicit SortFilterProxyModel(const QHash<QUrl, GitStatusResult::Entry> *documentStatus, QObject *parent = nullptr);
 
     enum Role {
         SourceRole = Qt::UserRole + 4,
@@ -78,7 +75,7 @@ public:
     [[nodiscard]] int columnCount(const QModelIndex &parent = QModelIndex()) const override;
 
 private:
-    const QHash<QUrl, QVariant> *m_documentStatus{};
+    const QHash<QUrl, GitStatusResult::Entry> *m_documentStatus{};
 };
 
 #endif //UNICOMM_EXPLORER_H

@@ -1,5 +1,7 @@
 #include "service/git/gitService.h"
 
+#include <QDir>
+
 #include "globals.h"
 
 // public
@@ -8,6 +10,7 @@ GitService::GitService(QObject *parent)
     m_process.setWorkingDirectory(g_workspaceUrl.toLocalFile());
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("LC_ALL", "C");
+    environment.insert("GIT_OPTIONAL_LOCKS", "0");
     m_process.setProcessEnvironment(environment);
     connect(&m_process, &QProcess::finished, this, &GitService::processFinish);
     connect(&m_process, &QProcess::errorOccurred, this, &GitService::processError);
@@ -37,12 +40,12 @@ QFuture<GitResult> GitService::versionGet() {
 
 QFuture<GitRepositoryResult> GitService::repositoryGet() {
     return processEnqueue({"rev-parse", "--show-toplevel", "--absolute-git-dir"}).then(this, [this](const GitResult &result) {
-        const auto paths = result.output.split('\n');
+        const auto paths = QString(result.output).replace("\r\n", "\n").split('\n');
         GitRepositoryResult repository{result};
         repository.success = result.success && paths.size() == 2;
         if (repository.success) {
-            repository.rootPath = paths.first().trimmed();
-            repository.gitDirPath = paths.last().trimmed();
+            repository.rootPath = paths.first();
+            repository.gitDirPath = paths.last();
         }
 
         // update service state
@@ -52,6 +55,32 @@ QFuture<GitRepositoryResult> GitService::repositoryGet() {
         if (hasRepositoryGet() != hadRepository) emit hasRepositoryChanged();
         statusSet(repository.success || (!result.success && result.output.contains("not a git repository")) ? Status::Stopped : Status::Error);
         return repository;
+    });
+}
+
+QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
+    QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};
+    if (includeIgnored) arguments.append("--ignored");
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        GitStatusResult status{result};
+        if (result.success) {
+            const QDir root(m_rootPath);
+            const auto records = result.output.split(QChar::Null, Qt::SkipEmptyParts);
+            for (qsizetype i = 0; i < records.size(); ++i) {
+                const auto &record = records.at(i);
+                const auto indexStatus = GitFileStatus::fromCode(record.at(0));
+                const auto workingTreeStatus = GitFileStatus::fromCode(record.at(1));
+                const auto path = QDir::cleanPath(root.filePath(record.sliced(3)));
+                status.files.insert(QUrl::fromLocalFile(path), {.indexStatus = indexStatus, .workingTreeStatus = workingTreeStatus});
+                // renames and copies carry the original path in the next record
+                if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied ||
+                    workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus == GitFileStatus::Copied) ++i;
+            }
+        }
+
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return status;
     });
 }
 
@@ -77,7 +106,9 @@ void GitService::processError(const QProcess::ProcessError error) {
 void GitService::processFinish() {
     m_timeout.stop();
     const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && m_process.exitCode() == 0;
-    auto output = QString::fromUtf8(success ? m_process.readAllStandardOutput() : m_process.readAllStandardError()).trimmed();
+    auto output = QString::fromUtf8(success ? m_process.readAllStandardOutput() : m_process.readAllStandardError());
+    if (output.endsWith("\r\n")) output.chop(2);
+    else if (output.endsWith('\n')) output.chop(1);
     if (!success && output.isEmpty() && m_process.error() != QProcess::UnknownError) output = m_process.errorString();
 
     // record command
