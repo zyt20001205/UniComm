@@ -17,15 +17,15 @@ ScintillaWidget::ScintillaWidget(QWidget *parent)
 }
 
 // public: file
-int ScintillaWidget::codePageGet() const {
-    return static_cast<int>(send(SCI_GETCODEPAGE));
+ScintillaCodePage::Value ScintillaWidget::codePageGet() const {
+    return static_cast<ScintillaCodePage::Value>(send(SCI_GETCODEPAGE));
 }
 
-int ScintillaWidget::eolModeGet() const {
-    return static_cast<int>(send(SCI_GETEOLMODE));
+ScintillaEolMode::Value ScintillaWidget::eolModeGet() const {
+    return static_cast<ScintillaEolMode::Value>(send(SCI_GETEOLMODE));
 }
 
-void ScintillaWidget::eolModeSet(const int eolMode) const {
+void ScintillaWidget::eolModeSet(const ScintillaEolMode::Value eolMode) const {
     send(SCI_SETEOLMODE, eolMode); // NOLINT
     send(SCI_CONVERTEOLS, eolMode); // NOLINT
 }

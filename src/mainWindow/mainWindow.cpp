@@ -89,7 +89,6 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("explorerModule", m_explorerModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
     m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
-    m_overlay->rootContext()->setContextProperty("statusModule", m_statusModule);
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
     m_overlay->rootContext()->setContextProperty("undoModule", m_undoModule);
@@ -180,11 +179,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
 
     m_serviceModule->propertySet();
 
-    const QVariantHash statusObjects = {
-        {"statusModuleEolModeMenu", objects["statusModuleEolModeMenu"]},
-        {"statusModuleBackgroundToolTip", objects["statusModuleBackgroundToolTip"]}
-    };
-    m_statusModule->propertySet(statusObjects);
+    m_statusModule->propertySet();
 
     m_structureModule->propertySet();
 
@@ -440,7 +435,6 @@ void MainWindow::moduleInit() {
     connect(m_documentModule, &DocumentModule::appendLog, m_logModule, &LogModule::logAppend);
     connect(m_documentModule, &DocumentModule::updateDiff, m_agentModule, &AgentModule::diffUpdate);
     connect(m_documentModule, &DocumentModule::openWorkspace, this, &MainWindow::workspaceOpen);
-    connect(m_documentModule, &DocumentModule::focusDocument, m_statusModule, &StatusModule::documentFocus);
     connect(m_documentModule, &DocumentModule::showPermissionDialog, m_fileModule, &FileModule::showPermissionDialog);
     connect(m_documentModule, &DocumentModule::toggleBreakpoint, m_breakpointModule, &BreakpointModule::breakpointToggle);
 

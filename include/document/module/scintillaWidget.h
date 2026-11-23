@@ -79,11 +79,11 @@ public:
 
     ~ScintillaWidget() override = default;
 
-    [[nodiscard]] int codePageGet() const;
+    [[nodiscard]] ScintillaCodePage::Value codePageGet() const;
 
-    [[nodiscard]] int eolModeGet() const;
+    [[nodiscard]] ScintillaEolMode::Value eolModeGet() const;
 
-    void eolModeSet(int eolMode) const;
+    void eolModeSet(ScintillaEolMode::Value eolMode) const;
 
     [[nodiscard]] bool eolViewGet() const;
 

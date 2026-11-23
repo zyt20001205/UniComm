@@ -445,13 +445,22 @@ void DocumentModule::menuCall(const QString &name) const {
     if (const auto *codePage = qobject_cast<CodePage *>(m_pageHash.value(m_focusedUrl))) codePage->menuCall(name);
 }
 
-int DocumentModule::eolModeGet(const QUrl &documentUrl) const {
-    if (const auto *handler = handlerGet(documentUrl)) return handler->eolModeGet();
-    return {};
+ScintillaCodePage::Value DocumentModule::codePageGet() const {
+    if (const auto *handler = handlerGet(m_focusedUrl)) return handler->codePageGet();
+    return ScintillaCodePage::None;
 }
 
-void DocumentModule::eolModeSet(const QUrl &documentUrl, const int eolMode) const {
-    if (const auto *handler = handlerGet(documentUrl)) handler->eolModeSet(eolMode);
+ScintillaEolMode::Value DocumentModule::eolModeGet() const {
+    if (const auto *handler = handlerGet(m_focusedUrl)) return handler->eolModeGet();
+    return ScintillaEolMode::None;
+}
+
+void DocumentModule::eolModeSet(const QUrl &documentUrl, const ScintillaEolMode::Value eolMode) {
+    if (const auto *handler = handlerGet(documentUrl)) {
+        const bool changed = documentUrl == m_focusedUrl && handler->eolModeGet() != eolMode;
+        handler->eolModeSet(eolMode);
+        if (changed) emit eolModeChanged();
+    }
 }
 
 bool DocumentModule::eolViewGet(const QUrl &documentUrl) const {
@@ -1502,11 +1511,6 @@ void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status
     if (handler == nullptr) return;
     if (status) {
         handler->focusSet(true);
-        const QVariantHash session = {
-            {"codePage", handler->codePageGet()},
-            {"eolMode", handler->eolModeGet()}
-        };
-        emit focusDocument(m_focusedUrl, session);
     } else if (qobject_cast<CodePage *>(documentPage)) {
         handler->indicatorClear(ScintillaIndicator::Highlight);
         handler->indicatorClear(ScintillaIndicator::Read);
@@ -1520,6 +1524,7 @@ void DocumentModule::focusedUrlSet(const QUrl &documentUrl) {
     const auto *handler = handlerGet(documentUrl);
     selectionSet(handler ? handler->selectionGet() : QHash<QString, int>{});
     emit focusedUrlChanged();
+    emit eolModeChanged();
 }
 
 void DocumentModule::selectionSet(const QHash<QString, int> &selection) {

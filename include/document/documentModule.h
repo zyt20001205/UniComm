@@ -29,6 +29,8 @@ class DocumentModule : public QObject {
     QML_UNCREATABLE("DocumentModule is created by C++.")
     Q_PROPERTY(QUrl focusedUrl READ focusedUrlGet NOTIFY focusedUrlChanged)
     Q_PROPERTY(QVariantHash selection READ selectionGet NOTIFY selectionChanged)
+    Q_PROPERTY(ScintillaCodePage::Value codePage READ codePageGet NOTIFY focusedUrlChanged)
+    Q_PROPERTY(ScintillaEolMode::Value eolMode READ eolModeGet NOTIFY eolModeChanged)
 
 public:
     explicit DocumentModule(QWidget *parent = nullptr);
@@ -87,9 +89,11 @@ public:
 
     Q_INVOKABLE void menuCall(const QString &name) const;
 
-    Q_INVOKABLE [[nodiscard]] int eolModeGet(const QUrl &documentUrl) const;
+    [[nodiscard]] ScintillaCodePage::Value codePageGet() const;
 
-    Q_INVOKABLE void eolModeSet(const QUrl &documentUrl, int eolMode) const;
+    [[nodiscard]] ScintillaEolMode::Value eolModeGet() const;
+
+    Q_INVOKABLE void eolModeSet(const QUrl &documentUrl, ScintillaEolMode::Value eolMode);
 
     Q_INVOKABLE [[nodiscard]] bool eolViewGet(const QUrl &documentUrl) const;
 
@@ -219,13 +223,13 @@ signals:
 
     void selectionChanged();
 
+    void eolModeChanged();
+
     void appendLog(LogType::Value type, const QString &prefix, const QString &message);
 
     void updateDiff(const QString &undoGroupId, const QVariantMap &fileDiffs, int additions, int deletions);
 
     void openWorkspace();
-
-    void focusDocument(const QUrl &documentUrl, const QVariantHash &session);
 
     void showContextMenu();
 
