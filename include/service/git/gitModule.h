@@ -15,6 +15,7 @@ class QQuickWidget;
 class QTextDocument;
 
 class GitConfig;
+class GitService;
 class BranchModel;
 class LogModel;
 class ShowModel;
@@ -23,22 +24,12 @@ class CommitModel;
 
 class GitModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
-    Q_PROPERTY(bool gitEnabled READ gitEnabledGet NOTIFY gitEnabledChanged)
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
 
 public:
     explicit GitModule();
 
     ~GitModule() override;
-
-    [[nodiscard]] bool gitEnabledGet() const {
-        return m_gitEnabled;
-    }
-
-    void gitEnabledSet() {
-        m_gitEnabled = gitGet();
-        emit gitEnabledChanged();
-    }
 
     [[nodiscard]] GitOperationState::Value gitStatusGet() const {
         return m_gitStatus;
@@ -56,8 +47,6 @@ public:
     Q_INVOKABLE void propertyGet_(const QVariantMap &objects);
 
     Q_INVOKABLE void branchSet(const QString &name);
-
-    [[nodiscard]] static bool gitGet();
 
     Q_INVOKABLE void gitInit();
 
@@ -134,8 +123,6 @@ public:
     Q_INVOKABLE void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const;
 
 signals:
-    void gitEnabledChanged();
-
     void gitStatusChanged();
 
     void updateIndex();
@@ -157,7 +144,7 @@ private:
 
     void processFinished(int exitcode);
 
-    bool m_gitEnabled{};
+    GitService *const m_gitService;
     GitOperationState::Value m_gitStatus{};
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
@@ -182,7 +169,6 @@ private:
     int m_command{};
     QProcess *m_process{};
     QQueue<QVariantHash> m_queue{};
-    QString m_gitDirPath{};
     QFileSystemWatcher *m_repoWatcher{};
     QTimer *m_repoWatcherTimer{};
     QFileSystemWatcher *m_indexWatcher{};
@@ -218,7 +204,6 @@ private:
             Diff_,
             ShowCommit_,
             Push,
-            Watch,
             RemoteAdd,
             RemoteGet,
             UpstreamSet,

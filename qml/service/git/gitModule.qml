@@ -7,6 +7,7 @@ import UniComm
 
 Item {
     id: rootItem
+    readonly property bool hasRepository: global.serviceModule.git.hasRepository
     anchors.fill: parent
 
     Rectangle {
@@ -16,22 +17,25 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: branchModel.empty
+        visible: global.serviceModule.git.status !== 1 && (!rootItem.hasRepository || branchModel.empty)
 
         RowLayout {
             anchors.centerIn: parent
 
             Button {
                 flat: true
-                text: !gitModule.gitEnabled ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
+                enabled: global.serviceModule.git.status !== 2
+                text: !global.serviceModule.git.available ? qsTr("Git is unavailable.")
+                    : !enabled ? qsTr("Unable to open Git repository.")
+                    : !rootItem.hasRepository ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
                 font.pixelSize: 16
                 Layout.alignment: Qt.AlignVCenter
 
-                onClicked: !gitModule.gitEnabled ? gitModule.gitInit() : gitModule.gitCommitPre()
+                onClicked: !rootItem.hasRepository ? gitModule.gitInit() : gitModule.gitCommitPre()
             }
 
             IconImage {
-                source: !gitModule.gitEnabled ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
+                source: !rootItem.hasRepository ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
                 color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -41,7 +45,7 @@ Item {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: gitModule.gitEnabled && !branchModel.empty
+        visible: rootItem.hasRepository && !branchModel.empty
         handle: Item {
             implicitWidth: 5
 

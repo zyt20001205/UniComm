@@ -26,7 +26,8 @@
 #include "document/page/markupPage.h"
 #include "document/page/welcomePage.h"
 #include "mainWindow/toastModule.h"
-#include "service/git/gitModule.h"
+#include "service/git/gitService.h"
+#include "service/serviceModule.h"
 #include "types/scintillaTypes.h"
 #include "util/uniCast.h"
 
@@ -251,7 +252,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         webPage->propertySet();
     }
     // conflict page
-    else if (g_globalManager->gitModuleGet()->gitEnabledGet()) {
+    else if (!g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet().isEmpty()) {
         QProcess process{};
         process.setWorkingDirectory(g_workspaceUrl.toLocalFile());
         process.start("git", {"diff", "--name-only", "--diff-filter=U", "--", documentUrl.toLocalFile()});

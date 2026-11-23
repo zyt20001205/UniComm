@@ -7,7 +7,6 @@ extern GlobalManager *g_globalManager;
 
 extern bool g_terminating;
 extern QUrl g_workspaceUrl;
-extern QString g_gitRootPath;
 extern QJsonObject g_mainConfig;
 extern QJsonObject g_workspaceConfig;
 

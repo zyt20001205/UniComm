@@ -217,6 +217,7 @@ target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}/qml
         ${UNICOMM_INCLUDE}/runtime
         ${UNICOMM_INCLUDE}/service
+        ${UNICOMM_INCLUDE}/service/git
         ${UNICOMM_INCLUDE}/terminal
         ${UNICOMM_INCLUDE}/terminal/module
         ${UNICOMM_INCLUDE}/types

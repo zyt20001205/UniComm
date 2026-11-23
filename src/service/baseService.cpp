@@ -3,6 +3,10 @@
 #include <QJsonDocument>
 #include <QTime>
 
+namespace {
+    constexpr qsizetype detailLimit = 512;
+}
+
 BaseService::BaseService(const QString &name, QObject *parent)
     : QObject(parent),
       m_name(name),
@@ -12,15 +16,17 @@ BaseService::BaseService(const QString &name, QObject *parent)
 }
 
 void BaseService::eventAppend(const QString &event, const QJsonObject &response) const {
-    constexpr int eventLimit = 200;
-    constexpr qsizetype detailLimit = 512;
-    constexpr qsizetype toolTipLimit = 512;
-    if (m_eventModel->rowCount() == eventLimit) m_eventModel->removeRow(eventLimit - 1);
     const QJsonDocument document(response);
     const auto detail = QString::fromUtf8(document.toJson(QJsonDocument::Compact));
+    eventAppend(event, detail, detail.size() <= detailLimit ? QString::fromUtf8(document.toJson(QJsonDocument::Indented)) : QString{});
+}
+
+void BaseService::eventAppend(const QString &event, const QString &detail, const QString &toolTip) const {
+    constexpr int eventLimit = 200;
+    if (m_eventModel->rowCount() == eventLimit) m_eventModel->removeRow(eventLimit - 1);
     auto *detailItem = new QStandardItem(detail.left(detailLimit));
-    if (detail.size() <= toolTipLimit)
-        detailItem->setToolTip(QString::fromUtf8(document.toJson(QJsonDocument::Indented)));
+    if (detail.size() <= detailLimit)
+        detailItem->setToolTip(toolTip.isNull() ? detail : toolTip);
     m_eventModel->insertRow(0, {
         new QStandardItem(QTime::currentTime().toString("HH:mm:ss.zzz")),
         new QStandardItem(event),

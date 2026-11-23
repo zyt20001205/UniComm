@@ -7,7 +7,8 @@
 
 #include "globals.h"
 #include "core/globalManager.h"
-#include "service/git/gitModule.h"
+#include "service/git/gitService.h"
+#include "service/serviceModule.h"
 #include "types/gitTypes.h"
 #include "util/uniCast.h"
 
@@ -20,7 +21,6 @@ ExplorerModule::ExplorerModule()
       m_process(new QProcess(this)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);
-    m_process->setWorkingDirectory(g_workspaceUrl.toLocalFile());
     connect(m_process, &QProcess::finished, this, [this](const int exitcode) { processFinished(exitcode); });
 }
 
@@ -47,6 +47,9 @@ void ExplorerModule::propertySet() const {
 }
 
 void ExplorerModule::indexUpdate() const {
+    const auto &rootPath = g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet();
+    if (rootPath.isEmpty()) return;
+    m_process->setWorkingDirectory(rootPath);
     m_process->start("git", {"--no-optional-locks", "status", "-uall", "--porcelain", "--ignored"});
 }
 
@@ -78,7 +81,7 @@ void ExplorerModule::processFinished(const int exitcode) {
         if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
             GitFileStatus::Copied)
             filePath = filePath.section(" -> ", 1);
-        const auto documentPath = QDir(g_gitRootPath).filePath(filePath);
+        const auto documentPath = QDir(m_process->workingDirectory()).filePath(filePath);
         const auto documentUrl = QUrl::fromLocalFile(documentPath);
         m_documentStatus[documentUrl] = QVariantHash{
             {"indexStatus", indexStatus},
@@ -118,7 +121,7 @@ QVariant SortFilterProxyModel::data(const QModelIndex &index, const int role) co
         return documentUrl;
     }
     if (role == GitRole) {
-        if (!g_globalManager->gitModuleGet()->gitEnabledGet()) return {};
+        if (g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet().isEmpty()) return {};
         return m_documentStatus->value(documentUrl);
     }
     return QSortFilterProxyModel::data(index, role);

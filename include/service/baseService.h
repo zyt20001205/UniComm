@@ -45,6 +45,8 @@ protected:
 
     void eventAppend(const QString &event, const QJsonObject &response) const;
 
+    void eventAppend(const QString &event, const QString &detail, const QString &toolTip = {}) const;
+
     struct Status {
         enum {
             Stopped = 0,
