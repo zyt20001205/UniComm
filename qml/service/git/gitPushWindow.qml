@@ -3,6 +3,8 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import UniComm
+
 Item {
     id: rootItem
     anchors.fill: parent
@@ -240,13 +242,13 @@ Item {
                                 elide: Text.ElideRight
                                 color: {
                                     switch (model.status) {
-                                        case 3:
+                                        case GitFileStatus.Modified:
                                             return global.theme.general.brandBack
-                                        case 5:
+                                        case GitFileStatus.Added:
                                             return global.theme.general.successFore2
-                                        case 6:
+                                        case GitFileStatus.Deleted:
                                             return global.theme.general.stroke
-                                        case 7:
+                                        case GitFileStatus.Renamed:
                                             return global.theme.general.warningFore3
                                         default:
                                             return global.theme.general.fore
@@ -267,22 +269,7 @@ Item {
                             onPointChanged: {
                                 if (!(isTreeNode && hasChildren)) {
                                     mainToolTip.position = parent.mapToGlobal(point.position)
-                                    switch (model.status) {
-                                        case 3:
-                                            mainToolTip.text = "Modified"
-                                            break
-                                        case 5:
-                                            mainToolTip.text = "Added"
-                                            break
-                                        case 6:
-                                            mainToolTip.text = "Deleted"
-                                            break
-                                        case 7:
-                                            mainToolTip.text = "Renamed"
-                                            break
-                                        default:
-                                            mainToolTip.text = "contact author: unsupported status (" + model.status + ")"
-                                    }
+                                    mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                 }
                             }
                         }

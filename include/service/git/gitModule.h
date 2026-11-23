@@ -6,6 +6,8 @@
 #include <QQueue>
 #include <QStandardItemModel>
 
+#include "types/gitTypes.h"
+
 class QFileSystemWatcher;
 class QProcess;
 class QQuickView;
@@ -22,7 +24,7 @@ class CommitModel;
 class GitModule final : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
     Q_PROPERTY(bool gitEnabled READ gitEnabledGet NOTIFY gitEnabledChanged)
-    Q_PROPERTY(int gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
+    Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
 
 public:
     explicit GitModule();
@@ -38,12 +40,12 @@ public:
         emit gitEnabledChanged();
     }
 
-    [[nodiscard]] int gitStatusGet() const {
+    [[nodiscard]] GitOperationState::Value gitStatusGet() const {
         return m_gitStatus;
     }
 
-    void gitStatusSet(const int type) {
-        m_gitStatus = type;
+    void gitStatusSet(const GitOperationState::Value state) {
+        m_gitStatus = state;
         emit gitStatusChanged();
     }
 
@@ -103,7 +105,7 @@ public:
 
     Q_INVOKABLE void gitLog();
 
-    Q_INVOKABLE void gitReset(const QString &hash, int mode);
+    Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
     Q_INVOKABLE void gitCherryPick(const QString &hash);
 
@@ -123,7 +125,7 @@ public:
 
     Q_INVOKABLE void gitAdd(const QUrl &documentUrl = QUrl());
 
-    Q_INVOKABLE void gitRestore(const QUrl &documentUrl, int mode);
+    Q_INVOKABLE void gitRestore(const QUrl &documentUrl, GitRestoreMode::Value mode);
 
     Q_INVOKABLE void gitIgnore(const QUrl &documentUrl, bool status);
 
@@ -156,7 +158,7 @@ private:
     void processFinished(int exitcode);
 
     bool m_gitEnabled{};
-    int m_gitStatus{};
+    GitOperationState::Value m_gitStatus{};
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
     QObject *m_root{};
@@ -239,24 +241,6 @@ private:
             Diff,
             Restore,
             Ignore
-        };
-    };
-
-    struct ResetMode {
-        enum {
-            Mixed,
-            Soft,
-            Hard,
-            Merge,
-            Keep
-        };
-    };
-
-    struct RestoreMode {
-        enum {
-            Worktree,
-            Staged,
-            Both
         };
     };
 };

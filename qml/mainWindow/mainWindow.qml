@@ -773,7 +773,7 @@ Item {
         y: mainScreenItem.y + (mainScreenItem.height - height) / 2
         width: 600
         modal: true
-        title: global.gitModule.gitStatus === 2 ? qsTr("Finish Merge") : qsTr("Finish Rebase")
+        title: global.gitModule.gitStatus === GitOperationState.Merge ? qsTr("Finish Merge") : qsTr("Finish Rebase")
         standardButtons: Dialog.Ok
 
         onOpened: {
@@ -782,8 +782,8 @@ Item {
         }
         onClosed: widgetCount -= 1
         onAboutToShow: {
-            gitModuleContinueCheckBox.checked = global.gitModule.gitStatus !== 2
-            gitModuleContinueCheckBox.enabled = global.gitModule.gitStatus === 2
+            gitModuleContinueCheckBox.checked = global.gitModule.gitStatus !== GitOperationState.Merge
+            gitModuleContinueCheckBox.enabled = global.gitModule.gitStatus === GitOperationState.Merge
             gitModuleContinueTextField.text = ""
             gitModuleContinueTextField.forceActiveFocus()
         }
@@ -1103,7 +1103,7 @@ Item {
 
         MenuItem {
             text: gitModuleBranchMenu.type === "upstream" ? qsTr("Unset Upstream") : qsTr("Set Upstream")
-            enabled: global.gitModule.gitStatus === 0 && ["upstream", "remote"].includes(gitModuleBranchMenu.type)
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle && ["upstream", "remote"].includes(gitModuleBranchMenu.type)
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 
@@ -1112,7 +1112,7 @@ Item {
 
         MenuItem {
             text: qsTr("Merge")
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
@@ -1121,7 +1121,7 @@ Item {
 
         MenuItem {
             text: qsTr("Rebase")
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
@@ -1141,7 +1141,7 @@ Item {
 
         MenuItem {
             text: qsTr("Cherry-pick")
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
@@ -1171,7 +1171,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, 0)
+                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Mixed)
             }
 
             MenuItem {
@@ -1189,7 +1189,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, 1)
+                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Soft)
             }
 
             MenuItem {
@@ -1207,7 +1207,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, 2)
+                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Hard)
             }
 
             MenuItem {
@@ -1225,7 +1225,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, 3)
+                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Merge)
             }
 
             MenuItem {
@@ -1243,7 +1243,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, 4)
+                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Keep)
             }
         }
     }
@@ -2188,7 +2188,7 @@ Item {
 
         MenuItem {
             id: menuModuleFetchItem
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12
@@ -2214,7 +2214,7 @@ Item {
 
         MenuItem {
             id: menuModuleCommitItem
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12
@@ -2240,7 +2240,7 @@ Item {
 
         MenuItem {
             id: menuModulePushItem
-            enabled: global.gitModule.gitStatus === 0
+            enabled: global.gitModule.gitStatus === GitOperationState.Idle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12

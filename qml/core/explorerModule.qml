@@ -183,13 +183,13 @@ Item {
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                         color: !node.model.git ? global.theme.general.fore
-                            : node.model.git.indexStatus === 0 ? global.theme.general.successFore3
-                                : node.model.git.indexStatus === 1 ? global.theme.general.stroke
-                                    : node.model.git.indexStatus === 5 ? global.theme.general.successFore2
-                                        : node.model.git.indexStatus === 7 ? global.theme.general.warningFore3
-                                            : node.model.git.workingTreeStatus === 2 ? global.theme.general.fore
-                                                : node.model.git.workingTreeStatus === 3 ? global.theme.general.brandBack
-                                                    : node.model.git.workingTreeStatus === 9 ? global.theme.general.dangerFore3
+                            : node.model.git.indexStatus === GitFileStatus.Untracked ? global.theme.general.successFore3
+                                : node.model.git.indexStatus === GitFileStatus.Ignored ? global.theme.general.stroke
+                                    : node.model.git.indexStatus === GitFileStatus.Added ? global.theme.general.successFore2
+                                        : node.model.git.indexStatus === GitFileStatus.Renamed ? global.theme.general.warningFore3
+                                            : node.model.git.workingTreeStatus === GitFileStatus.Unmodified ? global.theme.general.fore
+                                                : node.model.git.workingTreeStatus === GitFileStatus.Modified ? global.theme.general.brandBack
+                                                    : node.model.git.workingTreeStatus === GitFileStatus.Unmerged ? global.theme.general.dangerFore3
                                                         : global.theme.general.fore
                         text: node.model.display || ""
                         elide: Text.ElideRight
@@ -208,19 +208,19 @@ Item {
                     onPointChanged: {
                         mainTooltip.position = parent.mapToGlobal(point.position)
                         if (node.model.git) {
-                            if (node.model.git.indexStatus === 0) {
+                            if (node.model.git.indexStatus === GitFileStatus.Untracked) {
                                 mainTooltip.text = "Untracked"
-                            } else if (node.model.git.indexStatus === 1) {
+                            } else if (node.model.git.indexStatus === GitFileStatus.Ignored) {
                                 mainTooltip.text = "Ignored"
-                            } else if (node.model.git.indexStatus === 5) {
+                            } else if (node.model.git.indexStatus === GitFileStatus.Added) {
                                 mainTooltip.text = "Added"
-                            } else if (node.model.git.indexStatus === 7) {
+                            } else if (node.model.git.indexStatus === GitFileStatus.Renamed) {
                                 mainTooltip.text = "Renamed"
-                            } else if (node.model.git.workingTreeStatus === 2) {
+                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Unmodified) {
                                 // mainTooltip.text = "Unmodified"
-                            } else if (node.model.git.workingTreeStatus === 3) {
+                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Modified) {
                                 mainTooltip.text = "Modified"
-                            } else if (node.model.git.workingTreeStatus === 9) {
+                            } else if (node.model.git.workingTreeStatus === GitFileStatus.Unmerged) {
                                 mainTooltip.text = "Unmerged"
                             }
                         }
@@ -261,8 +261,8 @@ Item {
                         folderMenu.popup(localPosition.x, localPosition.y)
                     } else {
                         fileMenu.documentUrl = node.model.documentUrl
-                        fileMenu.gitUntracked = node.model.git?.indexStatus === 0
-                        fileMenu.gitIgnored = node.model.git?.indexStatus === 1
+                        fileMenu.gitUntracked = node.model.git?.indexStatus === GitFileStatus.Untracked
+                        fileMenu.gitIgnored = node.model.git?.indexStatus === GitFileStatus.Ignored
                         fileMenu.popup(localPosition.x, localPosition.y)
                     }
                 }
@@ -469,19 +469,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 0)
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 1)
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, 2)
+                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Both)
                 }
             }
 
@@ -595,19 +595,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 0)
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 1)
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, 2)
+                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Both)
                 }
             }
 
@@ -696,19 +696,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore("", 0)
+                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore("", 1)
+                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore("", 2)
+                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Both)
                 }
             }
         }

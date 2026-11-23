@@ -20,7 +20,7 @@
 GitModule::GitModule()
     : DockWidget("Git"),
       m_gitEnabled(gitGet()),
-      m_gitStatus(GitStatus::Idle),
+      m_gitStatus(GitOperationState::Idle),
       m_config(g_workspaceConfig["gitConfig"].toObject()),
       m_widget(new QQuickWidget()),
       m_commitWindow(new QQuickView()),
@@ -192,7 +192,7 @@ void GitModule::gitFetch() {
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Fetching from remote..."));
-    gitStatusSet(GitStatus::Transfer);
+    gitStatusSet(GitOperationState::Transfer);
 }
 
 // public: push
@@ -230,7 +230,7 @@ void GitModule::gitPush() {
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Pushing to remote..."));
-    gitStatusSet(GitStatus::Transfer);
+    gitStatusSet(GitOperationState::Transfer);
 }
 
 // public: file watcher
@@ -239,7 +239,7 @@ void GitModule::gitWatch() {
 }
 
 void GitModule::gitRepo() {
-    if (m_gitStatus == GitStatus::Transfer) return;
+    if (m_gitStatus == GitOperationState::Transfer) return;
     const auto &gitDir = QDir(m_gitDirPath);
     // merge
     if (QFileInfo::exists(gitDir.filePath("MERGE_HEAD"))) {
@@ -247,7 +247,7 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        gitStatusSet(GitStatus::Merge);
+        gitStatusSet(GitOperationState::Merge);
     }
     // rebase
     else if (QFileInfo::exists(gitDir.filePath("REBASE_HEAD"))) {
@@ -255,7 +255,7 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        gitStatusSet(GitStatus::Rebase);
+        gitStatusSet(GitOperationState::Rebase);
     }
     // cherry-pick
     else if (QFileInfo::exists(gitDir.filePath("CHERRY_PICK_HEAD"))) {
@@ -263,9 +263,9 @@ void GitModule::gitRepo() {
             m_taskId,
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
-        gitStatusSet(GitStatus::CherryPick);
+        gitStatusSet(GitOperationState::CherryPick);
     }
-    if (m_gitStatus != GitStatus::Idle) gitDiff();
+    if (m_gitStatus != GitOperationState::Idle) gitDiff();
 }
 
 // public: branch
@@ -318,18 +318,18 @@ void GitModule::gitLog() {
     processEnqueue(GitCommand::Log, QStringList{"log", m_current, "-z", "--pretty=format:%h%x1e%p%x1e%ar%x1e%an%x1e%s", "--"});
 }
 
-void GitModule::gitReset(const QString &hash, const int mode) {
+void GitModule::gitReset(const QString &hash, const GitResetMode::Value mode) {
     QString _mode{};
     switch (mode) {
-        case ResetMode::Mixed: _mode = "--mixed";
+        case GitResetMode::Mixed: _mode = "--mixed";
             break;
-        case ResetMode::Soft: _mode = "--soft";
+        case GitResetMode::Soft: _mode = "--soft";
             break;
-        case ResetMode::Hard: _mode = "--hard";
+        case GitResetMode::Hard: _mode = "--hard";
             break;
-        case ResetMode::Merge: _mode = "--merge";
+        case GitResetMode::Merge: _mode = "--merge";
             break;
-        case ResetMode::Keep: _mode = "--keep";
+        case GitResetMode::Keep: _mode = "--keep";
             break;
         default: return;
     }
@@ -361,13 +361,13 @@ void GitModule::gitRebase(const QString &name) {
 
 void GitModule::gitAbort() {
     switch (m_gitStatus) {
-        case GitStatus::Transfer: m_process->terminate();
+        case GitOperationState::Transfer: m_process->terminate();
             break;
-        case GitStatus::Merge: processEnqueue(GitCommand::Abort, QStringList{"merge", "--abort"});
+        case GitOperationState::Merge: processEnqueue(GitCommand::Abort, QStringList{"merge", "--abort"});
             break;
-        case GitStatus::Rebase: processEnqueue(GitCommand::Abort, QStringList{"rebase", "--abort"});
+        case GitOperationState::Rebase: processEnqueue(GitCommand::Abort, QStringList{"rebase", "--abort"});
             break;
-        case GitStatus::CherryPick: processEnqueue(GitCommand::Abort, QStringList{"cherry-pick", "--abort"});
+        case GitOperationState::CherryPick: processEnqueue(GitCommand::Abort, QStringList{"cherry-pick", "--abort"});
             break;
         default: break;
     }
@@ -376,14 +376,14 @@ void GitModule::gitAbort() {
 void GitModule::gitContinue(const QString &message) {
     QStringList arguments{};
     switch (m_gitStatus) {
-        case GitStatus::Merge: {
+        case GitOperationState::Merge: {
             if (message.isEmpty()) arguments = {"merge", "--continue"};
             else arguments = {"commit", "-m", message};
         }
         break;
-        case GitStatus::Rebase: arguments = {"rebase", "--continue"};
+        case GitOperationState::Rebase: arguments = {"rebase", "--continue"};
             break;
-        case GitStatus::CherryPick: arguments = {"cherry-pick", "--continue"};
+        case GitOperationState::CherryPick: arguments = {"cherry-pick", "--continue"};
             break;
         default: break;
     }
@@ -406,14 +406,14 @@ void GitModule::gitAdd(const QUrl &documentUrl) {
     processEnqueue(GitCommand::Add, arguments);
 }
 
-void GitModule::gitRestore(const QUrl &documentUrl, const int mode) {
+void GitModule::gitRestore(const QUrl &documentUrl, const GitRestoreMode::Value mode) {
     QStringList arguments{"restore"};
     switch (mode) {
-        case RestoreMode::Worktree: arguments << "--worktree";
+        case GitRestoreMode::Worktree: arguments << "--worktree";
             break;
-        case RestoreMode::Staged: arguments << "--staged";
+        case GitRestoreMode::Staged: arguments << "--staged";
             break;
-        case RestoreMode::Both: arguments << "--worktree" << "--staged";
+        case GitRestoreMode::Both: arguments << "--worktree" << "--staged";
             break;
         default: return;
     }
@@ -663,10 +663,10 @@ void GitModule::processFinished(const int exitcode) {
                 for (const auto &value: changes) {
                     const auto change = value.split('\t');
                     if (change.size() < 2) continue;
-                    const auto &status = g_gitStatusCode[change[0].front()];
+                    const auto status = GitFileStatus::fromCode(change[0].front());
                     QString path1{};
                     QString path2{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         path1 = change[1];
                         path2 = change[2];
                     } else {
@@ -676,7 +676,7 @@ void GitModule::processFinished(const int exitcode) {
                     const auto &documentPath = QDir(g_gitRootPath).filePath(path2);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     QString display{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         display = QString("%1 -> %2 (%3%)").arg(
                             QUrl::fromLocalFile(QDir(g_gitRootPath).filePath(path1)).fileName(),
                             documentUrl.fileName(),
@@ -721,11 +721,11 @@ void GitModule::processFinished(const int exitcode) {
                 const auto &paths = QString::fromUtf8(output).split('\n', Qt::SkipEmptyParts);
                 QString operation{};
                 switch (m_gitStatus) {
-                    case GitStatus::Merge: operation = tr("Merging: ");
+                    case GitOperationState::Merge: operation = tr("Merging: ");
                         break;
-                    case GitStatus::Rebase: operation = tr("Rebasing: ");
+                    case GitOperationState::Rebase: operation = tr("Rebasing: ");
                         break;
-                    case GitStatus::CherryPick: operation = tr("Cherry-picking: ");
+                    case GitOperationState::CherryPick: operation = tr("Cherry-picking: ");
                         break;
                     default:
                         return;
@@ -755,10 +755,12 @@ void GitModule::processFinished(const int exitcode) {
                     if (value.size() < 4) continue;
                     const auto &change = QString::fromUtf8(value);
 
-                    const auto indexStatus = g_gitStatusCode[change.at(0)];
-                    const auto workingTreeStatus = g_gitStatusCode[change.at(1)];
+                    const auto indexStatus = GitFileStatus::fromCode(change.at(0));
+                    const auto workingTreeStatus = GitFileStatus::fromCode(change.at(1));
                     auto path = change.mid(3).trimmed();
-                    if (indexStatus == 'R' || indexStatus == 'C' || workingTreeStatus == 'R' || workingTreeStatus == 'C') path = path.section(" -> ", 1);
+                    if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
+                        GitFileStatus::Copied)
+                        path = path.section(" -> ", 1);
                     const auto &documentPath = QDir(g_gitRootPath).filePath(path);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     const auto &display = documentUrl.fileName();
@@ -766,7 +768,7 @@ void GitModule::processFinished(const int exitcode) {
                     const auto &pathList = path.split('/');
 
                     // append working tree model
-                    if (workingTreeStatus != GitStatusCode::Unmodified) {
+                    if (workingTreeStatus != GitFileStatus::Unmodified) {
                         QStandardItem *rootItem{};
                         QString rootPath{};
                         for (int i = 0; i < pathList.size() - 1; ++i) {
@@ -794,11 +796,11 @@ void GitModule::processFinished(const int exitcode) {
                         else m_workingTreeModel->appendRow(item);
 
                         // skip index model if not added
-                        if (workingTreeStatus == GitStatusCode::Untracked) continue;
+                        if (workingTreeStatus == GitFileStatus::Untracked) continue;
                     }
 
                     // append index model
-                    if (indexStatus != GitStatusCode::Unmodified) {
+                    if (indexStatus != GitFileStatus::Unmodified) {
                         QStandardItem *rootItem{};
                         QString rootPath{};
                         for (int i = 0; i < pathList.size() - 1; ++i) {
@@ -852,10 +854,10 @@ void GitModule::processFinished(const int exitcode) {
                 for (const auto &value: changes) {
                     const auto change = value.split('\t');
                     if (change.size() < 2) continue;
-                    const auto &status = g_gitStatusCode[change[0].front()];
+                    const auto status = GitFileStatus::fromCode(change[0].front());
                     QString path1{};
                     QString path2{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         path1 = change[1];
                         path2 = change[2];
                     } else {
@@ -865,7 +867,7 @@ void GitModule::processFinished(const int exitcode) {
                     const auto &documentPath = QDir(g_gitRootPath).filePath(path2);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     QString display{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         display = QString("%1 -> %2 (%3%)").arg(
                             QUrl::fromLocalFile(QDir(g_gitRootPath).filePath(path1)).fileName(),
                             documentUrl.fileName(),
@@ -915,10 +917,10 @@ void GitModule::processFinished(const int exitcode) {
                 for (const auto &value: changes) {
                     const auto change = value.split('\t');
                     if (change.size() < 2) continue;
-                    const auto &status = g_gitStatusCode[change[0].front()];
+                    const auto status = GitFileStatus::fromCode(change[0].front());
                     QString path1{};
                     QString path2{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         path1 = change[1];
                         path2 = change[2];
                     } else {
@@ -928,7 +930,7 @@ void GitModule::processFinished(const int exitcode) {
                     const auto &documentPath = QDir(g_gitRootPath).filePath(path2);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     QString display{};
-                    if (status == GitStatusCode::Renamed || status == GitStatusCode::Copied) {
+                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         display = QString("%1 -> %2 (%3%)").arg(
                             QUrl::fromLocalFile(QDir(g_gitRootPath).filePath(path1)).fileName(),
                             documentUrl.fileName(),
@@ -979,7 +981,7 @@ void GitModule::processFinished(const int exitcode) {
                     gitWatch();
                     gitStatus();
                 }
-                if (m_gitStatus != GitStatus::Idle) {
+                if (m_gitStatus != GitOperationState::Idle) {
                     emit addFinish();
                     gitDiff();
                 }
@@ -997,7 +999,7 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Abort:
             case GitCommand::Push: {
                 emit removeBackground(m_taskId);
-                gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitOperationState::Idle);
             }
             break;
             case GitCommand::Ahead: gitDiff_();
@@ -1064,14 +1066,14 @@ void GitModule::processFinished(const int exitcode) {
                 title = tr("Fetch Failed");
                 text = QString::fromUtf8(error).trimmed();
                 emit removeBackground(m_taskId);
-                gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitOperationState::Idle);
             }
             break;
             case GitCommand::Push: {
                 title = tr("Push Failed");
                 text = QString::fromUtf8(error).trimmed();
                 emit removeBackground(m_taskId);
-                gitStatusSet(GitStatus::Idle);
+                gitStatusSet(GitOperationState::Idle);
             }
             break;
             default: {

@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "core/globalManager.h"
 #include "service/git/gitModule.h"
+#include "types/gitTypes.h"
 #include "util/uniCast.h"
 
 // public
@@ -71,15 +72,17 @@ void ExplorerModule::processFinished(const int exitcode) {
     const auto lines = QString(output).split('\n', Qt::SkipEmptyParts);
     m_documentStatus.clear();
     for (const auto &line: lines) {
-        const auto indexStatus = line.at(0);
-        const auto workingTreeStatus = line.at(1);
+        const auto indexStatus = GitFileStatus::fromCode(line.at(0));
+        const auto workingTreeStatus = GitFileStatus::fromCode(line.at(1));
         auto filePath = line.mid(3).trimmed();
-        if (indexStatus == 'R' || indexStatus == 'C' || workingTreeStatus == 'R' || workingTreeStatus == 'C') filePath = filePath.section(" -> ", 1);
+        if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
+            GitFileStatus::Copied)
+            filePath = filePath.section(" -> ", 1);
         const auto documentPath = QDir(g_gitRootPath).filePath(filePath);
         const auto documentUrl = QUrl::fromLocalFile(documentPath);
         m_documentStatus[documentUrl] = QVariantHash{
-                    {"indexStatus", g_gitStatusCode[indexStatus]},
-                    {"workingTreeStatus", g_gitStatusCode[workingTreeStatus]}
+            {"indexStatus", indexStatus},
+            {"workingTreeStatus", workingTreeStatus}
         };
     }
     m_sortFilterProxyModel->invalidate();
@@ -115,16 +118,8 @@ QVariant SortFilterProxyModel::data(const QModelIndex &index, const int role) co
         return documentUrl;
     }
     if (role == GitRole) {
-        if (!g_globalManager->gitModuleGet()->gitEnabledGet() || !m_documentStatus->contains(documentUrl)) {
-            return {};
-        }
-        const auto gitStatus = m_documentStatus->value(documentUrl).toHash();
-        const auto indexStatus = gitStatus["indexStatus"].toInt();
-        const auto workingTreeStatus = gitStatus["workingTreeStatus"].toInt();
-        return QVariantHash{
-            {"indexStatus", indexStatus},
-            {"workingTreeStatus", workingTreeStatus}
-        };
+        if (!g_globalManager->gitModuleGet()->gitEnabledGet()) return {};
+        return m_documentStatus->value(documentUrl);
     }
     return QSortFilterProxyModel::data(index, role);
 }

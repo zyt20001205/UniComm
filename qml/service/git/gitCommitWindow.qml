@@ -3,6 +3,8 @@ import QtQuick.Controls
 import QtQuick.Controls.impl
 import QtQuick.Layouts
 
+import UniComm
+
 Item {
     id: rootItem
     anchors.fill: parent
@@ -136,17 +138,17 @@ Item {
                                     elide: Text.ElideRight
                                     color: {
                                         switch (model.status) {
-                                            case 0:
+                                            case GitFileStatus.Untracked:
                                                 return global.theme.general.successFore3
-                                            case 3:
+                                            case GitFileStatus.Modified:
                                                 return global.theme.general.brandBack
-                                            case 5:
+                                            case GitFileStatus.Added:
                                                 return global.theme.general.successFore2
-                                            case 6:
+                                            case GitFileStatus.Deleted:
                                                 return global.theme.general.stroke
-                                            case 7:
+                                            case GitFileStatus.Renamed:
                                                 return global.theme.general.warningFore3
-                                            case 9:
+                                            case GitFileStatus.Unmerged:
                                                 return global.theme.general.dangerFore3
                                             default:
                                                 return global.theme.general.fore
@@ -167,28 +169,7 @@ Item {
                                 onPointChanged: {
                                     if (!(isTreeNode && hasChildren)) {
                                         mainToolTip.position = parent.mapToGlobal(point.position)
-                                        switch (model.status) {
-                                            case 0:
-                                                mainToolTip.text = "Untracked"
-                                                break
-                                            case 3:
-                                                mainToolTip.text = "Modified"
-                                                break
-                                            case 5:
-                                                mainToolTip.text = "Added"
-                                                break
-                                            case 6:
-                                                mainToolTip.text = "Deleted"
-                                                break
-                                            case 7:
-                                                mainToolTip.text = "Renamed"
-                                                break
-                                            case 9:
-                                                mainToolTip.text = "Unmerged"
-                                                break
-                                            default:
-                                                mainToolTip.text = "contact author: unsupported status (" + model.status + ")"
-                                        }
+                                        mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                     }
                                 }
                             }
@@ -297,7 +278,7 @@ Item {
                     }
 
                     onClicked: {
-                        gitModule.gitRestore(indexTreeView.documentUrl, 1)
+                        gitModule.gitRestore(indexTreeView.documentUrl, GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }
@@ -324,7 +305,7 @@ Item {
                     }
 
                     onClicked: {
-                        gitModule.gitRestore("", 1)
+                        gitModule.gitRestore("", GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }
@@ -447,17 +428,17 @@ Item {
                                     elide: Text.ElideRight
                                     color: {
                                         switch (model.status) {
-                                            case 0:
+                                            case GitFileStatus.Untracked:
                                                 return global.theme.general.successFore3
-                                            case 3:
+                                            case GitFileStatus.Modified:
                                                 return global.theme.general.brandBack
-                                            case 5:
+                                            case GitFileStatus.Added:
                                                 return global.theme.general.successFore2
-                                            case 6:
+                                            case GitFileStatus.Deleted:
                                                 return global.theme.general.stroke
-                                            case 7:
+                                            case GitFileStatus.Renamed:
                                                 return global.theme.general.warningFore3
-                                            case 9:
+                                            case GitFileStatus.Unmerged:
                                                 return global.theme.general.dangerFore3
                                             default:
                                                 return global.theme.general.fore
@@ -478,28 +459,7 @@ Item {
                                 onPointChanged: {
                                     if (!(isTreeNode && hasChildren)) {
                                         mainToolTip.position = parent.mapToGlobal(point.position)
-                                        switch (model.status) {
-                                            case 0:
-                                                mainToolTip.text = "Untracked"
-                                                break
-                                            case 3:
-                                                mainToolTip.text = "Modified"
-                                                break
-                                            case 5:
-                                                mainToolTip.text = "Added"
-                                                break
-                                            case 6:
-                                                mainToolTip.text = "Deleted"
-                                                break
-                                            case 7:
-                                                mainToolTip.text = "Renamed"
-                                                break
-                                            case 9:
-                                                mainToolTip.text = "Unmerged"
-                                                break
-                                            default:
-                                                mainToolTip.text = "contact author: unsupported status (" + model.status + ")"
-                                        }
+                                        mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                     }
                                 }
                             }
