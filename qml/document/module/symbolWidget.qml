@@ -41,14 +41,13 @@ Item {
                     }
 
                     Button {
-                        id: breadcrumbButton
                         flat: true
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                         icon.source: breadcrumbItem.modelData.source
                         icon.color: breadcrumbItem.modelData.iconColor
                         icon.width: 16; icon.height: 16
                         text: breadcrumbItem.modelData.text
-                        Layout.preferredWidth: breadcrumbButtonTextMetrics.width + 28; Layout.preferredHeight: 20
+                        Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
 
                         onClicked: rootItem.symbolWidget.indicatorFill(breadcrumbItem.modelData.position)
 
@@ -64,11 +63,6 @@ Item {
                             }
                         }
 
-                        TextMetrics {
-                            id: breadcrumbButtonTextMetrics
-                            text: breadcrumbButton.text
-                            font: breadcrumbButton.font
-                        }
                     }
                 }
             }

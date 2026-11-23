@@ -53,13 +53,7 @@ Item {
                         flat: true
                         leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                         text: breadcrumbItem.modelData
-                        Layout.preferredWidth: breadcrumbButtonTextMetrics.width + 8; Layout.preferredHeight: 20
-
-                        TextMetrics {
-                            id: breadcrumbButtonTextMetrics
-                            text: breadcrumbButton.text
-                            font: breadcrumbButton.font
-                        }
+                        Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
                     }
                 }
             }
@@ -115,16 +109,10 @@ Item {
                 return position
             }
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            Layout.preferredWidth: positionButtonTextMetrics.width + 8; Layout.preferredHeight: 20
+            Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
 
             enabled: text.length > 0
             onClicked: global.documentModule.documentGoto()
-
-            TextMetrics {
-                id: positionButtonTextMetrics
-                text: positionButton.text
-                font: positionButton.font
-            }
         }
 
         Button {
@@ -134,17 +122,11 @@ Item {
             enabled: text.length > 0
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            Layout.preferredWidth: eolModeButtonTextMetrics.width + 8; Layout.preferredHeight: 20
+            Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
 
             onClicked: {
                 const position = mainOverlay.mapFromGlobal(eolModeButton.mapToGlobal(0, 0))
                 eolModeMenu.popup(position.x, position.y - eolModeMenu.implicitHeight)
-            }
-
-            TextMetrics {
-                id: eolModeButtonTextMetrics
-                text: eolModeButton.text
-                font: eolModeButton.font
             }
         }
 
@@ -154,13 +136,7 @@ Item {
                 : Qt.enumValueToString(ScintillaCodePage.Value, global.documentModule.codePage).replace("_", "-")
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            Layout.preferredWidth: codePageButtonTextMetrics.width + 8; Layout.preferredHeight: 20
-
-            TextMetrics {
-                id: codePageButtonTextMetrics
-                text: codePageButton.text
-                font: codePageButton.font
-            }
+            Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
         }
 
         Button {
@@ -173,13 +149,7 @@ Item {
             }
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-            Layout.preferredWidth: indentationButtonTextMetrics.width + 8; Layout.preferredHeight: 20
-
-            TextMetrics {
-                id: indentationButtonTextMetrics
-                text: indentationButton.text
-                font: indentationButton.font
-            }
+            Layout.preferredWidth: implicitContentWidth + 8; Layout.preferredHeight: 20
         }
     }
 
