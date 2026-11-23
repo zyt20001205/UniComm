@@ -33,15 +33,12 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
     QString helpText{};
     for (const auto &value: signatures) {
         const auto signature = value.toObject();
+        if (!helpText.isEmpty()) helpText += "<br>";
         helpText += "(";
         int index = 0;
         const int activeParameter = signature["activeParameter"].toInt();
         const auto label = signature["label"].toString();
         const auto parameters = signature["parameters"].toArray();
-        if (parameters.isEmpty()) {
-            helpText += ")<br>";
-            continue;
-        }
         for (const auto &_value: parameters) {
             const auto parameter = _value.toObject();
             const auto range = parameter["label"].toArray();
@@ -51,14 +48,12 @@ void SignatureWidget::signatureShow(const QVariantHash &signatureSession, const 
             if (index == activeParameter) {
                 param = QString("<span style='color: %1; font-weight: 600;'>%2</span>").arg(general["warningFore3"].toString(), param);
             }
+            if (index > 0) helpText += ", ";
             helpText += param;
-            helpText += ", ";
             index++;
         }
-        helpText.chop(2);
-        helpText += ")<br>";
+        helpText += ")";
     }
-    helpText.chop(4);
     if (m_text != helpText) {
         m_text = helpText;
         emit textChanged();
