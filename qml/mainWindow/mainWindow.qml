@@ -79,9 +79,8 @@ Item {
     // main window
     Dialog {
         id: mainWindowCloseDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Save and Exit?")
@@ -97,9 +96,8 @@ Item {
 
     Dialog {
         id: mainWindowMessageDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         standardButtons: Dialog.Ok
@@ -119,9 +117,8 @@ Item {
 
     Dialog {
         id: mainWindowQuitDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Exiting application...")
@@ -356,9 +353,8 @@ Item {
     // agent module
     Dialog {
         id: agentModuleRenameDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Rename Conversation")
@@ -775,9 +771,8 @@ Item {
     // git module
     Dialog {
         id: gitModuleContinueDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: global.gitModule.gitStatus === GitOperationState.Merge ? qsTr("Finish Merge") : qsTr("Finish Rebase")
@@ -819,9 +814,8 @@ Item {
 
     Dialog {
         id: gitModuleErrorDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         standardButtons: Dialog.Ok
@@ -842,9 +836,8 @@ Item {
 
     Dialog {
         id: gitModuleBranchCreateDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Create branch from ") + gitModuleBranchCreateDialog.name
@@ -890,9 +883,8 @@ Item {
 
     Dialog {
         id: gitModuleProxyDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Proxy Configuration")
@@ -979,9 +971,8 @@ Item {
 
     Dialog {
         id: gitModuleBranchRenameDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Rename branch ") + gitModuleBranchRenameDialog.name
@@ -1013,9 +1004,8 @@ Item {
 
     Dialog {
         id: gitModuleRemoteAddDialog
-        parent: Overlay.overlay
-        x: mainScreen.x + (mainScreen.width - width) / 2
-        y: mainScreen.y + (mainScreen.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         width: 600
         modal: true
         title: qsTr("Add Remote Repository")

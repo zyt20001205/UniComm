@@ -570,14 +570,9 @@ void MainWindow::overlayInit() {
 }
 
 void MainWindow::overlayUpdate() const {
-    const auto screens = QGuiApplication::screens();
-    QRect geometry{};
-    for (const auto *screen: screens) {
-        geometry = geometry.united(screen->geometry());
-    }
     auto *screen = windowHandle()->screen();
     m_overlay->setScreen(screen);
-    m_overlay->setGeometry(geometry);
+    m_overlay->setGeometry(screen->virtualGeometry());
     const QRect mainGeometry(
         m_overlay->mapFromGlobal(screen->geometry().topLeft()),
         screen->geometry().size()

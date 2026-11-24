@@ -388,10 +388,9 @@ Item {
 
     Dialog {
         id: fileNewDialog
-        parent: mainOverlay
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
-        x: mainOverlay.mainGeometry.x + (mainOverlay.mainGeometry.width - width) / 2
-        y: mainOverlay.mainGeometry.y + (mainOverlay.mainGeometry.height - height) / 2
         width: 600
         modal: true
         title: qsTr("New File")
@@ -436,10 +435,9 @@ Item {
 
     Dialog {
         id: folderNewDialog
-        parent: mainOverlay
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
-        x: mainOverlay.mainGeometry.x + (mainOverlay.mainGeometry.width - width) / 2
-        y: mainOverlay.mainGeometry.y + (mainOverlay.mainGeometry.height - height) / 2
         width: 600
         modal: true
         title: qsTr("New Folder")

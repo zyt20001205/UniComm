@@ -8,9 +8,6 @@ import QtQuick.Layouts
 import UniComm
 
 Item {
-    id: root
-    readonly property rect dialogArea: mainOverlay.mainGeometry
-
     Connections {
         target: global.documentModule
 
@@ -43,9 +40,8 @@ Item {
 
     Dialog {
         id: gotoDialog
-        parent: mainOverlay
-        x: root.dialogArea.x + (root.dialogArea.width - width) / 2
-        y: root.dialogArea.y + (root.dialogArea.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
         width: 600
         modal: true
@@ -83,9 +79,8 @@ Item {
 
     Dialog {
         id: renameDialog
-        parent: mainOverlay
-        x: root.dialogArea.x + (root.dialogArea.width - width) / 2
-        y: root.dialogArea.y + (root.dialogArea.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
         width: 600
         modal: true
@@ -124,9 +119,8 @@ Item {
 
     Dialog {
         id: saveDialog
-        parent: mainOverlay
-        x: root.dialogArea.x + (root.dialogArea.width - width) / 2
-        y: root.dialogArea.y + (root.dialogArea.height - height) / 2
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
         width: 600
         modal: true

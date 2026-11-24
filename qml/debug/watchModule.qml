@@ -398,10 +398,9 @@ Item {
 
     Dialog {
         id: expressionDialog
-        parent: mainOverlay
+        parent: mainScreen
+        anchors.centerIn: parent
         popupType: Popup.Item
-        x: mainOverlay.mainGeometry.x + (mainOverlay.mainGeometry.width - width) / 2
-        y: mainOverlay.mainGeometry.y + (mainOverlay.mainGeometry.height - height) / 2
         width: 600
         modal: true
         focus: true
