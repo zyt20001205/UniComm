@@ -221,6 +221,7 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             clip: true
             model: root.selectedStructure ? filterModel : null
+            reuseItems: false
             property int selectedRow: -1
             onModelChanged: {
                 selectedRow = -1
