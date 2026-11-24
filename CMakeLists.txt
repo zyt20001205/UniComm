@@ -207,6 +207,7 @@ set(WHISPER_MODEL "${WHISPER_DIR}/model")
 
 target_include_directories(UniComm PRIVATE
         ${UNICOMM_INCLUDE}
+        ${UNICOMM_INCLUDE}/agent
         ${UNICOMM_INCLUDE}/analysis
         ${UNICOMM_INCLUDE}/core
         ${UNICOMM_INCLUDE}/debug

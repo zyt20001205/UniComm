@@ -89,20 +89,10 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_closeDialog = qvariant_cast<QObject *>(objects["mainWindowCloseDialog"]);
     m_quitDialog = qvariant_cast<QObject *>(objects["mainWindowQuitDialog"]);
 
-    const QVariantHash agentObjects = {
-        {"mainWindowLinkMenu", objects["mainWindowLinkMenu"]},
-        {"mainWindowToast", QVariant::fromValue(m_toastModule.get())},
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"fileModule", QVariant::fromValue(m_fileModule)},
-        {"agentModuleRenameDialog", objects["agentModuleRenameDialog"]},
-        {"agentModuleModeMenu", objects["agentModuleModeMenu"]},
-        {"agentModuleModelMenu", objects["agentModuleModelMenu"]}
-    };
-    m_agentModule->propertySet(agentObjects);
+    m_agentModule->propertySet();
     m_breakpointModule->propertySet();
     m_debugModule->propertySet();
     m_diagnosticsModule->propertySet();
-
     const QVariantHash documentObjects = {
         {"documentModuleDwellToolTip", objects["documentModuleDwellToolTip"]},
         {"documentModuleDwellDiagnosticTextArea", objects["documentModuleDwellDiagnosticTextArea"]},
@@ -112,7 +102,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_documentModule->propertySet(documentObjects);
     m_explorerModule->propertySet();
-
     m_gitModule->propertySet();
     m_logModule->propertySet();
     m_menuModule->propertySet();

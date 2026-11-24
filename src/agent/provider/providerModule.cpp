@@ -14,11 +14,6 @@ ProviderModule::ProviderModule(const QJsonObject &providers, const QJsonObject &
       m_providerModel(new ProviderModel(this)) {
 }
 
-void ProviderModule::propertySet(const QVariantHash &objects) {
-    m_modelMenu = qvariant_cast<QObject *>(objects["agentModuleModelMenu"]);
-    m_modelMenu->setProperty("providerModel", QVariant::fromValue(m_providerModel));
-}
-
 void ProviderModule::initialize() {
     QFile file(":/config/api.json");
     if (!file.open(QIODevice::ReadOnly)) return;

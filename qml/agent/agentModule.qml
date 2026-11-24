@@ -2,25 +2,32 @@ import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.impl
-import QtQuick.Dialogs
+import QtQuick.Dialogs as Dialogs
 import QtQuick.Effects
 import QtQuick.Layouts
+import QtQml.Models
+
+import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property AgentModule agentModule
+    required property var conversationListModel
+    required property var conversationModel
+    required property var providerModel
     anchors.fill: parent
 
     function requestSubmit(): void {
         const text = textArea.text.trim()
-        if (agentModule.state === 0 && text === "/goal") {
+        if (root.agentModule.state === 0 && text === "/goal") {
             goalCard.opened = true
             textArea.clear()
             return
         }
         if (text.length > 0) {
-            agentModule.state === 0 ? agentModule.pre() : agentModule.steer()
+            root.agentModule.state === 0 ? root.agentModule.pre() : root.agentModule.steer()
         } else {
-            agentModule.abort()
+            root.agentModule.abort()
         }
     }
 
@@ -28,14 +35,14 @@ Item {
         id: attachmentModel
     }
 
-    FileDialog {
+    Dialogs.FileDialog {
         id: attachmentDialog
-        fileMode: FileDialog.OpenFiles
+        fileMode: Dialogs.FileDialog.OpenFiles
         nameFilters: [qsTr("All files (*)")]
 
         onAccepted: {
             for (let index = 0; index < selectedFiles.length; ++index) {
-                agentModule.attachmentAdd(selectedFiles[index])
+                root.agentModule.attachmentAdd(selectedFiles[index])
             }
         }
     }
@@ -215,44 +222,41 @@ Item {
 
             ComboBox {
                 id: conversationComboBox
-                enabled: agentModule.state === 0 && agentModule.goalState === 0
-                model: conversationListModel
+                enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0
+                model: root.conversationListModel
                 textRole: "display"
                 valueRole: "id"
                 Layout.fillWidth: true; Layout.preferredHeight: 30
 
-                onActivated: agentModule.conversationGet(conversationComboBox.currentValue)
+                onActivated: root.agentModule.conversationGet(conversationComboBox.currentValue)
             }
 
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                enabled: agentModule.state === 0 && agentModule.goalState === 0
+                enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0
                 flat: true
                 icon.source: "qrc:/icon/rename.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: {
-                    renameDialog.oldTitle = conversationComboBox.currentText
-                    renameDialog.open()
-                }
+                onClicked: renameDialog.open()
             }
 
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                enabled: agentModule.state === 0 && agentModule.goalState === 0
+                enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0
                 flat: true
                 icon.source: "qrc:/icon/add.svg"
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: agentModule.conversationInsert()
+                onClicked: root.agentModule.conversationInsert()
             }
 
             Button {
                 leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                 checkable: true
-                enabled: conversationComboBox.currentIndex >= 0 && agentModule.state === 0 && agentModule.goalState === 0
+                enabled: conversationComboBox.currentIndex >= 0 && root.agentModule.state === 0 && root.agentModule.goalState === 0
                 flat: true
                 icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
                 icon.width: 16; icon.height: 16
@@ -260,7 +264,7 @@ Item {
 
                 onToggled: {
                     if (!checked) {
-                        agentModule.conversationDelete()
+                        root.agentModule.conversationDelete()
                     }
                 }
 
@@ -278,7 +282,7 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: agentModule.agentManage()
+                onClicked: root.agentModule.agentManage()
             }
 
             Button {
@@ -289,7 +293,7 @@ Item {
                 icon.width: 16; icon.height: 16
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                onClicked: agentModule.evalOpen()
+                onClicked: root.agentModule.evalOpen()
             }
         }
 
@@ -300,7 +304,7 @@ Item {
             ListView {
                 id: turnListView
                 visible: count > 0
-                model: conversationModel
+                model: root.conversationModel
                 property int hoveredIndex: -1
                 topMargin: Math.max(0, (height - count * 12) / 2)
                 bottomMargin: topMargin
@@ -363,7 +367,7 @@ Item {
                         onTapped: {
                             turnListView.currentIndex = turnDelegate.index
                             turnListView.positionViewAtIndex(turnDelegate.index, ListView.Visible)
-                            rootItem.navigateTo(turnDelegate.index)
+                            root.navigateTo(turnDelegate.index)
                         }
                     }
                 }
@@ -371,10 +375,10 @@ Item {
 
             ListView {
                 id: chatView
-                readonly property real availableWidth: width - 14
+                readonly property real availableWidth: width - chatScrollBar.width
                 readonly property real availableHeight: height
                 property bool followTail: true
-                model: conversationModel
+                model: root.conversationModel
                 reuseItems: true
                 cacheBuffer: height
                 boundsBehavior: Flickable.StopAtBounds
@@ -384,11 +388,8 @@ Item {
                 delegate: turnComponent
 
                 ScrollBar.vertical: ScrollBar {
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     id: chatScrollBar
-                    x: parent.mirrored ? 0 : parent.width - width
-                    height: parent.height
-                    policy: ScrollBar.AsNeeded
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -406,7 +407,7 @@ Item {
                     onPressedChanged: {
                         if (pressed) {
                             chatView.followTail = false
-                            rootItem.scrollStop()
+                            root.scrollStop()
                             return
                         }
                         chatView.followTail = chatView.atYEnd
@@ -422,7 +423,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? goalLayout.implicitHeight + 24 : 0
             property bool opened: false
-            property int goalState: agentModule.goalState
+            property int goalState: root.agentModule.goalState
             property double remaining: 0
             readonly property int idleState: 0
             readonly property int runningState: 1
@@ -562,12 +563,12 @@ Item {
                         icon.source: "qrc:/icon/play.svg"
                         icon.width: 16; icon.height: 16
                         enabled: goalCard.goalState === goalCard.idleState
-                            && agentModule.state === 0
+                            && root.agentModule.state === 0
                             && goalTextField.text.trim().length > 0
                             && (goalHoursSpinBox.value > 0 || goalMinutesSpinBox.value > 0)
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                        onClicked: agentModule.goalStart(
+                        onClicked: root.agentModule.goalStart(
                             goalTextField.text.trim(),
                             goalHoursSpinBox.value,
                             goalMinutesSpinBox.value)
@@ -582,8 +583,8 @@ Item {
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
                         onClicked: goalCard.goalState === goalCard.pausedState
-                            ? agentModule.goalResume()
-                            : agentModule.goalPause()
+                            ? root.agentModule.goalResume()
+                            : root.agentModule.goalPause()
                     }
 
                     Button {
@@ -594,7 +595,7 @@ Item {
                         enabled: goalCard.goalState !== goalCard.idleState
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                        onClicked: agentModule.goalStop()
+                        onClicked: root.agentModule.goalStop()
                     }
                 }
             }
@@ -605,14 +606,14 @@ Item {
                 running: goalCard.goalState !== goalCard.idleState
                 triggeredOnStart: true
 
-                onTriggered: goalCard.remaining = agentModule.goalRemainingGet()
+                onTriggered: goalCard.remaining = root.agentModule.goalRemainingGet()
             }
 
             Connections {
-                target: agentModule
+                target: root.agentModule
 
                 function onChangeGoal(): void {
-                    goalCard.remaining = agentModule.goalRemainingGet()
+                    goalCard.remaining = root.agentModule.goalRemainingGet()
                 }
             }
         }
@@ -840,7 +841,7 @@ Item {
                                         Layout.preferredWidth: 80; Layout.preferredHeight: 28
 
                                         onClicked: {
-                                            rootItem.permissionResponse(permissionPage.runtimeId, false)
+                                            root.permissionResponse(permissionPage.runtimeId, false)
                                         }
                                     }
 
@@ -851,7 +852,7 @@ Item {
                                         Layout.preferredWidth: 80; Layout.preferredHeight: 28
 
                                         onClicked: {
-                                            rootItem.permissionResponse(permissionPage.runtimeId, true)
+                                            root.permissionResponse(permissionPage.runtimeId, true)
                                         }
                                     }
                                 }
@@ -967,7 +968,7 @@ Item {
                             function submit(): void {
                                 const answer = answerTextField.text.trim()
                                 if (answer.length === 0) return
-                                rootItem.userInputResponse(userInputPage.runtimeId, answer)
+                                root.userInputResponse(userInputPage.runtimeId, answer)
                             }
 
                             ColumnLayout {
@@ -1065,7 +1066,7 @@ Item {
                                         Layout.preferredWidth: 80; Layout.preferredHeight: 28
 
                                         onClicked: {
-                                            rootItem.userInputResponse(userInputPage.runtimeId, "")
+                                            root.userInputResponse(userInputPage.runtimeId, "")
                                         }
                                     }
 
@@ -1153,7 +1154,7 @@ Item {
                     Button {
                         id: changeUndoButton
                         checkable: true
-                        enabled: agentModule.state === 0 && changeCard.committed && changeCard.applied && changeCard.error.length === 0
+                        enabled: root.agentModule.state === 0 && changeCard.committed && changeCard.applied && changeCard.error.length === 0
                         leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
                         flat: true
                         text: {
@@ -1167,7 +1168,7 @@ Item {
                         Layout.preferredHeight: 24
 
                         onToggled: {
-                            if (!checked) agentModule.changeRevert()
+                            if (!checked) root.agentModule.changeRevert()
                         }
 
                         onEnabledChanged: {
@@ -1186,22 +1187,14 @@ Item {
                     id: changeScrollView
                     clip: true
                     contentWidth: availableWidth
-                    rightPadding: effectiveScrollBarWidth
+                    rightPadding: ScrollBar.vertical.width
                     Layout.fillWidth: true
                     Layout.preferredHeight: Math.min(changeContent.implicitHeight, 240)
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                    ScrollBar.vertical: ScrollBar {
-                        minimumSize: Math.min(1, 20 / Math.max(1, height))
-                        x: parent.mirrored ? 0 : parent.width - width
-                        y: parent.topPadding
-                        height: parent.availableHeight
-                        policy: ScrollBar.AsNeeded
-                        palette {
-                            mid: global.theme.general.stroke
-                            dark: global.theme.general.strokePressed
-                        }
-                    }
+                    ScrollBar.vertical.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.vertical.height))
+                    ScrollBar.vertical.palette.mid: global.theme.general.stroke
+                    ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
                     ColumnLayout {
                         id: changeContent
@@ -1502,7 +1495,7 @@ Item {
                                 icon.width: 12; icon.height: 12
                                 Layout.preferredWidth: 24; Layout.fillHeight: true
 
-                                onClicked: agentModule.attachmentRemove(attachmentChip.attachmentUrl)
+                                onClicked: root.agentModule.attachmentRemove(attachmentChip.attachmentUrl)
                             }
                         }
                     }
@@ -1514,25 +1507,17 @@ Item {
                 anchors.top: attachmentFlow.bottom
                 anchors.topMargin: attachmentFlow.visible ? 4 : 0
                 bottomPadding: 42
-                rightPadding: effectiveScrollBarWidth
+                rightPadding: ScrollBar.vertical.width
 
-                ScrollBar.vertical: ScrollBar {
-                    minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    x: parent.mirrored ? 0 : parent.width - width
-                    y: parent.topPadding
-                    height: parent.availableHeight
-                    policy: ScrollBar.AsNeeded
-                    palette {
-                        mid: global.theme.general.stroke
-                        dark: global.theme.general.strokePressed
-                    }
-                }
+                ScrollBar.vertical.minimumSize: Math.min(1, 20 / Math.max(1, ScrollBar.vertical.height))
+                ScrollBar.vertical.palette.mid: global.theme.general.stroke
+                ScrollBar.vertical.palette.dark: global.theme.general.strokePressed
 
                 TextArea {
                     id: textArea
                     padding: 10
                     topPadding: 12
-                    placeholderText: agentModule.state === 0 ? qsTr("Ask a question or describe a task") : qsTr("Steer the current task")
+                    placeholderText: root.agentModule.state === 0 ? qsTr("Ask a question or describe a task") : qsTr("Steer the current task")
                     textFormat: TextEdit.PlainText
                     verticalAlignment: TextEdit.AlignTop
                     wrapMode: TextEdit.Wrap
@@ -1541,7 +1526,7 @@ Item {
 
                     Keys.onPressed: (event) => {
                         if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
-                            rootItem.requestSubmit()
+                            root.requestSubmit()
                             event.accepted = true
                         }
                     }
@@ -1569,21 +1554,21 @@ Item {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     checkable: true
                     checked: strategy === 1
-                    enabled: agentModule.state === 0 && agentModule.goalState === 0
+                    enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0
                     flat: true
                     icon.source: checked ? "qrc:/icon/team.svg" : "qrc:/icon/solo.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                    onClicked: agentModule.conversationStrategySet(checked ? 1 : 0)
+                    onClicked: root.agentModule.conversationStrategySet(checked ? 1 : 0)
 
                     HoverHandler {
                         onHoveredChanged: {
-                            if (!hovered) mainToolTip.text = ""
+                            if (!hovered) mainTooltip.text = ""
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = strategyButton.strategy === 0
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = strategyButton.strategy === 0
                                 ? qsTr("Solo mode\nA general agent completes the task directly.\nClick to switch to Team mode.")
                                 : qsTr("Team mode\nA supervisor coordinates specialized agents.\nClick to switch to Solo mode.")
                         }
@@ -1594,7 +1579,7 @@ Item {
                     id: modeButton
                     property int mode: 0
                     leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && mode >= 0
+                    enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0 && mode >= 0
                     flat: true
                     text: mode === 0 ? qsTr("Chat") :
                             mode === 1 ? qsTr("Read") :
@@ -1624,7 +1609,7 @@ Item {
                 Button {
                     id: modelButton
                     leftPadding: 4; rightPadding: 4; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && agentModule.goalState === 0
+                    enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0
                     flat: true
                     text: qsTr("Select model")
                     implicitWidth: contentItem.implicitWidth + leftPadding + rightPadding
@@ -1722,7 +1707,7 @@ Item {
                     }
 
                     TapHandler {
-                        enabled: agentModule.state === 0 && usageLayout.currentUsage > 0
+                        enabled: root.agentModule.state === 0 && usageLayout.currentUsage > 0
 
                         onTapped: {
                             if (!usageLayout.compactPending) {
@@ -1731,7 +1716,7 @@ Item {
                             } else {
                                 compactTimer.stop()
                                 usageLayout.compactPending = false
-                                agentModule.compact()
+                                root.agentModule.compact()
                             }
                         }
                     }
@@ -1745,12 +1730,12 @@ Item {
 
                     HoverHandler {
                         onHoveredChanged: {
-                            if (!hovered) mainToolTip.text = ""
+                            if (!hovered) mainTooltip.text = ""
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.position = parent.mapToGlobal(point.position)
                             const action = usageLayout.currentUsage > 0 ? qsTr("Click to compact context") : qsTr("Context will update after the next response")
-                            mainToolTip.text = qsTr("Context: %1 / %2\n%3")
+                            mainTooltip.text = qsTr("Context: %1 / %2\n%3")
                                 .arg(usageLayout.exactTokens(usageLayout.currentUsage))
                                 .arg(usageLayout.exactTokens(usageLayout.contextWindow))
                                 .arg(action)
@@ -1760,13 +1745,13 @@ Item {
 
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state === 0 && agentModule.goalState === 0 && turnListView.count > 0
+                    enabled: root.agentModule.state === 0 && root.agentModule.goalState === 0 && turnListView.count > 0
                     flat: true
                     icon.source: "qrc:/icon/undo.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                    onClicked: agentModule.conversationRollback()
+                    onClicked: root.agentModule.conversationRollback()
                 }
 
                 Button {
@@ -1783,12 +1768,12 @@ Item {
                 Button {
                     id: sendButton
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
-                    enabled: agentModule.state !== 0 || textArea.text.trim().length > 0
-                    icon.source: agentModule.state === 0 || textArea.text.trim().length > 0 ? "qrc:/icon/send.svg" : "qrc:/icon/stop.svg"
+                    enabled: root.agentModule.state !== 0 || textArea.text.trim().length > 0
+                    icon.source: root.agentModule.state === 0 || textArea.text.trim().length > 0 ? "qrc:/icon/send.svg" : "qrc:/icon/stop.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 28; Layout.preferredHeight: 28
 
-                    onClicked: rootItem.requestSubmit()
+                    onClicked: root.requestSubmit()
                 }
             }
         }
@@ -1808,7 +1793,7 @@ Item {
             IconImage {
                 anchors.centerIn: parent
                 width: 16; height: 16
-                visible: agentModule.state === 0
+                visible: root.agentModule.state === 0
                 color: global.theme.general.fore
                 source: "qrc:/icon/arrowDown.svg"
                 sourceSize.width: 16; sourceSize.height: 16
@@ -1818,7 +1803,7 @@ Item {
                 id: dotsIndicator
                 anchors.centerIn: parent
                 width: 16; height: 16
-                visible: agentModule.state !== 0
+                visible: root.agentModule.state !== 0
 
                 Repeater {
                     model: 3
@@ -1853,7 +1838,7 @@ Item {
 
         onClicked: {
             chatView.followTail = true
-            rootItem.followToTail()
+            root.followToTail()
         }
     }
 
@@ -2320,7 +2305,7 @@ Item {
                                                 icon.width: 16; icon.height: 16
                                                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                                                onClicked: fileModule.copyToClipboard(codeBlock.content)
+                                                onClicked: global.fileModule.copyToClipboard(codeBlock.content)
                                             }
                                         }
 
@@ -2407,7 +2392,7 @@ Item {
                                                 icon.width: 16; icon.height: 16
                                                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                                                onClicked: fileModule.copyToClipboard(tableBlock.content)
+                                                onClicked: global.fileModule.copyToClipboard(tableBlock.content)
                                             }
                                         }
 
@@ -2641,7 +2626,7 @@ Item {
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
-                    onClicked: fileModule.copyToClipboard(chatItem.contentBuffer)
+                    onClicked: global.fileModule.copyToClipboard(chatItem.contentBuffer)
                 }
 
                 Behavior on opacity {
@@ -2671,7 +2656,7 @@ Item {
 
         function onMovementStarted(): void {
             chatView.followTail = false
-            rootItem.scrollStop()
+            root.scrollStop()
         }
 
         function onMovementEnded(): void {
@@ -2679,7 +2664,7 @@ Item {
         }
 
         function onContentHeightChanged(): void {
-            rootItem.followToTail()
+            root.followToTail()
         }
     }
 
@@ -2754,7 +2739,7 @@ Item {
     }
 
     function permissionResponse(runtimeId: string, status: bool): void {
-        agentModule.permission(runtimeId, status)
+        root.agentModule.permission(runtimeId, status)
         for (let index = 0; index < permissionModel.count; ++index) {
             if (permissionModel.get(index).runtimeId !== runtimeId) continue
             permissionModel.remove(index)
@@ -2776,7 +2761,7 @@ Item {
     }
 
     function userInputResponse(runtimeId: string, answer: string): void {
-        agentModule.userInput(runtimeId, answer)
+        root.agentModule.userInput(runtimeId, answer)
         for (let index = 0; index < userInputModel.count; ++index) {
             if (userInputModel.get(index).runtimeId !== runtimeId) continue
             userInputModel.remove(index)
@@ -2810,6 +2795,168 @@ Item {
             "modeButton": modeButton,
             "modelButton": modelButton
         };
-        agentModule.propertyGet(objects)
+        root.agentModule.propertyGet(objects)
+    }
+
+    Dialog {
+        id: renameDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: qsTr("Rename Conversation")
+        standardButtons: Dialog.Ok
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            renameTextField.text = conversationComboBox.currentText
+            renameTextField.forceActiveFocus()
+            renameTextField.selectAll()
+        }
+        onAccepted: root.agentModule.conversationRename(renameTextField.text)
+
+        TextField {
+            id: renameTextField
+            width: parent.width
+            placeholderText: qsTr("Enter new name:")
+
+            onAccepted: renameDialog.accept()
+            Keys.onEscapePressed: renameDialog.reject()
+        }
+    }
+
+    Menu {
+        id: modeMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        implicitWidth: 400
+        readonly property var modes: [
+            {
+                "title": qsTr("Chat"),
+                "description": qsTr("Answer questions without tool access."),
+                "icon": "qrc:/icon/chat.svg"
+            },
+            {
+                "title": qsTr("Read"),
+                "description": qsTr("Inspect the workspace without making changes."),
+                "icon": "qrc:/icon/eye.svg"
+            },
+            {
+                "title": qsTr("Write"),
+                "description": qsTr("Inspect and modify workspace data."),
+                "icon": "qrc:/icon/edit.svg"
+            },
+            {
+                "title": qsTr("Full access"),
+                "description": qsTr("Run programs and use every available tool."),
+                "icon": "qrc:/icon/lockOpen.svg"
+            }
+        ]
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        Instantiator {
+            model: modeMenu.modes
+
+            delegate: MenuItem {
+                id: modeItem
+                required property int index
+                required property var modelData
+                leftPadding: 10
+                topPadding: 0; bottomPadding: 0
+                implicitWidth: modeMenu.availableWidth
+                implicitHeight: 58
+
+                contentItem: RowLayout {
+                    spacing: 10
+
+                    IconImage {
+                        color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
+                        source: modeItem.modelData.icon
+                        sourceSize.width: 18; sourceSize.height: 18
+                        Layout.preferredWidth: 20; Layout.preferredHeight: 20
+                    }
+
+                    ColumnLayout {
+                        spacing: 2
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: modeItem.modelData.title
+                            color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
+                            font.bold: true
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+
+                        Label {
+                            text: modeItem.modelData.description
+                            color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.stroke
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    IconImage {
+                        visible: modeButton.mode === modeItem.index
+                        color: modeItem.index === 3 ? global.theme.general.warningFore3 : global.theme.general.fore
+                        source: "qrc:/icon/checkmark.svg"
+                        sourceSize.width: 16; sourceSize.height: 16
+                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    }
+                }
+
+                onTriggered: root.agentModule.conversationModeSet(index)
+            }
+
+            onObjectAdded: (index, object) => modeMenu.addItem(object)
+            onObjectRemoved: (index, object) => modeMenu.removeItem(object)
+        }
+    }
+
+    Menu {
+        id: modelMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        Instantiator {
+            model: root.providerModel
+            delegate: Menu {
+                id: providerMenu
+                property string providerId: model.id
+                property string providerName: model.display
+                property var providerModels: model.models
+                title: providerName
+
+                Instantiator {
+                    model: providerMenu.providerModels
+                    delegate: MenuItem {
+                        text: model.display
+                        onTriggered: root.agentModule.conversationModelSet(providerMenu.providerId, model.id)
+                    }
+
+                    onObjectAdded: (index, object) => providerMenu.addItem(object)
+                    onObjectRemoved: (index, object) => providerMenu.removeItem(object)
+                }
+            }
+
+            onObjectAdded: (index, object) => modelMenu.insertMenu(index, object)
+            onObjectRemoved: (index, object) => modelMenu.removeMenu(object)
+        }
     }
 }

@@ -16,8 +16,6 @@ public:
 
     ~ProviderModule() override = default;
 
-    void propertySet(const QVariantHash &objects);
-
     void initialize();
 
     void apikeySet(const QString &provider, const QString &apikey) const;
@@ -48,7 +46,6 @@ signals:
 private:
     void _defaultSet() const;
 
-    QObject *m_modelMenu{};
     QJsonObject m_catalog{};
     QJsonObject m_providerConfigs{};
     QJsonObject m_default{};

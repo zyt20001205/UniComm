@@ -40,10 +40,6 @@ const QJsonArray &HookModule::configGet() const {
     return m_config;
 }
 
-void HookModule::propertySet(const QVariantHash &objects) {
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
-}
-
 void HookModule::hookEnabledSet(const int event, const bool enabled) {
     auto hook = m_config[event].toObject();
     hook["enabled"] = enabled;
@@ -81,7 +77,7 @@ void HookModule::hookRun(const int event) const {
     for (const auto &value: hook["scripts"].toArray()) {
         const QUrl documentUrl(value.toString());
         if (!QFileInfo(documentUrl.toLocalFile()).isFile()) {
-            m_toast->show(ToastLevel::Warning, tr("Hook"), tr("Hook script does not exist: %1").arg(documentUrl.toLocalFile()));
+            g_globalManager->toastModuleGet()->show(ToastLevel::Warning, tr("Hook"), tr("Hook script does not exist: %1").arg(documentUrl.toLocalFile()));
             continue;
         }
         g_globalManager->threadpoolModuleGet()->threadStart(documentUrl, RunMode::Run);

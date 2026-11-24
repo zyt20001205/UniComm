@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QUuid>
@@ -34,7 +35,7 @@
 AgentModule::AgentModule()
     : DockWidget("Agent"),
       m_config(g_workspaceConfig["agentConfig"].toObject()),
-      m_widget(new QQuickWidget()),
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_evalWindow(new QQuickView()),
       m_manageWindow(new QQuickView()),
       m_conversationId(m_config["id"].toString()),
@@ -68,11 +69,7 @@ AgentModule::~AgentModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void AgentModule::propertySet(const QVariantHash &objects) {
-    m_toast = qvariant_cast<ToastModule *>(objects["mainWindowToast"]);
-    m_hookModule->propertySet(objects);
-    m_modeMenu = qvariant_cast<QObject *>(objects["agentModuleModeMenu"]);
-
+void AgentModule::propertySet() {
     m_evalWindow->setTitle(tr("Agent Evaluation"));
     m_evalWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_evalWindow->rootContext()->setContextProperty("evalModel", m_evalModule->modelGet());
@@ -84,24 +81,19 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_manageWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
     m_manageWindow->rootContext()->setContextProperty("agentModule", this);
     m_manageWindow->rootContext()->setContextProperty("global", g_globalManager);
-    m_manageWindow->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
+    m_manageWindow->rootContext()->setContextProperty("mainToolTip", g_globalManager->engineGet()->rootContext()->contextProperty("mainTooltip"));
     m_manageWindow->rootContext()->setContextProperty("hookModel", m_hookModule->hookModelGet());
     m_manageWindow->rootContext()->setContextProperty("mcpModel", m_mcpModule->mcpModelGet());
     m_manageWindow->rootContext()->setContextProperty("providerModel", m_providerModule->providerModelGet());
     m_manageWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_manageWindow->setSource(QUrl("qrc:/qml/agent/agentManageWindow.qml"));
 
-    m_widget->rootContext()->setContextProperty("agentModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
-    m_widget->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_widget->rootContext()->setContextProperty("fileModule", objects["fileModule"]);
-    m_widget->rootContext()->setContextProperty("renameDialog", objects["agentModuleRenameDialog"]);
-    m_widget->rootContext()->setContextProperty("conversationListModel", m_conversationListModel);
-    m_widget->rootContext()->setContextProperty("conversationModel", m_conversationModel);
-    m_widget->rootContext()->setContextProperty("modeMenu", m_modeMenu);
-    m_widget->rootContext()->setContextProperty("modelMenu", objects["agentModuleModelMenu"]);
-
+    m_widget->setInitialProperties({
+        {"agentModule", QVariant::fromValue(this)},
+        {"conversationListModel", QVariant::fromValue(m_conversationListModel)},
+        {"conversationModel", QVariant::fromValue(m_conversationModel)},
+        {"providerModel", QVariant::fromValue(m_providerModule->providerModelGet())}
+    });
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/agent/agentModule.qml"));
     m_root = m_widget->rootObject();
@@ -111,9 +103,6 @@ void AgentModule::propertySet(const QVariantHash &objects) {
     m_toolsModule->initialize();
     m_mcpModule->initialize();
 
-    m_providerModule->propertySet(QVariantHash{
-        {"agentModuleModelMenu", objects["agentModuleModelMenu"]}
-    });
     connect(m_providerModule, &ProviderModule::modelsChanged, this, [this] {
         if (m_conversationId.isEmpty()) return;
         const auto conversation = m_sqlModule->conversationGet(m_conversationId).first;
@@ -349,7 +338,6 @@ void AgentModule::conversationsGet() {
     m_conversationComboBox->setProperty("currentIndex", currentIndex);
     m_strategyButton->setProperty("strategy", strategy);
     m_modeButton->setProperty("mode", currentConversation.id.isEmpty() ? AgentMode::Chat : currentConversation.mode);
-    m_modeMenu->setProperty("selectedIndex", currentConversation.id.isEmpty() ? AgentMode::Chat : currentConversation.mode);
     modelUpdate(currentConversation.provider, currentConversation.model);
 }
 
@@ -364,7 +352,6 @@ void AgentModule::conversationGet(const QString &id) {
         m_primary = m_general;
         m_strategyButton->setProperty("strategy", AgentStrategy::Solo);
         m_modeButton->setProperty("mode", AgentMode::Chat);
-        m_modeMenu->setProperty("selectedIndex", AgentMode::Chat);
         modelUpdate({}, {});
         return;
     }
@@ -405,7 +392,6 @@ void AgentModule::conversationGet(const QString &id) {
     if (!turnId.isEmpty()) turnFinish(turnId, finishedAt);
     m_strategyButton->setProperty("strategy", conversation.strategy);
     m_modeButton->setProperty("mode", conversation.mode);
-    m_modeMenu->setProperty("selectedIndex", conversation.mode);
     modelUpdate(conversation.provider, conversation.model);
     QMetaObject::invokeMethod(m_root, "usageUpdate", Q_ARG(double, conversation.contextTokens));
     QMetaObject::invokeMethod(m_root, "followToTail", Qt::QueuedConnection);
@@ -470,7 +456,6 @@ void AgentModule::conversationModeSet(const int mode) {
     if (m_conversationId.isEmpty()) conversationInsert();
     m_sqlModule->conversationModeSet(m_conversationId, mode);
     m_modeButton->setProperty("mode", mode);
-    m_modeMenu->setProperty("selectedIndex", mode);
 }
 
 void AgentModule::conversationModelSet(const QString &provider, const QString &model) {
@@ -495,7 +480,7 @@ void AgentModule::conversationRollback() {
 
 void AgentModule::changeRevert() const {
     const auto error = g_globalManager->undoModuleGet()->undoGroupRevert(m_undoGroupId);
-    if (!error.isEmpty()) m_toast->show(ToastLevel::Error, tr("Agent"), error);
+    if (!error.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Agent"), error);
 }
 
 // public: state transition
@@ -673,7 +658,7 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
     });
     connect(runtime, &RuntimeModule::showError, this, [this, runtime](const QString &message) {
         if (runtime != m_runtimes.value(m_primary)) return;
-        m_toast->show(ToastLevel::Error, tr("Agent"), message);
+        g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Agent"), message);
     });
     connect(runtime, &RuntimeModule::createTurn, this, [this, runtime](const QString &turnId, const qint64 startedAt) {
         if (runtime != m_runtimes.value(m_primary)) return;
@@ -692,12 +677,12 @@ void AgentModule::primaryRuntimeConnect(RuntimeModule *runtime) {
     connect(runtime, &RuntimeModule::finishTurn, this, [this, runtime](const QString &turnId, const qint64 finishedAt) {
         if (runtime != m_runtimes.value(m_primary)) return;
         const auto documentError = g_globalManager->documentModuleGet()->transactionCommit(m_undoGroupId);
-        if (!documentError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Agent"), documentError);
+        if (!documentError.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Agent"), documentError);
         const auto commitError = g_globalManager->undoModuleGet()->undoGroupCommit(
             m_undoGroupId,
             tr("Agent Change"),
-            [this](const QString &error) { m_toast->show(ToastLevel::Error, tr("Agent"), error); });
-        if (!commitError.isEmpty()) m_toast->show(ToastLevel::Error, tr("Agent"), commitError);
+            [](const QString &error) { g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Agent"), error); });
+        if (!commitError.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Agent"), commitError);
         turnFinish(turnId, finishedAt);
         m_evalModule->update(m_conversationId);
         m_hookModule->hookRun(HookModule::Event::TurnFinish);

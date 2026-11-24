@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QStandardItemModel>
 #include <QUrl>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 #include "agent/runtime/runtimeModule.h"
 
@@ -19,14 +20,15 @@ class McpModule;
 class ProviderModule;
 class SqlModule;
 class ToolsModule;
-class ToastModule;
 
 namespace Conversation {
     class Model;
 }
 
-class AgentModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class AgentModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("AgentModule is created by C++.")
     Q_PROPERTY(int state READ stateGet NOTIFY changeState)
     Q_PROPERTY(int goalState READ goalStateGet NOTIFY changeGoal)
 
@@ -53,7 +55,7 @@ public:
 
     ~AgentModule() override;
 
-    void propertySet(const QVariantHash &objects);
+    void propertySet();
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 
@@ -204,8 +206,6 @@ private:
     QQuickView *m_evalWindow{};
     QQuickView *m_manageWindow{};
     QObject *m_root{};
-    ToastModule *m_toast{};
-    QObject *m_modeMenu{};
     QObject *m_conversationComboBox{};
     QObject *m_textArea{};
     QObject *m_strategyButton{};
