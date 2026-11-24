@@ -121,11 +121,13 @@ void FileModule::fileCopy(const QList<QUrl> &sourceUrls, const QUrl &directoryUr
                 continue;
             }
 
-            const auto relative = QDir(source.canonicalFilePath()).relativeFilePath(directory.canonicalPath());
-            if (!QDir::isAbsolutePath(relative) && relative != ".." && !relative.startsWith("../"))
-                return tr("Cannot copy %1 into itself.").arg(name);
+            if (!source.isSymLink()) {
+                const auto relative = QDir(source.canonicalFilePath()).relativeFilePath(directory.canonicalPath());
+                if (!QDir::isAbsolutePath(relative) && relative != ".." && !relative.startsWith("../"))
+                    return tr("Cannot copy %1 into itself.").arg(name);
+                if (!directory.mkdir(name)) return tr("Cannot create folder: %1").arg(target);
+            }
 
-            if (!source.isSymLink() && !directory.mkdir(name)) return tr("Cannot create folder: %1").arg(target);
             std::error_code error{};
             std::filesystem::copy(source.filesystemFilePath(), QFileInfo(target).filesystemFilePath(),
                                   std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks, error);
@@ -133,7 +135,7 @@ void FileModule::fileCopy(const QList<QUrl> &sourceUrls, const QUrl &directoryUr
         }
         return {};
     }).then(this, [](const QString &error) {
-        if (!error.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Import failed"), error);
+        if (!error.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Copy failed"), error);
     });
 }
 
