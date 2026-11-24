@@ -68,6 +68,24 @@ QFuture<GitResult> GitService::upstreamGet() {
     });
 }
 
+QFuture<GitRefsResult> GitService::refsGet() {
+    return processEnqueue({"for-each-ref", "--format=%(HEAD)%00%(refname)%00%(symref)", "refs/heads", "refs/remotes", "refs/tags"})
+        .then(this, [this](const GitResult &result) {
+            GitRefsResult refs{result};
+            if (result.success) {
+                for (const auto &line : result.output.split('\n', Qt::SkipEmptyParts)) {
+                    const auto fields = line.split(QChar::Null);
+                    if (fields.size() == 3 && fields[2].isEmpty())
+                        refs.refs.append({fields[1], fields[0] == "*"});
+                }
+            }
+
+            // update service state
+            statusSet(result.success ? Status::Stopped : Status::Error);
+            return refs;
+        });
+}
+
 // public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};

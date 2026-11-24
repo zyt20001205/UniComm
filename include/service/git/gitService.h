@@ -22,6 +22,15 @@ struct GitRepositoryResult : GitResult {
     QString gitDirPath{};
 };
 
+struct GitRefsResult : GitResult {
+    struct Entry {
+        QString ref;
+        bool current{};
+    };
+
+    QList<Entry> refs{};
+};
+
 struct GitStatusResult : GitResult {
     struct Entry {
         GitFileStatus::Value indexStatus;
@@ -65,6 +74,8 @@ public:
 
     // public: branch
     QFuture<GitResult> upstreamGet();
+
+    QFuture<GitRefsResult> refsGet();
 
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);

@@ -31,7 +31,7 @@ GitModule::GitModule()
       m_branchWatcher(new QFileSystemWatcher(this)),
       m_branchWatcherTimer(new QTimer(this)),
       m_gitConfig(new GitConfig(this)),
-      m_branchModel(new BranchModel(this)),
+      m_refs(new QStandardItemModel(this)),
       m_logModel(new LogModel(this)),
       m_showModel(new ShowModel(this)),
       m_workingTreeModel(new StatusModel(this)),
@@ -40,6 +40,9 @@ GitModule::GitModule()
       m_showModel_(new ShowModel(this)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);
+
+    m_refs->setItemRoleNames({{Qt::DisplayRole, "display"}, {RefRole, "ref"}, {TypeRole, "type"}});
+    m_refs->setColumnCount(1);
 
     connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
     connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
@@ -67,7 +70,7 @@ GitModule::GitModule()
     // connect(m_branchWatcher, &QFileSystemWatcher::fileChanged, this, [](const QString &filePath) { qDebug() << "branch changed:" << filePath; });
     m_branchWatcherTimer->setSingleShot(true);
     m_branchWatcherTimer->setInterval(100);
-    connect(m_branchWatcherTimer, &QTimer::timeout, this, &GitModule::gitBranch);
+    connect(m_branchWatcherTimer, &QTimer::timeout, this, &GitModule::refsGet);
 }
 
 GitModule::~GitModule() {
@@ -80,7 +83,6 @@ GitModule::~GitModule() {
 void GitModule::propertySet() {
     m_widget->setInitialProperties({
         {"gitModule", QVariant::fromValue(this)},
-        {"branchModel", QVariant::fromValue(m_branchModel)},
         {"logModel", QVariant::fromValue(m_logModel)},
         {"showModel", QVariant::fromValue(m_showModel)}
     });
@@ -113,12 +115,6 @@ void GitModule::propertySet() {
 
     connect(m_gitService, &GitService::hasRepositoryChanged, this, &GitModule::gitWatch);
     gitWatch();
-}
-
-void GitModule::branchSet(const QString &name) {
-    if (m_current == name) return;
-    m_current = name;
-    gitLog();
 }
 
 void GitModule::gitInit() {
@@ -205,7 +201,7 @@ void GitModule::gitWatch() {
 
     emit updateIndex();
     gitRepo();
-    gitUpstreamGet();
+    upstreamGet();
 }
 
 void GitModule::gitRepo() {
@@ -252,16 +248,52 @@ void GitModule::gitUpstreamUnset() {
     processEnqueue(GitCommand::UpstreamSet, QStringList{"branch", "--unset-upstream"});
 }
 
-// always -> gitBranch()
-void GitModule::gitUpstreamGet() {
+// always -> refsGet()
+void GitModule::upstreamGet() {
     m_gitService->upstreamGet().then(this, [this](const GitResult &result) {
         m_upstream = result.success ? result.output : QString{};
-        gitBranch();
+        refsGet();
     });
 }
 
-void GitModule::gitBranch() {
-    processEnqueue(GitCommand::Branch, QStringList{"for-each-ref", "--format=%(HEAD)%1e%(refname)%1e%(objectname:short)%1e%(subject)%1e%(symref)"});
+// success -> gitLog()
+// failure -> showErrorDialog()
+void GitModule::refsGet() {
+    m_gitService->refsGet().then(this, [this](const GitRefsResult &result) {
+        if (!result.success) {
+            emit showErrorDialog(tr("Git command failed"), result.output);
+            return;
+        }
+
+        m_refs->removeRows(0, m_refs->rowCount());
+        m_current.clear();
+        QHash<QString, QStandardItem *> groups{};
+        for (const auto &[ref, current] : result.refs) {
+            const auto kind = ref.section('/', 1, 1);
+            const auto name = ref.section('/', 2);
+            auto &group = groups[kind];
+            if (!group) {
+                group = new QStandardItem(kind == "heads" ? tr("Local") : kind == "remotes" ? tr("Remote") : tr("Tags"));
+                group->setData(kind, TypeRole);
+                m_refs->appendRow(group);
+            }
+
+            auto *item = new QStandardItem(name);
+            item->setData(ref, RefRole);
+            if (kind == "heads") {
+                if (current) m_current = name;
+                item->setData(current ? "current" : "local", TypeRole);
+            } else if (kind == "remotes") {
+                item->setData(ref == m_upstream ? "upstream" : "remote", TypeRole);
+            } else {
+                item->setData("tag", TypeRole);
+            }
+            if (ref == "refs/heads/master") group->insertRow(0, item);
+            else group->appendRow(item);
+        }
+        emit expandBranches();
+        if (!m_current.isEmpty()) gitLog("refs/heads/" + m_current);
+    });
 }
 
 void GitModule::gitSwitch(const QString &name) {
@@ -284,9 +316,8 @@ void GitModule::gitDelete(const QString &name) {
 }
 
 // public: log
-void GitModule::gitLog() {
-    if (m_current.isEmpty()) return;
-    processEnqueue(GitCommand::Log, QStringList{"log", m_current, "-z", "--pretty=format:%h%x1e%p%x1e%ar%x1e%an%x1e%s", "--"});
+void GitModule::gitLog(const QString &ref) {
+    processEnqueue(GitCommand::Log, QStringList{"log", ref, "-z", "--pretty=format:%h%x1e%p%x1e%ar%x1e%an%x1e%s", "--"});
 }
 
 void GitModule::gitReset(const QString &hash, const GitResetMode::Value mode) {
@@ -487,56 +518,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir rootDir(m_gitService->rootPathGet());
         // output parser
         switch (command) {
-            case GitCommand::Branch: {
-                m_branchModel->clear();
-                m_current.clear();
-                QStandardItem *localItem = nullptr;
-                QStandardItem *remoteItem = nullptr;
-                for (const auto &value: output.split('\n')) {
-                    const auto param = value.split('\x1e');
-                    if (param.size() != 5 || !param[4].isEmpty()) continue; // exclude symbolic refs such as origin/HEAD
-
-                    const auto ref = QString::fromUtf8(param[1]);
-                    QString name{};
-                    QString type{};
-                    if (ref.startsWith("refs/heads/")) {
-                        name = ref.mid(11);
-                        type = param[0] == "*" ? m_current = name, "current" : "local";
-                    } else if (ref.startsWith("refs/remotes/")) {
-                        name = ref.mid(13);
-                        type = ref == m_upstream ? "upstream" : "remote";
-                    } else {
-                        qDebug() << QString("contact author: unsupported git ref (%1)").arg(name);
-                        continue;
-                    }
-
-                    const auto hash = QString::fromUtf8(param[2]);
-                    const auto commit = QString::fromUtf8(param[3]);
-                    auto *item = new QStandardItem(name); // NOLINT
-                    item->setData(type, BranchModel::TypeRole);
-                    item->setData(hash, BranchModel::HashRole);
-                    item->setData(commit, BranchModel::CommitRole);
-                    // local
-                    if (type == "current" || type == "local") {
-                        if (localItem == nullptr) {
-                            localItem = new QStandardItem(tr("Local")); // NOLINT
-                            localItem->setData("localRep", BranchModel::TypeRole);
-                            m_branchModel->appendRow(localItem);
-                        }
-                        if (name == "master") localItem->insertRow(0, item);
-                        else localItem->appendRow(item);
-                    } else {
-                        if (remoteItem == nullptr) {
-                            remoteItem = new QStandardItem(tr("Remote")); // NOLINT
-                            remoteItem->setData("remoteRep", BranchModel::TypeRole);
-                            m_branchModel->appendRow(remoteItem);
-                        }
-                        remoteItem->appendRow(item);
-                    }
-                }
-                emit expandBranches();
-            }
-            break;
             case GitCommand::Log: {
                 m_logModel->clear();
                 QHash<QString, QPoint> nodeHash{};
@@ -957,11 +938,9 @@ void GitModule::processFinished(const int exitcode) {
             }
             break;
             case GitCommand::UpstreamUnset:
-            case GitCommand::UpstreamSet: gitUpstreamGet();
+            case GitCommand::UpstreamSet: upstreamGet();
                 break;
-            case GitCommand::Branch: gitLog();
-                break;
-            case GitCommand::Switch: gitUpstreamGet();
+            case GitCommand::Switch: upstreamGet();
                 break;
             case GitCommand::Create:
             case GitCommand::Rename:
@@ -1024,22 +1003,6 @@ void GitModule::processFinished(const int exitcode) {
         if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
     }
     processDequeue();
-}
-
-// public
-BranchModel::BranchModel(QObject *parent)
-    : QStandardItemModel(parent) {
-    connect(this, &QAbstractItemModel::rowsInserted, this, &BranchModel::emptyChanged);
-    connect(this, &QAbstractItemModel::rowsRemoved, this, &BranchModel::emptyChanged);
-    connect(this, &QAbstractItemModel::modelReset, this, &BranchModel::emptyChanged);
-}
-
-QHash<int, QByteArray> BranchModel::roleNames() const {
-    auto roles = QStandardItemModel::roleNames();
-    roles[TypeRole] = "type";
-    roles[HashRole] = "hash";
-    roles[CommitRole] = "commit";
-    return roles;
 }
 
 // public

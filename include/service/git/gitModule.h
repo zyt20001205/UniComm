@@ -16,7 +16,6 @@ class QQuickWidget;
 
 class GitConfig;
 class GitService;
-class BranchModel;
 class LogModel;
 class ShowModel;
 class StatusModel;
@@ -27,6 +26,7 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     QML_ELEMENT
     QML_UNCREATABLE("GitModule is created by C++.")
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
+    Q_PROPERTY(QStandardItemModel* refs MEMBER m_refs CONSTANT)
 
 public:
     explicit GitModule();
@@ -43,8 +43,6 @@ public:
     }
 
     void propertySet();
-
-    Q_INVOKABLE void branchSet(const QString &name);
 
     Q_INVOKABLE void gitInit();
 
@@ -78,9 +76,9 @@ public:
 
     Q_INVOKABLE void gitUpstreamUnset();
 
-    void gitUpstreamGet();
+    void upstreamGet();
 
-    Q_INVOKABLE void gitBranch();
+    Q_INVOKABLE void refsGet();
 
     Q_INVOKABLE void gitSwitch(const QString &name);
 
@@ -90,7 +88,7 @@ public:
 
     Q_INVOKABLE void gitDelete(const QString &name);
 
-    Q_INVOKABLE void gitLog();
+    Q_INVOKABLE void gitLog(const QString &ref);
 
     Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
@@ -184,7 +182,8 @@ private:
 
     GitConfig *m_gitConfig{};
 
-    BranchModel *m_branchModel{};
+    enum Role { RefRole = Qt::UserRole + 1, TypeRole };
+    QStandardItemModel *m_refs{};
     LogModel *m_logModel{};
     ShowModel *m_showModel{};
 
@@ -210,7 +209,6 @@ private:
             RemoteGet,
             UpstreamSet,
             UpstreamUnset,
-            Branch,
             Switch,
             Create,
             Rename,
@@ -229,29 +227,6 @@ private:
             Ignore
         };
     };
-};
-
-class BranchModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit BranchModel(QObject *parent = nullptr);
-
-    enum Role {
-        TypeRole = Qt::UserRole + 1,
-        HashRole,
-        CommitRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-signals:
-    void emptyChanged();
 };
 
 class LogModel final : public QStandardItemModel {

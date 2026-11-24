@@ -8,7 +8,6 @@ import UniComm
 Item {
     id: root
     required property GitModule gitModule
-    required property var branchModel
     required property var logModel
     required property var showModel
     readonly property bool hasRepository: global.serviceModule.git.hasRepository
@@ -21,7 +20,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: global.serviceModule.git.status !== 1 && (!root.hasRepository || root.branchModel.empty)
+        visible: global.serviceModule.git.status !== 1 && (!root.hasRepository || branchTreeView.rows === 0)
 
         RowLayout {
             anchors.centerIn: parent
@@ -49,7 +48,7 @@ Item {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: root.hasRepository && !root.branchModel.empty
+        visible: root.hasRepository && branchTreeView.rows > 0
         handle: Item {
             implicitWidth: 5
 
@@ -66,12 +65,12 @@ Item {
             id: branchTreeView
             SplitView.preferredWidth: 400; SplitView.fillHeight: true
             clip: true
-            model: root.branchModel
+            model: root.gitModule.refs
             property int selectedRow: -1
 
             ScrollBar.vertical: ScrollBar {
+                id: treeScrollBar
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
                 palette {
                     mid: global.theme.general.stroke
                     dark: global.theme.general.strokePressed
@@ -80,6 +79,7 @@ Item {
 
             delegate: Item {
                 implicitWidth: branchTreeView.width; implicitHeight: 24
+                required property var model
                 required property bool isTreeNode
                 required property bool expanded
                 required property bool hasChildren
@@ -93,7 +93,7 @@ Item {
                     opacity: hoverHandler.hovered ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: 150
+                            duration: AnimationDuration.Fade
                         }
                     }
                 }
@@ -106,6 +106,7 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent
+                    anchors.rightMargin: treeScrollBar.width
                     spacing: 0
 
                     Item {
@@ -124,14 +125,13 @@ Item {
                         }
 
                         TapHandler {
+                            enabled: isTreeNode && hasChildren
                             acceptedButtons: Qt.LeftButton
                             gesturePolicy: TapHandler.DragWithinBounds
 
                             onTapped: {
                                 branchTreeView.selectedRow = row
-                                if (isTreeNode && hasChildren) {
-                                    branchTreeView.toggleExpanded(row)
-                                }
+                                branchTreeView.toggleExpanded(row)
                             }
                         }
                     }
@@ -142,11 +142,17 @@ Item {
                         IconImage {
                             anchors.centerIn: parent
                             width: 16; height: 16
-                            source: model.type === "localRep" ? "qrc:/icon/tcpClient.svg"
-                                : model.type === "remoteRep" ? "qrc:/icon/tcpServer.svg"
-                                    : model.type === "current" ? "qrc:/icon/tag.svg"
-                                        : model.type === "upstream" ? "qrc:/icon/link.svg"
-                                            : "qrc:/icon/gitBranch.svg"
+                            source: {
+                                switch (model.type) {
+                                    case "heads": return "qrc:/icon/tcpClient.svg"
+                                    case "remotes": return "qrc:/icon/tcpServer.svg"
+                                    case "tags":
+                                    case "tag":
+                                    case "current": return "qrc:/icon/tag.svg"
+                                    case "upstream": return "qrc:/icon/link.svg"
+                                    default: return "qrc:/icon/gitBranch.svg"
+                                }
+                            }
                             color: ["current", "upstream"].includes(model.type) ? global.theme.general.warningFore3 : global.theme.general.fore
                         }
                     }
@@ -155,19 +161,8 @@ Item {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                         text: model.display
                         elide: Text.ElideRight
-                        Layout.preferredHeight: 24
-                    }
-
-                    Item {
                         Layout.fillWidth: true
-                    }
-
-                    Label {
-                        horizontalAlignment: Text.AlignRight; verticalAlignment: Text.AlignVCenter
-                        text: model.commit || ""
-                        elide: Text.ElideLeft
                         Layout.preferredHeight: 24
-                        Layout.rightMargin: 10
                     }
                 }
 
@@ -180,7 +175,7 @@ Item {
                     }
                     onPointChanged: {
                         mainTooltip.position = parent.mapToGlobal(point.position)
-                        mainTooltip.text = model.hash || ""
+                        mainTooltip.text = model.ref || ""
                     }
                 }
 
@@ -188,13 +183,9 @@ Item {
                     acceptedButtons: Qt.LeftButton
                     gesturePolicy: TapHandler.DragWithinBounds
 
-                    onTapped: {
-                        branchTreeView.selectedRow = row
-                        if (!(isTreeNode && hasChildren)) {
-                            {
-                                root.gitModule.branchSet(model.display)
-                            }
-                        }
+                    onTapped: branchTreeView.selectedRow = row
+                    onDoubleTapped: {
+                        if (!hasChildren) root.gitModule.gitLog(model.ref)
                     }
                 }
 
@@ -203,7 +194,7 @@ Item {
                     gesturePolicy: TapHandler.DragWithinBounds
 
                     onTapped: {
-                        if (!(isTreeNode && hasChildren)) {
+                        if (!hasChildren && model.type !== "tag") {
                             branchMenu.name = model.display
                             branchMenu.type = model.type
                             const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
