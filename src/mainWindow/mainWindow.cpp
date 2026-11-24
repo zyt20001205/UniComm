@@ -500,6 +500,7 @@ void MainWindow::layoutInit() {
         const QByteArray layoutData = QByteArray::fromBase64(m_mainConfig["state"].toString().toLatin1());
         KDDockWidgets::LayoutSaver layoutSaver;
         restored = layoutSaver.restoreLayout(layoutData);
+        if (restored) m_gitModule->restoreState();
         serviceRestored = restored && layoutSaver.restoredDockWidgets().contains(m_serviceModule->dockWidget());
     }
     if (!restored) {
@@ -562,6 +563,7 @@ void MainWindow::overlayUpdate() const {
 }
 
 void MainWindow::mainConfigSave() {
+    m_gitModule->saveState();
     const KDDockWidgets::LayoutSaver layoutSaver{};
     const QByteArray layoutData = layoutSaver.serializeLayout();
     m_mainConfig["state"] = QString(layoutData.toBase64());

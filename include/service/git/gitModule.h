@@ -48,6 +48,10 @@ public:
 
     void propertySet();
 
+    void saveState() const;
+
+    void restoreState() const;
+
     Q_INVOKABLE void gitInit();
 
     Q_INVOKABLE void gitCommitPre();

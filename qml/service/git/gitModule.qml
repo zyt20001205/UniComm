@@ -16,6 +16,9 @@ Item {
     property bool hasRefs: root.gitModule.refs.rowCount() > 0
     anchors.fill: parent
 
+    function saveState() { return splitView.saveState() }
+    function restoreState(state) { return splitView.restoreState(state) }
+
     SortFilterProxyModel {
         id: refFilter
         model: root.gitModule.refs
@@ -82,6 +85,7 @@ Item {
     }
 
     SplitView {
+        id: splitView
         anchors.fill: parent
         orientation: Qt.Horizontal
         visible: root.hasRepository && root.hasRefs

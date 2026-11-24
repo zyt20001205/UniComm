@@ -1,8 +1,10 @@
 #include "service/git/gitModule.h"
 
+#include <kddockwidgets/core/DockWidget.h>
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
+#include <QQuickItem>
 #include <QQuickView>
 #include <QQuickWidget>
 #include <QTextStream>
@@ -116,6 +118,20 @@ void GitModule::propertySet() {
 
     connect(m_gitService, &GitService::hasRepositoryChanged, this, &GitModule::gitWatch);
     gitWatch();
+}
+
+void GitModule::saveState() const {
+    QVariant state{};
+    if (!QMetaObject::invokeMethod(m_widget->rootObject(), "saveState", qReturnArg(state))) return;
+    auto data = dockWidget()->userData();
+    data.insert("splitView", QString::fromLatin1(state.toByteArray().toBase64()));
+    dockWidget()->setUserData(data);
+}
+
+void GitModule::restoreState() const {
+    const auto encoded = dockWidget()->userData().value("splitView").toString();
+    if (!encoded.isEmpty())
+        QMetaObject::invokeMethod(m_widget->rootObject(), "restoreState", Q_ARG(QVariant, QByteArray::fromBase64(encoded.toLatin1())));
 }
 
 void GitModule::gitInit() {
