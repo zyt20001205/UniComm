@@ -1250,6 +1250,13 @@ QString DocumentModule::_directoryCreate(const QUrl &directoryUrl) {
 }
 
 QString DocumentModule::_directoryRename(const QUrl &sourceUrl, const QUrl &targetUrl) {
+    const QDir source(sourceUrl.toLocalFile());
+    for (const auto &[url, page]: m_pageHash.asKeyValueRange()) {
+        if (!page->documentModified()) continue;
+        const auto path = source.relativeFilePath(url.toLocalFile());
+        if (path != ".." && !path.startsWith("../") && !QDir::isAbsolutePath(path))
+            return tr("Save changes to %1 before moving or renaming it.").arg(url.fileName());
+    }
     QFile directory(sourceUrl.toLocalFile());
     if (!directory.rename(targetUrl.toLocalFile())) return tr("Directory rename failed: %1").arg(directory.errorString());
 
@@ -1292,6 +1299,11 @@ QString DocumentModule::_documentCreate(const QUrl &documentUrl) {
 }
 
 QString DocumentModule::_documentRename(const QUrl &sourceUrl, const QUrl &targetUrl) {
+    const QFileInfo source(sourceUrl.toLocalFile());
+    for (const auto &[url, page]: m_pageHash.asKeyValueRange()) {
+        if (page->documentModified() && QFileInfo(url.toLocalFile()) == source)
+            return tr("Save changes to %1 before moving or renaming it.").arg(url.fileName());
+    }
     QFile document(sourceUrl.toLocalFile());
     if (!document.rename(targetUrl.toLocalFile())) return tr("Document rename failed: %1").arg(document.errorString());
 

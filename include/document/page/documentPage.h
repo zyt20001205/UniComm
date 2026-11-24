@@ -21,6 +21,10 @@ public:
         return {};
     }
 
+    [[nodiscard]] virtual bool documentModified() const {
+        return false;
+    }
+
     void closeApprove();
 
     [[nodiscard]] QUrl documentUrl() {
@@ -41,10 +45,6 @@ signals:
     void showPermissionDialog(const QUrl &documentUrl);
 
 protected:
-    [[nodiscard]] virtual bool documentModified() const {
-        return false;
-    }
-
     void closeEvent(QCloseEvent *event) override;
 
     QUrl m_documentUrl{};
