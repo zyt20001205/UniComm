@@ -30,6 +30,14 @@ Item {
         onActivated: debugConsole.visible = !debugConsole.visible
     }
 
+    Rectangle {
+        anchors.fill: parent
+        visible: debugConsole.visible
+        color: "transparent"
+        border.color: global.theme.general.warningFore3
+        border.width: 2
+    }
+
     Item {
         id: mainScreen
         x: mainGeometry.x
@@ -37,31 +45,73 @@ Item {
         width: mainGeometry.width
         height: mainGeometry.height
 
-        Item {
+        Rectangle {
             id: debugConsole
             anchors.fill: parent
+            anchors.margins: 2
             visible: false
+            color: "transparent"
+            border.color: global.theme.general.brandStroke
+            border.width: 2
+            readonly property int windowFlags: root.Window.window ? root.Window.window.flags : 0
 
             Rectangle {
-                anchors.fill: parent
-                color: "transparent"
-                border.color: global.theme.general.dangerFore3
-                border.width: 3
-            }
+                x: 8; y: 8
+                width: stats.implicitWidth + 16
+                height: stats.implicitHeight + 12
+                color: global.theme.general.back
 
-            ColumnLayout {
-                anchors.centerIn: parent
+                RowLayout {
+                    id: stats
+                    anchors.centerIn: parent
+                    spacing: 12
 
-                Label {
-                    text: Application.styleHints.colorScheme === Qt.Light ? "Light" : "Dark"
-                    color: global.theme.general.dangerFore3
-                    font.pointSize: 16
-                }
+                    ColumnLayout {
+                        spacing: 0
 
-                Label {
-                    text: "widget count: " + root.widgetCount
-                    color: global.theme.general.dangerFore3
-                    font.pointSize: 16
+                        Label {
+                            text: "Screen"
+                            color: global.theme.general.fore
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        Label {
+                            text: "Popups"
+                            color: global.theme.general.fore
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        Label {
+                            text: "Input"
+                            color: global.theme.general.fore
+                            Layout.alignment: Qt.AlignRight
+                        }
+                        Label {
+                            text: "Focus"
+                            color: global.theme.general.fore
+                            Layout.alignment: Qt.AlignRight
+                        }
+                    }
+
+                    ColumnLayout {
+                        spacing: 0
+
+                        Label {
+                            text: "%1 · %2×%3 · %4%".arg(mainScreen.Screen.name).arg(mainScreen.width)
+                                .arg(mainScreen.height).arg(Math.round(mainScreen.Screen.devicePixelRatio * 100))
+                            color: global.theme.general.fore
+                        }
+                        Label {
+                            text: root.widgetCount
+                            color: global.theme.general.fore
+                        }
+                        Label {
+                            text: (debugConsole.windowFlags & Qt.WindowTransparentForInput) ? "Pass-through" : "Interactive"
+                            color: global.theme.general.fore
+                        }
+                        Label {
+                            text: (debugConsole.windowFlags & Qt.WindowDoesNotAcceptFocus) ? "Blocked" : "Allowed"
+                            color: global.theme.general.fore
+                        }
+                    }
                 }
             }
         }
