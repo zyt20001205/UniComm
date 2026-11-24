@@ -11,7 +11,6 @@ import UniComm
 Item {
     id: root
     required property GitModule gitModule
-    required property var showModel
     readonly property bool hasRepository: global.serviceModule.git.hasRepository
     property bool hasRefs: root.gitModule.refs.rowCount() > 0
     anchors.fill: parent
@@ -393,7 +392,7 @@ Item {
 
                         onTapped: {
                             tableView.selectedRow = row
-                            root.gitModule.gitShowCommit(model.hash)
+                            root.gitModule.showGet(model.hash)
                         }
                     }
 
@@ -544,13 +543,13 @@ Item {
                 id: showTreeView
                 width: parent.width
                 clip: true
-                model: root.showModel
+                model: root.gitModule.show
                 Layout.fillWidth: true; Layout.fillHeight: true
                 property int selectedRow: -1
 
                 ScrollBar.vertical: ScrollBar {
+                    id: showScrollBar
                     minimumSize: Math.min(1, 20 / Math.max(1, height))
-                    policy: ScrollBar.AsNeeded
                     palette {
                         mid: global.theme.general.stroke
                         dark: global.theme.general.strokePressed
@@ -585,6 +584,7 @@ Item {
 
                     RowLayout {
                         anchors.fill: parent
+                        anchors.rightMargin: showScrollBar.width
                         spacing: 0
 
                         Item {
@@ -665,7 +665,7 @@ Item {
 
                         onTapped: {
                             if (!(isTreeNode && hasChildren)) {
-                                root.gitModule.gitShowFile(root.showModel.hash, model.documentUrl)
+                                root.gitModule.gitShowFile(model.documentUrl)
                             }
                         }
                     }

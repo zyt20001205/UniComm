@@ -35,7 +35,7 @@ GitModule::GitModule()
       m_gitConfig(new GitConfig(this)),
       m_refs(new QStandardItemModel(this)),
       m_log(new QStandardItemModel(this)),
-      m_showModel(new ShowModel(this)),
+      m_show(new QStandardItemModel(this)),
       m_workingTreeModel(new StatusModel(this)),
       m_indexModel(new StatusModel(this)),
       m_commitModel(new CommitModel(this)),
@@ -47,6 +47,8 @@ GitModule::GitModule()
     m_refs->setColumnCount(1);
     m_log->setItemRoleNames({{Qt::DisplayRole, "display"}, {HashRole, "hash"}, {PositionRole, "position"}, {ParentsRole, "parents"}});
     m_log->setColumnCount(4);
+    m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {DocumentUrlRole, "documentUrl"}, {StatusRole, "status"}});
+    m_show->setColumnCount(1);
 
     connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
     connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
@@ -85,10 +87,7 @@ GitModule::~GitModule() {
 }
 
 void GitModule::propertySet() {
-    m_widget->setInitialProperties({
-        {"gitModule", QVariant::fromValue(this)},
-        {"showModel", QVariant::fromValue(m_showModel)}
-    });
+    m_widget->setInitialProperties({{"gitModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/git/gitModule.qml"));
 
@@ -333,7 +332,7 @@ void GitModule::gitDelete(const QString &name) {
 }
 
 // public: history
-// success -> gitShowCommit()
+// success -> showGet()
 // failure -> showErrorDialog()
 void GitModule::logGet(const QString &ref) {
     m_gitService->logGet(ref).then(this, [this](const GitLogResult &result) {
@@ -377,7 +376,47 @@ void GitModule::logGet(const QString &ref) {
             m_log->appendRow(items);
         }
         emit logChanged();
-        if (!result.commits.isEmpty()) gitShowCommit(result.commits.first().hash);
+        if (!result.commits.isEmpty()) showGet(result.commits.first().hash);
+    });
+}
+
+// failure -> showErrorDialog()
+void GitModule::showGet(const QString &hash) {
+    m_gitService->showGet(hash).then(this, [this, hash](const GitShowResult &result) {
+        if (!result.success) {
+            emit showErrorDialog(tr("Git command failed"), result.output);
+            return;
+        }
+
+        m_show->removeRows(0, m_show->rowCount());
+        m_showHash = hash;
+        const QDir root(m_gitService->rootPathGet());
+        QHash<QString, QStandardItem *> folders{};
+        for (const auto &file : result.files) {
+            const auto path = root.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
+            auto *parent = m_show->invisibleRootItem();
+            QString folderPath{};
+            for (qsizetype i = 0; i + 1 < path.size(); ++i) {
+                folderPath += path.at(i) + '/';
+                auto *&folder = folders[folderPath];
+                if (!folder) {
+                    folder = new QStandardItem(path.at(i));
+                    folder->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
+                    parent->appendRow(folder);
+                }
+                parent = folder;
+            }
+
+            auto display = file.documentUrl.fileName();
+            if (!file.originalUrl.isEmpty())
+                display = QString("%1 -> %2 (%3%)").arg(file.originalUrl.fileName(), display, QString::number(file.similarity));
+            auto *item = new QStandardItem(display);
+            item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
+            item->setData(file.documentUrl, DocumentUrlRole);
+            item->setData(file.status, StatusRole);
+            parent->appendRow(item);
+        }
+        emit setCommitDetails('(' + result.shortHash + ')' + result.subject, result.date, result.author + '<' + result.email + '>');
     });
 }
 
@@ -405,13 +444,9 @@ void GitModule::gitCherryPick(const QString &hash) {
 }
 
 // public: show
-void GitModule::gitShowCommit(const QString &hash) {
-    processEnqueue(GitCommand::ShowCommit, QStringList{"show", hash, "--format=%h%x1e%s%x1e%ad%x1e%an%x1e%ae%x1e", "--name-status"});
-}
-
-void GitModule::gitShowFile(const QString &hash, const QUrl &documentUrl) {
+void GitModule::gitShowFile(const QUrl &documentUrl) {
     const auto &documentPath = documentUrl.toLocalFile();
-    processEnqueue(GitCommand::ShowFile, QStringList{"show", hash, "--format=", documentPath});
+    processEnqueue(GitCommand::ShowFile, QStringList{"show", m_showHash, "--format=", "--", documentPath});
 }
 
 void GitModule::gitMerge(const QString &name) {
@@ -579,73 +614,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir rootDir(m_gitService->rootPathGet());
         // output parser
         switch (command) {
-            case GitCommand::ShowCommit: {
-                const auto param = output.split('\x1e');
-                if (param.size() != 6) break;
-                const auto &hash = QString::fromUtf8(param[0].trimmed());
-                emit setCommitDetails(
-                    '(' + hash + ')' + QString::fromUtf8(param[1].trimmed()),
-                    QString::fromUtf8(param[2].trimmed()),
-                    QString::fromUtf8(param[3].trimmed()) + '<' + QString::fromUtf8(param[4].trimmed()) + '>');
-
-                m_showModel->clear();
-                m_showModel->hashSet(QString());
-                m_showModel->hashSet(hash);
-                QHash<QString, QStandardItem *> roots{};
-                const auto &changes = QString::fromUtf8(param[5]).split('\n', Qt::SkipEmptyParts);
-                for (const auto &value: changes) {
-                    const auto change = value.split('\t');
-                    if (change.size() < 2) continue;
-                    const auto status = GitFileStatus::fromCode(change[0].front());
-                    QString path1{};
-                    QString path2{};
-                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
-                        path1 = change[1];
-                        path2 = change[2];
-                    } else {
-                        path2 = change[1];
-                    }
-                    const auto &path = path2.split('/');
-                    const auto &documentPath = rootDir.filePath(path2);
-                    const auto &documentUrl = QUrl::fromLocalFile(documentPath);
-                    QString display{};
-                    if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
-                        display = QString("%1 -> %2 (%3%)").arg(
-                            QUrl::fromLocalFile(rootDir.filePath(path1)).fileName(),
-                            documentUrl.fileName(),
-                            change[0].mid(1)
-                        );
-                    } else {
-                        display = documentUrl.fileName();
-                    }
-                    const auto &source = uni_cast<QFileIcon>(documentUrl);
-
-                    QStandardItem *rootItem{};
-                    QString rootPath{};
-                    for (int i = 0; i < path.size() - 1; ++i) {
-                        if (!rootPath.isEmpty()) rootPath += '/';
-                        rootPath += path[i];
-
-                        auto *_rootItem = roots.value(rootPath);
-                        if (!_rootItem) {
-                            _rootItem = new QStandardItem(path[i]); // NOLINT
-                            _rootItem->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                            if (rootItem) rootItem->appendRow(_rootItem);
-                            else m_showModel->appendRow(_rootItem);
-                            roots.insert(rootPath, _rootItem);
-                        }
-                        rootItem = _rootItem;
-                    }
-
-                    auto *item = new QStandardItem(display); // NOLINT
-                    item->setData(source.value, Qt::DecorationRole);
-                    item->setData(documentUrl, ShowModel::DocumentUrlRole);
-                    item->setData(status, ShowModel::StatusRole);
-                    if (rootItem) rootItem->appendRow(item);
-                    else m_showModel->appendRow(item);
-                }
-            }
-            break;
             case GitCommand::ShowFile: {
                 qDebug() << output;
             }

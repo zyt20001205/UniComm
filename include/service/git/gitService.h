@@ -43,6 +43,22 @@ struct GitLogResult : GitResult {
     QList<Entry> commits{};
 };
 
+struct GitShowResult : GitResult {
+    struct Entry {
+        GitFileStatus::Value status;
+        QUrl documentUrl;
+        QUrl originalUrl;
+        int similarity{};
+    };
+
+    QString shortHash{};
+    QString subject{};
+    QString date{};
+    QString author{};
+    QString email{};
+    QList<Entry> files{};
+};
+
 struct GitStatusResult : GitResult {
     struct Entry {
         GitFileStatus::Value indexStatus;
@@ -91,6 +107,8 @@ public:
 
     // public: history
     QFuture<GitLogResult> logGet(const QString &ref);
+
+    QFuture<GitShowResult> showGet(const QString &hash);
 
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);

@@ -105,6 +105,39 @@ QFuture<GitLogResult> GitService::logGet(const QString &ref) {
         });
 }
 
+QFuture<GitShowResult> GitService::showGet(const QString &hash) {
+    return processEnqueue({"show", "--no-show-signature", "--diff-merges=first-parent", "--find-copies", "--no-relative",
+                           "--name-status", "-z", "--format=tformat:%h%x00%s%x00%ad%x00%an%x00%ae", "--end-of-options", hash + "^{commit}", "--"})
+        .then(this, [this](const GitResult &result) {
+            GitShowResult show{result};
+            if (result.success) {
+                const auto fields = result.output.split(QChar::Null);
+                show.shortHash = fields.at(0);
+                show.subject = fields.at(1);
+                show.date = fields.at(2);
+                show.author = fields.at(3);
+                show.email = fields.at(4);
+
+                const QDir root(m_rootPath);
+                for (qsizetype i = 5; i + 1 < fields.size();) {
+                    // Git separates the header and the first status with a newline.
+                    const auto code = fields.at(i++).trimmed();
+                    GitShowResult::Entry file{.status = GitFileStatus::fromCode(code.front())};
+                    if (file.status == GitFileStatus::Renamed || file.status == GitFileStatus::Copied) {
+                        file.originalUrl = QUrl::fromLocalFile(root.filePath(fields.at(i++)));
+                        file.similarity = code.sliced(1).toInt();
+                    }
+                    file.documentUrl = QUrl::fromLocalFile(root.filePath(fields.at(i++)));
+                    show.files.append(file);
+                }
+            }
+
+            // update service state
+            statusSet(result.success ? Status::Stopped : Status::Error);
+            return show;
+        });
+}
+
 // public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};

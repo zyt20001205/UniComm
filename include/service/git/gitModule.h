@@ -27,6 +27,7 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
     Q_PROPERTY(QStandardItemModel* refs MEMBER m_refs CONSTANT)
     Q_PROPERTY(QStandardItemModel* log MEMBER m_log CONSTANT)
+    Q_PROPERTY(QStandardItemModel* show MEMBER m_show CONSTANT)
     Q_PROPERTY(int laneCount READ laneCountGet NOTIFY logChanged)
 
 public:
@@ -100,13 +101,13 @@ public:
 
     Q_INVOKABLE void logGet(const QString &ref);
 
+    Q_INVOKABLE void showGet(const QString &hash);
+
     Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
     Q_INVOKABLE void gitCherryPick(const QString &hash);
 
-    Q_INVOKABLE void gitShowCommit(const QString &hash);
-
-    Q_INVOKABLE void gitShowFile(const QString &hash, const QUrl &documentUrl);
+    Q_INVOKABLE void gitShowFile(const QUrl &documentUrl);
 
     Q_INVOKABLE void gitMerge(const QString &name);
 
@@ -196,7 +197,9 @@ private:
     QStandardItemModel *m_refs{};
     QStandardItemModel *m_log{};
     int m_laneCount{};
-    ShowModel *m_showModel{};
+    enum ShowRole { DocumentUrlRole = Qt::UserRole + 1, StatusRole };
+    QStandardItemModel *m_show{};
+    QString m_showHash{};
 
     StatusModel *m_workingTreeModel{};
     StatusModel *m_indexModel{};
@@ -225,7 +228,6 @@ private:
             Rename,
             Delete,
             Reset,
-            ShowCommit,
             ShowFile,
             Merge,
             Rebase,
@@ -241,7 +243,6 @@ private:
 
 class ShowModel final : public QStandardItemModel {
     Q_OBJECT
-    Q_PROPERTY(QString hash READ hashGet NOTIFY hashChanged)
 
 public:
     using QStandardItemModel::QStandardItemModel;
@@ -252,22 +253,6 @@ public:
     };
 
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] QString hashGet() const {
-        return m_hash;
-    }
-
-    void hashSet(const QString &hash) {
-        if (m_hash == hash) return;
-        m_hash = hash;
-        emit hashChanged();
-    }
-
-signals:
-    void hashChanged();
-
-private:
-    QString m_hash{};
 };
 
 class StatusModel final : public QStandardItemModel {
