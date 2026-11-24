@@ -7,14 +7,12 @@
 #include <QFileDialog>
 #include <QGuiApplication>
 #include <QMediaDevices>
-#include <QProcess>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QScreen>
 #include <QShortcut>
 #include <QStandardPaths>
 #include <QStatusBar>
-#include <QTimer>
 #include <QToolBar>
 #include <kddockwidgets/LayoutSaver.h>
 #include <kddockwidgets/core/DockRegistry.h>
@@ -87,13 +85,13 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
-    // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
+    g_globalManager->engineGet()->rootContext()->setContextProperty("mainScreen", objects["mainScreen"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTextView", objects["mainWindowTextView"]);
     m_tooltip = qvariant_cast<QObject *>(objects["mainWindowToolTip"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainTooltip", m_tooltip);
@@ -145,6 +143,11 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_terminalModule->propertySet();
     m_threadpoolModule->propertySet();
     m_watchModule->propertySet();
+}
+
+void MainWindow::maximizeToggle() {
+    if (isMaximized()) showNormal();
+    else showMaximized();
 }
 
 void MainWindow::overlayFlagSet(const QVariant &transparent, const QVariant &focus) {
@@ -431,8 +434,6 @@ void MainWindow::moduleInit() {
 
 void MainWindow::shortcutInit() {
     auto shortcutConfig = g_workspaceConfig["shortcutConfig"].toObject();
-    const auto *maximizeShortcut = new QShortcut(QKeySequence("F11"), this); // NOLINT
-    connect(maximizeShortcut, &QShortcut::activated, this, &MainWindow::maximizeToggle);
     const auto *undoShortcut = new QShortcut(QKeySequence("Ctrl+Z"), this); // NOLINT
     connect(undoShortcut, &QShortcut::activated, this, [this] {
         if (m_undoModule->canUndo()) {
@@ -589,9 +590,4 @@ void MainWindow::mainConfigSave() {
     const QByteArray layoutData = layoutSaver.serializeLayout();
     m_mainConfig["state"] = QString(layoutData.toBase64());
     g_workspaceConfig["mainConfig"] = m_mainConfig;
-}
-
-void MainWindow::maximizeToggle() {
-    if (isMaximized()) showNormal();
-    else showMaximized();
 }

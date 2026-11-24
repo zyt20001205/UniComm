@@ -48,6 +48,8 @@ public:
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 
+    Q_INVOKABLE void maximizeToggle();
+
     Q_INVOKABLE void overlayFlagSet(const QVariant &transparent, const QVariant &focus);
 
     Q_INVOKABLE void quit();
@@ -82,8 +84,6 @@ private:
     void overlayUpdate() const;
 
     void mainConfigSave();
-
-    void maximizeToggle();
 
     QJsonObject m_mainConfig{};
     QQuickView *m_overlay{};

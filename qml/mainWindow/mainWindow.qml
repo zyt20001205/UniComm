@@ -8,15 +8,29 @@ import QtQml
 import UniComm
 
 Item {
-    id: mainItem
+    id: root
     anchors.fill: parent
 
     // overlay control
     property int widgetCount: 0
     property rect mainGeometry: Qt.rect(0, 0, width, height)
 
+    Shortcut {
+        sequence: "F11"
+        context: Qt.ApplicationShortcut
+        autoRepeat: false
+        onActivated: mainWindow.maximizeToggle()
+    }
+
+    Shortcut {
+        sequence: "F12"
+        context: Qt.ApplicationShortcut
+        autoRepeat: false
+        onActivated: debugConsole.visible = !debugConsole.visible
+    }
+
     Item {
-        id: mainScreenItem
+        id: mainScreen
         x: mainGeometry.x
         y: mainGeometry.y
         width: mainGeometry.width
@@ -25,7 +39,6 @@ Item {
         Item {
             id: debugConsole
             anchors.fill: parent
-            // visible: true
             visible: false
 
             Rectangle {
@@ -45,7 +58,7 @@ Item {
                 }
 
                 Label {
-                    id: debugWidgetCount
+                    text: "widget count: " + root.widgetCount
                     color: global.theme.general.dangerFore3
                     font.pointSize: 16
                 }
@@ -61,18 +74,14 @@ Item {
         if (widgetCount === 0) {
             mainWindow.overlayFlagSet(true, false)
         }
-
-        if (debugConsole.visible) {
-            debugWidgetCount.text = "widget count: " + widgetCount
-        }
     }
 
     // main window
     Dialog {
         id: mainWindowCloseDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Save and Exit?")
@@ -89,8 +98,8 @@ Item {
     Dialog {
         id: mainWindowMessageDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         standardButtons: Dialog.Ok
@@ -111,8 +120,8 @@ Item {
     Dialog {
         id: mainWindowQuitDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Exiting application...")
@@ -348,8 +357,8 @@ Item {
     Dialog {
         id: agentModuleRenameDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Rename Conversation")
@@ -767,8 +776,8 @@ Item {
     Dialog {
         id: gitModuleContinueDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: global.gitModule.gitStatus === GitOperationState.Merge ? qsTr("Finish Merge") : qsTr("Finish Rebase")
@@ -811,8 +820,8 @@ Item {
     Dialog {
         id: gitModuleErrorDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         standardButtons: Dialog.Ok
@@ -834,8 +843,8 @@ Item {
     Dialog {
         id: gitModuleBranchCreateDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Create branch from ") + gitModuleBranchCreateDialog.name
@@ -882,8 +891,8 @@ Item {
     Dialog {
         id: gitModuleProxyDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Proxy Configuration")
@@ -971,8 +980,8 @@ Item {
     Dialog {
         id: gitModuleBranchRenameDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Rename branch ") + gitModuleBranchRenameDialog.name
@@ -1005,8 +1014,8 @@ Item {
     Dialog {
         id: gitModuleRemoteAddDialog
         parent: Overlay.overlay
-        x: mainScreenItem.x + (mainScreenItem.width - width) / 2
-        y: mainScreenItem.y + (mainScreenItem.height - height) / 2
+        x: mainScreen.x + (mainScreen.width - width) / 2
+        y: mainScreen.y + (mainScreen.height - height) / 2
         width: 600
         modal: true
         title: qsTr("Add Remote Repository")
@@ -1248,7 +1257,8 @@ Item {
 
     Component.onCompleted: {
         const objects = {
-            "mainOverlay": mainItem,
+            "mainOverlay": root,
+            "mainScreen": mainScreen,
             "mainWindowCloseDialog": mainWindowCloseDialog,
             "mainWindowMessageDialog": mainWindowMessageDialog,
             "mainWindowQuitDialog": mainWindowQuitDialog,
