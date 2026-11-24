@@ -70,11 +70,6 @@ Item {
                         spacing: 0
 
                         Label {
-                            text: "Screen"
-                            color: global.theme.general.fore
-                            Layout.alignment: Qt.AlignRight
-                        }
-                        Label {
                             text: "Popups"
                             color: global.theme.general.fore
                             Layout.alignment: Qt.AlignRight
@@ -94,11 +89,6 @@ Item {
                     ColumnLayout {
                         spacing: 0
 
-                        Label {
-                            text: "%1 · %2×%3 · %4%".arg(mainScreen.Screen.name).arg(mainScreen.width)
-                                .arg(mainScreen.height).arg(Math.round(mainScreen.Screen.devicePixelRatio * 100))
-                            color: global.theme.general.fore
-                        }
                         Label {
                             text: root.widgetCount
                             color: global.theme.general.fore
