@@ -11,11 +11,6 @@ GitConfig::GitConfig(QObject *parent)
     connect(m_process, &QProcess::finished, this, [this](const int exitcode) { processFinished(exitcode); });
 }
 
-void GitConfig::propertySet(const QVariantHash &objects) {
-    m_errorDialog = qvariant_cast<QObject *>(objects["gitModuleErrorDialog"]);
-    m_proxyDialog = qvariant_cast<QObject *>(objects["gitModuleProxyDialog"]);
-}
-
 void GitConfig::localHttpProxyGet() {
     processEnqueue(GitCommand::LocalHttpProxyGet, QStringList{"config", "--local", "http.proxy"});
 }
@@ -65,13 +60,13 @@ void GitConfig::processFinished(const int exitcode) {
     if (exitcode == 0) {
         // output parser
         switch (command) {
-            case GitCommand::LocalHttpProxyGet: m_proxyDialog->setProperty("localHttpProxy", QString::fromUtf8(output).trimmed());
+            case GitCommand::LocalHttpProxyGet: m_proxies.insert("localHttpProxy", QString::fromUtf8(output).trimmed());
                 break;
-            case GitCommand::LocalHttpsProxyGet: m_proxyDialog->setProperty("localHttpsProxy", QString::fromUtf8(output).trimmed());
+            case GitCommand::LocalHttpsProxyGet: m_proxies.insert("localHttpsProxy", QString::fromUtf8(output).trimmed());
                 break;
-            case GitCommand::GlobalHttpProxyGet: m_proxyDialog->setProperty("globalHttpProxy", QString::fromUtf8(output).trimmed());
+            case GitCommand::GlobalHttpProxyGet: m_proxies.insert("globalHttpProxy", QString::fromUtf8(output).trimmed());
                 break;
-            case GitCommand::GlobalHttpsProxyGet: m_proxyDialog->setProperty("globalHttpsProxy", QString::fromUtf8(output).trimmed());
+            case GitCommand::GlobalHttpsProxyGet: m_proxies.insert("globalHttpsProxy", QString::fromUtf8(output).trimmed());
                 break;
             default: break;
         }
@@ -83,7 +78,7 @@ void GitConfig::processFinished(const int exitcode) {
                 break;
             case GitCommand::GlobalHttpProxyGet: globalHttpsProxyGet();
                 break;
-            case GitCommand::GlobalHttpsProxyGet: QMetaObject::invokeMethod(m_proxyDialog, "open");
+            case GitCommand::GlobalHttpsProxyGet: emit showProxyDialog(m_proxies);
                 break;
             case GitCommand::LocalHttpProxySet: localHttpsProxySet();
                 break;
@@ -107,13 +102,13 @@ void GitConfig::processFinished(const int exitcode) {
         QString text{};
         // error parser
         switch (command) {
-            case GitCommand::LocalHttpProxyGet: m_proxyDialog->setProperty("localHttpProxy", "");
+            case GitCommand::LocalHttpProxyGet: m_proxies.insert("localHttpProxy", "");
                 break;
-            case GitCommand::LocalHttpsProxyGet: m_proxyDialog->setProperty("localHttpsProxy", "");
+            case GitCommand::LocalHttpsProxyGet: m_proxies.insert("localHttpsProxy", "");
                 break;
-            case GitCommand::GlobalHttpProxyGet: m_proxyDialog->setProperty("globalHttpProxy", "");
+            case GitCommand::GlobalHttpProxyGet: m_proxies.insert("globalHttpProxy", "");
                 break;
-            case GitCommand::GlobalHttpsProxyGet: m_proxyDialog->setProperty("globalHttpsProxy", "");
+            case GitCommand::GlobalHttpsProxyGet: m_proxies.insert("globalHttpsProxy", "");
                 break;
             default: {
                 title = tr("Git command failed");
@@ -121,11 +116,7 @@ void GitConfig::processFinished(const int exitcode) {
             }
             break;
         }
-        if (!title.isEmpty() && !text.isEmpty()) {
-            m_errorDialog->setProperty("title", title);
-            m_errorDialog->setProperty("text", text);
-            QMetaObject::invokeMethod(m_errorDialog, "open");
-        }
+        if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
         // state machine
         switch (command) {
             case GitCommand::LocalHttpProxyGet: localHttpsProxyGet();
@@ -134,7 +125,7 @@ void GitConfig::processFinished(const int exitcode) {
                 break;
             case GitCommand::GlobalHttpProxyGet: globalHttpsProxyGet();
                 break;
-            case GitCommand::GlobalHttpsProxyGet: QMetaObject::invokeMethod(m_proxyDialog, "open");
+            case GitCommand::GlobalHttpsProxyGet: emit showProxyDialog(m_proxies);
                 break;
             case GitCommand::LocalHttpProxySet: localHttpsProxySet();
                 break;

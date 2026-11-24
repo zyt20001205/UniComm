@@ -113,16 +113,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     m_documentModule->propertySet(documentObjects);
     m_explorerModule->propertySet();
 
-    const QVariantHash gitObjects = {
-        {"mainWindowToolTip", objects["mainWindowToolTip"]},
-        {"gitModuleContinueDialog", objects["gitModuleContinueDialog"]},
-        {"gitModuleErrorDialog", objects["gitModuleErrorDialog"]},
-        {"gitModuleProxyDialog", objects["gitModuleProxyDialog"]},
-        {"gitModuleRemoteAddDialog", objects["gitModuleRemoteAddDialog"]},
-        {"gitModuleBranchMenu", objects["gitModuleBranchMenu"]},
-        {"gitModuleLogMenu", objects["gitModuleLogMenu"]}
-    };
-    m_gitModule->propertySet(gitObjects);
+    m_gitModule->propertySet();
     m_logModule->propertySet();
     m_menuModule->propertySet();
     m_portModule->propertySet();

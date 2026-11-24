@@ -16,8 +16,6 @@ public:
 
     ~GitConfig() override = default;
 
-    void propertySet(const QVariantHash &objects);
-
     void localHttpProxyGet();
 
     void localHttpsProxyGet();
@@ -27,6 +25,11 @@ public:
     void globalHttpsProxyGet();
 
     void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy);
+
+signals:
+    void showErrorDialog(const QString &title, const QString &text);
+
+    void showProxyDialog(const QVariantHash &proxies);
 
 private:
     void processEnqueue(int command, const QStringList &arguments);
@@ -43,8 +46,7 @@ private:
 
     void globalHttpsProxySet();
 
-    QObject *m_errorDialog{};
-    QObject *m_proxyDialog{};
+    QVariantHash m_proxies{};
 
     int m_command{};
     QProcess *m_process{};

@@ -6,7 +6,11 @@ import QtQuick.Layouts
 import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property GitModule gitModule
+    required property var branchModel
+    required property var logModel
+    required property var showModel
     readonly property bool hasRepository: global.serviceModule.git.hasRepository
     anchors.fill: parent
 
@@ -17,7 +21,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: global.serviceModule.git.status !== 1 && (!rootItem.hasRepository || branchModel.empty)
+        visible: global.serviceModule.git.status !== 1 && (!root.hasRepository || root.branchModel.empty)
 
         RowLayout {
             anchors.centerIn: parent
@@ -27,15 +31,15 @@ Item {
                 enabled: global.serviceModule.git.status !== 2
                 text: !global.serviceModule.git.available ? qsTr("Git is unavailable.")
                     : !enabled ? qsTr("Unable to open Git repository.")
-                    : !rootItem.hasRepository ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
+                    : !root.hasRepository ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
                 font.pixelSize: 16
                 Layout.alignment: Qt.AlignVCenter
 
-                onClicked: !rootItem.hasRepository ? gitModule.gitInit() : gitModule.gitCommitPre()
+                onClicked: !root.hasRepository ? root.gitModule.gitInit() : root.gitModule.gitCommitPre()
             }
 
             IconImage {
-                source: !rootItem.hasRepository ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
+                source: !root.hasRepository ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
                 color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -45,7 +49,7 @@ Item {
     SplitView {
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: rootItem.hasRepository && !branchModel.empty
+        visible: root.hasRepository && !root.branchModel.empty
         handle: Item {
             implicitWidth: 5
 
@@ -62,7 +66,7 @@ Item {
             id: branchTreeView
             SplitView.preferredWidth: 400; SplitView.fillHeight: true
             clip: true
-            model: branchModel
+            model: root.branchModel
             property int selectedRow: -1
 
             ScrollBar.vertical: ScrollBar {
@@ -171,12 +175,12 @@ Item {
                     id: hoverHandler
                     onHoveredChanged: {
                         if (!hovered) {
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = model.hash || ""
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = model.hash || ""
                     }
                 }
 
@@ -188,7 +192,7 @@ Item {
                         branchTreeView.selectedRow = row
                         if (!(isTreeNode && hasChildren)) {
                             {
-                                gitModule.branchSet(model.display)
+                                root.gitModule.branchSet(model.display)
                             }
                         }
                     }
@@ -202,7 +206,8 @@ Item {
                         if (!(isTreeNode && hasChildren)) {
                             branchMenu.name = model.display
                             branchMenu.type = model.type
-                            branchMenu.popup()
+                            const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
+                            branchMenu.popup(position.x, position.y)
                         }
                     }
                 }
@@ -220,7 +225,7 @@ Item {
             alternatingRows: false
             clip: true
             editTriggers: TableView.NoEditTriggers
-            model: logModel
+            model: root.logModel
             contentWidth: width
             SplitView.fillWidth: true
             property int hoveredRow: -1
@@ -301,12 +306,12 @@ Item {
                             tableView.hoveredRow = row
                         } else if (tableView.hoveredRow === row) {
                             tableView.hoveredRow = -1
-                            mainToolTip.text = ""
+                            mainTooltip.text = ""
                         }
                     }
                     onPointChanged: {
-                        mainToolTip.position = parent.mapToGlobal(point.position)
-                        mainToolTip.text = model.hash || ""
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = model.hash || ""
                     }
                 }
 
@@ -316,7 +321,7 @@ Item {
 
                     onTapped: {
                         tableView.selectedRow = row
-                        gitModule.gitShowCommit(model.hash)
+                        root.gitModule.gitShowCommit(model.hash)
                     }
                 }
 
@@ -326,7 +331,8 @@ Item {
 
                     onTapped: {
                         logMenu.hash = model.hash
-                        logMenu.popup()
+                        const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
+                        logMenu.popup(position.x, position.y)
                     }
                 }
             }
@@ -355,10 +361,10 @@ Item {
                     const unit = 24
                     const colors = ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"]
 
-                    for (let i = 0; i < logModel.rowCount(); ++i) {
-                        const index = logModel.index(i, 3);
-                        const pos = logModel.data(index, Qt.UserRole + 2)
-                        const parents = logModel.data(index, Qt.UserRole + 3) || []
+                    for (let i = 0; i < root.logModel.rowCount(); ++i) {
+                        const index = root.logModel.index(i, 3);
+                        const pos = root.logModel.data(index, Qt.UserRole + 2)
+                        const parents = root.logModel.data(index, Qt.UserRole + 3) || []
                         const _x = pos.x * unit + unit / 2
                         const _y = pos.y * unit + unit / 2
 
@@ -391,9 +397,9 @@ Item {
                         }
                     }
 
-                    for (let i = 0; i < logModel.rowCount(); ++i) {
-                        const index = logModel.index(i, 3)
-                        const pos = logModel.data(index, Qt.UserRole + 2)
+                    for (let i = 0; i < root.logModel.rowCount(); ++i) {
+                        const index = root.logModel.index(i, 3)
+                        const pos = root.logModel.data(index, Qt.UserRole + 2)
                         const _x = pos.x * unit + unit / 2
                         const _y = pos.y * unit + unit / 2
                         ctx.fillStyle = colors[pos.x % colors.length]
@@ -429,12 +435,12 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Collapse All")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Collapse All")
                         }
                     }
                 }
@@ -451,12 +457,12 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Expand All")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Expand All")
                         }
                     }
                 }
@@ -466,7 +472,7 @@ Item {
                 id: showTreeView
                 width: parent.width
                 clip: true
-                model: showModel
+                model: root.showModel
                 Layout.fillWidth: true; Layout.fillHeight: true
                 property int selectedRow: -1
 
@@ -563,13 +569,13 @@ Item {
 
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
                             if (!(isTreeNode && hasChildren)) {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                             }
                         }
                     }
@@ -587,7 +593,7 @@ Item {
 
                         onTapped: {
                             if (!(isTreeNode && hasChildren)) {
-                                gitModule.gitShowFile(showModel.hash, model.documentUrl)
+                                root.gitModule.gitShowFile(root.showModel.hash, model.documentUrl)
                             }
                         }
                     }
@@ -629,7 +635,7 @@ Item {
     }
 
     Connections {
-        target: logModel
+        target: root.logModel
 
         function onRowsInserted() {
             canvas.requestPaint()
@@ -645,17 +651,504 @@ Item {
         }
     }
 
-    function branchExpand() {
-        branchTreeView.expandRecursively()
+    Connections {
+        target: root.gitModule
+
+        function onExpandBranches() { branchTreeView.expandRecursively() }
+        function onSetLaneCount(count) { canvas.laneCount = count }
+        function onSetCommitDetails(subject, date, author) {
+            subjectLabel.text = subject
+            dateLabel.text = date
+            authorLabel.text = author
+        }
+        function onShowContinueDialog() { continueDialog.open() }
+        function onShowRemoteAddDialog() { remoteAddDialog.open() }
+        function onShowErrorDialog(title, text) {
+            errorDialog.title = title
+            errorDialog.text = text
+            errorDialog.open()
+        }
+        function onShowProxyDialog(proxies) {
+            localHttpProxyTextField.text = proxies.localHttpProxy
+            localHttpsProxyTextField.text = proxies.localHttpsProxy
+            globalHttpProxyTextField.text = proxies.globalHttpProxy
+            globalHttpsProxyTextField.text = proxies.globalHttpsProxy
+            proxyDialog.open()
+        }
     }
 
-    Component.onCompleted: {
-        const objects = {
-            "canvas": canvas,
-            "subjectLabel": subjectLabel,
-            "dateLabel": dateLabel,
-            "authorLabel": authorLabel
-        };
-        gitModule.propertyGet(objects)
+    Dialog {
+        id: continueDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: root.gitModule.gitStatus === GitOperationState.Merge ? qsTr("Finish Merge") : qsTr("Finish Rebase")
+        standardButtons: Dialog.Ok
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            continueCheckBox.checked = root.gitModule.gitStatus !== GitOperationState.Merge
+            continueCheckBox.enabled = root.gitModule.gitStatus === GitOperationState.Merge
+            continueTextField.text = ""
+            continueTextField.forceActiveFocus()
+        }
+
+        onAccepted: root.gitModule.gitContinue(continueTextField.text)
+
+        ColumnLayout {
+            width: parent.width
+
+            CheckBox {
+                id: continueCheckBox
+                text: qsTr("Used auto-generated message")
+            }
+
+            TextField {
+                id: continueTextField
+                visible: !continueCheckBox.checked
+                placeholderText: qsTr("Enter commit message:")
+                Layout.fillWidth: true
+
+                onAccepted: continueDialog.accept()
+                Keys.onEscapePressed: continueDialog.reject()
+            }
+        }
+    }
+
+    Dialog {
+        id: errorDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        standardButtons: Dialog.Ok
+        property string text
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        Label {
+            width: parent.width
+            text: errorDialog.text
+            wrapMode: Text.WrapAnywhere
+        }
+    }
+
+    Dialog {
+        id: branchCreateDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: qsTr("Create branch from ") + branchCreateDialog.name
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        property string name
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            branchCreateTextField.text = branchCreateDialog.name
+            branchCreateTextField.forceActiveFocus()
+            branchCreateTextField.selectAll()
+            branchSwitchCheckBox.checked = true
+        }
+
+        onAccepted: root.gitModule.gitCreate(branchCreateDialog.name, branchCreateTextField.text, branchSwitchCheckBox.checked)
+
+        ColumnLayout {
+            width: parent.width
+
+            TextField {
+                id: branchCreateTextField
+                placeholderText: qsTr("Enter branch name:")
+                Layout.fillWidth: true
+
+                onAccepted: branchCreateDialog.accept()
+                Keys.onEscapePressed: branchCreateDialog.reject()
+            }
+
+            RowLayout {
+                Layout.preferredHeight: 32
+
+                CheckBox {
+                    id: branchSwitchCheckBox
+                    text: qsTr("Switch")
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: proxyDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: qsTr("Proxy Configuration")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        onAccepted: root.gitModule.gitProxySet(
+            localHttpProxyTextField.text,
+            localHttpsProxyTextField.text,
+            globalHttpProxyTextField.text,
+            globalHttpsProxyTextField.text)
+
+        ColumnLayout {
+            width: parent.width
+
+            Label {
+                text: qsTr("Local Http Proxy")
+                Layout.fillWidth: true
+            }
+
+            TextField {
+                id: localHttpProxyTextField
+                Layout.fillWidth: true
+
+                onAccepted: proxyDialog.accept()
+                Keys.onEscapePressed: proxyDialog.reject()
+            }
+
+            Label {
+                text: qsTr("Local Https Proxy")
+                Layout.fillWidth: true
+            }
+
+            TextField {
+                id: localHttpsProxyTextField
+                Layout.fillWidth: true
+
+                onAccepted: proxyDialog.accept()
+                Keys.onEscapePressed: proxyDialog.reject()
+            }
+
+            Label {
+                text: qsTr("Global Http Proxy")
+                Layout.fillWidth: true
+            }
+
+            TextField {
+                id: globalHttpProxyTextField
+                Layout.fillWidth: true
+
+                onAccepted: proxyDialog.accept()
+                Keys.onEscapePressed: proxyDialog.reject()
+            }
+
+            Label {
+                text: qsTr("Global Https Proxy")
+                Layout.fillWidth: true
+            }
+
+            TextField {
+                id: globalHttpsProxyTextField
+                Layout.fillWidth: true
+
+                onAccepted: proxyDialog.accept()
+                Keys.onEscapePressed: proxyDialog.reject()
+            }
+        }
+    }
+
+    Dialog {
+        id: branchRenameDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: qsTr("Rename branch ") + branchRenameDialog.name
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        property string name
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            branchRenameTextField.text = branchRenameDialog.name
+            branchRenameTextField.forceActiveFocus()
+            branchRenameTextField.selectAll()
+        }
+
+        onAccepted: root.gitModule.gitRename(branchRenameDialog.name, branchRenameTextField.text)
+
+        TextField {
+            id: branchRenameTextField
+            placeholderText: qsTr("Enter branch name:")
+            width: parent.width
+
+            onAccepted: branchRenameDialog.accept()
+            Keys.onEscapePressed: branchRenameDialog.reject()
+        }
+    }
+
+    Dialog {
+        id: remoteAddDialog
+        parent: mainScreen
+        popupType: Popup.Item
+        anchors.centerIn: parent
+        width: 600
+        modal: true
+        title: qsTr("Add Remote Repository")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+        onAboutToShow: {
+            remoteAddTextField.text = ""
+            remoteAddTextField.forceActiveFocus()
+        }
+
+        onAccepted: root.gitModule.gitRemoteAdd(remoteAddTextField.text)
+
+        TextField {
+            id: remoteAddTextField
+            placeholderText: qsTr("Remote URL (e.g., https://github.com/user/repo.git)")
+            width: parent.width
+
+            onAccepted: remoteAddDialog.accept()
+            Keys.onEscapePressed: remoteAddDialog.reject()
+        }
+    }
+
+    Menu {
+        id: branchMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property string name
+        property string type
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Switch")
+            enabled: !["current", "upstream", "remote"].includes(branchMenu.type)
+            icon.source: "qrc:/icon/arrowRight.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.gitModule.gitSwitch(branchMenu.name)
+        }
+
+        MenuItem {
+            text: qsTr("Create")
+            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            icon.source: "qrc:/icon/add.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: {
+                branchCreateDialog.name = branchMenu.name
+                branchCreateDialog.open()
+            }
+        }
+
+        MenuItem {
+            text: qsTr("Rename")
+            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            icon.source: "qrc:/icon/rename.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: {
+                branchRenameDialog.name = branchMenu.name
+                branchRenameDialog.open()
+            }
+        }
+
+        Menu {
+            title: qsTr("Delete")
+            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            icon.source: "qrc:/icon/delete.svg"
+            icon.width: 16; icon.height: 16
+
+            DelayButton {
+                delay: 1000
+                text: qsTr("Confirm")
+
+                onActivated: {
+                    root.gitModule.gitDelete(branchMenu.name)
+                    progress = 0
+                    branchMenu.close()
+                }
+            }
+        }
+
+        MenuSeparator {
+        }
+
+        MenuItem {
+            text: branchMenu.type === "upstream" ? qsTr("Unset Upstream") : qsTr("Set Upstream")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle && ["upstream", "remote"].includes(branchMenu.type)
+            icon.source: "qrc:/icon/link.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: branchMenu.type === "upstream" ? root.gitModule.gitUpstreamUnset() : root.gitModule.gitUpstreamSet(branchMenu.name)
+        }
+
+        MenuItem {
+            text: qsTr("Merge")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle
+            icon.source: "qrc:/icon/gitMerge.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.gitModule.gitMerge(branchMenu.name)
+        }
+
+        MenuItem {
+            text: qsTr("Rebase")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle
+            icon.source: "qrc:/icon/gitMerge.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.gitModule.gitRebase(branchMenu.name)
+        }
+    }
+
+    Menu {
+        id: logMenu
+        parent: mainOverlay
+        popupType: Popup.Item
+        property string hash
+
+        onOpened: {
+            global.mainWindow.overlayFlagSet(false, true)
+            mainOverlay.widgetCount += 1
+        }
+        onClosed: mainOverlay.widgetCount -= 1
+
+        MenuItem {
+            text: qsTr("Cherry-pick")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle
+            icon.source: "qrc:/icon/gitMerge.svg"
+            icon.width: 16; icon.height: 16
+
+            onTriggered: root.gitModule.gitCherryPick(logMenu.hash)
+        }
+
+        MenuSeparator {
+        }
+
+        Menu {
+            title: qsTr("Reset")
+            icon.source: "qrc:/icon/reset.svg"
+            icon.width: 16; icon.height: 16
+
+            MenuItem {
+                text: qsTr("Mixed")
+
+                HoverHandler {
+                    onHoveredChanged: {
+                        if (!hovered) {
+                            mainTooltip.text = ""
+                        }
+                    }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Leave your working directory unchanged.")
+                    }
+                }
+
+                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Mixed)
+            }
+
+            MenuItem {
+                text: qsTr("Soft")
+
+                HoverHandler {
+                    onHoveredChanged: {
+                        if (!hovered) {
+                            mainTooltip.text = ""
+                        }
+                    }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Leave your working tree files and the index unchanged.")
+                    }
+                }
+
+                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Soft)
+            }
+
+            MenuItem {
+                text: qsTr("Hard")
+
+                HoverHandler {
+                    onHoveredChanged: {
+                        if (!hovered) {
+                            mainTooltip.text = ""
+                        }
+                    }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Overwrite all files and directories with the version from commit, and may overwrite untracked files.")
+                    }
+                }
+
+                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Hard)
+            }
+
+            MenuItem {
+                text: qsTr("Merge")
+
+                HoverHandler {
+                    onHoveredChanged: {
+                        if (!hovered) {
+                            mainTooltip.text = ""
+                        }
+                    }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Reset the index and update the files in the working tree that are different between commit and HEAD, but keep those which are different between the index and working tree.")
+                    }
+                }
+
+                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Merge)
+            }
+
+            MenuItem {
+                text: qsTr("Keep")
+
+                HoverHandler {
+                    onHoveredChanged: {
+                        if (!hovered) {
+                            mainTooltip.text = ""
+                        }
+                    }
+                    onPointChanged: {
+                        mainTooltip.position = parent.mapToGlobal(point.position)
+                        mainTooltip.text = qsTr("Resets index entries and updates files in the working tree that are different between commit and HEAD.")
+                    }
+                }
+
+                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Keep)
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QQueue>
 #include <QStandardItemModel>
+#include <QtQmlIntegration/qqmlintegration.h>
 
 #include "types/gitTypes.h"
 
@@ -12,7 +13,6 @@ class QFileSystemWatcher;
 class QProcess;
 class QQuickView;
 class QQuickWidget;
-class QTextDocument;
 
 class GitConfig;
 class GitService;
@@ -22,8 +22,10 @@ class ShowModel;
 class StatusModel;
 class CommitModel;
 
-class GitModule final : public KDDockWidgets::QtWidgets::DockWidget {
+class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("GitModule is created by C++.")
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
 
 public:
@@ -40,11 +42,7 @@ public:
         emit gitStatusChanged();
     }
 
-    void propertySet(const QVariantHash &objects);
-
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
-
-    Q_INVOKABLE void propertyGet_(const QVariantMap &objects);
+    void propertySet();
 
     Q_INVOKABLE void branchSet(const QString &name);
 
@@ -125,6 +123,26 @@ public:
 signals:
     void gitStatusChanged();
 
+    void showContinueDialog();
+
+    void showErrorDialog(const QString &title, const QString &text);
+
+    void showProxyDialog(const QVariantHash &proxies);
+
+    void showRemoteAddDialog();
+
+    void expandBranches();
+
+    void expandChanges();
+
+    void resetCommit();
+
+    void setLaneCount(int count);
+
+    void setCommitDetails(const QString &subject, const QString &date, const QString &author);
+
+    void setPushCommitDetails(const QString &subject, const QString &date, const QString &author);
+
     void updateIndex();
 
     void openDocument(const QUrl &documentUrl);
@@ -148,23 +166,8 @@ private:
     GitOperationState::Value m_gitStatus{};
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
-    QObject *m_root{};
-    QObject *m_continueDialog{};
-    QObject *m_errorDialog{};
-    QObject *m_remoteAddDialog{};
-    QObject *m_canvas{};
-    QObject *m_subjectLabel{};
-    QObject *m_dateLabel{};
-    QObject *m_authorLabel{};
-
     QQuickView *m_commitWindow{};
-    QObject *m_commitRoot{};
-
     QQuickView *m_pushWindow{};
-    QObject *m_pushRoot{};
-    QObject *m_subjectLabel_{};
-    QObject *m_dateLabel_{};
-    QObject *m_authorLabel_{};
 
     int m_command{};
     QProcess *m_process{};

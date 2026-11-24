@@ -3,13 +3,9 @@
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
-#include <QProcess>
-#include <QTimer>
-#include <QQmlContext>
-#include <QQuickItem>
 #include <QQuickView>
 #include <QQuickWidget>
-#include <QTextDocument>
+#include <QTextStream>
 
 #include "core/globalManager.h"
 #include "mainWindow/mainWindow.h"
@@ -24,9 +20,9 @@ GitModule::GitModule()
       m_gitService(g_globalManager->serviceModuleGet()->gitServiceGet()),
       m_gitStatus(GitOperationState::Idle),
       m_config(g_workspaceConfig["gitConfig"].toObject()),
-      m_widget(new QQuickWidget()),
-      m_commitWindow(new QQuickView()),
-      m_pushWindow(new QQuickView()),
+      m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
+      m_commitWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
+      m_pushWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_process(new QProcess(this)),
       m_repoWatcher(new QFileSystemWatcher(this)),
       m_repoWatcherTimer(new QTimer(this)),
@@ -44,6 +40,9 @@ GitModule::GitModule()
       m_showModel_(new ShowModel(this)) {
     setWidget(m_widget);
     m_widget->installEventFilter(this);
+
+    connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
+    connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
 
     auto env = QProcessEnvironment::systemEnvironment();
     env.insert("GIT_EDITOR", "true");
@@ -78,72 +77,42 @@ GitModule::~GitModule() {
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
 }
 
-void GitModule::propertySet(const QVariantHash &objects) {
-    m_continueDialog = qvariant_cast<QObject *>(objects["gitModuleContinueDialog"]);
-    m_errorDialog = qvariant_cast<QObject *>(objects["gitModuleErrorDialog"]);
-    m_remoteAddDialog = qvariant_cast<QObject *>(objects["gitModuleRemoteAddDialog"]);
-
-    m_widget->rootContext()->setContextProperty("gitModule", this);
-    m_widget->rootContext()->setContextProperty("global", g_globalManager);
-    m_widget->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_widget->rootContext()->setContextProperty("branchMenu", objects["gitModuleBranchMenu"]);
-    m_widget->rootContext()->setContextProperty("logMenu", objects["gitModuleLogMenu"]);
-    m_widget->rootContext()->setContextProperty("branchModel", m_branchModel);
-    m_widget->rootContext()->setContextProperty("logModel", m_logModel);
-    m_widget->rootContext()->setContextProperty("showModel", m_showModel);
-
+void GitModule::propertySet() {
+    m_widget->setInitialProperties({
+        {"gitModule", QVariant::fromValue(this)},
+        {"branchModel", QVariant::fromValue(m_branchModel)},
+        {"logModel", QVariant::fromValue(m_logModel)},
+        {"showModel", QVariant::fromValue(m_showModel)}
+    });
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/git/gitModule.qml"));
-    m_root = m_widget->rootObject();
-
-    // config
-    m_gitConfig->propertySet(QVariantHash{
-        {"gitModuleErrorDialog", objects["gitModuleErrorDialog"]},
-        {"gitModuleProxyDialog", objects["gitModuleProxyDialog"]},
-    });
 
     // commit window
     m_commitWindow->setTitle(tr("Git Commit"));
     m_commitWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
 
-    m_commitWindow->rootContext()->setContextProperty("gitModule", this);
-    m_commitWindow->rootContext()->setContextProperty("global", g_globalManager);
-    m_commitWindow->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_commitWindow->rootContext()->setContextProperty("workingTreeModel", m_workingTreeModel);
-    m_commitWindow->rootContext()->setContextProperty("indexModel", m_indexModel);
-
+    m_commitWindow->setInitialProperties({
+        {"gitModule", QVariant::fromValue(this)},
+        {"workingTreeModel", QVariant::fromValue(m_workingTreeModel)},
+        {"indexModel", QVariant::fromValue(m_indexModel)}
+    });
     m_commitWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_commitWindow->setSource(QUrl("qrc:/qml/service/git/gitCommitWindow.qml"));
-    m_commitRoot = m_commitWindow->rootObject();
 
     // push window
     m_pushWindow->setTitle(tr("Git Push"));
     m_pushWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
 
-    m_pushWindow->rootContext()->setContextProperty("gitModule", this);
-    m_pushWindow->rootContext()->setContextProperty("global", g_globalManager);
-    m_pushWindow->rootContext()->setContextProperty("mainToolTip", objects["mainWindowToolTip"]);
-    m_pushWindow->rootContext()->setContextProperty("commitModel", m_commitModel);
-    m_pushWindow->rootContext()->setContextProperty("showModel", m_showModel_);
-
+    m_pushWindow->setInitialProperties({
+        {"gitModule", QVariant::fromValue(this)},
+        {"commitModel", QVariant::fromValue(m_commitModel)},
+        {"showModel", QVariant::fromValue(m_showModel_)}
+    });
     m_pushWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_pushWindow->setSource(QUrl("qrc:/qml/service/git/gitPushWindow.qml"));
 
     connect(m_gitService, &GitService::hasRepositoryChanged, this, &GitModule::gitWatch);
     gitWatch();
-}
-
-void GitModule::propertyGet(const QVariantMap &objects) {
-    m_canvas = qvariant_cast<QObject *>(objects["canvas"]);
-    m_subjectLabel = qvariant_cast<QObject *>(objects["subjectLabel"]);
-    m_dateLabel = qvariant_cast<QObject *>(objects["dateLabel"]);
-    m_authorLabel = qvariant_cast<QObject *>(objects["authorLabel"]);
-}
-
-void GitModule::propertyGet_(const QVariantMap &objects) {
-    m_subjectLabel_ = qvariant_cast<QObject *>(objects["subjectLabel"]);
-    m_dateLabel_ = qvariant_cast<QObject *>(objects["dateLabel"]);
-    m_authorLabel_ = qvariant_cast<QObject *>(objects["authorLabel"]);
 }
 
 void GitModule::branchSet(const QString &name) {
@@ -158,7 +127,7 @@ void GitModule::gitInit() {
 
 // public: commit
 void GitModule::gitCommitPre() {
-    QMetaObject::invokeMethod(m_commitRoot, "reset");
+    emit resetCommit();
     m_commitWindow->resize(1080, 720);
     m_commitWindow->show();
     gitStatus();
@@ -187,11 +156,9 @@ void GitModule::gitFetch() {
 // public: push
 void GitModule::gitPushPre() {
     if (!m_remote) {
-        QMetaObject::invokeMethod(m_remoteAddDialog, "open");
+        emit showRemoteAddDialog();
     } else if (m_upstream.isEmpty()) {
-        m_errorDialog->setProperty("title", tr("No Upstream Branch"));
-        m_errorDialog->setProperty("text", tr("Right-click the remote branch to set it as the upstream."));
-        QMetaObject::invokeMethod(m_errorDialog, "open");
+        emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
     } else {
         gitAhead();
     }
@@ -577,7 +544,7 @@ void GitModule::processFinished(const int exitcode) {
                         remoteItem->appendRow(item);
                     }
                 }
-                QMetaObject::invokeMethod(m_root, "branchExpand");
+                emit expandBranches();
             }
             break;
             case GitCommand::Log: {
@@ -630,16 +597,17 @@ void GitModule::processFinished(const int exitcode) {
                     }
                     m_logModel->item(row, 3)->setData(parentPositions, LogModel::ParentRole);
                 }
-                m_canvas->setProperty("laneCount", qMax(laneCount, 1));
+                emit setLaneCount(qMax(laneCount, 1));
             }
             break;
             case GitCommand::ShowCommit: {
                 const auto param = output.split('\x1e');
                 if (param.size() != 6) break;
                 const auto &hash = QString::fromUtf8(param[0].trimmed());
-                m_subjectLabel->setProperty("text", '(' + hash + ')' + QString::fromUtf8(param[1].trimmed()));
-                m_dateLabel->setProperty("text", QString::fromUtf8(param[2].trimmed()));
-                m_authorLabel->setProperty("text", QString::fromUtf8(param[3].trimmed()) + '<' + QString::fromUtf8(param[4].trimmed()) + '>');
+                emit setCommitDetails(
+                    '(' + hash + ')' + QString::fromUtf8(param[1].trimmed()),
+                    QString::fromUtf8(param[2].trimmed()),
+                    QString::fromUtf8(param[3].trimmed()) + '<' + QString::fromUtf8(param[4].trimmed()) + '>');
 
                 m_showModel->clear();
                 m_showModel->hashSet(QString());
@@ -719,7 +687,7 @@ void GitModule::processFinished(const int exitcode) {
                 // finish conflict resolve
                 if (paths.size() == 0) {
                     emit refreshBackground(m_taskId, operation + tr("ready to commit"));
-                    QMetaObject::invokeMethod(m_continueDialog, "open");
+                    emit showContinueDialog();
                 }
                 // continue conflict resolve
                 else {
@@ -814,8 +782,7 @@ void GitModule::processFinished(const int exitcode) {
                         else m_indexModel->appendRow(item);
                     }
                 }
-                QMetaObject::invokeMethod(m_commitRoot, "workingTreeExpand");
-                QMetaObject::invokeMethod(m_commitRoot, "indexExpand");
+                emit expandChanges();
             }
             break;
             case GitCommand::Ahead: {
@@ -893,9 +860,10 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::ShowCommit_: {
                 const auto param = output.split('\x1e');
                 if (param.size() != 6) break;
-                m_subjectLabel_->setProperty("text", '(' + QString::fromUtf8(param[0].trimmed()) + ')' + QString::fromUtf8(param[1].trimmed()));
-                m_dateLabel_->setProperty("text", QString::fromUtf8(param[2].trimmed()));
-                m_authorLabel_->setProperty("text", QString::fromUtf8(param[3].trimmed()) + '<' + QString::fromUtf8(param[4].trimmed()) + '>');
+                emit setPushCommitDetails(
+                    '(' + QString::fromUtf8(param[0].trimmed()) + ')' + QString::fromUtf8(param[1].trimmed()),
+                    QString::fromUtf8(param[2].trimmed()),
+                    QString::fromUtf8(param[3].trimmed()) + '<' + QString::fromUtf8(param[4].trimmed()) + '>');
 
                 m_showModel_->clear();
                 QHash<QString, QStandardItem *> roots{};
@@ -1062,11 +1030,7 @@ void GitModule::processFinished(const int exitcode) {
             }
             break;
         }
-        if (!title.isEmpty() && !text.isEmpty()) {
-            m_errorDialog->setProperty("title", title);
-            m_errorDialog->setProperty("text", text);
-            QMetaObject::invokeMethod(m_errorDialog, "open");
-        }
+        if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
         // state machine
         switch (command) {
             case GitCommand::UpstreamGet: gitBranch();

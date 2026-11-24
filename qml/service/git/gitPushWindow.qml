@@ -6,7 +6,10 @@ import QtQuick.Layouts
 import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property GitModule gitModule
+    required property var commitModel
+    required property var showModel
     anchors.fill: parent
 
     Rectangle {
@@ -25,7 +28,7 @@ Item {
             TreeView {
                 id: commitTreeView
                 clip: true
-                model: commitModel
+                model: root.commitModel
                 Layout.fillWidth: true; Layout.fillHeight: true
                 Layout.preferredWidth: 1
                 property int selectedRow: -1
@@ -110,13 +113,13 @@ Item {
 
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
                             if (!(isTreeNode && hasChildren)) {
-                                mainToolTip.position = parent.mapToGlobal(point.position)
-                                mainToolTip.text = model.hash
+                                mainTooltip.position = parent.mapToGlobal(point.position)
+                                mainTooltip.text = model.hash
                             }
                         }
                     }
@@ -128,9 +131,9 @@ Item {
                         onTapped: {
                             commitTreeView.selectedRow = row
                             if (isTreeNode && hasChildren) {
-                                gitModule.gitDiff_()
+                                root.gitModule.gitDiff_()
                             } else {
-                                gitModule.gitShowCommit_(model.hash)
+                                root.gitModule.gitShowCommit_(model.hash)
                             }
                         }
                     }
@@ -153,7 +156,7 @@ Item {
                     id: showTreeView
                     width: parent.width
                     clip: true
-                    model: showModel
+                    model: root.showModel
                     Layout.fillWidth: true; Layout.fillHeight: true
                     property int selectedRow: -1
 
@@ -250,13 +253,13 @@ Item {
 
                             onHoveredChanged: {
                                 if (!hovered) {
-                                    mainToolTip.text = ""
+                                    mainTooltip.text = ""
                                 }
                             }
                             onPointChanged: {
                                 if (!(isTreeNode && hasChildren)) {
-                                    mainToolTip.position = parent.mapToGlobal(point.position)
-                                    mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
+                                    mainTooltip.position = parent.mapToGlobal(point.position)
+                                    mainTooltip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                 }
                             }
                         }
@@ -320,23 +323,21 @@ Item {
             Layout.alignment: Qt.AlignRight
 
             Button {
-                enabled: !commitModel.empty
+                enabled: !root.commitModel.empty
                 text: qsTr("Push")
 
-                onClicked: gitModule.gitPush()
+                onClicked: root.gitModule.gitPush()
             }
         }
     }
 
-    function reset() {
-        commitTreeView.selectedRow = -1
-    }
-    Component.onCompleted: {
-        const objects = {
-            "subjectLabel": subjectLabel,
-            "dateLabel": dateLabel,
-            "authorLabel": authorLabel
-        };
-        gitModule.propertyGet_(objects)
+    Connections {
+        target: root.gitModule
+
+        function onSetPushCommitDetails(subject, date, author) {
+            subjectLabel.text = subject
+            dateLabel.text = date
+            authorLabel.text = author
+        }
     }
 }

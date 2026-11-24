@@ -6,7 +6,10 @@ import QtQuick.Layouts
 import UniComm
 
 Item {
-    id: rootItem
+    id: root
+    required property GitModule gitModule
+    required property var workingTreeModel
+    required property var indexModel
     anchors.fill: parent
 
     Rectangle {
@@ -49,7 +52,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 6
                         clip: true
-                        model: workingTreeModel
+                        model: root.workingTreeModel
                         property int selectedRow: -1
                         property string documentUrl: ""
 
@@ -146,13 +149,13 @@ Item {
 
                                 onHoveredChanged: {
                                     if (!hovered) {
-                                        mainToolTip.text = ""
+                                        mainTooltip.text = ""
                                     }
                                 }
                                 onPointChanged: {
                                     if (!(isTreeNode && hasChildren)) {
-                                        mainToolTip.position = parent.mapToGlobal(point.position)
-                                        mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
+                                        mainTooltip.position = parent.mapToGlobal(point.position)
+                                        mainTooltip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                     }
                                 }
                             }
@@ -195,17 +198,17 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Add all to Index")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Add all to Index")
                         }
                     }
 
                     onClicked: {
-                        gitModule.gitAdd()
+                        root.gitModule.gitAdd()
                         workingTreeView.selectedRow = -1
                         workingTreeView.documentUrl = ""
                     }
@@ -223,17 +226,17 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Add selected to Index")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Add selected to Index")
                         }
                     }
 
                     onClicked: {
-                        gitModule.gitAdd(workingTreeView.documentUrl)
+                        root.gitModule.gitAdd(workingTreeView.documentUrl)
                         workingTreeView.selectedRow = -1
                         workingTreeView.documentUrl = ""
                     }
@@ -251,17 +254,17 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Restore selected to Working tree")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Restore selected to Working tree")
                         }
                     }
 
                     onClicked: {
-                        gitModule.gitRestore(indexTreeView.documentUrl, GitRestoreMode.Staged)
+                        root.gitModule.gitRestore(indexTreeView.documentUrl, GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }
@@ -278,17 +281,17 @@ Item {
                     HoverHandler {
                         onHoveredChanged: {
                             if (!hovered) {
-                                mainToolTip.text = ""
+                                mainTooltip.text = ""
                             }
                         }
                         onPointChanged: {
-                            mainToolTip.position = parent.mapToGlobal(point.position)
-                            mainToolTip.text = qsTr("Restore all to Working tree")
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = qsTr("Restore all to Working tree")
                         }
                     }
 
                     onClicked: {
-                        gitModule.gitRestore("", GitRestoreMode.Staged)
+                        root.gitModule.gitRestore("", GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }
@@ -322,7 +325,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 6
                         clip: true
-                        model: indexModel
+                        model: root.indexModel
                         property int selectedRow: -1
                         property string documentUrl: ""
 
@@ -419,13 +422,13 @@ Item {
 
                                 onHoveredChanged: {
                                     if (!hovered) {
-                                        mainToolTip.text = ""
+                                        mainTooltip.text = ""
                                     }
                                 }
                                 onPointChanged: {
                                     if (!(isTreeNode && hasChildren)) {
-                                        mainToolTip.position = parent.mapToGlobal(point.position)
-                                        mainToolTip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
+                                        mainTooltip.position = parent.mapToGlobal(point.position)
+                                        mainTooltip.text = Qt.enumValueToString(GitFileStatus.Value, model.status)
                                     }
                                 }
                             }
@@ -468,31 +471,28 @@ Item {
             Layout.alignment: Qt.AlignRight
 
             Button {
-                enabled: commitTextArea.text && !indexModel.empty
+                enabled: commitTextArea.text && !root.indexModel.empty
                 text: qsTr("Commit")
 
-                onClicked: gitModule.gitCommit(commitTextArea.text)
+                onClicked: root.gitModule.gitCommit(commitTextArea.text)
             }
         }
     }
 
-    function reset() {
-        workingTreeView.selectedRow = -1
-        workingTreeView.documentUrl = ""
-        indexTreeView.selectedRow = -1
-        indexTreeView.documentUrl = ""
-        commitTextArea.text = ""
-    }
+    Connections {
+        target: root.gitModule
 
-    function workingTreeExpand() {
-        for (let i = 0; i < workingTreeView.rows; ++i) {
-            workingTreeView.expandRecursively(i)
+        function onResetCommit() {
+            workingTreeView.selectedRow = -1
+            workingTreeView.documentUrl = ""
+            indexTreeView.selectedRow = -1
+            indexTreeView.documentUrl = ""
+            commitTextArea.text = ""
         }
-    }
 
-    function indexExpand() {
-        for (let i = 0; i < indexTreeView.rows; ++i) {
-            indexTreeView.expandRecursively(i)
+        function onExpandChanges() {
+            workingTreeView.expandRecursively()
+            indexTreeView.expandRecursively()
         }
     }
 }
