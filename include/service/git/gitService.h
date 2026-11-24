@@ -60,8 +60,13 @@ public:
 
     QFuture<GitResult> versionGet();
 
+    // public: repository
     QFuture<GitRepositoryResult> repositoryGet();
 
+    // public: branch
+    QFuture<GitResult> upstreamGet();
+
+    // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 
 signals:

@@ -38,6 +38,7 @@ QFuture<GitResult> GitService::versionGet() {
     });
 }
 
+// public: repository
 QFuture<GitRepositoryResult> GitService::repositoryGet() {
     return processEnqueue({"rev-parse", "--show-toplevel", "--absolute-git-dir"}).then(this, [this](const GitResult &result) {
         const auto paths = QString(result.output).replace("\r\n", "\n").split('\n');
@@ -58,6 +59,16 @@ QFuture<GitRepositoryResult> GitService::repositoryGet() {
     });
 }
 
+// public: branch
+QFuture<GitResult> GitService::upstreamGet() {
+    return processEnqueue({"rev-parse", "--symbolic-full-name", "@{upstream}"}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(Status::Stopped);
+        return result;
+    });
+}
+
+// public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};
     if (includeIgnored) arguments.append("--ignored");

@@ -210,7 +210,6 @@ private:
             RemoteGet,
             UpstreamSet,
             UpstreamUnset,
-            UpstreamGet,
             Branch,
             Switch,
             Create,

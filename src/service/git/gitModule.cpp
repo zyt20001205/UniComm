@@ -252,8 +252,12 @@ void GitModule::gitUpstreamUnset() {
     processEnqueue(GitCommand::UpstreamSet, QStringList{"branch", "--unset-upstream"});
 }
 
+// always -> gitBranch()
 void GitModule::gitUpstreamGet() {
-    processEnqueue(GitCommand::UpstreamGet, QStringList{"rev-parse", "--abbrev-ref", "@{upstream}"});
+    m_gitService->upstreamGet().then(this, [this](const GitResult &result) {
+        m_upstream = result.success ? result.output : QString{};
+        gitBranch();
+    });
 }
 
 void GitModule::gitBranch() {
@@ -483,8 +487,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir rootDir(m_gitService->rootPathGet());
         // output parser
         switch (command) {
-            case GitCommand::UpstreamGet: m_upstream = QString::fromUtf8(output).trimmed();
-                break;
             case GitCommand::Branch: {
                 m_branchModel->clear();
                 m_current.clear();
@@ -502,7 +504,7 @@ void GitModule::processFinished(const int exitcode) {
                         type = param[0] == "*" ? m_current = name, "current" : "local";
                     } else if (ref.startsWith("refs/remotes/")) {
                         name = ref.mid(13);
-                        type = name == m_upstream ? "upstream" : "remote";
+                        type = ref == m_upstream ? "upstream" : "remote";
                     } else {
                         qDebug() << QString("contact author: unsupported git ref (%1)").arg(name);
                         continue;
@@ -775,7 +777,7 @@ void GitModule::processFinished(const int exitcode) {
             break;
             case GitCommand::Ahead: {
                 m_commitModel->clear();
-                m_commitModel->appendRow(new QStandardItem(m_current + " -> " + m_upstream));
+                m_commitModel->appendRow(new QStandardItem(m_current + " -> " + m_upstream.section('/', 2)));
                 auto *root = m_commitModel->item(0, 0);
                 for (const auto &value: output.split('\0')) {
                     const auto param = value.split('\x1e');
@@ -957,8 +959,6 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::UpstreamUnset:
             case GitCommand::UpstreamSet: gitUpstreamGet();
                 break;
-            case GitCommand::UpstreamGet: gitBranch();
-                break;
             case GitCommand::Branch: gitLog();
                 break;
             case GitCommand::Switch: gitUpstreamGet();
@@ -984,8 +984,6 @@ void GitModule::processFinished(const int exitcode) {
         QString text{};
         // error parser
         switch (command) {
-            case GitCommand::UpstreamGet: m_upstream = "";
-                break;
             case GitCommand::Merge: {
                 title = tr("Merge Failed");
                 text = QString::fromUtf8(output).trimmed();
@@ -1024,12 +1022,6 @@ void GitModule::processFinished(const int exitcode) {
             break;
         }
         if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
-        // state machine
-        switch (command) {
-            case GitCommand::UpstreamGet: gitBranch();
-                break;
-            default: break;
-        }
     }
     processDequeue();
 }
