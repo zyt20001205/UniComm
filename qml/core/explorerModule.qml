@@ -374,7 +374,10 @@ Item {
         Drag.source: dragPreview
         Drag.mimeData: ({ "text/uri-list": [fileDrag.sourceUrl] })
         Drag.supportedActions: Qt.CopyAction
-        Drag.onDragFinished: fileDrag.sourceUrl = ""
+        Drag.onDragFinished: {
+            dragPreview.Drag.imageSource = ""
+            fileDrag.sourceUrl = ""
+        }
         spacing: 4
         Image {
             Layout.preferredWidth: 16; Layout.preferredHeight: 16
