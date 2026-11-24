@@ -2,6 +2,7 @@
 #define UNICOMM_MAINWINDOW_H
 
 #include <QJsonObject>
+#include <QtQmlIntegration/qqmlintegration.h>
 #include <kddockwidgets/qtwidgets/views/MainWindow.h>
 #include <memory>
 
@@ -36,15 +37,15 @@ class WatchModule;
 
 class UndoModule;
 
-class MainWindow final : public KDDockWidgets::QtWidgets::MainWindow {
+class MainWindow : public KDDockWidgets::QtWidgets::MainWindow {
     Q_OBJECT
+    QML_ELEMENT
+    QML_UNCREATABLE("MainWindow is created by C++.")
 
 public:
     explicit MainWindow(QWidget *parent = nullptr, const QString &uniqueName = QStringLiteral("MyMainWindow"));
 
     ~MainWindow() override;
-
-    void propertySet();
 
     Q_INVOKABLE void propertyGet(const QVariantMap &objects);
 

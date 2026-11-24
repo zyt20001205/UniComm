@@ -1,6 +1,5 @@
 #include "mainWindow/toastModule.h"
 
-#include <QQmlContext>
 #include <QQuickItem>
 #include <QScreen>
 #include <QTimer>
@@ -22,7 +21,7 @@ ToastModule::ToastModule(QQmlEngine *engine, QWindow &owner)
     connect(&m_owner, &QWindow::screenChanged, this, &ToastModule::geometryUpdate);
     connect(&m_owner, &QWindow::visibilityChanged, this, &ToastModule::geometryUpdate);
 
-    rootContext()->setContextProperty("toastModule", this);
+    setInitialProperties({{"toastModule", QVariant::fromValue(this)}});
     setSource(QUrl("qrc:/qml/mainWindow/Toast.qml"));
     m_root = rootObject();
     hide();

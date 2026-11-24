@@ -78,16 +78,6 @@ MainWindow::~MainWindow() {
     qDebug() << QString("[%1] main window destructed").arg(timestamp);
 }
 
-void MainWindow::propertySet() {
-    m_overlay->rootContext()->setContextProperty("mainWindow", this);
-    m_overlay->rootContext()->setContextProperty("global", g_globalManager);
-    m_overlay->rootContext()->setContextProperty("agentModule", m_agentModule);
-    m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
-    m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
-    m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
-    m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
-}
-
 void MainWindow::propertyGet(const QVariantMap &objects) {
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainLinkMenu", objects["mainWindowLinkMenu"]);
     g_globalManager->engineGet()->rootContext()->setContextProperty("mainOverlay", objects["mainOverlay"]);
@@ -545,18 +535,18 @@ void MainWindow::layoutInit() {
 }
 
 void MainWindow::overlayInit() {
-    m_overlay = new QQuickView();
+    m_overlay = new QQuickView(g_globalManager->engineGet(), nullptr);
     m_overlay->setResizeMode(QQuickView::SizeRootObjectToView);
     m_overlay->setColor(Qt::transparent);
     m_overlay->setFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::WindowTransparentForInput);
     m_overlay->setTransientParent(windowHandle());
-    propertySet();
 
     auto *owner = windowHandle();
     Q_ASSERT(owner);
     m_toastModule = std::make_unique<ToastModule>(m_overlay->engine(), *owner);
     g_globalManager->toastModuleSet(m_toastModule.get());
 
+    m_overlay->setInitialProperties({{"mainWindow", QVariant::fromValue(this)}});
     m_overlay->setSource(QUrl("qrc:/qml/mainWindow/mainWindow.qml"));
 
     overlayUpdate();

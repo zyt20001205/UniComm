@@ -9,6 +9,7 @@ import UniComm
 
 Item {
     id: root
+    required property MainWindow mainWindow
     anchors.fill: parent
 
     // overlay control
@@ -19,7 +20,7 @@ Item {
         sequence: "F11"
         context: Qt.ApplicationShortcut
         autoRepeat: false
-        onActivated: mainWindow.maximizeToggle()
+        onActivated: root.mainWindow.maximizeToggle()
     }
 
     Shortcut {
@@ -72,7 +73,7 @@ Item {
             widgetCount = 0
         }
         if (widgetCount === 0) {
-            mainWindow.overlayFlagSet(true, false)
+            root.mainWindow.overlayFlagSet(true, false)
         }
     }
 
@@ -87,11 +88,11 @@ Item {
         standardButtons: Dialog.Yes | Dialog.No
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onAccepted: mainWindow.quit()
+        onAccepted: root.mainWindow.quit()
     }
 
     Dialog {
@@ -105,7 +106,7 @@ Item {
         topPadding: 30; bottomPadding: 20
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -130,11 +131,11 @@ Item {
         property string secondaryLog
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
-        onRejected: mainWindow.terminate()
+        onRejected: root.mainWindow.terminate()
 
         ColumnLayout {
             width: parent.width
@@ -180,7 +181,7 @@ Item {
         property url url
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -190,7 +191,7 @@ Item {
             icon.source: "qrc:/icon/copy.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: fileModule.copyToClipboard(String(mainWindowLinkMenu.url))
+            onTriggered: global.fileModule.copyToClipboard(String(mainWindowLinkMenu.url))
         }
 
         MenuItem {
@@ -218,7 +219,7 @@ Item {
         property string data
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: {
@@ -362,7 +363,7 @@ Item {
         property string oldTitle
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -371,7 +372,7 @@ Item {
             agentModuleRenameTextField.forceActiveFocus()
             agentModuleRenameTextField.selectAll()
         }
-        onAccepted: agentModule.conversationRename(agentModuleRenameTextField.text)
+        onAccepted: global.agentModule.conversationRename(agentModuleRenameTextField.text)
 
         TextField {
             id: agentModuleRenameTextField
@@ -411,7 +412,7 @@ Item {
         ]
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -467,7 +468,7 @@ Item {
                     }
                 }
 
-                onTriggered: agentModule.conversationModeSet(index)
+                onTriggered: global.agentModule.conversationModeSet(index)
             }
 
             onObjectAdded: (index, object) => agentModuleModeMenu.addItem(object)
@@ -480,7 +481,7 @@ Item {
         property var providerModel
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -498,7 +499,7 @@ Item {
                     model: providerMenu.providerModels
                     delegate: MenuItem {
                         text: model.display
-                        onTriggered: agentModule.conversationModelSet(providerMenu.providerId, model.id)
+                        onTriggered: global.agentModule.conversationModelSet(providerMenu.providerId, model.id)
                     }
 
                     onObjectAdded: (index, object) => providerMenu.addItem(object)
@@ -522,7 +523,7 @@ Item {
         property var suggestions
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, false)
+            root.mainWindow.overlayFlagSet(false, false)
             widgetCount += 1
         }
         onClosed: {
@@ -779,7 +780,7 @@ Item {
         standardButtons: Dialog.Ok
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -790,7 +791,7 @@ Item {
             gitModuleContinueTextField.forceActiveFocus()
         }
 
-        onAccepted: gitModule.gitContinue(gitModuleContinueTextField.text)
+        onAccepted: global.gitModule.gitContinue(gitModuleContinueTextField.text)
 
         ColumnLayout {
             width: parent.width
@@ -822,7 +823,7 @@ Item {
         property string text
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -845,7 +846,7 @@ Item {
         property string name
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -856,7 +857,7 @@ Item {
             gitModuleBranchSwitchCheckBox.checked = true
         }
 
-        onAccepted: gitModule.gitCreate(gitModuleBranchCreateDialog.name, gitModuleBranchCreateTextField.text, gitModuleBranchSwitchCheckBox.checked)
+        onAccepted: global.gitModule.gitCreate(gitModuleBranchCreateDialog.name, gitModuleBranchCreateTextField.text, gitModuleBranchSwitchCheckBox.checked)
 
         ColumnLayout {
             width: parent.width
@@ -895,7 +896,7 @@ Item {
         property string globalHttpsProxy
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -906,7 +907,7 @@ Item {
             gitModuleGlobalHttpsProxyTextField.text = gitModuleProxyDialog.globalHttpsProxy
         }
 
-        onAccepted: gitModule.gitProxySet(
+        onAccepted: global.gitModule.gitProxySet(
             gitModuleLocalHttpProxyTextField.text,
             gitModuleLocalHttpsProxyTextField.text,
             gitModuleGlobalHttpProxyTextField.text,
@@ -980,7 +981,7 @@ Item {
         property string name
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -990,7 +991,7 @@ Item {
             gitModuleBranchRenameTextField.selectAll()
         }
 
-        onAccepted: gitModule.gitRename(gitModuleBranchRenameDialog.name, gitModuleBranchRenameTextField.text)
+        onAccepted: global.gitModule.gitRename(gitModuleBranchRenameDialog.name, gitModuleBranchRenameTextField.text)
 
         TextField {
             id: gitModuleBranchRenameTextField
@@ -1012,7 +1013,7 @@ Item {
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -1021,7 +1022,7 @@ Item {
             gitModuleRemoteAddTextField.forceActiveFocus()
         }
 
-        onAccepted: gitModule.gitRemoteAdd(gitModuleRemoteAddTextField.text)
+        onAccepted: global.gitModule.gitRemoteAdd(gitModuleRemoteAddTextField.text)
 
         TextField {
             id: gitModuleRemoteAddTextField
@@ -1039,7 +1040,7 @@ Item {
         property string type
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -1050,7 +1051,7 @@ Item {
             icon.source: "qrc:/icon/arrowRight.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: gitModule.gitSwitch(gitModuleBranchMenu.name)
+            onTriggered: global.gitModule.gitSwitch(gitModuleBranchMenu.name)
         }
 
         MenuItem {
@@ -1088,7 +1089,7 @@ Item {
                 text: qsTr("Confirm")
 
                 onActivated: {
-                    gitModule.gitDelete(gitModuleBranchMenu.name)
+                    global.gitModule.gitDelete(gitModuleBranchMenu.name)
                     progress = 0
                     gitModuleBranchMenu.close()
                 }
@@ -1104,7 +1105,7 @@ Item {
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: gitModuleBranchMenu.type === "upstream" ? gitModule.gitUpstreamUnset() : gitModule.gitUpstreamSet(gitModuleBranchMenu.name)
+            onTriggered: gitModuleBranchMenu.type === "upstream" ? global.gitModule.gitUpstreamUnset() : global.gitModule.gitUpstreamSet(gitModuleBranchMenu.name)
         }
 
         MenuItem {
@@ -1113,7 +1114,7 @@ Item {
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: gitModule.gitMerge(gitModuleBranchMenu.name)
+            onTriggered: global.gitModule.gitMerge(gitModuleBranchMenu.name)
         }
 
         MenuItem {
@@ -1122,7 +1123,7 @@ Item {
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: gitModule.gitRebase(gitModuleBranchMenu.name)
+            onTriggered: global.gitModule.gitRebase(gitModuleBranchMenu.name)
         }
     }
 
@@ -1131,7 +1132,7 @@ Item {
         property string hash
 
         onOpened: {
-            mainWindow.overlayFlagSet(false, true)
+            root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
         }
         onClosed: widgetCount -= 1
@@ -1142,7 +1143,7 @@ Item {
             icon.source: "qrc:/icon/gitMerge.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: gitModule.gitCherryPick(gitModuleLogMenu.hash)
+            onTriggered: global.gitModule.gitCherryPick(gitModuleLogMenu.hash)
         }
 
         MenuSeparator {
@@ -1168,7 +1169,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Mixed)
+                onTriggered: global.gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Mixed)
             }
 
             MenuItem {
@@ -1186,7 +1187,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Soft)
+                onTriggered: global.gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Soft)
             }
 
             MenuItem {
@@ -1204,7 +1205,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Hard)
+                onTriggered: global.gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Hard)
             }
 
             MenuItem {
@@ -1222,7 +1223,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Merge)
+                onTriggered: global.gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Merge)
             }
 
             MenuItem {
@@ -1240,7 +1241,7 @@ Item {
                     }
                 }
 
-                onTriggered: gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Keep)
+                onTriggered: global.gitModule.gitReset(gitModuleLogMenu.hash, GitResetMode.Keep)
             }
         }
     }
@@ -1273,6 +1274,6 @@ Item {
             "gitModuleBranchMenu": gitModuleBranchMenu,
             "gitModuleLogMenu": gitModuleLogMenu
         };
-        mainWindow.propertyGet(objects)
+        root.mainWindow.propertyGet(objects)
     }
 }

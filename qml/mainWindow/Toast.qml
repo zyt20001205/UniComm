@@ -7,6 +7,7 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    required property QtObject toastModule
     width: 360
     height: activeToasts.count > 0 ? Math.max(1, toastColumn.implicitHeight) : 0
 
@@ -239,7 +240,7 @@ Item {
                     if (closing || toastActionGroupId < 0) return
                     const actionGroupId = toastActionGroupId
                     beginDismiss()
-                    toastModule.actionTrigger(actionGroupId, actionIndex)
+                    root.toastModule.actionTrigger(actionGroupId, actionIndex)
                 }
 
                 Component.onCompleted: {
@@ -265,7 +266,7 @@ Item {
     }
 
     function removeAt(index: int): void {
-        toastModule.actionRemove(activeToasts.get(index).toastActionGroupId)
+        root.toastModule.actionRemove(activeToasts.get(index).toastActionGroupId)
         activeToasts.remove(index)
     }
 
