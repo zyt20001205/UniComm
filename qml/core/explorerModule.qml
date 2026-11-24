@@ -32,8 +32,30 @@ Item {
             Layout.fillWidth: true
             spacing: 0
 
-            Item {
+            Rectangle {
+                id: rootTarget
                 Layout.fillWidth: true
+                Layout.preferredHeight: 24
+                radius: 6
+                color: dropArea.directory === root.modelRootUrl.toString() ? global.theme.general.backSelected : "transparent"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 4
+                    visible: dropArea.containsDrag
+                    spacing: 4
+
+                    IconImage {
+                        source: "qrc:/icon/folder.svg"
+                        color: global.theme.general.fore
+                        Layout.preferredWidth: 16; Layout.preferredHeight: 16
+                    }
+                    Label {
+                        text: qsTr("Root")
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+                }
             }
 
             Button {
@@ -99,6 +121,11 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             property int selectedRow: -1
 
+            function nodeAt(position) {
+                const cell = cellAtPosition(contentItem.mapFromItem(treeView, position))
+                return cell.y >= 0 ? itemAtCell(cell) : null
+            }
+
             ScrollBar.vertical: ScrollBar {
                 id: treeScrollBar
                 minimumSize: Math.min(1, 20 / Math.max(1, height))
@@ -134,7 +161,7 @@ Item {
                     anchors.fill: parent
                     radius: 6
                     color: global.theme.general.backHover
-                    opacity: hoverHandler.hovered ? 1 : 0
+                    opacity: hoverHandler.hovered && !fileDrag.active ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation {
                             duration: AnimationDuration.Fade
@@ -145,7 +172,8 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     radius: 6
-                    color: treeView.selectedRow === node.row ? global.theme.general.backSelected : "transparent"
+                    color: treeView.selectedRow === node.row || dropArea.directory === node.model.documentUrl.toString()
+                        ? global.theme.general.backSelected : "transparent"
                 }
 
                 RowLayout {
@@ -206,6 +234,7 @@ Item {
 
                 HoverHandler {
                     id: hoverHandler
+                    enabled: !fileDrag.active
 
                     onHoveredChanged: {
                         if (!hovered) {
@@ -232,6 +261,34 @@ Item {
                 }
             }
 
+            DragHandler {
+                id: fileDrag
+                parent: treeView
+                target: null
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                acceptedButtons: Qt.LeftButton
+                property string sourceUrl
+                property string name
+                property url icon
+
+                onActiveChanged: {
+                    if (!active) return
+                    const node = treeView.nodeAt(centroid.pressPosition)
+                    if (!node) return
+                    sourceUrl = node.model.documentUrl.toString()
+                    name = node.model.display
+                    icon = node.model.source
+                    treeView.selectedRow = node.row
+                    mainTooltip.text = ""
+                    dragPreview.ensurePolished()
+                    dragPreview.grabToImage(result => {
+                        if (!fileDrag.active) return
+                        dragPreview.Drag.imageSource = result.url
+                        dragPreview.Drag.active = true
+                    })
+                }
+            }
+
             TapHandler {
                 acceptedButtons: Qt.LeftButton
 
@@ -243,8 +300,7 @@ Item {
 
                 onTapped: {
                     const position = parent.mapToGlobal(point.position)
-                    const cell = treeView.cellAtPosition(treeView.contentItem.mapFromItem(parent, point.position))
-                    const node = cell.y >= 0 ? treeView.itemAtCell(cell) : null
+                    const node = treeView.nodeAt(treeView.mapFromItem(parent, point.position))
                     const localPosition = mainOverlay.mapFromGlobal(position)
                     if (!node) {
                         rootMenu.popup(localPosition.x, localPosition.y)
@@ -260,6 +316,71 @@ Item {
                 }
             }
         }
+    }
+
+    DropArea {
+        id: dropArea
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+        readonly property string directory: containsDrag ? directoryAt(drag.x, drag.y, drag.source) : ""
+
+        function directoryAt(x, y, source) {
+            let directory = root.modelRootUrl.toString()
+            if (!rootTarget.contains(rootTarget.mapFromItem(dropArea, x, y))) {
+                const position = treeView.mapFromItem(dropArea, x, y)
+                if (!treeView.contains(position) || position.x >= treeView.width - treeScrollBar.width) return ""
+                const node = treeView.nodeAt(position)
+                if (node && !node.model.isDir) return ""
+                if (node) directory = node.model.documentUrl.toString()
+            }
+            if (source === dragPreview) {
+                const url = fileDrag.sourceUrl
+                const prefix = directory.endsWith("/") ? directory : directory + "/"
+                if (directory === url || directory.startsWith(url + "/") || prefix === url.slice(0, url.lastIndexOf("/") + 1)) return ""
+            }
+            return directory
+        }
+
+        onEntered: event => {
+            if ((event.supportedActions & Qt.CopyAction) && event.urls.length
+                && event.urls.every(url => url.toString().startsWith("file:"))) event.accept(Qt.CopyAction)
+            else event.accepted = false
+        }
+        onPositionChanged: event => {
+            if (directory && (event.supportedActions & Qt.CopyAction)) event.accept(Qt.CopyAction)
+            else event.accepted = false
+        }
+        onDropped: event => {
+            const target = directoryAt(event.x, event.y, event.source)
+            if (!target || !(event.supportedActions & Qt.CopyAction)) {
+                event.accepted = false
+            } else if (event.source === dragPreview) {
+                const prefix = target.endsWith("/") ? target : target + "/"
+                if (global.fileModule.fileRename(fileDrag.sourceUrl, prefix + encodeURIComponent(fileDrag.name))) {
+                    treeView.selectedRow = -1
+                    event.accept(Qt.CopyAction)
+                } else event.accepted = false
+            } else {
+                global.fileModule.fileCopy(event.urls, target)
+                event.accept(Qt.CopyAction)
+            }
+        }
+    }
+
+    RowLayout {
+        id: dragPreview
+        x: -width
+        Drag.dragType: Drag.Automatic
+        Drag.source: dragPreview
+        Drag.mimeData: ({ "text/uri-list": [fileDrag.sourceUrl] })
+        Drag.supportedActions: Qt.CopyAction
+        Drag.onDragFinished: fileDrag.sourceUrl = ""
+        spacing: 4
+        Image {
+            Layout.preferredWidth: 16; Layout.preferredHeight: 16
+            source: fileDrag.icon
+        }
+        Label { text: fileDrag.name }
     }
 
     Dialog {
