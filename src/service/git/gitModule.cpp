@@ -154,13 +154,8 @@ void GitModule::gitFetch() {
 
 // public: push
 void GitModule::gitPushPre() {
-    if (!m_remote) {
-        emit showRemoteAddDialog();
-    } else if (m_upstream.isEmpty()) {
-        emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
-    } else {
-        gitAhead();
-    }
+    if (m_upstream.isEmpty()) gitRemoteGet();
+    else gitAhead();
 }
 
 void GitModule::gitAhead() {
@@ -210,7 +205,7 @@ void GitModule::gitWatch() {
 
     emit updateIndex();
     gitRepo();
-    gitRemoteGet();
+    gitUpstreamGet();
 }
 
 void GitModule::gitRepo() {
@@ -246,7 +241,7 @@ void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
 }
 
 void GitModule::gitRemoteGet() {
-    processEnqueue(GitCommand::RemoteGet, QStringList{"remote", "-v"});
+    processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
 void GitModule::gitUpstreamSet(const QString &upstream) {
@@ -488,8 +483,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir rootDir(m_gitService->rootPathGet());
         // output parser
         switch (command) {
-            case GitCommand::RemoteGet: m_remote = !QString::fromUtf8(output).trimmed().isEmpty();
-                break;
             case GitCommand::UpstreamGet: m_upstream = QString::fromUtf8(output).trimmed();
                 break;
             case GitCommand::Branch: {
@@ -955,7 +948,12 @@ void GitModule::processFinished(const int exitcode) {
                 break;
             case GitCommand::RemoteAdd: gitFetch();
                 break;
-            case GitCommand::RemoteGet:
+            case GitCommand::RemoteGet: {
+                if (!m_upstream.isEmpty()) gitAhead();
+                else if (output.isEmpty()) emit showRemoteAddDialog();
+                else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
+            }
+            break;
             case GitCommand::UpstreamUnset:
             case GitCommand::UpstreamSet: gitUpstreamGet();
                 break;

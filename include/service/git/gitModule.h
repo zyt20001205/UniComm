@@ -179,7 +179,6 @@ private:
     QFileSystemWatcher *m_branchWatcher{};
     QTimer *m_branchWatcherTimer{};
     QString m_current{};
-    bool m_remote{};
     QString m_upstream{};
     int m_taskId{-1};
 
