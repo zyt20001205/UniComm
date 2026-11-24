@@ -32,7 +32,7 @@ GitModule::GitModule()
       m_branchWatcherTimer(new QTimer(this)),
       m_gitConfig(new GitConfig(this)),
       m_refs(new QStandardItemModel(this)),
-      m_logModel(new LogModel(this)),
+      m_log(new QStandardItemModel(this)),
       m_showModel(new ShowModel(this)),
       m_workingTreeModel(new StatusModel(this)),
       m_indexModel(new StatusModel(this)),
@@ -43,6 +43,8 @@ GitModule::GitModule()
 
     m_refs->setItemRoleNames({{Qt::DisplayRole, "display"}, {RefRole, "ref"}, {TypeRole, "type"}});
     m_refs->setColumnCount(1);
+    m_log->setItemRoleNames({{Qt::DisplayRole, "display"}, {HashRole, "hash"}, {PositionRole, "position"}, {ParentsRole, "parents"}});
+    m_log->setColumnCount(4);
 
     connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
     connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
@@ -83,7 +85,6 @@ GitModule::~GitModule() {
 void GitModule::propertySet() {
     m_widget->setInitialProperties({
         {"gitModule", QVariant::fromValue(this)},
-        {"logModel", QVariant::fromValue(m_logModel)},
         {"showModel", QVariant::fromValue(m_showModel)}
     });
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
@@ -256,7 +257,7 @@ void GitModule::upstreamGet() {
     });
 }
 
-// success -> gitLog()
+// success -> logGet()
 // failure -> showErrorDialog()
 void GitModule::refsGet() {
     m_gitService->refsGet().then(this, [this](const GitRefsResult &result) {
@@ -292,7 +293,7 @@ void GitModule::refsGet() {
             else group->appendRow(item);
         }
         emit expandBranches();
-        if (!m_current.isEmpty()) gitLog("refs/heads/" + m_current);
+        if (!m_current.isEmpty()) logGet("refs/heads/" + m_current);
     });
 }
 
@@ -315,9 +316,53 @@ void GitModule::gitDelete(const QString &name) {
     processEnqueue(GitCommand::Delete, QStringList{"branch", "-D", name});
 }
 
-// public: log
-void GitModule::gitLog(const QString &ref) {
-    processEnqueue(GitCommand::Log, QStringList{"log", ref, "-z", "--pretty=format:%h%x1e%p%x1e%ar%x1e%an%x1e%s", "--"});
+// public: history
+// success -> gitShowCommit()
+// failure -> showErrorDialog()
+void GitModule::logGet(const QString &ref) {
+    m_gitService->logGet(ref).then(this, [this](const GitLogResult &result) {
+        if (!result.success) {
+            emit showErrorDialog(tr("Git command failed"), result.output);
+            return;
+        }
+
+        // assign each commit a lane and row
+        QStringList lanes{};
+        QHash<QString, QPoint> positions{};
+        m_laneCount = 0;
+        for (int row = 0; row < result.commits.size(); ++row) {
+            const auto &commit = result.commits[row];
+            int lane = static_cast<int>(lanes.indexOf(commit.hash));
+            if (lane < 0) {
+                lane = 0;
+                lanes.prepend(commit.hash);
+            }
+            m_laneCount = qMax(m_laneCount, static_cast<int>(lanes.size()));
+            positions.insert(commit.hash, QPoint(lane, row));
+            lanes.removeAt(lane);
+            for (const auto &parent : commit.parents) {
+                if (!lanes.contains(parent)) lanes.insert(lane++, parent);
+            }
+        }
+
+        // populate the table with the resolved parent positions
+        m_log->removeRows(0, m_log->rowCount());
+        for (const auto &commit : result.commits) {
+            QVariantList parents{};
+            for (const auto &hash : commit.parents) {
+                const auto parent = positions.constFind(hash);
+                if (parent != positions.cend()) parents.append(parent.value());
+            }
+            auto *node = new QStandardItem();
+            node->setData(positions.value(commit.hash), PositionRole);
+            node->setData(parents, ParentsRole);
+            const QList items{node, new QStandardItem(commit.subject), new QStandardItem(commit.author), new QStandardItem(commit.relativeDate)};
+            for (auto *item : items) item->setData(commit.hash, HashRole);
+            m_log->appendRow(items);
+        }
+        emit logChanged();
+        if (!result.commits.isEmpty()) gitShowCommit(result.commits.first().hash);
+    });
 }
 
 void GitModule::gitReset(const QString &hash, const GitResetMode::Value mode) {
@@ -518,59 +563,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir rootDir(m_gitService->rootPathGet());
         // output parser
         switch (command) {
-            case GitCommand::Log: {
-                m_logModel->clear();
-                QHash<QString, QPoint> nodeHash{};
-                QList<QStringList> parentRows{};
-                QStringList lanes{};
-                int laneCount = 0;
-                for (const auto &value: output.split('\0')) {
-                    const auto param = value.split('\x1e');
-                    if (param.size() != 5) continue;
-
-                    const QString &hash = QString::fromUtf8(param[0]);
-                    const QStringList parents = QString::fromUtf8(param[1]).split(' ', Qt::SkipEmptyParts);
-                    int lane = static_cast<int>(lanes.indexOf(hash));
-                    if (lane < 0) {
-                        lane = 0;
-                        lanes.insert(0, hash);
-                    }
-                    const int index = m_logModel->rowCount();
-                    const QPoint nodePos(lane, index);
-                    nodeHash.insert(hash, nodePos);
-                    parentRows.append(parents);
-
-                    lanes.removeAt(lane);
-                    int insertLane = lane;
-                    for (const QString &parentHash: parents) {
-                        if (lanes.contains(parentHash)) continue;
-                        lanes.insert(insertLane++, parentHash);
-                    }
-                    laneCount = qMax(laneCount, static_cast<int>(lanes.size()));
-
-                    const auto &date = QString::fromUtf8(param[2]);
-                    const auto &author = QString::fromUtf8(param[3]);
-                    const auto subject = QString::fromUtf8(param[4]);
-                    const auto &nodeItem = new QStandardItem(); // NOLINT
-                    const QList items{new QStandardItem(date), new QStandardItem(author), new QStandardItem(subject), nodeItem};
-                    for (auto *item: items) {
-                        item->setData(hash, LogModel::HashRole);
-                    }
-                    nodeItem->setData(nodePos, LogModel::PositionRole);
-                    m_logModel->appendRow(items);
-                }
-
-                for (int row = 0; row < parentRows.size(); ++row) {
-                    QVariantList parentPositions{};
-                    for (const QString &parentHash: parentRows[row]) {
-                        const auto parent = nodeHash.constFind(parentHash);
-                        if (parent != nodeHash.cend()) parentPositions.append(parent.value());
-                    }
-                    m_logModel->item(row, 3)->setData(parentPositions, LogModel::ParentRole);
-                }
-                emit setLaneCount(qMax(laneCount, 1));
-            }
-            break;
             case GitCommand::ShowCommit: {
                 const auto param = output.split('\x1e');
                 if (param.size() != 6) break;
@@ -947,13 +939,6 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Delete:
             case GitCommand::CherryPick: gitWatch();
                 break;
-            case GitCommand::Log: {
-                if (m_logModel->rowCount() > 0) {
-                    const auto hash = m_logModel->item(0, 0)->data(LogModel::HashRole).toString();
-                    gitShowCommit(hash);
-                }
-            }
-            break;
             default: break;
         }
     }
@@ -1003,15 +988,6 @@ void GitModule::processFinished(const int exitcode) {
         if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
     }
     processDequeue();
-}
-
-// public
-QHash<int, QByteArray> LogModel::roleNames() const {
-    auto roles = QStandardItemModel::roleNames();
-    roles[HashRole] = "hash";
-    roles[PositionRole] = "pos";
-    roles[ParentRole] = "parent";
-    return roles;
 }
 
 // public

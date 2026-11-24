@@ -31,6 +31,18 @@ struct GitRefsResult : GitResult {
     QList<Entry> refs{};
 };
 
+struct GitLogResult : GitResult {
+    struct Entry {
+        QString hash;
+        QStringList parents;
+        QString relativeDate;
+        QString author;
+        QString subject;
+    };
+
+    QList<Entry> commits{};
+};
+
 struct GitStatusResult : GitResult {
     struct Entry {
         GitFileStatus::Value indexStatus;
@@ -76,6 +88,9 @@ public:
     QFuture<GitResult> upstreamGet();
 
     QFuture<GitRefsResult> refsGet();
+
+    // public: history
+    QFuture<GitLogResult> logGet(const QString &ref);
 
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);

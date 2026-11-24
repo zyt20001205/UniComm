@@ -11,7 +11,6 @@ import UniComm
 Item {
     id: root
     required property GitModule gitModule
-    required property var logModel
     required property var showModel
     readonly property bool hasRepository: global.serviceModule.git.hasRepository
     property bool hasRefs: root.gitModule.refs.rowCount() > 0
@@ -29,6 +28,23 @@ Item {
 
             function filter(data: RoleData): bool {
                 return !searchField.query.length || data.ref.toLowerCase().includes(searchField.query)
+            }
+        }
+    }
+
+    SortFilterProxyModel {
+        id: logFilter
+        model: root.gitModule.log
+        filters: FunctionFilter {
+            column: 1
+            component LogData: QtObject {
+                property string display
+                property string hash
+            }
+
+            function filter(data: LogData): bool {
+                return data.display.toLowerCase().includes(logSearchField.query)
+                    || data.hash.startsWith(logSearchField.query)
             }
         }
     }
@@ -224,7 +240,7 @@ Item {
 
                         onTapped: branchTreeView.selectedRow = row
                         onDoubleTapped: {
-                            if (!hasChildren) root.gitModule.gitLog(model.ref)
+                            if (!hasChildren) root.gitModule.logGet(model.ref)
                         }
                     }
 
@@ -251,192 +267,213 @@ Item {
             }
         }
 
-        TableView {
-            id: tableView
-            alternatingRows: false
-            clip: true
-            editTriggers: TableView.NoEditTriggers
-            model: root.logModel
-            contentWidth: width
-            SplitView.fillWidth: true
-            property int hoveredRow: -1
-            property int selectedRow: -1
+        ColumnLayout {
+            SplitView.fillWidth: true; SplitView.fillHeight: true
 
-            ScrollBar.vertical: ScrollBar {
-                minimumSize: Math.min(1, 20 / Math.max(1, height))
-                policy: ScrollBar.AsNeeded
-                palette {
-                    mid: global.theme.general.stroke
-                    dark: global.theme.general.strokePressed
+            LineEdit {
+                id: logSearchField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Text or hash")
+                clearable: true
+                readonly property string query: text.trim().toLowerCase()
+
+                onQueryChanged: {
+                    logFilter.invalidate()
+                    tableView.selectedRow = -1
+                    tableView.hoveredRow = -1
+                    tableView.contentY = 0
+                    canvas.requestPaint()
                 }
             }
 
-            columnWidthProvider: function (column) {
-                if (column !== columns - 1) return implicitColumnWidth(column)
-                let usedWidth = 0
-                for (let i = 0; i < columns - 2; ++i) usedWidth += implicitColumnWidth(i)
-                return width - usedWidth
-            }
+            TableView {
+                id: tableView
+                alternatingRows: false
+                clip: true
+                editTriggers: TableView.NoEditTriggers
+                model: logFilter
+                contentWidth: width
+                Layout.fillWidth: true; Layout.fillHeight: true
+                property int hoveredRow: -1
+                property int selectedRow: -1
 
-            delegate: Item {
-                implicitWidth: Math.max(textMetrics.width + 16, 60)
-                implicitHeight: 24
-                required property int column
-                required property int row
-
-                Rectangle {
-                    anchors.fill: parent
-                    color: global.theme.general.back
-                }
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    topLeftRadius: column === 0 ? radius : 0
-                    bottomLeftRadius: column === 0 ? radius : 0
-                    topRightRadius: column === tableView.columns - 1 ? radius : 0
-                    bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: global.theme.general.backHover
-                    opacity: tableView.hoveredRow === row ? 1 : 0
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: 150
-                        }
+                ScrollBar.vertical: ScrollBar {
+                    id: logScrollBar
+                    minimumSize: Math.min(1, 20 / Math.max(1, height))
+                    palette {
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
                     }
                 }
 
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 6
-                    topLeftRadius: column === 0 ? radius : 0
-                    bottomLeftRadius: column === 0 ? radius : 0
-                    topRightRadius: column === tableView.columns - 1 ? radius : 0
-                    bottomRightRadius: column === tableView.columns - 1 ? radius : 0
-                    color: tableView.selectedRow === row ? global.theme.general.backSelected : "transparent"
+                columnWidthProvider: function (column: int): real {
+                    if (column === 0) return canvas.width
+                    const available = Math.max(0, Math.floor(width - canvas.width - logScrollBar.width))
+                    const author = Math.max(60, implicitColumnWidth(2))
+                    const date = Math.max(60, implicitColumnWidth(3))
+                    const scale = Math.min(1, available / (date + author))
+                    if (column === 2) return Math.floor(author * scale)
+                    if (column === 3) return Math.floor(date * scale) + logScrollBar.width
+                    return available - Math.floor(date * scale) - Math.floor(author * scale)
                 }
+                onWidthChanged: forceLayout()
 
-                TextMetrics {
-                    id: textMetrics
-                    font: label.font
-                    text: model.display || ""
-                }
+                delegate: Item {
+                    implicitWidth: Math.max(textMetrics.width + 16, 60)
+                    implicitHeight: 24
+                    required property var model
+                    required property int column
+                    required property int row
 
-                Label {
-                    id: label
-                    anchors.fill: parent
-                    leftPadding: 6
-                    horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                    text: model.display || ""
-                    elide: Text.ElideRight
-                    visible: column !== tableView.columns - 1
-                }
+                    Rectangle {
+                        anchors.fill: parent
+                        color: global.theme.general.back
+                    }
 
-                HoverHandler {
-                    onHoveredChanged: {
-                        if (hovered) {
-                            tableView.hoveredRow = row
-                        } else if (tableView.hoveredRow === row) {
-                            tableView.hoveredRow = -1
-                            mainTooltip.text = ""
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 6
+                        topLeftRadius: column === 0 ? radius : 0
+                        bottomLeftRadius: column === 0 ? radius : 0
+                        topRightRadius: column === tableView.columns - 1 ? radius : 0
+                        bottomRightRadius: column === tableView.columns - 1 ? radius : 0
+                        color: global.theme.general.backHover
+                        opacity: tableView.hoveredRow === row ? 1 : 0
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: AnimationDuration.Fade
+                            }
                         }
                     }
-                    onPointChanged: {
-                        mainTooltip.position = parent.mapToGlobal(point.position)
-                        mainTooltip.text = model.hash || ""
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 6
+                        topLeftRadius: column === 0 ? radius : 0
+                        bottomLeftRadius: column === 0 ? radius : 0
+                        topRightRadius: column === tableView.columns - 1 ? radius : 0
+                        bottomRightRadius: column === tableView.columns - 1 ? radius : 0
+                        color: tableView.selectedRow === row ? global.theme.general.backSelected : "transparent"
+                    }
+
+                    TextMetrics {
+                        id: textMetrics
+                        font: label.font
+                        text: model.display || ""
+                    }
+
+                    Label {
+                        id: label
+                        anchors.fill: parent
+                        anchors.rightMargin: column === 3 ? logScrollBar.width : 0
+                        leftPadding: 6
+                        horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
+                        text: model.display || ""
+                        elide: Text.ElideRight
+                        visible: column !== 0
+                    }
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (hovered) {
+                                tableView.hoveredRow = row
+                            } else if (tableView.hoveredRow === row) {
+                                tableView.hoveredRow = -1
+                            }
+                        }
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton
+                        gesturePolicy: TapHandler.DragWithinBounds
+
+                        onTapped: {
+                            tableView.selectedRow = row
+                            root.gitModule.gitShowCommit(model.hash)
+                        }
+                    }
+
+                    TapHandler {
+                        acceptedButtons: Qt.RightButton
+                        gesturePolicy: TapHandler.DragWithinBounds
+
+                        onTapped: {
+                            logMenu.hash = model.hash
+                            const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
+                            logMenu.popup(position.x, position.y)
+                        }
                     }
                 }
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
-                    gesturePolicy: TapHandler.DragWithinBounds
 
-                    onTapped: {
-                        tableView.selectedRow = row
-                        root.gitModule.gitShowCommit(model.hash)
-                    }
+                    onTapped: tableView.selectedRow = -1
                 }
 
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    gesturePolicy: TapHandler.DragWithinBounds
+                Canvas {
+                    id: canvas
+                    parent: tableView.contentItem
 
-                    onTapped: {
-                        logMenu.hash = model.hash
-                        const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
-                        logMenu.popup(position.x, position.y)
-                    }
-                }
-            }
+                    width: 24 * root.gitModule.laneCount
+                    height: tableView.contentHeight
+                    z: 100
 
-            TapHandler {
-                acceptedButtons: Qt.LeftButton
+                    onPaint: {
+                        const ctx = getContext("2d")
+                        ctx.reset()
 
-                onTapped: tableView.selectedRow = -1
-            }
+                        const unit = 24
+                        const colors = ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"]
 
-            Canvas {
-                id: canvas
-                parent: tableView.contentItem
+                        for (let i = 0; i < tableView.model.rowCount(); ++i) {
+                            const index = tableView.model.index(i, 0)
+                            const pos = tableView.model.data(index, GitModule.PositionRole)
+                            const parents = tableView.model.data(index, GitModule.ParentsRole)
+                            const _x = pos.x * unit + unit / 2
+                            const _y = i * unit + unit / 2
 
-                x: tableView.width - width
-                y: 0
-                width: 24 * laneCount
-                height: tableView.contentHeight
-                z: 100
-                property int laneCount: 0
+                            for (let j = 0; j < parents.length; ++j) {
+                                const parentPos = parents[j]
+                                const parentRow = logFilter.mapFromSource(root.gitModule.log.index(parentPos.y, 0)).row
+                                if (parentRow < 0) continue
+                                const px = parentPos.x * unit + unit / 2
+                                const py = parentRow * unit + unit / 2
+                                const dy = py - _y
+                                ctx.lineWidth = 2
+                                ctx.strokeStyle = colors[Math.max(pos.x, parentPos.x) % colors.length]
+                                ctx.beginPath()
+                                ctx.moveTo(_x, _y)
 
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.reset()
-
-                    const unit = 24
-                    const colors = ["#264653", "#2a9d8f", "#e9c46a", "#f4a261", "#e76f51"]
-
-                    for (let i = 0; i < root.logModel.rowCount(); ++i) {
-                        const index = root.logModel.index(i, 3);
-                        const pos = root.logModel.data(index, Qt.UserRole + 2)
-                        const parents = root.logModel.data(index, Qt.UserRole + 3) || []
-                        const _x = pos.x * unit + unit / 2
-                        const _y = pos.y * unit + unit / 2
-
-                        for (let j = 0; j < parents.length; ++j) {
-                            const parentPos = parents[j]
-                            const px = parentPos.x * unit + unit / 2
-                            const py = parentPos.y * unit + unit / 2
-                            const dy = py - _y
-                            ctx.lineWidth = 2
-                            ctx.strokeStyle = colors[Math.max(pos.x, parentPos.x) % colors.length]
-                            ctx.beginPath()
-                            ctx.moveTo(_x, _y)
-
-                            const dx = px - _x
-                            const diagonalHeight = Math.abs(dx)
-                            if (dx === 0) {
-                                ctx.lineTo(px, py)
-                            } else if (diagonalHeight <= dy) {
-                                if (dx > 0) {
-                                    ctx.lineTo(px, _y + diagonalHeight)
+                                const dx = px - _x
+                                const diagonalHeight = Math.abs(dx)
+                                if (dx === 0) {
                                     ctx.lineTo(px, py)
+                                } else if (diagonalHeight <= dy) {
+                                    if (dx > 0) {
+                                        ctx.lineTo(px, _y + diagonalHeight)
+                                        ctx.lineTo(px, py)
+                                    } else {
+                                        ctx.lineTo(_x, py - diagonalHeight)
+                                        ctx.lineTo(px, py)
+                                    }
                                 } else {
-                                    ctx.lineTo(_x, py - diagonalHeight)
                                     ctx.lineTo(px, py)
                                 }
-                            } else {
-                                ctx.lineTo(px, py)
+                                ctx.stroke()
                             }
-                            ctx.stroke()
                         }
-                    }
 
-                    for (let i = 0; i < root.logModel.rowCount(); ++i) {
-                        const index = root.logModel.index(i, 3)
-                        const pos = root.logModel.data(index, Qt.UserRole + 2)
-                        const _x = pos.x * unit + unit / 2
-                        const _y = pos.y * unit + unit / 2
-                        ctx.fillStyle = colors[pos.x % colors.length]
-                        ctx.beginPath()
-                        ctx.arc(_x, _y, 4, 0, Math.PI * 2)
-                        ctx.fill()
+                        for (let i = 0; i < tableView.model.rowCount(); ++i) {
+                            const index = tableView.model.index(i, 0)
+                            const pos = tableView.model.data(index, GitModule.PositionRole)
+                            const _x = pos.x * unit + unit / 2
+                            const _y = i * unit + unit / 2
+                            ctx.fillStyle = colors[pos.x % colors.length]
+                            ctx.beginPath()
+                            ctx.arc(_x, _y, 4, 0, Math.PI * 2)
+                            ctx.fill()
+                        }
                     }
                 }
             }
@@ -666,30 +703,18 @@ Item {
     }
 
     Connections {
-        target: root.logModel
-
-        function onRowsInserted() {
-            canvas.requestPaint()
-        }
-
-        function onRowsRemoved() {
-            canvas.requestPaint()
-        }
-
-        function onModelReset() {
-            canvas.requestPaint()
-            tableView.selectedRow = 0
-        }
-    }
-
-    Connections {
         target: root.gitModule
 
         function onExpandBranches() {
             root.hasRefs = root.gitModule.refs.rowCount() > 0
             branchTreeView.expandRecursively()
         }
-        function onSetLaneCount(count) { canvas.laneCount = count }
+        function onLogChanged() {
+            tableView.selectedRow = logFilter.mapFromSource(root.gitModule.log.index(0, 0)).row
+            tableView.contentY = 0
+            tableView.forceLayout()
+            canvas.requestPaint()
+        }
         function onSetCommitDetails(subject, date, author) {
             subjectLabel.text = subject
             dateLabel.text = date

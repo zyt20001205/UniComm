@@ -16,7 +16,6 @@ class QQuickWidget;
 
 class GitConfig;
 class GitService;
-class LogModel;
 class ShowModel;
 class StatusModel;
 class CommitModel;
@@ -27,8 +26,13 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     QML_UNCREATABLE("GitModule is created by C++.")
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
     Q_PROPERTY(QStandardItemModel* refs MEMBER m_refs CONSTANT)
+    Q_PROPERTY(QStandardItemModel* log MEMBER m_log CONSTANT)
+    Q_PROPERTY(int laneCount READ laneCountGet NOTIFY logChanged)
 
 public:
+    enum LogRole { HashRole = Qt::UserRole + 1, PositionRole, ParentsRole };
+    Q_ENUM(LogRole)
+
     explicit GitModule();
 
     ~GitModule() override;
@@ -88,7 +92,9 @@ public:
 
     Q_INVOKABLE void gitDelete(const QString &name);
 
-    Q_INVOKABLE void gitLog(const QString &ref);
+    [[nodiscard]] int laneCountGet() const { return m_laneCount; }
+
+    Q_INVOKABLE void logGet(const QString &ref);
 
     Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
@@ -135,7 +141,7 @@ signals:
 
     void resetCommit();
 
-    void setLaneCount(int count);
+    void logChanged();
 
     void setCommitDetails(const QString &subject, const QString &date, const QString &author);
 
@@ -184,7 +190,8 @@ private:
 
     enum Role { RefRole = Qt::UserRole + 1, TypeRole };
     QStandardItemModel *m_refs{};
-    LogModel *m_logModel{};
+    QStandardItemModel *m_log{};
+    int m_laneCount{};
     ShowModel *m_showModel{};
 
     StatusModel *m_workingTreeModel{};
@@ -213,7 +220,6 @@ private:
             Create,
             Rename,
             Delete,
-            Log,
             Reset,
             ShowCommit,
             ShowFile,
@@ -227,21 +233,6 @@ private:
             Ignore
         };
     };
-};
-
-class LogModel final : public QStandardItemModel {
-    Q_OBJECT
-
-public:
-    using QStandardItemModel::QStandardItemModel;
-
-    enum Role {
-        HashRole = Qt::UserRole + 1,
-        PositionRole,
-        ParentRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 };
 
 class ShowModel final : public QStandardItemModel {

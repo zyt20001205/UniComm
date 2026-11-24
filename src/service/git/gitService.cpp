@@ -86,6 +86,25 @@ QFuture<GitRefsResult> GitService::refsGet() {
         });
 }
 
+// public: history
+QFuture<GitLogResult> GitService::logGet(const QString &ref) {
+    return processEnqueue({"log", "-z", "--no-show-signature", "--format=tformat:%H%x00%P%x00%ar%x00%an%x00%s", ref, "--"})
+        .then(this, [this](const GitResult &result) {
+            GitLogResult log{result};
+            if (result.success) {
+                const auto fields = result.output.split(QChar::Null);
+                for (qsizetype i = 0; i + 4 < fields.size(); i += 5) {
+                    log.commits.append({fields[i], fields[i + 1].split(' ', Qt::SkipEmptyParts),
+                                        fields[i + 2], fields[i + 3], fields[i + 4]});
+                }
+            }
+
+            // update service state
+            statusSet(result.success ? Status::Stopped : Status::Error);
+            return log;
+        });
+}
+
 // public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};
