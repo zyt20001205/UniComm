@@ -45,7 +45,7 @@ signals:
 
     void setPermission(const QUrl &documentUrl);
 
-    void appendBackground(int &taskId, const std::function<void()> &abort, const std::function<void()> &info);
+    int appendBackground(const std::function<void()> &abort, const std::function<void()> &info);
 
     void removeBackground(int taskId);
 

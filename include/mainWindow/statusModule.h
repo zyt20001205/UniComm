@@ -22,7 +22,7 @@ public:
 
     Q_INVOKABLE [[nodiscard]] QStringList documentPathGet(const QUrl &documentUrl) const;
 
-    void backgroundAppend(int &taskId, const std::function<void()> &abort, const std::function<void()> &info);
+    int backgroundAppend(const std::function<void()> &abort, const std::function<void()> &info);
 
     void backgroundRemove(int taskId);
 

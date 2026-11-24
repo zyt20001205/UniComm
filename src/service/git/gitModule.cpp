@@ -145,8 +145,7 @@ void GitModule::gitCommit(const QString &subject) {
 // public: pull
 void GitModule::gitFetch() {
     processEnqueue(GitCommand::Fetch, QStringList{"fetch", "-p"});
-    emit appendBackground(
-        m_taskId,
+    m_taskId = emit appendBackground(
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Fetching from remote..."));
@@ -181,8 +180,7 @@ void GitModule::gitShowCommit_(const QString &hash) {
 void GitModule::gitPush() {
     m_pushWindow->close();
     processEnqueue(GitCommand::Push, QStringList{"push"});
-    emit appendBackground(
-        m_taskId,
+    m_taskId = emit appendBackground(
         [this] { this->gitAbort(); },
         {});
     emit refreshBackground(m_taskId, tr("Pushing to remote..."));
@@ -220,24 +218,21 @@ void GitModule::gitRepo() {
     const auto &gitDir = QDir(m_gitService->gitDirPathGet());
     // merge
     if (QFileInfo::exists(gitDir.filePath("MERGE_HEAD"))) {
-        emit appendBackground(
-            m_taskId,
+        m_taskId = emit appendBackground(
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
         gitStatusSet(GitOperationState::Merge);
     }
     // rebase
     else if (QFileInfo::exists(gitDir.filePath("REBASE_HEAD"))) {
-        emit appendBackground(
-            m_taskId,
+        m_taskId = emit appendBackground(
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
         gitStatusSet(GitOperationState::Rebase);
     }
     // cherry-pick
     else if (QFileInfo::exists(gitDir.filePath("CHERRY_PICK_HEAD"))) {
-        emit appendBackground(
-            m_taskId,
+        m_taskId = emit appendBackground(
             [this] { this->gitAbort(); },
             [this] { this->gitDiff(); });
         gitStatusSet(GitOperationState::CherryPick);

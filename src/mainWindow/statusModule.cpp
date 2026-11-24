@@ -26,13 +26,14 @@ QStringList StatusModule::documentPathGet(const QUrl &documentUrl) const {
     return QDir(g_workspaceUrl.toLocalFile()).relativeFilePath(documentUrl.toLocalFile()).split('/');
 }
 
-void StatusModule::backgroundAppend(int &taskId, const std::function<void()> &abort, const std::function<void()> &info) {
-    taskId = m_taskId++;
-    if (!abort && !info) return;
+int StatusModule::backgroundAppend(const std::function<void()> &abort, const std::function<void()> &info) {
+    const int taskId = m_taskId++;
+    if (!abort && !info) return taskId;
     if (abort) m_abortCallbacks.insert(taskId, abort);
     if (info) m_infoCallbacks.insert(taskId, info);
     m_tasks.append(QVariantHash{{"taskId", taskId}, {"message", QString{}}});
     emit tasksChanged();
+    return taskId;
 }
 
 void StatusModule::backgroundRemove(const int taskId) {

@@ -39,9 +39,7 @@ void FileModule::fileOpenInExplorer(const QUrl &fileUrl) {
 #endif
     auto *process = new QProcess(this); // NOLINT
     connect(process, &QProcess::started, this, [this, process] {
-        int taskId = -1;
-        emit appendBackground(
-            taskId,
+        const int taskId = emit appendBackground(
             [process] { if (process->state() != QProcess::NotRunning) process->terminate(); },
             {});
         process->setProperty("taskId", taskId);
@@ -66,9 +64,7 @@ void FileModule::fileOpenInApplication(const QUrl &fileUrl) {
 #endif
     auto *process = new QProcess(this); // NOLINT
     connect(process, &QProcess::started, this, [this, process] {
-        int taskId = -1;
-        emit appendBackground(
-            taskId,
+        const int taskId = emit appendBackground(
             [process] { if (process->state() != QProcess::NotRunning) process->terminate(); },
             {});
         process->setProperty("taskId", taskId);
