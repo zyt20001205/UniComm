@@ -1,6 +1,7 @@
 #ifndef UNICOMM_FILEMODULE_H
 #define UNICOMM_FILEMODULE_H
 
+#include <QUrl>
 #include <QVariantHash>
 
 class FileModule final : public QObject {
@@ -18,6 +19,8 @@ public:
     Q_INVOKABLE void fileOpenInApplication(const QUrl &fileUrl);
 
     Q_INVOKABLE static QVariantHash fileInfo(const QUrl &fileUrl);
+
+    Q_INVOKABLE void fileCopy(const QList<QUrl> &sourceUrls, const QUrl &directoryUrl);
 
     Q_INVOKABLE bool fileRename(const QUrl &sourceUrl, const QUrl &targetUrl);
 

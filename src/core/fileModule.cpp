@@ -5,6 +5,8 @@
 #include <QFileInfo>
 #include <QProcess>
 #include <QQmlComponent>
+#include <QtConcurrentRun>
+#include <filesystem>
 
 #include "globals.h"
 #include "core/globalManager.h"
@@ -103,6 +105,36 @@ QVariantHash FileModule::fileInfo(const QUrl &fileUrl) {
         {"directory", fileInfo.isDir()},
     };
     return infoSession;
+}
+
+void FileModule::fileCopy(const QList<QUrl> &sourceUrls, const QUrl &directoryUrl) {
+    QtConcurrent::run([sourceUrls, directoryUrl]() -> QString {
+        const QDir directory(directoryUrl.toLocalFile());
+        if (!directoryUrl.isLocalFile() || !directory.exists()) return tr("Destination folder unavailable.");
+        for (const auto &url: sourceUrls) {
+            const QFileInfo source(url.toLocalFile());
+            const auto name = source.fileName();
+            const auto target = directory.filePath(name);
+            if (!source.isDir()) {
+                QFile file(source.absoluteFilePath());
+                if (!file.copy(target)) return tr("%1: %2").arg(name, file.errorString());
+                continue;
+            }
+
+            const auto relative = QDir(source.canonicalFilePath()).relativeFilePath(directory.canonicalPath());
+            if (!QDir::isAbsolutePath(relative) && relative != ".." && !relative.startsWith("../"))
+                return tr("Cannot copy %1 into itself.").arg(name);
+
+            if (!source.isSymLink() && !directory.mkdir(name)) return tr("Cannot create folder: %1").arg(target);
+            std::error_code error{};
+            std::filesystem::copy(source.filesystemFilePath(), QFileInfo(target).filesystemFilePath(),
+                                  std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks, error);
+            if (error) return tr("%1: %2").arg(name, QString::fromStdString(error.message()));
+        }
+        return {};
+    }).then(this, [](const QString &error) {
+        if (!error.isEmpty()) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Import failed"), error);
+    });
 }
 
 bool FileModule::fileRename(const QUrl &sourceUrl, const QUrl &targetUrl) {

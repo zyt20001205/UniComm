@@ -13,6 +13,7 @@ ExplorerModule::ExplorerModule()
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
       m_model(new ExplorerModel(this)) {
     setWidget(m_widget);
+    m_widget->setAcceptDrops(true);
     m_widget->installEventFilter(this);
     auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
     connect(git, &GitService::hasRepositoryChanged, this, [this, git] {
