@@ -10,6 +10,7 @@ class AgentModule;
 class AudioService;
 class BreakpointModule;
 class DebugModule;
+class DiagnosticsModule;
 class DocumentModule;
 class ExplorerModule;
 class FileModule;
@@ -18,6 +19,7 @@ class LogModule;
 class NuspellModule;
 class PortModule;
 class ServiceModule;
+class StructureModule;
 class TerminalModule;
 class ThemeManager;
 class ThreadpoolModule;
@@ -26,11 +28,14 @@ class UndoModule;
 class WatchModule;
 
 Q_MOC_INCLUDE("agent/agentModule.h")
+Q_MOC_INCLUDE("analysis/diagnosticsModule.h")
 Q_MOC_INCLUDE("analysis/nuspellModule.h")
+Q_MOC_INCLUDE("analysis/structureModule.h")
 Q_MOC_INCLUDE("core/explorerModule.h")
 Q_MOC_INCLUDE("core/fileModule.h")
 Q_MOC_INCLUDE("core/logModule.h")
 Q_MOC_INCLUDE("core/undoModule.h")
+Q_MOC_INCLUDE("debug/breakpointModule.h")
 Q_MOC_INCLUDE("debug/debugModule.h")
 Q_MOC_INCLUDE("debug/watchModule.h")
 Q_MOC_INCLUDE("document/documentModule.h")
@@ -47,7 +52,9 @@ class GlobalManager final : public QObject {
 
     // modules
     Q_PROPERTY(AgentModule* agentModule READ agentModuleGet CONSTANT)
+    Q_PROPERTY(BreakpointModule* breakpointModule READ breakpointModuleGet CONSTANT)
     Q_PROPERTY(DebugModule* debugModule READ debugModuleGet CONSTANT)
+    Q_PROPERTY(DiagnosticsModule* diagnosticsModule READ diagnosticsModuleGet CONSTANT)
     Q_PROPERTY(DocumentModule* documentModule READ documentModuleGet CONSTANT)
     Q_PROPERTY(ExplorerModule* explorerModule READ explorerModuleGet CONSTANT)
     Q_PROPERTY(FileModule* fileModule READ fileModuleGet CONSTANT)
@@ -56,6 +63,7 @@ class GlobalManager final : public QObject {
     Q_PROPERTY(NuspellModule* nuspellModule READ nuspellModuleGet CONSTANT)
     Q_PROPERTY(PortModule* portModule READ portModuleGet CONSTANT)
     Q_PROPERTY(ServiceModule* serviceModule READ serviceModuleGet CONSTANT)
+    Q_PROPERTY(StructureModule* structureModule READ structureModuleGet CONSTANT)
     Q_PROPERTY(TerminalModule* terminalModule READ terminalModuleGet CONSTANT)
     Q_PROPERTY(ThreadpoolModule* threadpoolModule READ threadpoolModuleGet CONSTANT)
     Q_PROPERTY(UndoModule* undoModule READ undoModuleGet CONSTANT)
@@ -86,6 +94,14 @@ public:
 
     void debugModuleSet(DebugModule *module) {
         m_debugModule = module;
+    }
+
+    [[nodiscard]] DiagnosticsModule *diagnosticsModuleGet() const {
+        return m_diagnosticsModule;
+    }
+
+    void diagnosticsModuleSet(DiagnosticsModule *module) {
+        m_diagnosticsModule = module;
     }
 
     [[nodiscard]] DocumentModule *documentModuleGet() const {
@@ -142,6 +158,14 @@ public:
 
     void serviceModuleSet(ServiceModule *module) {
         m_serviceModule = module;
+    }
+
+    [[nodiscard]] StructureModule *structureModuleGet() const {
+        return m_structureModule;
+    }
+
+    void structureModuleSet(StructureModule *module) {
+        m_structureModule = module;
     }
 
     [[nodiscard]] AgentModule *agentModuleGet() const {
@@ -235,6 +259,7 @@ private:
     AgentModule *m_agentModule{};
     BreakpointModule *m_breakpointModule{};
     DebugModule *m_debugModule{};
+    DiagnosticsModule *m_diagnosticsModule{};
     DocumentModule *m_documentModule{};
     ExplorerModule *m_explorerModule{};
     FileModule *m_fileModule{};
@@ -242,6 +267,7 @@ private:
     LogModule *m_logModule{};
     NuspellModule *m_nuspellModule{};
     PortModule *m_portModule{};
+    StructureModule *m_structureModule{};
     TerminalModule *m_terminalModule{};
     ThreadpoolModule *m_threadpoolModule{};
     ToastModule *m_toastModule{};

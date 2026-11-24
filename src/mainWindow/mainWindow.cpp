@@ -87,23 +87,8 @@ void MainWindow::propertySet() {
     m_overlay->rootContext()->setContextProperty("breakpointModule", m_breakpointModule);
     m_overlay->rootContext()->setContextProperty("debugModule", m_debugModule);
     m_overlay->rootContext()->setContextProperty("gitModule", m_gitModule);
-    m_overlay->rootContext()->setContextProperty("menuModule", m_menuModule);
     // m_overlay->rootContext()->setContextProperty("structureModule", m_structureModule);
     m_overlay->rootContext()->setContextProperty("fileModule", m_fileModule);
-    m_overlay->rootContext()->setContextProperty("undoModule", m_undoModule);
-
-    m_overlay->rootContext()->setContextProperty("agentModuleAction", QVariant::fromValue(m_agentModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("breakpointModuleAction", QVariant::fromValue(m_breakpointModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("debugModuleAction", QVariant::fromValue(m_debugModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("diagnosticsModuleAction", QVariant::fromValue(m_diagnosticsModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("explorerModuleAction", QVariant::fromValue(m_explorerModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("portModuleAction", QVariant::fromValue(m_portModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("structureModuleAction", QVariant::fromValue(m_structureModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("threadpoolModuleAction", QVariant::fromValue(m_threadpoolModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("watchModuleAction", QVariant::fromValue(m_watchModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("logModuleAction", QVariant::fromValue(m_logModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("gitModuleAction", QVariant::fromValue(m_gitModule->toggleAction()));
-    m_overlay->rootContext()->setContextProperty("serviceModuleAction", QVariant::fromValue(m_serviceModule->toggleAction()));
 }
 
 void MainWindow::propertyGet(const QVariantMap &objects) {
@@ -126,11 +111,8 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"agentModuleModelMenu", objects["agentModuleModelMenu"]}
     };
     m_agentModule->propertySet(agentObjects);
-
     m_breakpointModule->propertySet();
-
     m_debugModule->propertySet();
-
     m_diagnosticsModule->propertySet();
 
     const QVariantHash documentObjects = {
@@ -141,7 +123,6 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"documentModuleDwellSuggestionMenu", objects["documentModuleDwellSuggestionMenu"]}
     };
     m_documentModule->propertySet(documentObjects);
-
     m_explorerModule->propertySet();
 
     const QVariantHash gitObjects = {
@@ -154,34 +135,15 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
         {"gitModuleLogMenu", objects["gitModuleLogMenu"]}
     };
     m_gitModule->propertySet(gitObjects);
-
     m_logModule->propertySet();
-
-    const QVariantHash menuObjects = {
-        {"menuModuleFileMenu", objects["menuModuleFileMenu"]},
-        {"menuModuleEditMenu", objects["menuModuleEditMenu"]},
-        {"menuModuleViewMenu", objects["menuModuleViewMenu"]},
-        {"menuModuleNavMenu", objects["menuModuleNavMenu"]},
-        {"menuModuleCodeMenu", objects["menuModuleCodeMenu"]},
-        {"menuModuleExecMenu", objects["menuModuleExecMenu"]},
-        {"menuModuleGitMenu", objects["menuModuleGitMenu"]}
-    };
-    m_menuModule->propertySet(menuObjects);
-
+    m_menuModule->propertySet();
     m_portModule->propertySet();
-
     m_serviceModule->propertySet();
-
     m_statusModule->propertySet();
-
     m_structureModule->propertySet();
-
     m_fileModule->propertySet();
-
     m_terminalModule->propertySet();
-
     m_threadpoolModule->propertySet();
-
     m_watchModule->propertySet();
 }
 
@@ -369,6 +331,7 @@ void MainWindow::moduleInit() {
     g_globalManager->agentModuleSet(m_agentModule);
     g_globalManager->breakpointModuleSet(m_breakpointModule);
     g_globalManager->debugModuleSet(m_debugModule);
+    g_globalManager->diagnosticsModuleSet(m_diagnosticsModule);
     g_globalManager->documentModuleSet(m_documentModule);
     g_globalManager->explorerModuleSet(m_explorerModule);
     g_globalManager->fileModuleSet(m_fileModule);
@@ -376,6 +339,7 @@ void MainWindow::moduleInit() {
     g_globalManager->logModuleSet(m_logModule);
     g_globalManager->nuspellModuleSet(m_nuspellModule);
     g_globalManager->portModuleSet(m_portModule);
+    g_globalManager->structureModuleSet(m_structureModule);
     g_globalManager->terminalModuleSet(m_terminalModule);
     g_globalManager->threadpoolModuleSet(m_threadpoolModule);
     g_globalManager->undoModuleSet(m_undoModule);
@@ -446,8 +410,6 @@ void MainWindow::moduleInit() {
     connect(m_gitModule, &GitModule::appendBackground, m_statusModule, &StatusModule::backgroundAppend);
     connect(m_gitModule, &GitModule::removeBackground, m_statusModule, &StatusModule::backgroundRemove);
     connect(m_gitModule, &GitModule::refreshBackground, m_statusModule, &StatusModule::backgroundRefresh);
-
-    connect(m_menuModule, &MenuModule::setTheme, this, &MainWindow::themeSet);
 
     connect(m_nuspellModule, &NuspellModule::responseSpellCheck, m_documentModule, &DocumentModule::spellCheckResponse);
 
