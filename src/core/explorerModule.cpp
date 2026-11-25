@@ -97,8 +97,13 @@ int ExplorerModel::columnCount(const QModelIndex &parent) const {
     return parent.column() > 0 ? 0 : 1;
 }
 
-void ExplorerModel::gitStatusSet(const QHash<QUrl, GitStatusResult::Entry> &files) {
-    m_documentStatus = files;
+void ExplorerModel::gitStatusSet(const QList<GitStatusResult::Entry> &files) {
+    m_documentStatus.clear();
+    // prefer untracked or ignored entries
+    for (const auto &file: files) {
+        if (!m_documentStatus.contains(file.documentUrl) || file.indexStatus == GitFileStatus::Untracked || file.indexStatus == GitFileStatus::Ignored)
+            m_documentStatus.insert(file.documentUrl, file);
+    }
     gitStatusNotify(index(rootPath()));
 }
 

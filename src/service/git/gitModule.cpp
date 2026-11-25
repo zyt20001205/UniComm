@@ -90,7 +90,7 @@ void GitModule::propertySet() {
 
     connect(m_gitService, &GitService::gitDirChanged, this, &GitModule::gitRepo);
     connect(m_gitService, &GitService::refsChanged, this, &GitModule::upstreamGet);
-    connect(m_gitService, &GitService::indexChanged, this, &GitModule::gitStatus);
+    connect(m_gitService, &GitService::indexChanged, this, &GitModule::statusGet);
     if (m_gitService->hasRepoGet()) {
         gitRepo();
         upstreamGet();
@@ -339,6 +339,50 @@ void GitModule::showGet(const QString &hash) {
 }
 
 // public: working tree
+void GitModule::statusGet() {
+    m_gitService->statusGet().then(this, [this](const GitStatusResult &result) {
+        if (!result.success) {
+            emit showErrorDialog(tr("Git command failed"), result.output);
+            return;
+        }
+
+        m_workingTreeModel->clear();
+        m_indexModel->clear();
+        QHash<QString, QStandardItem *> workingTreeFolders{};
+        QHash<QString, QStandardItem *> indexFolders{};
+        const QDir workTree(m_gitService->repoGet().workTreePath);
+        for (const auto &file : result.files) {
+            const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
+            const auto appendFile = [&](StatusModel *model, QHash<QString, QStandardItem *> &folders, GitFileStatus::Value status) {
+                auto *parent = model->invisibleRootItem();
+                QString folderPath{};
+                for (qsizetype i = 0; i + 1 < path.size(); ++i) {
+                    folderPath += path.at(i);
+                    auto &folder = folders[folderPath];
+                    if (!folder) {
+                        folder = new QStandardItem(path.at(i));
+                        folder->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
+                        folder->setData(QUrl::fromLocalFile(workTree.filePath(folderPath)), StatusModel::DocumentUrlRole);
+                        parent->appendRow(folder);
+                    }
+                    parent = folder;
+                    folderPath += '/';
+                }
+                auto *item = new QStandardItem(file.documentUrl.fileName());
+                item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
+                item->setData(file.documentUrl, StatusModel::DocumentUrlRole);
+                item->setData(status, StatusModel::StatusRole);
+                parent->appendRow(item);
+            };
+            if (file.workingTreeStatus != GitFileStatus::Unmodified)
+                appendFile(m_workingTreeModel, workingTreeFolders, file.workingTreeStatus);
+            if (file.indexStatus != GitFileStatus::Unmodified && file.indexStatus != GitFileStatus::Untracked)
+                appendFile(m_indexModel, indexFolders, file.indexStatus);
+        }
+        emit expandChanges();
+    });
+}
+
 QFuture<bool> GitModule::add(const QUrl &url) {
     return m_gitService->add(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
@@ -370,11 +414,7 @@ void GitModule::gitCommitPre() {
     emit resetCommit();
     m_commitWindow->resize(1080, 720);
     m_commitWindow->show();
-    gitStatus();
-}
-
-void GitModule::gitStatus() {
-    processEnqueue(GitCommand::Status, QStringList{"--no-optional-locks", "status", "-uall", "--porcelain"});
+    statusGet();
 }
 
 void GitModule::gitCommit(const QString &subject) {
@@ -587,93 +627,6 @@ void GitModule::processFinished(const int exitcode) {
                     emit openDocument(documentUrl);
                     emit refreshBackground(m_taskId, operation + tr("%1 file(s) left").arg(QString::number(paths.size())));
                 }
-            }
-            break;
-            case GitCommand::Status: {
-                m_workingTreeModel->clear();
-                m_indexModel->clear();
-                QHash<QString, QStandardItem *> workingTreeRoots{};
-                QHash<QString, QStandardItem *> indexRoots{};
-
-                const auto changes = output.split('\n');
-                for (const auto &value: changes) {
-                    if (value.size() < 4) continue;
-                    const auto &change = QString::fromUtf8(value);
-
-                    const auto indexStatus = GitFileStatus::fromCode(change.at(0));
-                    const auto workingTreeStatus = GitFileStatus::fromCode(change.at(1));
-                    auto path = change.mid(3).trimmed();
-                    if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
-                        GitFileStatus::Copied)
-                        path = path.section(" -> ", 1);
-                    const auto &documentPath = workTree.filePath(path);
-                    const auto &documentUrl = QUrl::fromLocalFile(documentPath);
-                    const auto &display = documentUrl.fileName();
-                    const auto &source = uni_cast<QFileIcon>(documentUrl);
-                    const auto &pathList = path.split('/');
-
-                    // append working tree model
-                    if (workingTreeStatus != GitFileStatus::Unmodified) {
-                        QStandardItem *rootItem{};
-                        QString rootPath{};
-                        for (int i = 0; i < pathList.size() - 1; ++i) {
-                            if (!rootPath.isEmpty()) rootPath += '/';
-                            rootPath += pathList[i];
-
-                            auto *_rootItem = workingTreeRoots.value(rootPath);
-                            if (!_rootItem) {
-                                _rootItem = new QStandardItem(pathList[i]); // NOLINT
-                                _rootItem->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                                _rootItem->setData(QUrl::fromLocalFile(workTree.filePath(rootPath)), StatusModel::DocumentUrlRole);
-
-                                if (rootItem) rootItem->appendRow(_rootItem);
-                                else m_workingTreeModel->appendRow(_rootItem);
-                                workingTreeRoots.insert(rootPath, _rootItem);
-                            }
-                            rootItem = _rootItem;
-                        }
-
-                        auto *item = new QStandardItem(display); // NOLINT
-                        item->setData(source.value, Qt::DecorationRole);
-                        item->setData(documentUrl, StatusModel::DocumentUrlRole);
-                        item->setData(workingTreeStatus, StatusModel::StatusRole);
-                        if (rootItem) rootItem->appendRow(item);
-                        else m_workingTreeModel->appendRow(item);
-
-                        // skip index model if not added
-                        if (workingTreeStatus == GitFileStatus::Untracked) continue;
-                    }
-
-                    // append index model
-                    if (indexStatus != GitFileStatus::Unmodified) {
-                        QStandardItem *rootItem{};
-                        QString rootPath{};
-                        for (int i = 0; i < pathList.size() - 1; ++i) {
-                            if (!rootPath.isEmpty()) rootPath += '/';
-                            rootPath += pathList[i];
-
-                            auto *_rootItem = indexRoots.value(rootPath);
-                            if (!_rootItem) {
-                                _rootItem = new QStandardItem(pathList[i]); // NOLINT
-                                _rootItem->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                                _rootItem->setData(QUrl::fromLocalFile(workTree.filePath(rootPath)), StatusModel::DocumentUrlRole);
-
-                                if (rootItem) rootItem->appendRow(_rootItem);
-                                else m_indexModel->appendRow(_rootItem);
-                                indexRoots.insert(rootPath, _rootItem);
-                            }
-                            rootItem = _rootItem;
-                        }
-
-                        auto *item = new QStandardItem(display); // NOLINT
-                        item->setData(source.value, Qt::DecorationRole);
-                        item->setData(documentUrl, StatusModel::DocumentUrlRole);
-                        item->setData(indexStatus, StatusModel::StatusRole);
-                        if (rootItem) rootItem->appendRow(item);
-                        else m_indexModel->appendRow(item);
-                    }
-                }
-                emit expandChanges();
             }
             break;
             case GitCommand::Ahead: {

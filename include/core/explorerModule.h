@@ -66,7 +66,7 @@ public:
 
     [[nodiscard]] int columnCount(const QModelIndex &parent) const override;
 
-    void gitStatusSet(const QHash<QUrl, GitStatusResult::Entry> &files);
+    void gitStatusSet(const QList<GitStatusResult::Entry> &files);
 
 private:
     void gitStatusNotify(const QModelIndex &parent);

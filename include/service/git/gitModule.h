@@ -89,6 +89,8 @@ public:
     Q_INVOKABLE void showGet(const QString &hash);
 
     // public: working tree
+    void statusGet();
+
     Q_INVOKABLE QFuture<bool> add(const QUrl &url = QUrl());
 
     Q_INVOKABLE void untrack(const QUrl &url);
@@ -99,8 +101,6 @@ public:
 
     // public: legacy
     Q_INVOKABLE void gitCommitPre();
-
-    void gitStatus();
 
     Q_INVOKABLE void gitCommit(const QString &subject);
 
@@ -212,7 +212,6 @@ private:
     struct GitCommand {
         enum {
             Null,
-            Status,
             Commit,
             Fetch,
             Ahead,

@@ -235,7 +235,7 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
                 const auto indexStatus = GitFileStatus::fromCode(record.at(0));
                 const auto workingTreeStatus = GitFileStatus::fromCode(record.at(1));
                 const auto path = QDir::cleanPath(workTree.filePath(record.sliced(3)));
-                status.files.insert(QUrl::fromLocalFile(path), {.indexStatus = indexStatus, .workingTreeStatus = workingTreeStatus});
+                status.files.append({QUrl::fromLocalFile(path), indexStatus, workingTreeStatus});
                 // renames and copies carry the original path in the next record
                 if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied ||
                     workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus == GitFileStatus::Copied)

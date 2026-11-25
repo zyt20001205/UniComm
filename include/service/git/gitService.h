@@ -65,11 +65,12 @@ struct GitShowResult : GitResult {
 
 struct GitStatusResult : GitResult {
     struct Entry {
+        QUrl documentUrl;
         GitFileStatus::Value indexStatus;
         GitFileStatus::Value workingTreeStatus;
     };
 
-    QHash<QUrl, Entry> files{};
+    QList<Entry> files{};
 };
 
 class GitService : public BaseService {
