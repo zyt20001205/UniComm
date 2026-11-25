@@ -58,6 +58,8 @@ public:
     void restoreState() const;
 
     // public: repo
+    Q_INVOKABLE void init();
+
     void gitRepo();
 
     // public: branch
@@ -96,8 +98,6 @@ public:
     Q_INVOKABLE void unignore(const QUrl &url);
 
     // public: legacy
-    Q_INVOKABLE void gitInit();
-
     Q_INVOKABLE void gitCommitPre();
 
     void gitStatus();
@@ -212,7 +212,6 @@ private:
     struct GitCommand {
         enum {
             Null,
-            Init,
             Status,
             Commit,
             Fetch,

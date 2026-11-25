@@ -112,6 +112,12 @@ void GitModule::restoreState() const {
 }
 
 // public: repo
+void GitModule::init() {
+    m_gitService->init().then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
 void GitModule::gitRepo() {
     const auto &repo = m_gitService->repoGet();
     m_process->setWorkingDirectory(repo.workTreePath);
@@ -357,11 +363,6 @@ void GitModule::unignore(const QUrl &url) {
     m_gitService->unignore(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
-}
-
-// public: legacy
-void GitModule::gitInit() {
-    processEnqueue(GitCommand::Init, QStringList{"init"});
 }
 
 // public: commit
@@ -815,10 +816,6 @@ void GitModule::processFinished(const int exitcode) {
         }
         // state machine
         switch (command) {
-            case GitCommand::Init: {
-                m_gitService->repoRefresh();
-            }
-            break;
             case GitCommand::Fetch:
             case GitCommand::Continue:
             case GitCommand::Abort:

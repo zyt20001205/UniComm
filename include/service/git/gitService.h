@@ -94,6 +94,8 @@ public:
     QFuture<GitResult> versionGet();
 
     // public: repo
+    QFuture<GitResult> init();
+
     [[nodiscard]] const GitRepoResult &repoGet() const {
         return m_repo;
     }

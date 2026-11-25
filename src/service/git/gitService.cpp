@@ -55,6 +55,15 @@ QFuture<GitResult> GitService::versionGet() {
 }
 
 // public: repo
+QFuture<GitResult> GitService::init() {
+    return processEnqueue({"init"}).then(this, [this](const GitResult &result) {
+        // update service state
+        if (result.success) repoRefresh();
+        else statusSet(Status::Error);
+        return result;
+    });
+}
+
 QFuture<GitRepoResult> GitService::repoRefresh() {
     return processEnqueue({"rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir", "--git-path", "index"}).then(
         this, [this](const GitResult &result) {
