@@ -268,6 +268,34 @@ QFuture<GitResult> GitService::untrack(const QUrl &url) {
     });
 }
 
+QFuture<GitResult> GitService::restore(const QUrl &url, const GitRestoreMode::Value mode) {
+    QStringList arguments{"restore"};
+    switch (mode) {
+        case GitRestoreMode::Worktree:
+            arguments << "--worktree";
+            break;
+        case GitRestoreMode::Staged:
+            arguments << "--staged";
+            break;
+        case GitRestoreMode::Both:
+            arguments << "--worktree" << "--staged";
+            break;
+        default:
+            return QtFuture::makeReadyValueFuture(GitResult{.output = tr("Unknown restore mode.")});
+    }
+    if (url.isEmpty()) arguments << "--" << ":/";
+    else {
+        arguments.prepend("--literal-pathspecs");
+        arguments << "--" << url.toLocalFile();
+    }
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        if (result.success) emit indexChanged();
+        return result;
+    });
+}
+
 QFuture<GitResult> GitService::ignore(const QUrl &url) {
     const auto result = ignoreSet(url, true);
     if (!result.success) return QtFuture::makeReadyValueFuture(result);

@@ -264,7 +264,7 @@ Item {
                     }
 
                     onClicked: {
-                        root.gitModule.gitRestore(indexTreeView.documentUrl, GitRestoreMode.Staged)
+                        root.gitModule.restore(indexTreeView.documentUrl, GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }
@@ -291,7 +291,7 @@ Item {
                     }
 
                     onClicked: {
-                        root.gitModule.gitRestore("", GitRestoreMode.Staged)
+                        root.gitModule.restore("", GitRestoreMode.Staged)
                         indexTreeView.selectedRow = -1
                         indexTreeView.documentUrl = ""
                     }

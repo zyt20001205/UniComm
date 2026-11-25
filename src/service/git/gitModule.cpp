@@ -397,6 +397,12 @@ void GitModule::untrack(const QUrl &url) {
     });
 }
 
+void GitModule::restore(const QUrl &url, const GitRestoreMode::Value mode) {
+    m_gitService->restore(url, mode).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
 void GitModule::ignore(const QUrl &url) {
     m_gitService->ignore(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
@@ -540,26 +546,6 @@ void GitModule::gitContinue(const QString &message) {
 
 void GitModule::gitDiff() {
     processEnqueue(GitCommand::Diff, QStringList{"diff", "--name-only", "--diff-filter=U"});
-}
-
-void GitModule::gitRestore(const QUrl &documentUrl, const GitRestoreMode::Value mode) {
-    QStringList arguments{"restore"};
-    switch (mode) {
-        case GitRestoreMode::Worktree: arguments << "--worktree";
-            break;
-        case GitRestoreMode::Staged: arguments << "--staged";
-            break;
-        case GitRestoreMode::Both: arguments << "--worktree" << "--staged";
-            break;
-        default: return;
-    }
-    if (documentUrl.isEmpty()) {
-        arguments << ":/";
-    } else {
-        const auto documentPath = documentUrl.toLocalFile();
-        arguments << documentPath;
-    }
-    processEnqueue(GitCommand::Restore, arguments);
 }
 
 // git config

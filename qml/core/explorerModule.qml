@@ -592,19 +592,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Worktree)
+                    onTriggered: global.gitModule.restore(fileMenu.documentUrl, GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Staged)
+                    onTriggered: global.gitModule.restore(fileMenu.documentUrl, GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore(fileMenu.documentUrl, GitRestoreMode.Both)
+                    onTriggered: global.gitModule.restore(fileMenu.documentUrl, GitRestoreMode.Both)
                 }
             }
 
@@ -729,19 +729,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Worktree)
+                    onTriggered: global.gitModule.restore(folderMenu.documentUrl, GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Staged)
+                    onTriggered: global.gitModule.restore(folderMenu.documentUrl, GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore(folderMenu.documentUrl, GitRestoreMode.Both)
+                    onTriggered: global.gitModule.restore(folderMenu.documentUrl, GitRestoreMode.Both)
                 }
             }
 
@@ -830,19 +830,19 @@ Item {
                 MenuItem {
                     text: qsTr("Worktree")
 
-                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Worktree)
+                    onTriggered: global.gitModule.restore("", GitRestoreMode.Worktree)
                 }
 
                 MenuItem {
                     text: qsTr("Staged")
 
-                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Staged)
+                    onTriggered: global.gitModule.restore("", GitRestoreMode.Staged)
                 }
 
                 MenuItem {
                     text: qsTr("Both")
 
-                    onTriggered: global.gitModule.gitRestore("", GitRestoreMode.Both)
+                    onTriggered: global.gitModule.restore("", GitRestoreMode.Both)
                 }
             }
         }

@@ -95,6 +95,8 @@ public:
 
     Q_INVOKABLE void untrack(const QUrl &url);
 
+    Q_INVOKABLE void restore(const QUrl &url, GitRestoreMode::Value mode);
+
     Q_INVOKABLE void ignore(const QUrl &url);
 
     Q_INVOKABLE void unignore(const QUrl &url);
@@ -135,8 +137,6 @@ public:
     Q_INVOKABLE void gitContinue(const QString &message);
 
     Q_INVOKABLE void gitDiff();
-
-    Q_INVOKABLE void gitRestore(const QUrl &documentUrl, GitRestoreMode::Value mode);
 
     Q_INVOKABLE void gitProxyGet() const;
 
@@ -227,8 +227,7 @@ private:
             CherryPick,
             Abort,
             Continue,
-            Diff,
-            Restore
+            Diff
         };
     };
 };
