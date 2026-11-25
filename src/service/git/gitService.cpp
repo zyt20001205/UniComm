@@ -96,6 +96,14 @@ QFuture<GitResult> GitService::branchCreate(const QString &startPoint, const QSt
     });
 }
 
+QFuture<GitResult> GitService::branchDelete(const QString &name) {
+    return processEnqueue({"branch", "-D", "--", name}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // public: history
 QFuture<GitLogResult> GitService::logGet(const QString &ref) {
     return processEnqueue({"log", "-z", "--no-show-signature", "--format=tformat:%H%x00%P%x00%ar%x00%an%x00%s", ref, "--"})

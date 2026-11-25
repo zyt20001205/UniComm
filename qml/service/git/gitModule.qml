@@ -116,9 +116,8 @@ Item {
                     Accessible.name: qsTr("Create Branch")
 
                     onClicked: {
-                        const row = branchTreeView.selectedRow
-                        const index = branchTreeView.index(row, 0)
-                        const ref = row >= 0 ? refFilter.data(index, GitModule.RefRole) : ""
+                        const index = branchTreeView.selectedIndex
+                        const ref = index ? refFilter.data(index, GitModule.RefRole) : ""
                         branchCreateDialog.openFor(ref || "HEAD", ref ? refFilter.data(index, Qt.DisplayRole) : "")
                     }
 
@@ -127,6 +126,34 @@ Item {
                         onPointChanged: {
                             mainTooltip.position = parent.mapToGlobal(point.position)
                             mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
+                Button {
+                    id: deleteButton
+                    flat: true
+                    checkable: true
+                    enabled: branchTreeView.selectedIndex !== null && refFilter.data(branchTreeView.selectedIndex, GitModule.TypeRole) === GitRefType.Local
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: checked ? qsTr("Confirm deletion") : qsTr("Delete Branch")
+
+                    onToggled: { if (!checked) root.gitModule.branchDelete(refFilter.data(branchTreeView.selectedIndex, Qt.DisplayRole)) }
+
+                    Timer {
+                        interval: 1000
+                        running: deleteButton.checked
+                        onTriggered: deleteButton.checked = false
+                    }
+
+                    HoverHandler {
+                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                        onPointChanged: {
+                            mainTooltip.position = deleteButton.mapToGlobal(point.position)
+                            mainTooltip.text = deleteButton.Accessible.name
                         }
                     }
                 }
@@ -157,6 +184,8 @@ Item {
                     model: refFilter
                     reuseItems: false
                     property int selectedRow: -1
+                    readonly property var selectedIndex: selectedRow >= 0 ? index(selectedRow, 0) : null
+                    onSelectedRowChanged: deleteButton.checked = false
 
                     ScrollBar.vertical: ScrollBar {
                         id: treeScrollBar
@@ -275,7 +304,6 @@ Item {
 
                             onTapped: {
                                 if (!hasChildren && model.type !== GitRefType.Tag) {
-                                    branchMenu.ref = model.ref
                                     branchMenu.name = model.display
                                     branchMenu.type = model.type
                                     const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
@@ -1035,10 +1063,8 @@ Item {
         id: branchMenu
         parent: mainOverlay
         popupType: Popup.Item
-        property string ref
         property string name
         property int type
-        readonly property bool local: type === GitRefType.Local || type === GitRefType.Current
 
         onOpened: {
             global.mainWindow.overlayFlagSet(false, true)
@@ -1056,41 +1082,14 @@ Item {
         }
 
         MenuItem {
-            text: qsTr("Create")
-            enabled: branchMenu.local
-            icon.source: "qrc:/icon/add.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: branchCreateDialog.openFor(branchMenu.ref, branchMenu.name)
-        }
-
-        MenuItem {
             text: qsTr("Rename")
-            enabled: branchMenu.local
+            enabled: branchMenu.type === GitRefType.Local || branchMenu.type === GitRefType.Current
             icon.source: "qrc:/icon/rename.svg"
             icon.width: 16; icon.height: 16
 
             onTriggered: {
                 branchRenameDialog.name = branchMenu.name
                 branchRenameDialog.open()
-            }
-        }
-
-        Menu {
-            title: qsTr("Delete")
-            enabled: branchMenu.local
-            icon.source: "qrc:/icon/delete.svg"
-            icon.width: 16; icon.height: 16
-
-            DelayButton {
-                delay: 1000
-                text: qsTr("Confirm")
-
-                onActivated: {
-                    root.gitModule.gitDelete(branchMenu.name)
-                    progress = 0
-                    branchMenu.close()
-                }
             }
         }
 
