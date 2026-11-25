@@ -37,8 +37,10 @@ EditorWidget::EditorWidget(const QJsonObject &documentConfig, const QUrl &docume
     layout->addWidget(m_searchWidget);
     layout->addWidget(m_scintillaWidget);
 
-    documentOpen();
-    connect(m_scintillaWidget, &ScintillaEdit::modifyAttemptReadOnly, this, &EditorWidget::permissionSet);
+    if (!documentUrl.isEmpty()) {
+        documentOpen();
+        connect(m_scintillaWidget, &ScintillaEdit::modifyAttemptReadOnly, this, &EditorWidget::permissionSet);
+    }
     connect(m_scintillaWidget, &ScintillaEdit::savePointChanged, this, &EditorWidget::changeSavepoint);
     connect(m_scintillaWidget, &ScintillaEdit::updateUi, this, [this](const Scintilla::Update updated) {
         if (static_cast<int>(updated) & static_cast<int>(Scintilla::Update::Selection)) m_selectionTimer->start();

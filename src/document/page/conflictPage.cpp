@@ -1,16 +1,18 @@
 #include "document/page/conflictPage.h"
 
-#include <QDir>
-#include <QFileInfo>
-#include <QShortcut>
 #include <QGridLayout>
+#include <QLabel>
+#include <QTextStream>
 
 #include "globals.h"
-#include "service/git/gitModule.h"
 #include "core/globalManager.h"
 #include "document/module/conflictWidget.h"
+#include "document/module/editorWidget.h"
 #include "document/module/resolveWidget.h"
 #include "document/module/scintillaWidget.h"
+#include "service/git/gitModule.h"
+#include "service/git/gitService.h"
+#include "service/serviceModule.h"
 
 // public
 ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &documentUrl)
@@ -21,8 +23,22 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
     setIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? QIcon(":/icon/gitBranchConflictLight.svg") : QIcon(":/icon/gitBranchConflictDark.svg"));
     auto *layout = new QGridLayout(m_widget); // NOLINT
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(m_conflictWidget, 0, 0);
-    layout->addWidget(m_resolveWidget, 0, 0, Qt::AlignBottom | Qt::AlignHCenter);
+    auto *ours = new EditorWidget(documentConfig, {}, m_widget);
+    auto *theirs = new EditorWidget(documentConfig, {}, m_widget);
+    for (auto *editor : {ours, theirs}) {
+        editor->propertySet();
+        editor->handler()->readonlySet(true);
+    }
+    auto *oursLabel = new QLabel(tr("Ours"), m_widget);
+    auto *theirsLabel = new QLabel(tr("Theirs"), m_widget);
+    layout->addWidget(oursLabel, 0, 0);
+    layout->addWidget(new QLabel(tr("Working Tree"), m_widget), 0, 1);
+    layout->addWidget(theirsLabel, 0, 2);
+    layout->addWidget(ours, 1, 0);
+    layout->addWidget(m_conflictWidget, 1, 1);
+    layout->addWidget(m_resolveWidget, 1, 1, Qt::AlignBottom | Qt::AlignHCenter);
+    layout->addWidget(theirs, 1, 2);
+    for (int column = 0; column < 3; ++column) layout->setColumnStretch(column, 1);
     setWidget(m_widget);
     connect(m_conflictWidget, &ConflictWidget::appendLog, this, &ConflictPage::appendLog);
     connect(m_conflictWidget, &ConflictWidget::changeSavepoint, this, &ConflictPage::savepointChange);
@@ -31,6 +47,24 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
     connect(m_conflictWidget, &EditorWidget::showPermissionDialog, this, &DocumentPage::showPermissionDialog);
     connect(m_conflictWidget, &ConflictWidget::statResolve, m_resolveWidget, &ResolveWidget::resolveStat);
     connect(m_resolveWidget, &ResolveWidget::finishResolve, this, &ConflictPage::resolveFinish);
+
+    auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
+    git->conflictGet(documentUrl).then(this, [this, ours, theirs, oursLabel, theirsLabel](const GitConflictResult &result) {
+        if (!result.success) {
+            emit appendLog(LogType::Error, tr("Git command failed"), result.text());
+            return;
+        }
+        if (!result.base && !result.ours && !result.theirs) return;
+        const auto display = [](const ScintillaWidget *editor, const QByteArray &contents) {
+            editor->readonlySet(false);
+            editor->textAppend(QTextStream(contents).readAll());
+            editor->readonlySet(true);
+        };
+        if (result.ours) display(ours->handler(), *result.ours);
+        else oursLabel->setText(tr("Ours (deleted)"));
+        if (result.theirs) display(theirs->handler(), *result.theirs);
+        else theirsLabel->setText(tr("Theirs (deleted)"));
+    });
 }
 
 void ConflictPage::propertySet() const {
