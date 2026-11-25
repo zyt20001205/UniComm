@@ -89,6 +89,12 @@ public:
     // public: working tree
     Q_INVOKABLE QFuture<bool> add(const QUrl &url = QUrl());
 
+    Q_INVOKABLE void untrack(const QUrl &url);
+
+    Q_INVOKABLE void ignore(const QUrl &url);
+
+    Q_INVOKABLE void unignore(const QUrl &url);
+
     // public: legacy
     Q_INVOKABLE void gitInit();
 
@@ -132,8 +138,6 @@ public:
 
     Q_INVOKABLE void gitRestore(const QUrl &documentUrl, GitRestoreMode::Value mode);
 
-    Q_INVOKABLE void gitIgnore(const QUrl &documentUrl, bool status);
-
     Q_INVOKABLE void gitProxyGet() const;
 
     Q_INVOKABLE void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const;
@@ -160,8 +164,6 @@ signals:
     void setCommitDetails(const QString &subject, const QString &date, const QString &author);
 
     void setPushCommitDetails(const QString &subject, const QString &date, const QString &author);
-
-    void ignoreChanged();
 
     void openDocument(const QUrl &documentUrl);
 
@@ -228,8 +230,7 @@ private:
             Abort,
             Continue,
             Diff,
-            Restore,
-            Ignore
+            Restore
         };
     };
 };

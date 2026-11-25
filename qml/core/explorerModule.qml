@@ -574,6 +574,15 @@ Item {
                 }
             }
 
+            MenuItem {
+                text: qsTr("Untrack")
+                enabled: !fileMenu.gitUntracked && !fileMenu.gitIgnored
+                icon.source: "qrc:/icon/subtractSquare.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.gitModule.untrack(fileMenu.documentUrl)
+            }
+
             Menu {
                 title: qsTr("Restore")
                 enabled: !fileMenu.gitUntracked && !fileMenu.gitIgnored
@@ -604,7 +613,10 @@ Item {
                 icon.source: "qrc:/icon/prohibited.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: global.gitModule.gitIgnore(fileMenu.documentUrl, !fileMenu.gitIgnored)
+                onTriggered: {
+                    if (fileMenu.gitIgnored) global.gitModule.unignore(fileMenu.documentUrl)
+                    else global.gitModule.ignore(fileMenu.documentUrl)
+                }
             }
         }
     }
@@ -701,6 +713,14 @@ Item {
                 }
             }
 
+            MenuItem {
+                text: qsTr("Untrack Folder")
+                icon.source: "qrc:/icon/subtractSquare.svg"
+                icon.width: 16; icon.height: 16
+
+                onTriggered: global.gitModule.untrack(folderMenu.documentUrl)
+            }
+
             Menu {
                 title: qsTr("Restore Folder")
                 icon.source: "qrc:/icon/reset.svg"
@@ -730,7 +750,7 @@ Item {
                 icon.source: "qrc:/icon/prohibited.svg"
                 icon.width: 16; icon.height: 16
 
-                onTriggered: global.gitModule.gitIgnore(folderMenu.documentUrl, true)
+                onTriggered: global.gitModule.ignore(folderMenu.documentUrl)
             }
         }
     }

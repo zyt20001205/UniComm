@@ -127,6 +127,12 @@ public:
 
     QFuture<GitResult> add(const QUrl &url = {});
 
+    QFuture<GitResult> untrack(const QUrl &url);
+
+    QFuture<GitResult> ignore(const QUrl &url);
+
+    QFuture<GitResult> unignore(const QUrl &url);
+
 signals:
     void availableChanged();
 
@@ -142,6 +148,8 @@ private:
     void detailUpdate();
 
     void repoWatch();
+
+    GitResult ignoreSet(const QUrl &url, bool ignored);
 
     QFuture<GitResult> processEnqueue(const QStringList &arguments);
 

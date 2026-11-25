@@ -6,7 +6,6 @@
 #include <QQuickItem>
 #include <QQuickView>
 #include <QQuickWidget>
-#include <QTextStream>
 
 #include "core/globalManager.h"
 #include "mainWindow/mainWindow.h"
@@ -342,6 +341,24 @@ QFuture<bool> GitModule::add(const QUrl &url) {
     });
 }
 
+void GitModule::untrack(const QUrl &url) {
+    m_gitService->untrack(url).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
+void GitModule::ignore(const QUrl &url) {
+    m_gitService->ignore(url).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
+void GitModule::unignore(const QUrl &url) {
+    m_gitService->unignore(url).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
 // public: legacy
 void GitModule::gitInit() {
     processEnqueue(GitCommand::Init, QStringList{"init"});
@@ -502,59 +519,6 @@ void GitModule::gitRestore(const QUrl &documentUrl, const GitRestoreMode::Value 
         arguments << documentPath;
     }
     processEnqueue(GitCommand::Restore, arguments);
-}
-
-void GitModule::gitIgnore(const QUrl &documentUrl, const bool status) {
-    // check file and open
-    const QDir workTree(m_gitService->repoGet().workTreePath);
-    const auto gitignorePath = workTree.filePath(".gitignore");
-    auto gitignoreFile = QFile(gitignorePath);
-    if (!gitignoreFile.exists()) {
-        if (!gitignoreFile.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-        gitignoreFile.close();
-    }
-    // read to string list
-    QStringList gitignoreList{};
-    if (!gitignoreFile.open(QIODevice::ReadOnly | QIODevice::Text)) return;
-    QTextStream in(&gitignoreFile);
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        gitignoreList.append(line);
-    }
-    gitignoreFile.close();
-    // ready to add / remove
-    const auto documentPath = documentUrl.toLocalFile();
-    const auto relativePath = '/' + workTree.relativeFilePath(documentPath);
-    if (status) {
-        bool inserted = false;
-        for (int i = 0; i < gitignoreList.size(); ++i) {
-            if (gitignoreList[i].startsWith('#') || gitignoreList[i].trimmed().isEmpty()) continue;
-            if (relativePath == gitignoreList[i]) break;
-            if (relativePath < gitignoreList[i]) {
-                gitignoreList.insert(i, relativePath);
-                inserted = true;
-                break;
-            }
-        }
-        if (!inserted) gitignoreList.append(relativePath);
-    } else {
-        gitignoreList.removeAll(relativePath);
-    }
-    // write back
-    if (!gitignoreFile.open(QIODevice::WriteOnly | QIODevice::Text)) return;
-    QTextStream out(&gitignoreFile);
-    for (const QString &line: gitignoreList) {
-        out << line << "\n";
-    }
-    gitignoreFile.close();
-
-    if (status) {
-        QStringList args{"rm"};
-        if (QFileInfo(documentPath).isDir())args << "-r";
-        args << "--cached" << "--ignore-unmatch" << "--" << documentPath;
-        processEnqueue(GitCommand::Ignore, args);
-    }
-    emit ignoreChanged();
 }
 
 // git config

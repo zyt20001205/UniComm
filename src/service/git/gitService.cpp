@@ -2,6 +2,8 @@
 
 #include <QDir>
 #include <QDirListing>
+#include <QFile>
+#include <QSaveFile>
 #include <utility>
 
 #include "globals.h"
@@ -239,13 +241,32 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
 }
 
 QFuture<GitResult> GitService::add(const QUrl &url) {
-    const QStringList arguments = url.isEmpty() ? QStringList{"add", "--all"}
-                                                : QStringList{"--literal-pathspecs", "add", "--", url.toLocalFile()};
+    const QStringList arguments = url.isEmpty()
+                                      ? QStringList{"add", "--all"}
+                                      : QStringList{"--literal-pathspecs", "add", "--", url.toLocalFile()};
     return processEnqueue(arguments).then(this, [this](const GitResult &result) {
         // update service state
         statusSet(result.success ? Status::Stopped : Status::Error);
         return result;
     });
+}
+
+QFuture<GitResult> GitService::untrack(const QUrl &url) {
+    return processEnqueue({"--literal-pathspecs", "rm", "-r", "--cached", "--ignore-unmatch", "--", url.toLocalFile()}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
+QFuture<GitResult> GitService::ignore(const QUrl &url) {
+    const auto result = ignoreSet(url, true);
+    if (!result.success) return QtFuture::makeReadyValueFuture(result);
+    return untrack(url);
+}
+
+QFuture<GitResult> GitService::unignore(const QUrl &url) {
+    return QtFuture::makeReadyValueFuture(ignoreSet(url, false));
 }
 
 // private
@@ -310,6 +331,44 @@ void GitService::repoWatch() {
     if (changed.intersects(operationFiles)) emit gitDirChanged();
     if (changed.contains(head) || changed.contains(packedRefs) || changed.contains(config) || changed.contains(refs)) emit refsChanged();
     if (changed.contains(m_repo.indexPath)) emit indexChanged();
+}
+
+GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
+    const QDir workTree(m_repo.workTreePath);
+    auto rule = '/' + workTree.relativeFilePath(url.toLocalFile()).toUtf8();
+    rule.replace("\\", "\\\\").replace("*", "\\*").replace("?", "\\?").replace("[", "\\[");
+    if (rule.endsWith(' ')) rule.insert(rule.size() - 1, '\\');
+
+    QFile file(workTree.filePath(".gitignore"));
+    QByteArray contents{};
+    QByteArray newline = "\n";
+    bool found = false;
+    if (file.exists()) {
+        if (!file.open(QIODevice::ReadOnly)) return {.output = file.errorString()};
+        if (file.peek(3) == "\xef\xbb\xbf") contents = file.read(3);
+        while (!file.atEnd()) {
+            const auto line = file.readLine();
+            if (line.endsWith('\n')) newline = line.endsWith("\r\n") ? "\r\n" : "\n";
+            if (line == rule || line == rule + newline) {
+                found = true;
+                if (!ignored) continue;
+            }
+            contents.append(line);
+        }
+        if (file.error() != QFileDevice::NoError) return {.output = file.errorString()};
+        file.close();
+    }
+    if (found == ignored) return {.success = true};
+    if (ignored) {
+        if (!contents.isEmpty() && !contents.endsWith('\n')) contents.append(newline);
+        contents.append(rule).append(newline);
+    }
+
+    QSaveFile output(file.fileName());
+    if (!output.open(QIODevice::WriteOnly) || output.write(contents) != contents.size() || !output.commit())
+        return {.output = output.errorString()};
+    emit indexChanged();
+    return {.success = true};
 }
 
 QFuture<GitResult> GitService::processEnqueue(const QStringList &arguments) {
