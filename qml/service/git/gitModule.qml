@@ -11,7 +11,7 @@ import UniComm
 Item {
     id: root
     required property GitModule gitModule
-    readonly property bool hasRepository: global.serviceModule.git.hasRepository
+    readonly property bool hasRepo: global.serviceModule.git.hasRepo
     property bool hasRefs: root.gitModule.refs.rowCount() > 0
     anchors.fill: parent
 
@@ -58,7 +58,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        visible: global.serviceModule.git.status !== 1 && (!root.hasRepository || !root.hasRefs)
+        visible: global.serviceModule.git.status !== 1 && (!root.hasRepo || !root.hasRefs)
 
         RowLayout {
             anchors.centerIn: parent
@@ -68,15 +68,15 @@ Item {
                 enabled: global.serviceModule.git.status !== 2
                 text: !global.serviceModule.git.available ? qsTr("Git is unavailable.")
                     : !enabled ? qsTr("Unable to open Git repository.")
-                    : !root.hasRepository ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
+                    : !root.hasRepo ? qsTr("Click to create git repository.") : qsTr("Click to create first commit.")
                 font.pixelSize: 16
                 Layout.alignment: Qt.AlignVCenter
 
-                onClicked: !root.hasRepository ? root.gitModule.gitInit() : root.gitModule.gitCommitPre()
+                onClicked: !root.hasRepo ? root.gitModule.gitInit() : root.gitModule.gitCommitPre()
             }
 
             IconImage {
-                source: !root.hasRepository ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
+                source: !root.hasRepo ? "qrc:/icon/fileTypeGit.svg" : "qrc:/icon/gitCommit.svg"
                 color: global.theme.general.fore
                 Layout.alignment: Qt.AlignVCenter
             }
@@ -87,7 +87,7 @@ Item {
         id: splitView
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: root.hasRepository && root.hasRefs
+        visible: root.hasRepo && root.hasRefs
         handle: Item {
             implicitWidth: 5
 

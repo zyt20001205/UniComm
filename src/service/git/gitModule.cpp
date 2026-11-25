@@ -1,9 +1,8 @@
 #include "service/git/gitModule.h"
 
 #include <kddockwidgets/core/DockWidget.h>
-#include <QDirIterator>
+#include <QDir>
 #include <QFileInfo>
-#include <QFileSystemWatcher>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QQuickWidget>
@@ -26,12 +25,6 @@ GitModule::GitModule()
       m_commitWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_pushWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_process(new QProcess(this)),
-      m_repoWatcher(new QFileSystemWatcher(this)),
-      m_repoWatcherTimer(new QTimer(this)),
-      m_indexWatcher(new QFileSystemWatcher(this)),
-      m_indexWatcherTimer(new QTimer(this)),
-      m_branchWatcher(new QFileSystemWatcher(this)),
-      m_branchWatcherTimer(new QTimer(this)),
       m_gitConfig(new GitConfig(this)),
       m_refs(new QStandardItemModel(this)),
       m_log(new QStandardItemModel(this)),
@@ -58,25 +51,6 @@ GitModule::GitModule()
     m_process->setProcessEnvironment(env);
     m_process->setWorkingDirectory(g_workspaceUrl.toLocalFile());
     connect(m_process, &QProcess::finished, this, [this](const int exitcode) { processFinished(exitcode); });
-
-    connect(m_repoWatcher, &QFileSystemWatcher::directoryChanged, this, [this] { m_repoWatcherTimer->start(); });
-    // connect(m_repoWatcher, &QFileSystemWatcher::directoryChanged, this, [](const QString &filePath) { qDebug() << "repo changed:" << filePath; });
-    m_repoWatcherTimer->setSingleShot(true);
-    m_repoWatcherTimer->setInterval(100);
-    connect(m_repoWatcherTimer, &QTimer::timeout, this, &GitModule::gitRepo);
-
-    connect(m_indexWatcher, &QFileSystemWatcher::fileChanged, this, [this] { m_indexWatcherTimer->start(); });
-    // connect(m_indexWatcher, &QFileSystemWatcher::fileChanged, this, [](const QString &filePath) { qDebug() << "index changed:" << filePath; });
-    m_indexWatcherTimer->setSingleShot(true);
-    m_indexWatcherTimer->setInterval(100);
-    connect(m_indexWatcherTimer, &QTimer::timeout, this, &GitModule::updateIndex);
-    connect(m_indexWatcherTimer, &QTimer::timeout, this, &GitModule::gitStatus);
-
-    connect(m_branchWatcher, &QFileSystemWatcher::fileChanged, this, [this] { m_branchWatcherTimer->start(); });
-    // connect(m_branchWatcher, &QFileSystemWatcher::fileChanged, this, [](const QString &filePath) { qDebug() << "branch changed:" << filePath; });
-    m_branchWatcherTimer->setSingleShot(true);
-    m_branchWatcherTimer->setInterval(100);
-    connect(m_branchWatcherTimer, &QTimer::timeout, this, &GitModule::refsGet);
 }
 
 GitModule::~GitModule() {
@@ -115,8 +89,13 @@ void GitModule::propertySet() {
     m_pushWindow->setResizeMode(QQuickView::SizeRootObjectToView);
     m_pushWindow->setSource(QUrl("qrc:/qml/service/git/gitPushWindow.qml"));
 
-    connect(m_gitService, &GitService::hasRepositoryChanged, this, &GitModule::gitWatch);
-    gitWatch();
+    connect(m_gitService, &GitService::gitDirChanged, this, &GitModule::gitRepo);
+    connect(m_gitService, &GitService::refsChanged, this, &GitModule::upstreamGet);
+    connect(m_gitService, &GitService::indexChanged, this, &GitModule::gitStatus);
+    if (m_gitService->hasRepoGet()) {
+        gitRepo();
+        upstreamGet();
+    }
 }
 
 void GitModule::saveState() const {
@@ -194,35 +173,12 @@ void GitModule::gitPush() {
     gitStatusSet(GitOperationState::Transfer);
 }
 
-// public: file watcher
-void GitModule::gitWatch() {
-    if (m_gitService->rootPathGet().isEmpty()) return;
-    m_process->setWorkingDirectory(m_gitService->rootPathGet());
-    // repo watcher
-    const QDir gitDir(m_gitService->gitDirPathGet());
-    m_repoWatcher->addPath(gitDir.path());
-    // index watcher
-    const auto &indexPath = gitDir.filePath("index");
-    if (QFileInfo::exists(indexPath)) m_indexWatcher->addPath(indexPath);
-    // branch watcher
-    const auto &files = m_branchWatcher->files();
-    if (!files.isEmpty()) m_branchWatcher->removePaths(files);
-    const auto &headPath = gitDir.filePath("HEAD");
-    const auto &refsPath = gitDir.filePath("refs");
-    if (QFileInfo::exists(headPath)) m_branchWatcher->addPath(headPath);
-    if (QFileInfo::exists(refsPath)) {
-        auto iterator = QDirIterator(refsPath, QDir::Files, QDirIterator::Subdirectories);
-        while (iterator.hasNext()) m_branchWatcher->addPath(iterator.next());
-    }
-
-    emit updateIndex();
-    gitRepo();
-    upstreamGet();
-}
-
+// public: repo
 void GitModule::gitRepo() {
+    const auto &repo = m_gitService->repoGet();
+    m_process->setWorkingDirectory(repo.workTreePath);
     if (m_gitStatus == GitOperationState::Transfer) return;
-    const auto &gitDir = QDir(m_gitService->gitDirPathGet());
+    const QDir gitDir(repo.gitDirPath);
     // merge
     if (QFileInfo::exists(gitDir.filePath("MERGE_HEAD"))) {
         m_taskId = emit appendBackground(
@@ -264,21 +220,17 @@ void GitModule::upstreamGet() {
     });
 }
 
-// success -> upstreamGet()
 // failure -> showErrorDialog()
 void GitModule::upstreamSet(const QString &upstream) {
     m_gitService->upstreamSet(upstream).then(this, [this](const GitResult &result) {
-        if (result.success) upstreamGet();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
-// success -> upstreamGet()
 // failure -> showErrorDialog()
 void GitModule::upstreamUnset() {
     m_gitService->upstreamUnset().then(this, [this](const GitResult &result) {
-        if (result.success) upstreamGet();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
@@ -331,39 +283,31 @@ void GitModule::refsGet() {
     });
 }
 
-// success -> gitWatch()
 // failure -> showErrorDialog()
 void GitModule::branchCreate(const QString &startPoint, const QString &name, const bool checkout) {
     m_gitService->branchCreate(startPoint, name, checkout).then(this, [this](const GitResult &result) {
-        if (result.success) gitWatch();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
-// success -> upstreamGet()
 // failure -> showErrorDialog()
 void GitModule::branchSwitch(const QString &name) {
     m_gitService->branchSwitch(name).then(this, [this](const GitResult &result) {
-        if (result.success) upstreamGet();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
-// success -> gitWatch()
 // failure -> showErrorDialog()
 void GitModule::branchRename(const QString &oldName, const QString &newName) {
     m_gitService->branchRename(oldName, newName).then(this, [this](const GitResult &result) {
-        if (result.success) gitWatch();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
-// success -> gitWatch()
 // failure -> showErrorDialog()
 void GitModule::branchDelete(const QString &name) {
     m_gitService->branchDelete(name).then(this, [this](const GitResult &result) {
-        if (result.success) gitWatch();
-        else emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
@@ -426,10 +370,10 @@ void GitModule::showGet(const QString &hash) {
 
         m_show->removeRows(0, m_show->rowCount());
         m_showHash = hash;
-        const QDir root(m_gitService->rootPathGet());
+        const QDir workTree(m_gitService->repoGet().workTreePath);
         QHash<QString, QStandardItem *> folders{};
         for (const auto &file : result.files) {
-            const auto path = root.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
+            const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
             auto *parent = m_show->invisibleRootItem();
             QString folderPath{};
             for (qsizetype i = 0; i + 1 < path.size(); ++i) {
@@ -562,7 +506,8 @@ void GitModule::gitRestore(const QUrl &documentUrl, const GitRestoreMode::Value 
 
 void GitModule::gitIgnore(const QUrl &documentUrl, const bool status) {
     // check file and open
-    const auto gitignorePath = QDir(m_gitService->rootPathGet()).filePath(".gitignore");
+    const QDir workTree(m_gitService->repoGet().workTreePath);
+    const auto gitignorePath = workTree.filePath(".gitignore");
     auto gitignoreFile = QFile(gitignorePath);
     if (!gitignoreFile.exists()) {
         if (!gitignoreFile.open(QIODevice::WriteOnly | QIODevice::Text)) return;
@@ -579,8 +524,7 @@ void GitModule::gitIgnore(const QUrl &documentUrl, const bool status) {
     gitignoreFile.close();
     // ready to add / remove
     const auto documentPath = documentUrl.toLocalFile();
-    const auto workspaceDir = QDir(m_gitService->rootPathGet());
-    const auto relativePath = '/' + workspaceDir.relativeFilePath(documentPath);
+    const auto relativePath = '/' + workTree.relativeFilePath(documentPath);
     if (status) {
         bool inserted = false;
         for (int i = 0; i < gitignoreList.size(); ++i) {
@@ -609,9 +553,8 @@ void GitModule::gitIgnore(const QUrl &documentUrl, const bool status) {
         if (QFileInfo(documentPath).isDir())args << "-r";
         args << "--cached" << "--ignore-unmatch" << "--" << documentPath;
         processEnqueue(GitCommand::Ignore, args);
-    } else {
-        emit updateIndex();
     }
+    emit ignoreChanged();
 }
 
 // git config
@@ -647,7 +590,7 @@ void GitModule::processFinished(const int exitcode) {
     m_command = GitCommand::Null;
     // output
     if (exitcode == 0) {
-        const QDir rootDir(m_gitService->rootPathGet());
+        const QDir workTree(m_gitService->repoGet().workTreePath);
         // output parser
         switch (command) {
             case GitCommand::ShowFile: {
@@ -674,7 +617,7 @@ void GitModule::processFinished(const int exitcode) {
                 }
                 // continue conflict resolve
                 else {
-                    const auto &documentPath = rootDir.filePath(paths.first());
+                    const auto &documentPath = workTree.filePath(paths.first());
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     emit openDocument(documentUrl);
                     emit refreshBackground(m_taskId, operation + tr("%1 file(s) left").arg(QString::number(paths.size())));
@@ -698,7 +641,7 @@ void GitModule::processFinished(const int exitcode) {
                     if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied || workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus ==
                         GitFileStatus::Copied)
                         path = path.section(" -> ", 1);
-                    const auto &documentPath = rootDir.filePath(path);
+                    const auto &documentPath = workTree.filePath(path);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     const auto &display = documentUrl.fileName();
                     const auto &source = uni_cast<QFileIcon>(documentUrl);
@@ -716,7 +659,7 @@ void GitModule::processFinished(const int exitcode) {
                             if (!_rootItem) {
                                 _rootItem = new QStandardItem(pathList[i]); // NOLINT
                                 _rootItem->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                                _rootItem->setData(QUrl::fromLocalFile(rootDir.filePath(rootPath)), StatusModel::DocumentUrlRole);
+                                _rootItem->setData(QUrl::fromLocalFile(workTree.filePath(rootPath)), StatusModel::DocumentUrlRole);
 
                                 if (rootItem) rootItem->appendRow(_rootItem);
                                 else m_workingTreeModel->appendRow(_rootItem);
@@ -748,7 +691,7 @@ void GitModule::processFinished(const int exitcode) {
                             if (!_rootItem) {
                                 _rootItem = new QStandardItem(pathList[i]); // NOLINT
                                 _rootItem->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                                _rootItem->setData(QUrl::fromLocalFile(rootDir.filePath(rootPath)), StatusModel::DocumentUrlRole);
+                                _rootItem->setData(QUrl::fromLocalFile(workTree.filePath(rootPath)), StatusModel::DocumentUrlRole);
 
                                 if (rootItem) rootItem->appendRow(_rootItem);
                                 else m_indexModel->appendRow(_rootItem);
@@ -800,12 +743,12 @@ void GitModule::processFinished(const int exitcode) {
                         path2 = change[1];
                     }
                     const auto &path = path2.split('/');
-                    const auto &documentPath = rootDir.filePath(path2);
+                    const auto &documentPath = workTree.filePath(path2);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     QString display{};
                     if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         display = QString("%1 -> %2 (%3%)").arg(
-                            QUrl::fromLocalFile(rootDir.filePath(path1)).fileName(),
+                            QUrl::fromLocalFile(workTree.filePath(path1)).fileName(),
                             documentUrl.fileName(),
                             change[0].mid(1)
                         );
@@ -864,12 +807,12 @@ void GitModule::processFinished(const int exitcode) {
                         path2 = change[1];
                     }
                     const auto &path = path2.split('/');
-                    const auto &documentPath = rootDir.filePath(path2);
+                    const auto &documentPath = workTree.filePath(path2);
                     const auto &documentUrl = QUrl::fromLocalFile(documentPath);
                     QString display{};
                     if (status == GitFileStatus::Renamed || status == GitFileStatus::Copied) {
                         display = QString("%1 -> %2 (%3%)").arg(
-                            QUrl::fromLocalFile(rootDir.filePath(path1)).fileName(),
+                            QUrl::fromLocalFile(workTree.filePath(path1)).fileName(),
                             documentUrl.fileName(),
                             change[0].mid(1)
                         );
@@ -909,24 +852,13 @@ void GitModule::processFinished(const int exitcode) {
         // state machine
         switch (command) {
             case GitCommand::Init: {
-                m_gitService->repositoryGet();
+                m_gitService->repoRefresh();
             }
             break;
             case GitCommand::Add: {
-                if (m_current.isEmpty()) {
-                    gitWatch();
-                    gitStatus();
-                }
                 if (m_gitStatus != GitOperationState::Idle) {
                     emit addFinish();
                     gitDiff();
-                }
-            }
-            break;
-            case GitCommand::Commit: {
-                if (m_current.isEmpty()) {
-                    gitWatch();
-                    gitStatus();
                 }
             }
             break;
@@ -936,7 +868,6 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Push: {
                 emit removeBackground(m_taskId);
                 gitStatusSet(GitOperationState::Idle);
-                if (command == GitCommand::Fetch) gitWatch();
             }
             break;
             case GitCommand::Ahead: gitDiff_();
@@ -949,8 +880,6 @@ void GitModule::processFinished(const int exitcode) {
                 else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
             }
             break;
-            case GitCommand::CherryPick: gitWatch();
-                break;
             default: break;
         }
     }

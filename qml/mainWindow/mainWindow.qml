@@ -220,6 +220,7 @@ Item {
         id: mainWindowLinkMenu
         property url url
 
+        onAboutToShow: openLinkItem.visible = !(url.toString().startsWith("file:") && global.fileModule.fileInfo(url).directory)
         onOpened: {
             root.mainWindow.overlayFlagSet(false, true)
             widgetCount += 1
@@ -235,7 +236,10 @@ Item {
         }
 
         MenuItem {
+            id: openLinkItem
             text: qsTr("Open")
+            height: visible ? implicitHeight : 0
+            enabled: visible
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 

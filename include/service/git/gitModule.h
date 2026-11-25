@@ -9,7 +9,6 @@
 
 #include "types/gitTypes.h"
 
-class QFileSystemWatcher;
 class QProcess;
 class QQuickView;
 class QQuickWidget;
@@ -76,8 +75,6 @@ public:
     Q_INVOKABLE void gitShowCommit_(const QString &hash);
 
     Q_INVOKABLE void gitPush();
-
-    void gitWatch();
 
     void gitRepo();
 
@@ -158,7 +155,7 @@ signals:
 
     void setPushCommitDetails(const QString &subject, const QString &date, const QString &author);
 
-    void updateIndex();
+    void ignoreChanged();
 
     void openDocument(const QUrl &documentUrl);
 
@@ -187,12 +184,6 @@ private:
     int m_command{};
     QProcess *m_process{};
     QQueue<QVariantHash> m_queue{};
-    QFileSystemWatcher *m_repoWatcher{};
-    QTimer *m_repoWatcherTimer{};
-    QFileSystemWatcher *m_indexWatcher{};
-    QTimer *m_indexWatcherTimer{};
-    QFileSystemWatcher *m_branchWatcher{};
-    QTimer *m_branchWatcherTimer{};
     QString m_current{};
     QString m_upstream{};
     int m_taskId{-1};

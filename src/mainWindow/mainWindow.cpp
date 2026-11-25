@@ -378,7 +378,7 @@ void MainWindow::moduleInit() {
     connect(m_fileModule, &FileModule::removeBackground, m_statusModule, &StatusModule::backgroundRemove);
     connect(m_fileModule, &FileModule::refreshBackground, m_statusModule, &StatusModule::backgroundRefresh);
 
-    connect(m_gitModule, &GitModule::updateIndex, m_explorerModule, &ExplorerModule::indexUpdate);
+    connect(m_gitModule, &GitModule::ignoreChanged, m_explorerModule, &ExplorerModule::indexUpdate);
     connect(m_gitModule, &GitModule::openDocument, m_documentModule, &DocumentModule::documentOpen);
     connect(m_gitModule, &GitModule::appendBackground, m_statusModule, &StatusModule::backgroundAppend);
     connect(m_gitModule, &GitModule::removeBackground, m_statusModule, &StatusModule::backgroundRemove);

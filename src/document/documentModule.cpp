@@ -252,7 +252,7 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         webPage->propertySet();
     }
     // conflict page
-    else if (!g_globalManager->serviceModuleGet()->gitServiceGet()->rootPathGet().isEmpty()) {
+    else if (g_globalManager->serviceModuleGet()->gitServiceGet()->hasRepoGet()) {
         QProcess process{};
         process.setWorkingDirectory(g_workspaceUrl.toLocalFile());
         process.start("git", {"diff", "--name-only", "--diff-filter=U", "--", documentUrl.toLocalFile()});

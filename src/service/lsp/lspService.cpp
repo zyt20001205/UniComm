@@ -204,9 +204,9 @@ void LspService::parser() {
                 const auto serverInfo = json["result"].toObject().value("serverInfo").toObject();
                 QString detail{};
                 if (const auto name = serverInfo.value("name").toString(); !name.isEmpty()) {
-                    detail = QString("<b>%1</b> %2").arg(tr("Server:"), name.toHtmlEscaped());
+                    detail = QString("<b>%1</b><br>%2").arg(tr("Server:"), name.toHtmlEscaped());
                     if (const auto version = serverInfo.value("version").toString(); !version.isEmpty())
-                        detail += QString("<br><b>%1</b> %2").arg(tr("Version:"), version.toHtmlEscaped());
+                        detail += QString("<br><b>%1</b><br>%2").arg(tr("Version:"), version.toHtmlEscaped());
                 }
                 detailSet(detail);
                 emit initialized(json);

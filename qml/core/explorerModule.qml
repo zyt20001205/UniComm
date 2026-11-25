@@ -559,7 +559,7 @@ Item {
 
         Menu {
             title: qsTr("Git")
-            enabled: global.serviceModule.git.hasRepository
+            enabled: global.serviceModule.git.hasRepo
             icon.source: "qrc:/icon/fileTypeGit.svg"
             icon.width: 16; icon.height: 16
 
@@ -687,7 +687,7 @@ Item {
 
         Menu {
             title: qsTr("Git")
-            enabled: global.serviceModule.git.hasRepository
+            enabled: global.serviceModule.git.hasRepo
             icon.source: "qrc:/icon/fileTypeGit.svg"
             icon.width: 16; icon.height: 16
 
@@ -788,7 +788,7 @@ Item {
 
         Menu {
             title: qsTr("Git")
-            enabled: global.serviceModule.git.hasRepository
+            enabled: global.serviceModule.git.hasRepo
             icon.source: "qrc:/icon/fileTypeGit.svg"
             icon.width: 16; icon.height: 16
 

@@ -2,9 +2,11 @@
 #define UNICOMM_GITSERVICE_H
 
 #include <queue>
+#include <QFileSystemWatcher>
 #include <QFuture>
 #include <QProcess>
 #include <QPromise>
+#include <QSet>
 #include <QTimer>
 #include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
@@ -17,9 +19,11 @@ struct GitResult {
     QString output{};
 };
 
-struct GitRepositoryResult : GitResult {
-    QString rootPath{};
+struct GitRepoResult : GitResult {
+    QString workTreePath{};
     QString gitDirPath{};
+    QString commonDirPath{};
+    QString indexPath{};
 };
 
 struct GitRefsResult : GitResult {
@@ -72,7 +76,7 @@ class GitService : public BaseService {
     Q_OBJECT
     QML_ANONYMOUS
     Q_PROPERTY(bool available READ availableGet NOTIFY availableChanged)
-    Q_PROPERTY(bool hasRepository READ hasRepositoryGet NOTIFY hasRepositoryChanged)
+    Q_PROPERTY(bool hasRepo READ hasRepoGet NOTIFY hasRepoChanged)
 
 public:
     explicit GitService(QObject *parent = nullptr);
@@ -83,22 +87,18 @@ public:
         return m_available;
     }
 
-    [[nodiscard]] bool hasRepositoryGet() const {
-        return !m_rootPath.isEmpty();
-    }
-
-    [[nodiscard]] const QString &rootPathGet() const {
-        return m_rootPath;
-    }
-
-    [[nodiscard]] const QString &gitDirPathGet() const {
-        return m_gitDirPath;
+    [[nodiscard]] bool hasRepoGet() const {
+        return m_repo.success;
     }
 
     QFuture<GitResult> versionGet();
 
-    // public: repository
-    QFuture<GitRepositoryResult> repositoryGet();
+    // public: repo
+    [[nodiscard]] const GitRepoResult &repoGet() const {
+        return m_repo;
+    }
+
+    QFuture<GitRepoResult> repoRefresh();
 
     // public: branch
     QFuture<GitResult> upstreamGet();
@@ -128,9 +128,19 @@ public:
 signals:
     void availableChanged();
 
-    void hasRepositoryChanged();
+    void hasRepoChanged();
+
+    void gitDirChanged();
+
+    void refsChanged();
+
+    void indexChanged();
 
 private:
+    void detailUpdate();
+
+    void repoWatch();
+
     QFuture<GitResult> processEnqueue(const QStringList &arguments);
 
     void processStart();
@@ -149,8 +159,12 @@ private:
     QTimer m_timeout{};
 
     bool m_available{};
-    QString m_rootPath{};
-    QString m_gitDirPath{};
+    QString m_version{};
+    GitRepoResult m_repo{};
+
+    QFileSystemWatcher m_watcher{};
+    QTimer m_watchTimer{};
+    QSet<QString> m_changedPaths{};
 };
 
 #endif //UNICOMM_GITSERVICE_H

@@ -16,9 +16,11 @@ ExplorerModule::ExplorerModule()
     m_widget->setAcceptDrops(true);
     m_widget->installEventFilter(this);
     auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
-    connect(git, &GitService::hasRepositoryChanged, this, [this, git] {
-        if (!git->hasRepositoryGet()) m_model->gitStatusSet({});
+    connect(git, &GitService::indexChanged, this, &ExplorerModule::indexUpdate);
+    connect(git, &GitService::hasRepoChanged, this, [this, git] {
+        if (!git->hasRepoGet()) indexUpdate();
     });
+    indexUpdate();
 }
 
 ExplorerModule::~ExplorerModule() {
@@ -41,7 +43,10 @@ void ExplorerModule::propertySet() const {
 
 void ExplorerModule::indexUpdate() {
     auto *git = g_globalManager->serviceModuleGet()->gitServiceGet();
-    if (!git->hasRepositoryGet()) return;
+    if (!git->hasRepoGet()) {
+        m_model->gitStatusSet({});
+        return;
+    }
     git->statusGet(true).then(this, [this](const GitStatusResult &result) {
         if (!result.success) return;
         m_model->gitStatusSet(result.files);
