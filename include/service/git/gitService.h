@@ -105,6 +105,8 @@ public:
 
     QFuture<GitRefsResult> refsGet();
 
+    QFuture<GitResult> branchCreate(const QString &startPoint, const QString &name, bool checkout);
+
     // public: history
     QFuture<GitLogResult> logGet(const QString &ref);
 

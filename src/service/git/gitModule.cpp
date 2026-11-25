@@ -312,15 +312,17 @@ void GitModule::refsGet() {
     });
 }
 
-void GitModule::gitSwitch(const QString &name) {
-    processEnqueue(GitCommand::Switch, QStringList{"switch", name});
+// success -> gitWatch()
+// failure -> showErrorDialog()
+void GitModule::branchCreate(const QString &startPoint, const QString &name, const bool checkout) {
+    m_gitService->branchCreate(startPoint, name, checkout).then(this, [this](const GitResult &result) {
+        if (result.success) gitWatch();
+        else emit showErrorDialog(tr("Git command failed"), result.output);
+    });
 }
 
-void GitModule::gitCreate(const QString &src, const QString &dst, const bool _switch) {
-    QStringList arguments{};
-    if (_switch) arguments = QStringList{"switch", "-c", dst, src};
-    else arguments = QStringList{"branch", dst, src};
-    processEnqueue(GitCommand::Create, arguments);
+void GitModule::gitSwitch(const QString &name) {
+    processEnqueue(GitCommand::Switch, QStringList{"switch", name});
 }
 
 void GitModule::gitRename(const QString &src, const QString &dst) {
@@ -918,7 +920,6 @@ void GitModule::processFinished(const int exitcode) {
                 break;
             case GitCommand::Switch: upstreamGet();
                 break;
-            case GitCommand::Create:
             case GitCommand::Rename:
             case GitCommand::Delete:
             case GitCommand::CherryPick: gitWatch();

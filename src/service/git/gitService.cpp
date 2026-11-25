@@ -86,6 +86,16 @@ QFuture<GitRefsResult> GitService::refsGet() {
         });
 }
 
+QFuture<GitResult> GitService::branchCreate(const QString &startPoint, const QString &name, const bool checkout) {
+    const QStringList arguments = checkout ? QStringList{"switch", "-c", name, "--", startPoint}
+                                           : QStringList{"branch", "--", name, startPoint};
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // public: history
 QFuture<GitLogResult> GitService::logGet(const QString &ref) {
     return processEnqueue({"log", "-z", "--no-show-signature", "--format=tformat:%H%x00%P%x00%ar%x00%an%x00%s", ref, "--"})

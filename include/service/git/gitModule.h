@@ -31,6 +31,9 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     Q_PROPERTY(int laneCount READ laneCountGet NOTIFY logChanged)
 
 public:
+    enum RefsRole { RefRole = Qt::UserRole + 1, TypeRole };
+    Q_ENUM(RefsRole)
+
     enum LogRole { HashRole = Qt::UserRole + 1, PositionRole, ParentsRole };
     Q_ENUM(LogRole)
 
@@ -89,9 +92,9 @@ public:
 
     Q_INVOKABLE void refsGet();
 
-    Q_INVOKABLE void gitSwitch(const QString &name);
+    Q_INVOKABLE void branchCreate(const QString &startPoint, const QString &name, bool checkout);
 
-    Q_INVOKABLE void gitCreate(const QString &src, const QString &dst, bool _switch);
+    Q_INVOKABLE void gitSwitch(const QString &name);
 
     Q_INVOKABLE void gitRename(const QString &src, const QString &dst);
 
@@ -193,7 +196,6 @@ private:
 
     GitConfig *m_gitConfig{};
 
-    enum Role { RefRole = Qt::UserRole + 1, TypeRole };
     QStandardItemModel *m_refs{};
     QStandardItemModel *m_log{};
     int m_laneCount{};
@@ -224,7 +226,6 @@ private:
             UpstreamSet,
             UpstreamUnset,
             Switch,
-            Create,
             Rename,
             Delete,
             Reset,
