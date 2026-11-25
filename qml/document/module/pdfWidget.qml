@@ -2,20 +2,14 @@ import QtQuick
 import QtQuick.Pdf
 
 Item {
-    id: rootItem
+    id: root
+    required property url source
     anchors.fill: parent
 
     PdfMultiPageView {
         anchors.fill: parent
         document: PdfDocument {
-            id: pdf
+            source: root.source
         }
-    }
-
-    Component.onCompleted: {
-        const objects = {
-            "pdf": pdf,
-        };
-        pdfPage.propertyGet(objects)
     }
 }

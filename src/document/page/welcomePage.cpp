@@ -1,21 +1,18 @@
 #include "document/page/welcomePage.h"
 
-#include <QQmlContext>
 #include <QQuickWidget>
 
 #include "core/globalManager.h"
 
 // public
 WelcomePage::WelcomePage()
-    : DockWidget("welcome") ,
-    m_welcomeWidget(new QQuickWidget()){
+    : DockWidget("welcome"),
+      m_welcomeWidget(new QQuickWidget(g_globalManager->engineGet(), nullptr)) {
     setWidget(m_welcomeWidget);
 }
 
 void WelcomePage::propertySet() {
-    m_welcomeWidget->rootContext()->setContextProperty("welcomePage", this);
-    m_welcomeWidget->rootContext()->setContextProperty("global", g_globalManager);
-
+    m_welcomeWidget->setInitialProperties({{"welcomePage", QVariant::fromValue(this)}});
     m_welcomeWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_welcomeWidget->setSource(QUrl("qrc:/qml/document/page/welcomePage.qml"));
 }

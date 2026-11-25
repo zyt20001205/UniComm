@@ -3,7 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Item {
-    id: rootItem
+    id: root
+    required property QtObject welcomePage
     anchors.fill: parent
 
     Rectangle {
@@ -20,7 +21,7 @@ Item {
             text: qsTr("Open Workspace")
             font.pixelSize: 16
 
-            onClicked: welcomePage.workspaceOpen()
+            onClicked: root.welcomePage.workspaceOpen()
         }
 
         Button {
@@ -29,7 +30,7 @@ Item {
             text: qsTr("GitHub")
             font.pixelSize: 16
 
-            onClicked: welcomePage.documentOpen("https://github.com/zyt20001205/UniComm")
+            onClicked: root.welcomePage.documentOpen("https://github.com/zyt20001205/UniComm")
         }
     }
 }

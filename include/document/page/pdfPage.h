@@ -16,13 +16,10 @@ public:
 
     void propertySet();
 
-    Q_INVOKABLE void propertyGet(const QVariantMap &objects);
-
     [[nodiscard]] QString textGet(int page) const;
 
 private:
     QQuickWidget *m_pdfWidget{};
-    QObject *m_pdf{};
     QPdfDocument *m_doc{};
 };
 
