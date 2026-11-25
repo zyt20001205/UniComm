@@ -353,7 +353,7 @@ void GitModule::statusGet() {
         const QDir workTree(m_gitService->repoGet().workTreePath);
         for (const auto &file : result.files) {
             const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
-            const auto appendFile = [&](StatusModel *model, QHash<QString, QStandardItem *> &folders, GitFileStatus::Value status) {
+            const auto appendFile = [&](const StatusModel *model, QHash<QString, QStandardItem *> &folders, GitFileStatus::Value status) {
                 auto *parent = model->invisibleRootItem();
                 QString folderPath{};
                 for (qsizetype i = 0; i + 1 < path.size(); ++i) {
