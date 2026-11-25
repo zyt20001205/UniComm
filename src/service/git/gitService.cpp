@@ -68,6 +68,22 @@ QFuture<GitResult> GitService::upstreamGet() {
     });
 }
 
+QFuture<GitResult> GitService::upstreamSet(const QString &upstream) {
+    return processEnqueue({"branch", "--set-upstream-to=" + upstream}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
+QFuture<GitResult> GitService::upstreamUnset() {
+    return processEnqueue({"branch", "--unset-upstream"}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 QFuture<GitRefsResult> GitService::refsGet() {
     return processEnqueue({"for-each-ref", "--format=%(HEAD)%00%(refname)%00%(symref)", "refs/heads", "refs/remotes", "refs/tags"})
         .then(this, [this](const GitResult &result) {

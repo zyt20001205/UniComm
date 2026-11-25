@@ -103,6 +103,10 @@ public:
     // public: branch
     QFuture<GitResult> upstreamGet();
 
+    QFuture<GitResult> upstreamSet(const QString &upstream);
+
+    QFuture<GitResult> upstreamUnset();
+
     QFuture<GitRefsResult> refsGet();
 
     QFuture<GitResult> branchCreate(const QString &startPoint, const QString &name, bool checkout);

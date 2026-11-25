@@ -256,19 +256,29 @@ void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
-void GitModule::gitUpstreamSet(const QString &upstream) {
-    processEnqueue(GitCommand::UpstreamSet, QStringList{"branch", "-u", upstream});
-}
-
-void GitModule::gitUpstreamUnset() {
-    processEnqueue(GitCommand::UpstreamSet, QStringList{"branch", "--unset-upstream"});
-}
-
 // always -> refsGet()
 void GitModule::upstreamGet() {
     m_gitService->upstreamGet().then(this, [this](const GitResult &result) {
         m_upstream = result.success ? result.output : QString{};
         refsGet();
+    });
+}
+
+// success -> upstreamGet()
+// failure -> showErrorDialog()
+void GitModule::upstreamSet(const QString &upstream) {
+    m_gitService->upstreamSet(upstream).then(this, [this](const GitResult &result) {
+        if (result.success) upstreamGet();
+        else emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
+// success -> upstreamGet()
+// failure -> showErrorDialog()
+void GitModule::upstreamUnset() {
+    m_gitService->upstreamUnset().then(this, [this](const GitResult &result) {
+        if (result.success) upstreamGet();
+        else emit showErrorDialog(tr("Git command failed"), result.output);
     });
 }
 
@@ -939,9 +949,6 @@ void GitModule::processFinished(const int exitcode) {
                 else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
             }
             break;
-            case GitCommand::UpstreamUnset:
-            case GitCommand::UpstreamSet: upstreamGet();
-                break;
             case GitCommand::CherryPick: gitWatch();
                 break;
             default: break;

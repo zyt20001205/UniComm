@@ -84,11 +84,11 @@ public:
 
     void gitRemoteGet();
 
-    Q_INVOKABLE void gitUpstreamSet(const QString &upstream);
-
-    Q_INVOKABLE void gitUpstreamUnset();
-
     void upstreamGet();
+
+    Q_INVOKABLE void upstreamSet(const QString &upstream);
+
+    Q_INVOKABLE void upstreamUnset();
 
     Q_INVOKABLE void refsGet();
 
@@ -223,8 +223,6 @@ private:
             Push,
             RemoteAdd,
             RemoteGet,
-            UpstreamSet,
-            UpstreamUnset,
             Reset,
             ShowFile,
             Merge,

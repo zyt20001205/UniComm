@@ -348,6 +348,7 @@ Item {
 
                             onTapped: {
                                 if (!hasChildren && model.type !== GitRefType.Tag) {
+                                    branchMenu.ref = model.ref
                                     branchMenu.name = model.display
                                     branchMenu.type = model.type
                                     const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
@@ -1107,6 +1108,7 @@ Item {
         id: branchMenu
         parent: mainOverlay
         popupType: Popup.Item
+        property string ref
         property string name
         property int type
 
@@ -1122,7 +1124,7 @@ Item {
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: branchMenu.type === GitRefType.Upstream ? root.gitModule.gitUpstreamUnset() : root.gitModule.gitUpstreamSet(branchMenu.name)
+            onTriggered: branchMenu.type === GitRefType.Upstream ? root.gitModule.upstreamUnset() : root.gitModule.upstreamSet(branchMenu.ref)
         }
 
         MenuItem {
