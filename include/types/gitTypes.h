@@ -4,6 +4,41 @@
 #include <QMetaObject>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+namespace GitOperationState {
+    Q_NAMESPACE
+
+    QML_ELEMENT
+
+    enum Value {
+        Idle,
+        Transfer,
+        Merge,
+        Rebase,
+        CherryPick
+    };
+
+    Q_ENUM_NS(Value)
+}
+
+namespace GitRefType {
+    Q_NAMESPACE
+
+    QML_ELEMENT
+
+    enum Value {
+        Local,
+        LocalGroup,
+        Remote,
+        RemoteGroup,
+        Tag,
+        TagGroup,
+        Current,
+        Upstream
+    };
+
+    Q_ENUM_NS(Value)
+}
+
 namespace GitFileStatus {
     Q_NAMESPACE
 
@@ -39,22 +74,6 @@ namespace GitFileStatus {
             default: return Untracked;
         }
     }
-}
-
-namespace GitOperationState {
-    Q_NAMESPACE
-
-    QML_ELEMENT
-
-    enum Value {
-        Idle,
-        Transfer,
-        Merge,
-        Rebase,
-        CherryPick
-    };
-
-    Q_ENUM_NS(Value)
 }
 
 namespace GitResetMode {

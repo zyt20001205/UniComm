@@ -243,7 +243,7 @@ Item {
                                 horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                                 text: model.display || ""
                                 elide: Text.ElideRight
-                                color: GitFileStatusStyle.color(model.status)
+                                color: GitStyle.fileStatusColor(model.status)
                                 Layout.preferredHeight: 24; Layout.fillWidth: true
                             }
                         }

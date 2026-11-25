@@ -225,7 +225,7 @@ Item {
 
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        color: GitFileStatusStyle.color(node.gitStatus)
+                        color: GitStyle.fileStatusColor(node.gitStatus)
                         text: node.model.display || ""
                         elide: Text.ElideRight
                         Layout.fillWidth: true; Layout.preferredHeight: 24

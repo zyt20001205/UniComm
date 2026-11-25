@@ -289,8 +289,17 @@ void GitModule::refsGet() {
             const auto name = ref.section('/', 2);
             auto &group = groups[kind];
             if (!group) {
-                group = new QStandardItem(kind == "heads" ? tr("Local") : kind == "remotes" ? tr("Remote") : tr("Tags"));
-                group->setData(kind, TypeRole);
+                group = new QStandardItem;
+                if (kind == "heads") {
+                    group->setText(tr("Local"));
+                    group->setData(QVariant::fromValue(GitRefType::LocalGroup), TypeRole);
+                } else if (kind == "remotes") {
+                    group->setText(tr("Remote"));
+                    group->setData(QVariant::fromValue(GitRefType::RemoteGroup), TypeRole);
+                } else {
+                    group->setText(tr("Tags"));
+                    group->setData(QVariant::fromValue(GitRefType::TagGroup), TypeRole);
+                }
                 m_refs->appendRow(group);
             }
 
@@ -298,11 +307,11 @@ void GitModule::refsGet() {
             item->setData(ref, RefRole);
             if (kind == "heads") {
                 if (current) m_current = name;
-                item->setData(current ? "current" : "local", TypeRole);
+                item->setData(QVariant::fromValue(current ? GitRefType::Current : GitRefType::Local), TypeRole);
             } else if (kind == "remotes") {
-                item->setData(ref == m_upstream ? "upstream" : "remote", TypeRole);
+                item->setData(QVariant::fromValue(ref == m_upstream ? GitRefType::Upstream : GitRefType::Remote), TypeRole);
             } else {
-                item->setData("tag", TypeRole);
+                item->setData(QVariant::fromValue(GitRefType::Tag), TypeRole);
             }
             if (ref == "refs/heads/master") group->insertRow(0, item);
             else group->appendRow(item);

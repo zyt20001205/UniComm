@@ -58,7 +58,7 @@ file(GLOB_RECURSE UNICOMM_QML CONFIGURE_DEPENDS
 
 set_source_files_properties(
         qml/util/CompletionKindStyle.qml
-        qml/util/GitFileStatusStyle.qml
+        qml/util/GitStyle.qml
         qml/util/SymbolKindStyle.qml
         PROPERTIES QT_QML_SINGLETON_TYPE TRUE
 )

@@ -232,18 +232,8 @@ Item {
                                 IconImage {
                                     anchors.centerIn: parent
                                     width: 16; height: 16
-                                    source: {
-                                        switch (model.type) {
-                                            case "heads": return "qrc:/icon/tcpClient.svg"
-                                            case "remotes": return "qrc:/icon/tcpServer.svg"
-                                            case "tags":
-                                            case "tag":
-                                            case "current": return "qrc:/icon/tag.svg"
-                                            case "upstream": return "qrc:/icon/link.svg"
-                                            default: return "qrc:/icon/gitBranch.svg"
-                                        }
-                                    }
-                                    color: ["current", "upstream"].includes(model.type) ? global.theme.general.warningFore3 : global.theme.general.fore
+                                    source: GitStyle.refIcon(model.type)
+                                    color: GitStyle.refColor(model.type)
                                 }
                             }
 
@@ -284,7 +274,7 @@ Item {
                             gesturePolicy: TapHandler.DragWithinBounds
 
                             onTapped: {
-                                if (!hasChildren && model.type !== "tag") {
+                                if (!hasChildren && model.type !== GitRefType.Tag) {
                                     branchMenu.ref = model.ref
                                     branchMenu.name = model.display
                                     branchMenu.type = model.type
@@ -665,7 +655,7 @@ Item {
                             horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
                             text: model.display || ""
                             elide: Text.ElideRight
-                            color: GitFileStatusStyle.color(model.status)
+                            color: GitStyle.fileStatusColor(model.status)
                             Layout.preferredHeight: 24; Layout.fillWidth: true
                         }
                     }
@@ -1047,7 +1037,8 @@ Item {
         popupType: Popup.Item
         property string ref
         property string name
-        property string type
+        property int type
+        readonly property bool local: type === GitRefType.Local || type === GitRefType.Current
 
         onOpened: {
             global.mainWindow.overlayFlagSet(false, true)
@@ -1057,7 +1048,7 @@ Item {
 
         MenuItem {
             text: qsTr("Switch")
-            enabled: !["current", "upstream", "remote"].includes(branchMenu.type)
+            enabled: branchMenu.type === GitRefType.Local
             icon.source: "qrc:/icon/arrowRight.svg"
             icon.width: 16; icon.height: 16
 
@@ -1066,7 +1057,7 @@ Item {
 
         MenuItem {
             text: qsTr("Create")
-            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            enabled: branchMenu.local
             icon.source: "qrc:/icon/add.svg"
             icon.width: 16; icon.height: 16
 
@@ -1075,7 +1066,7 @@ Item {
 
         MenuItem {
             text: qsTr("Rename")
-            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            enabled: branchMenu.local
             icon.source: "qrc:/icon/rename.svg"
             icon.width: 16; icon.height: 16
 
@@ -1087,7 +1078,7 @@ Item {
 
         Menu {
             title: qsTr("Delete")
-            enabled: !["upstream", "remote"].includes(branchMenu.type)
+            enabled: branchMenu.local
             icon.source: "qrc:/icon/delete.svg"
             icon.width: 16; icon.height: 16
 
@@ -1107,12 +1098,12 @@ Item {
         }
 
         MenuItem {
-            text: branchMenu.type === "upstream" ? qsTr("Unset Upstream") : qsTr("Set Upstream")
-            enabled: root.gitModule.gitStatus === GitOperationState.Idle && ["upstream", "remote"].includes(branchMenu.type)
+            text: branchMenu.type === GitRefType.Upstream ? qsTr("Unset Upstream") : qsTr("Set Upstream")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle && (branchMenu.type === GitRefType.Upstream || branchMenu.type === GitRefType.Remote)
             icon.source: "qrc:/icon/link.svg"
             icon.width: 16; icon.height: 16
 
-            onTriggered: branchMenu.type === "upstream" ? root.gitModule.gitUpstreamUnset() : root.gitModule.gitUpstreamSet(branchMenu.name)
+            onTriggered: branchMenu.type === GitRefType.Upstream ? root.gitModule.gitUpstreamUnset() : root.gitModule.gitUpstreamSet(branchMenu.name)
         }
 
         MenuItem {
