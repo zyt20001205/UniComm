@@ -96,6 +96,14 @@ QFuture<GitResult> GitService::branchCreate(const QString &startPoint, const QSt
     });
 }
 
+QFuture<GitResult> GitService::branchRename(const QString &oldName, const QString &newName) {
+    return processEnqueue({"branch", "-m", "--", oldName, newName}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 QFuture<GitResult> GitService::branchDelete(const QString &name) {
     return processEnqueue({"branch", "-D", "--", name}).then(this, [this](const GitResult &result) {
         // update service state

@@ -131,10 +131,33 @@ Item {
                 }
 
                 Button {
+                    flat: true
+                    enabled: branchTreeView.selectedType === GitRefType.Local || branchTreeView.selectedType === GitRefType.Current
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    icon.source: "qrc:/icon/rename.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: qsTr("Rename Branch")
+
+                    onClicked: {
+                        branchRenameDialog.oldName = refFilter.data(branchTreeView.selectedIndex, Qt.DisplayRole)
+                        branchRenameDialog.open()
+                    }
+
+                    HoverHandler {
+                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                        onPointChanged: {
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
+                Button {
                     id: deleteButton
                     flat: true
                     checkable: true
-                    enabled: branchTreeView.selectedIndex !== null && refFilter.data(branchTreeView.selectedIndex, GitModule.TypeRole) === GitRefType.Local
+                    enabled: branchTreeView.selectedType === GitRefType.Local
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     icon.source: checked ? "qrc:/icon/checkmark.svg" : "qrc:/icon/delete.svg"
                     icon.width: 16; icon.height: 16
@@ -185,6 +208,7 @@ Item {
                     reuseItems: false
                     property int selectedRow: -1
                     readonly property var selectedIndex: selectedRow >= 0 ? index(selectedRow, 0) : null
+                    readonly property int selectedType: selectedIndex ? refFilter.data(selectedIndex, GitModule.TypeRole) : -1
                     onSelectedRowChanged: deleteButton.checked = false
 
                     ScrollBar.vertical: ScrollBar {
@@ -1000,9 +1024,9 @@ Item {
         anchors.centerIn: parent
         width: 600
         modal: true
-        title: qsTr("Rename branch ") + branchRenameDialog.name
+        title: qsTr("Rename branch %1").arg(oldName)
         standardButtons: Dialog.Ok | Dialog.Cancel
-        property string name
+        property string oldName
 
         onOpened: {
             global.mainWindow.overlayFlagSet(false, true)
@@ -1010,12 +1034,12 @@ Item {
         }
         onClosed: mainOverlay.widgetCount -= 1
         onAboutToShow: {
-            branchRenameTextField.text = branchRenameDialog.name
+            branchRenameTextField.text = oldName
             branchRenameTextField.forceActiveFocus()
             branchRenameTextField.selectAll()
         }
 
-        onAccepted: root.gitModule.gitRename(branchRenameDialog.name, branchRenameTextField.text)
+        onAccepted: root.gitModule.branchRename(oldName, branchRenameTextField.text)
 
         TextField {
             id: branchRenameTextField
@@ -1079,18 +1103,6 @@ Item {
             icon.width: 16; icon.height: 16
 
             onTriggered: root.gitModule.gitSwitch(branchMenu.name)
-        }
-
-        MenuItem {
-            text: qsTr("Rename")
-            enabled: branchMenu.type === GitRefType.Local || branchMenu.type === GitRefType.Current
-            icon.source: "qrc:/icon/rename.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: {
-                branchRenameDialog.name = branchMenu.name
-                branchRenameDialog.open()
-            }
         }
 
         MenuSeparator {

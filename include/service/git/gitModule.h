@@ -94,11 +94,11 @@ public:
 
     Q_INVOKABLE void branchCreate(const QString &startPoint, const QString &name, bool checkout);
 
+    Q_INVOKABLE void branchRename(const QString &oldName, const QString &newName);
+
     Q_INVOKABLE void branchDelete(const QString &name);
 
     Q_INVOKABLE void gitSwitch(const QString &name);
-
-    Q_INVOKABLE void gitRename(const QString &src, const QString &dst);
 
     [[nodiscard]] int laneCountGet() const { return m_laneCount; }
 
@@ -226,7 +226,6 @@ private:
             UpstreamSet,
             UpstreamUnset,
             Switch,
-            Rename,
             Reset,
             ShowFile,
             Merge,

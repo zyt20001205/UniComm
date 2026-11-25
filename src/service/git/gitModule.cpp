@@ -332,6 +332,15 @@ void GitModule::branchCreate(const QString &startPoint, const QString &name, con
 
 // success -> gitWatch()
 // failure -> showErrorDialog()
+void GitModule::branchRename(const QString &oldName, const QString &newName) {
+    m_gitService->branchRename(oldName, newName).then(this, [this](const GitResult &result) {
+        if (result.success) gitWatch();
+        else emit showErrorDialog(tr("Git command failed"), result.output);
+    });
+}
+
+// success -> gitWatch()
+// failure -> showErrorDialog()
 void GitModule::branchDelete(const QString &name) {
     m_gitService->branchDelete(name).then(this, [this](const GitResult &result) {
         if (result.success) gitWatch();
@@ -341,10 +350,6 @@ void GitModule::branchDelete(const QString &name) {
 
 void GitModule::gitSwitch(const QString &name) {
     processEnqueue(GitCommand::Switch, QStringList{"switch", name});
-}
-
-void GitModule::gitRename(const QString &src, const QString &dst) {
-    processEnqueue(GitCommand::Rename, QStringList{"branch", "-m", src, dst});
 }
 
 // public: history
@@ -934,7 +939,6 @@ void GitModule::processFinished(const int exitcode) {
                 break;
             case GitCommand::Switch: upstreamGet();
                 break;
-            case GitCommand::Rename:
             case GitCommand::CherryPick: gitWatch();
                 break;
             default: break;
