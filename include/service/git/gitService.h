@@ -107,6 +107,8 @@ public:
 
     QFuture<GitResult> branchCreate(const QString &startPoint, const QString &name, bool checkout);
 
+    QFuture<GitResult> branchSwitch(const QString &name);
+
     QFuture<GitResult> branchRename(const QString &oldName, const QString &newName);
 
     QFuture<GitResult> branchDelete(const QString &name);

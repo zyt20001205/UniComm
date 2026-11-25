@@ -132,6 +132,26 @@ Item {
 
                 Button {
                     flat: true
+                    enabled: branchTreeView.selectedType === GitRefType.Local
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    icon.source: "qrc:/icon/arrowSwap.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: qsTr("Switch Branch")
+
+                    onClicked: root.gitModule.branchSwitch(refFilter.data(branchTreeView.selectedIndex, Qt.DisplayRole))
+
+                    HoverHandler {
+                        onHoveredChanged: { if (!hovered) mainTooltip.text = "" }
+                        onPointChanged: {
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
+                Button {
+                    flat: true
                     enabled: branchTreeView.selectedType === GitRefType.Local || branchTreeView.selectedType === GitRefType.Current
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     icon.source: "qrc:/icon/rename.svg"
@@ -1095,18 +1115,6 @@ Item {
             mainOverlay.widgetCount += 1
         }
         onClosed: mainOverlay.widgetCount -= 1
-
-        MenuItem {
-            text: qsTr("Switch")
-            enabled: branchMenu.type === GitRefType.Local
-            icon.source: "qrc:/icon/arrowRight.svg"
-            icon.width: 16; icon.height: 16
-
-            onTriggered: root.gitModule.gitSwitch(branchMenu.name)
-        }
-
-        MenuSeparator {
-        }
 
         MenuItem {
             text: branchMenu.type === GitRefType.Upstream ? qsTr("Unset Upstream") : qsTr("Set Upstream")
