@@ -59,6 +59,7 @@ void ConflictPage::savepointChange(const bool status) {
 
 void ConflictPage::resolveFinish() {
     if (!documentSave().isEmpty()) return;
-    connect(g_globalManager->gitModuleGet(), &GitModule::addFinish, this, [this] { emit reloadDocument(m_documentUrl.toLocalFile()); });
-    g_globalManager->gitModuleGet()->gitAdd(m_documentUrl);
+    g_globalManager->gitModuleGet()->add(m_documentUrl).then(this, [this](bool success) {
+        if (success) emit reloadDocument(m_documentUrl.toLocalFile());
+    });
 }

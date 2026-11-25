@@ -238,6 +238,16 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     });
 }
 
+QFuture<GitResult> GitService::add(const QUrl &url) {
+    const QStringList arguments = url.isEmpty() ? QStringList{"add", "--all"}
+                                                : QStringList{"--literal-pathspecs", "add", "--", url.toLocalFile()};
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // private
 void GitService::detailUpdate() {
     if (!m_available) {
@@ -330,7 +340,8 @@ void GitService::processFinish() {
 
     // record command
     auto [arguments, promise] = std::move(m_queue.front());
-    eventAppend(arguments.first(), success, success ? "git " + arguments.join(' ') : output);
+    const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
+    eventAppend(event, success, success ? "git " + arguments.join(' ') : output);
     m_queue.pop();
     const bool hasNext = !m_queue.empty();
     promise.addResult(GitResult{.success = success, .output = output});

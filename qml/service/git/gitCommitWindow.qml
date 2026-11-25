@@ -192,7 +192,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     highlighted: true
-                    icon.source: "qrc:/icon/arrowRight.svg"
+                    icon.source: "qrc:/icon/addSquare.svg"
                     icon.width: 16; icon.height: 16
 
                     HoverHandler {
@@ -208,7 +208,7 @@ Item {
                     }
 
                     onClicked: {
-                        root.gitModule.gitAdd()
+                        root.gitModule.add()
                         workingTreeView.selectedRow = -1
                         workingTreeView.documentUrl = ""
                     }
@@ -220,7 +220,7 @@ Item {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     enabled: workingTreeView.selectedRow !== -1
                     flat: true
-                    icon.source: "qrc:/icon/arrowRight.svg"
+                    icon.source: "qrc:/icon/addSquare.svg"
                     icon.width: 16; icon.height: 16
 
                     HoverHandler {
@@ -236,7 +236,7 @@ Item {
                     }
 
                     onClicked: {
-                        root.gitModule.gitAdd(workingTreeView.documentUrl)
+                        root.gitModule.add(workingTreeView.documentUrl)
                         workingTreeView.selectedRow = -1
                         workingTreeView.documentUrl = ""
                     }

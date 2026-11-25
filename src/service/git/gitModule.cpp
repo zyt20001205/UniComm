@@ -112,67 +112,6 @@ void GitModule::restoreState() const {
         QMetaObject::invokeMethod(m_widget->rootObject(), "restoreState", Q_ARG(QVariant, QByteArray::fromBase64(encoded.toLatin1())));
 }
 
-void GitModule::gitInit() {
-    processEnqueue(GitCommand::Init, QStringList{"init"});
-}
-
-// public: commit
-void GitModule::gitCommitPre() {
-    emit resetCommit();
-    m_commitWindow->resize(1080, 720);
-    m_commitWindow->show();
-    gitStatus();
-}
-
-void GitModule::gitStatus() {
-    processEnqueue(GitCommand::Status, QStringList{"--no-optional-locks", "status", "-uall", "--porcelain"});
-}
-
-void GitModule::gitCommit(const QString &subject) {
-    m_commitWindow->close();
-    processEnqueue(GitCommand::Commit, QStringList{"commit", "-m", subject});
-}
-
-// public: pull
-void GitModule::gitFetch() {
-    processEnqueue(GitCommand::Fetch, QStringList{"fetch", "-p"});
-    m_taskId = emit appendBackground(
-        [this] { this->gitAbort(); },
-        {});
-    emit refreshBackground(m_taskId, tr("Fetching from remote..."));
-    gitStatusSet(GitOperationState::Transfer);
-}
-
-// public: push
-void GitModule::gitPushPre() {
-    if (m_upstream.isEmpty()) gitRemoteGet();
-    else gitAhead();
-}
-
-void GitModule::gitAhead() {
-    m_pushWindow->resize(1080, 720);
-    m_pushWindow->show();
-    processEnqueue(GitCommand::Ahead, QStringList{"log", "@{upstream}..HEAD", "-z", "--pretty=format:%h%x1e%s"});
-}
-
-void GitModule::gitDiff_() {
-    processEnqueue(GitCommand::Diff_, QStringList{"diff", "--name-status", "@{upstream}..HEAD"});
-}
-
-void GitModule::gitShowCommit_(const QString &hash) {
-    processEnqueue(GitCommand::ShowCommit_, QStringList{"show", hash, "--format=%h%x1e%s%x1e%ad%x1e%an%x1e%ae%x1e", "--name-status"});
-}
-
-void GitModule::gitPush() {
-    m_pushWindow->close();
-    processEnqueue(GitCommand::Push, QStringList{"push"});
-    m_taskId = emit appendBackground(
-        [this] { this->gitAbort(); },
-        {});
-    emit refreshBackground(m_taskId, tr("Pushing to remote..."));
-    gitStatusSet(GitOperationState::Transfer);
-}
-
 // public: repo
 void GitModule::gitRepo() {
     const auto &repo = m_gitService->repoGet();
@@ -204,13 +143,6 @@ void GitModule::gitRepo() {
 }
 
 // public: branch
-void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
-    processEnqueue(GitCommand::RemoteAdd, QStringList{"remote", "add", "origin", upstreamUrl});
-}
-
-void GitModule::gitRemoteGet() {
-    processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
-}
 
 // always -> refsGet()
 void GitModule::upstreamGet() {
@@ -312,6 +244,7 @@ void GitModule::branchDelete(const QString &name) {
 }
 
 // public: history
+
 // success -> showGet()
 // failure -> showErrorDialog()
 void GitModule::logGet(const QString &ref) {
@@ -400,6 +333,85 @@ void GitModule::showGet(const QString &hash) {
     });
 }
 
+// public: working tree
+QFuture<bool> GitModule::add(const QUrl &url) {
+    return m_gitService->add(url).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        else if (m_gitStatus != GitOperationState::Idle) gitDiff();
+        return result.success;
+    });
+}
+
+// public: legacy
+void GitModule::gitInit() {
+    processEnqueue(GitCommand::Init, QStringList{"init"});
+}
+
+// public: commit
+void GitModule::gitCommitPre() {
+    emit resetCommit();
+    m_commitWindow->resize(1080, 720);
+    m_commitWindow->show();
+    gitStatus();
+}
+
+void GitModule::gitStatus() {
+    processEnqueue(GitCommand::Status, QStringList{"--no-optional-locks", "status", "-uall", "--porcelain"});
+}
+
+void GitModule::gitCommit(const QString &subject) {
+    m_commitWindow->close();
+    processEnqueue(GitCommand::Commit, QStringList{"commit", "-m", subject});
+}
+
+// public: pull
+void GitModule::gitFetch() {
+    processEnqueue(GitCommand::Fetch, QStringList{"fetch", "-p"});
+    m_taskId = emit appendBackground(
+        [this] { this->gitAbort(); },
+        {});
+    emit refreshBackground(m_taskId, tr("Fetching from remote..."));
+    gitStatusSet(GitOperationState::Transfer);
+}
+
+// public: push
+void GitModule::gitPushPre() {
+    if (m_upstream.isEmpty()) gitRemoteGet();
+    else gitAhead();
+}
+
+void GitModule::gitAhead() {
+    m_pushWindow->resize(1080, 720);
+    m_pushWindow->show();
+    processEnqueue(GitCommand::Ahead, QStringList{"log", "@{upstream}..HEAD", "-z", "--pretty=format:%h%x1e%s"});
+}
+
+void GitModule::gitDiff_() {
+    processEnqueue(GitCommand::Diff_, QStringList{"diff", "--name-status", "@{upstream}..HEAD"});
+}
+
+void GitModule::gitShowCommit_(const QString &hash) {
+    processEnqueue(GitCommand::ShowCommit_, QStringList{"show", hash, "--format=%h%x1e%s%x1e%ad%x1e%an%x1e%ae%x1e", "--name-status"});
+}
+
+void GitModule::gitPush() {
+    m_pushWindow->close();
+    processEnqueue(GitCommand::Push, QStringList{"push"});
+    m_taskId = emit appendBackground(
+        [this] { this->gitAbort(); },
+        {});
+    emit refreshBackground(m_taskId, tr("Pushing to remote..."));
+    gitStatusSet(GitOperationState::Transfer);
+}
+
+void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
+    processEnqueue(GitCommand::RemoteAdd, QStringList{"remote", "add", "origin", upstreamUrl});
+}
+
+void GitModule::gitRemoteGet() {
+    processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
+}
+
 void GitModule::gitReset(const QString &hash, const GitResetMode::Value mode) {
     QString _mode{};
     switch (mode) {
@@ -470,18 +482,6 @@ void GitModule::gitContinue(const QString &message) {
 
 void GitModule::gitDiff() {
     processEnqueue(GitCommand::Diff, QStringList{"diff", "--name-only", "--diff-filter=U"});
-}
-
-// public: file
-void GitModule::gitAdd(const QUrl &documentUrl) {
-    QStringList arguments{};
-    if (documentUrl.isEmpty()) {
-        arguments = QStringList{"add", "--all"};
-    } else {
-        const auto &documentPath = documentUrl.toLocalFile();
-        arguments = QStringList{"add", documentPath};
-    }
-    processEnqueue(GitCommand::Add, arguments);
 }
 
 void GitModule::gitRestore(const QUrl &documentUrl, const GitRestoreMode::Value mode) {
@@ -853,13 +853,6 @@ void GitModule::processFinished(const int exitcode) {
         switch (command) {
             case GitCommand::Init: {
                 m_gitService->repoRefresh();
-            }
-            break;
-            case GitCommand::Add: {
-                if (m_gitStatus != GitOperationState::Idle) {
-                    emit addFinish();
-                    gitDiff();
-                }
             }
             break;
             case GitCommand::Fetch:

@@ -566,11 +566,11 @@ Item {
             MenuItem {
                 text: qsTr("Add")
                 enabled: fileMenu.gitUntracked
-                icon.source: "qrc:/icon/add.svg"
+                icon.source: "qrc:/icon/addSquare.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: {
-                    global.gitModule.gitAdd(fileMenu.documentUrl)
+                    global.gitModule.add(fileMenu.documentUrl)
                 }
             }
 
@@ -693,11 +693,11 @@ Item {
 
             MenuItem {
                 text: qsTr("Add Folder")
-                icon.source: "qrc:/icon/add.svg"
+                icon.source: "qrc:/icon/addSquare.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: {
-                    global.gitModule.gitAdd(folderMenu.documentUrl)
+                    global.gitModule.add(folderMenu.documentUrl)
                 }
             }
 
@@ -794,11 +794,11 @@ Item {
 
             MenuItem {
                 text: qsTr("Add All")
-                icon.source: "qrc:/icon/add.svg"
+                icon.source: "qrc:/icon/addSquare.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: {
-                    global.gitModule.gitAdd()
+                    global.gitModule.add()
                 }
             }
 

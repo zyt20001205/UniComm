@@ -2,6 +2,7 @@
 #define UNICOMM_GITMODULE_H
 
 #include <kddockwidgets/qtwidgets/views/DockWidget.h>
+#include <QFuture>
 #include <QJsonObject>
 #include <QQueue>
 #include <QStandardItemModel>
@@ -56,6 +57,39 @@ public:
 
     void restoreState() const;
 
+    // public: repo
+    void gitRepo();
+
+    // public: branch
+    [[nodiscard]] const QString &currentGet() const { return m_current; }
+
+    void upstreamGet();
+
+    Q_INVOKABLE void upstreamSet(const QString &upstream);
+
+    Q_INVOKABLE void upstreamUnset();
+
+    Q_INVOKABLE void refsGet();
+
+    Q_INVOKABLE void branchCreate(const QString &startPoint, const QString &name, bool checkout);
+
+    Q_INVOKABLE void branchSwitch(const QString &name);
+
+    Q_INVOKABLE void branchRename(const QString &oldName, const QString &newName);
+
+    Q_INVOKABLE void branchDelete(const QString &name);
+
+    // public: history
+    [[nodiscard]] int laneCountGet() const { return m_laneCount; }
+
+    Q_INVOKABLE void logGet(const QString &ref);
+
+    Q_INVOKABLE void showGet(const QString &hash);
+
+    // public: working tree
+    Q_INVOKABLE QFuture<bool> add(const QUrl &url = QUrl());
+
+    // public: legacy
     Q_INVOKABLE void gitInit();
 
     Q_INVOKABLE void gitCommitPre();
@@ -76,35 +110,9 @@ public:
 
     Q_INVOKABLE void gitPush();
 
-    void gitRepo();
-
     Q_INVOKABLE void gitRemoteAdd(const QString &upstreamUrl);
 
     void gitRemoteGet();
-
-    [[nodiscard]] const QString &currentGet() const { return m_current; }
-
-    void upstreamGet();
-
-    Q_INVOKABLE void upstreamSet(const QString &upstream);
-
-    Q_INVOKABLE void upstreamUnset();
-
-    Q_INVOKABLE void refsGet();
-
-    Q_INVOKABLE void branchCreate(const QString &startPoint, const QString &name, bool checkout);
-
-    Q_INVOKABLE void branchSwitch(const QString &name);
-
-    Q_INVOKABLE void branchRename(const QString &oldName, const QString &newName);
-
-    Q_INVOKABLE void branchDelete(const QString &name);
-
-    [[nodiscard]] int laneCountGet() const { return m_laneCount; }
-
-    Q_INVOKABLE void logGet(const QString &ref);
-
-    Q_INVOKABLE void showGet(const QString &hash);
 
     Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
@@ -121,8 +129,6 @@ public:
     Q_INVOKABLE void gitContinue(const QString &message);
 
     Q_INVOKABLE void gitDiff();
-
-    Q_INVOKABLE void gitAdd(const QUrl &documentUrl = QUrl());
 
     Q_INVOKABLE void gitRestore(const QUrl &documentUrl, GitRestoreMode::Value mode);
 
@@ -158,8 +164,6 @@ signals:
     void ignoreChanged();
 
     void openDocument(const QUrl &documentUrl);
-
-    void addFinish();
 
     int appendBackground(const std::function<void()> &abort, const std::function<void()> &info);
 
@@ -208,7 +212,6 @@ private:
             Null,
             Init,
             Status,
-            Add,
             Commit,
             Fetch,
             Ahead,

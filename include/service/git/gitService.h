@@ -125,6 +125,8 @@ public:
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 
+    QFuture<GitResult> add(const QUrl &url = {});
+
 signals:
     void availableChanged();
 
