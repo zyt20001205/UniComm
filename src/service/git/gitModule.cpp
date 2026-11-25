@@ -114,7 +114,7 @@ void GitModule::restoreState() const {
 // public: repo
 void GitModule::init() {
     m_gitService->init().then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
@@ -152,7 +152,7 @@ void GitModule::gitRepo() {
 // always -> refsGet()
 void GitModule::upstreamGet() {
     m_gitService->upstreamGet().then(this, [this](const GitResult &result) {
-        m_upstream = result.success ? result.output : QString{};
+        m_upstream = result.success ? result.text() : QString{};
         refsGet();
     });
 }
@@ -160,14 +160,14 @@ void GitModule::upstreamGet() {
 // failure -> showErrorDialog()
 void GitModule::upstreamSet(const QString &upstream) {
     m_gitService->upstreamSet(upstream).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 // failure -> showErrorDialog()
 void GitModule::upstreamUnset() {
     m_gitService->upstreamUnset().then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
@@ -176,7 +176,7 @@ void GitModule::upstreamUnset() {
 void GitModule::refsGet() {
     m_gitService->refsGet().then(this, [this](const GitRefsResult &result) {
         if (!result.success) {
-            emit showErrorDialog(tr("Git command failed"), result.output);
+            emit showErrorDialog(tr("Git command failed"), result.text());
             return;
         }
 
@@ -223,28 +223,28 @@ void GitModule::refsGet() {
 // failure -> showErrorDialog()
 void GitModule::branchCreate(const QString &startPoint, const QString &name, const bool checkout) {
     m_gitService->branchCreate(startPoint, name, checkout).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 // failure -> showErrorDialog()
 void GitModule::branchSwitch(const QString &name) {
     m_gitService->branchSwitch(name).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 // failure -> showErrorDialog()
 void GitModule::branchRename(const QString &oldName, const QString &newName) {
     m_gitService->branchRename(oldName, newName).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 // failure -> showErrorDialog()
 void GitModule::branchDelete(const QString &name) {
     m_gitService->branchDelete(name).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
@@ -255,7 +255,7 @@ void GitModule::branchDelete(const QString &name) {
 void GitModule::logGet(const QString &ref) {
     m_gitService->logGet(ref).then(this, [this](const GitLogResult &result) {
         if (!result.success) {
-            emit showErrorDialog(tr("Git command failed"), result.output);
+            emit showErrorDialog(tr("Git command failed"), result.text());
             return;
         }
 
@@ -302,7 +302,7 @@ void GitModule::logGet(const QString &ref) {
 void GitModule::showGet(const QString &hash) {
     m_gitService->showGet(hash).then(this, [this, hash](const GitShowResult &result) {
         if (!result.success) {
-            emit showErrorDialog(tr("Git command failed"), result.output);
+            emit showErrorDialog(tr("Git command failed"), result.text());
             return;
         }
 
@@ -342,7 +342,7 @@ void GitModule::showGet(const QString &hash) {
 void GitModule::statusGet() {
     m_gitService->statusGet().then(this, [this](const GitStatusResult &result) {
         if (!result.success) {
-            emit showErrorDialog(tr("Git command failed"), result.output);
+            emit showErrorDialog(tr("Git command failed"), result.text());
             return;
         }
 
@@ -385,7 +385,7 @@ void GitModule::statusGet() {
 
 QFuture<bool> GitModule::add(const QUrl &url) {
     return m_gitService->add(url).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
         else if (m_gitStatus != GitOperationState::Idle) gitDiff();
         return result.success;
     });
@@ -393,25 +393,25 @@ QFuture<bool> GitModule::add(const QUrl &url) {
 
 void GitModule::untrack(const QUrl &url) {
     m_gitService->untrack(url).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 void GitModule::restore(const QUrl &url, const GitRestoreMode::Value mode) {
     m_gitService->restore(url, mode).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 void GitModule::ignore(const QUrl &url) {
     m_gitService->ignore(url).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 
 void GitModule::unignore(const QUrl &url) {
     m_gitService->unignore(url).then(this, [this](const GitResult &result) {
-        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.output);
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
 

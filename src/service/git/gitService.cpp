@@ -47,7 +47,7 @@ QFuture<GitResult> GitService::versionGet() {
         // update service state
         m_available = result.success;
         emit availableChanged();
-        m_version = result.success ? result.output : QString{};
+        m_version = result.success ? result.text() : QString{};
         detailUpdate();
         statusSet(result.success ? Status::Stopped : Status::Error);
         return result;
@@ -67,7 +67,7 @@ QFuture<GitResult> GitService::init() {
 QFuture<GitRepoResult> GitService::repoRefresh() {
     return processEnqueue({"rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir", "--git-path", "index"}).then(
         this, [this](const GitResult &result) {
-            const auto paths = QString(result.output).replace("\r\n", "\n").split('\n');
+            const auto paths = result.text().replace("\r\n", "\n").split('\n');
             GitRepoResult repo{result};
             repo.success = result.success && paths.size() == 4;
             if (repo.success) {
@@ -80,7 +80,7 @@ QFuture<GitRepoResult> GitService::repoRefresh() {
             // update service state
             const bool hadRepo = hasRepoGet();
             m_repo = repo;
-            statusSet(repo.success || (!result.success && result.output.contains("not a git repository")) ? Status::Stopped : Status::Error);
+            statusSet(repo.success || (!result.success && result.raw.contains("not a git repository")) ? Status::Stopped : Status::Error);
             repoWatch();
             if (hasRepoGet() != hadRepo) emit hasRepoChanged();
             return repo;
@@ -117,10 +117,10 @@ QFuture<GitRefsResult> GitService::refsGet() {
             .then(this, [this](const GitResult &result) {
                 GitRefsResult refs{result};
                 if (result.success) {
-                    for (const auto &line: result.output.split('\n', Qt::SkipEmptyParts)) {
-                        const auto fields = line.split(QChar::Null);
-                        if (fields.size() == 3 && fields[2].isEmpty())
-                            refs.refs.append({fields[1], fields[0] == "*"});
+                    for (const auto &line: result.raw.split('\n')) {
+                        const auto fields = line.split('\0');
+                        if (fields.size() == 3 && fields[2].trimmed().isEmpty())
+                            refs.refs.append({QString::fromUtf8(fields[1]), fields[0] == "*"});
                     }
                 }
 
@@ -171,11 +171,11 @@ QFuture<GitLogResult> GitService::logGet(const QString &ref) {
             .then(this, [this](const GitResult &result) {
                 GitLogResult log{result};
                 if (result.success) {
-                    const auto fields = result.output.split(QChar::Null);
+                    const auto fields = result.raw.split('\0');
                     for (qsizetype i = 0; i + 4 < fields.size(); i += 5) {
                         log.commits.append({
-                            .hash = fields[i], .parents = fields[i + 1].split(' ', Qt::SkipEmptyParts),
-                            .relativeDate = fields[i + 2], .author = fields[i + 3], .subject = fields[i + 4]
+                            .hash = QString::fromLatin1(fields[i]), .parents = QString::fromLatin1(fields[i + 1]).split(' ', Qt::SkipEmptyParts),
+                            .relativeDate = QString::fromUtf8(fields[i + 2]), .author = QString::fromUtf8(fields[i + 3]), .subject = QString::fromUtf8(fields[i + 4])
                         });
                     }
                 }
@@ -194,12 +194,12 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
             .then(this, [this](const GitResult &result) {
                 GitShowResult show{result};
                 if (result.success) {
-                    const auto fields = result.output.split(QChar::Null);
-                    show.shortHash = fields.at(0);
-                    show.subject = fields.at(1);
-                    show.date = fields.at(2);
-                    show.author = fields.at(3);
-                    show.email = fields.at(4);
+                    const auto fields = result.raw.split('\0');
+                    show.shortHash = QString::fromLatin1(fields.at(0));
+                    show.subject = QString::fromUtf8(fields.at(1));
+                    show.date = QString::fromUtf8(fields.at(2));
+                    show.author = QString::fromUtf8(fields.at(3));
+                    show.email = QString::fromUtf8(fields.at(4));
 
                     const QDir workTree(m_repo.workTreePath);
                     for (qsizetype i = 5; i + 1 < fields.size();) {
@@ -207,10 +207,10 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
                         const auto code = fields.at(i++).trimmed();
                         GitShowResult::Entry file{.status = GitFileStatus::fromCode(code.front())};
                         if (file.status == GitFileStatus::Renamed || file.status == GitFileStatus::Copied) {
-                            file.originalUrl = QUrl::fromLocalFile(workTree.filePath(fields.at(i++)));
+                            file.originalUrl = QUrl::fromLocalFile(workTree.filePath(QString::fromUtf8(fields.at(i++))));
                             file.similarity = code.sliced(1).toInt();
                         }
-                        file.documentUrl = QUrl::fromLocalFile(workTree.filePath(fields.at(i++)));
+                        file.documentUrl = QUrl::fromLocalFile(workTree.filePath(QString::fromUtf8(fields.at(i++))));
                         show.files.append(file);
                     }
                 }
@@ -229,12 +229,13 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
         GitStatusResult status{result};
         if (result.success) {
             const QDir workTree(m_repo.workTreePath);
-            const auto records = result.output.split(QChar::Null, Qt::SkipEmptyParts);
+            const auto records = result.raw.split('\0');
             for (qsizetype i = 0; i < records.size(); ++i) {
                 const auto &record = records.at(i);
+                if (record.isEmpty()) continue;
                 const auto indexStatus = GitFileStatus::fromCode(record.at(0));
                 const auto workingTreeStatus = GitFileStatus::fromCode(record.at(1));
-                const auto path = QDir::cleanPath(workTree.filePath(record.sliced(3)));
+                const auto path = QDir::cleanPath(workTree.filePath(QString::fromUtf8(record.sliced(3))));
                 status.files.append({QUrl::fromLocalFile(path), indexStatus, workingTreeStatus});
                 // renames and copies carry the original path in the next record
                 if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied ||
@@ -247,6 +248,45 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
         statusSet(result.success ? Status::Stopped : Status::Error);
         return status;
     });
+}
+
+QFuture<GitConflictResult> GitService::conflictGet(const QUrl &url) {
+    return processEnqueue({"--literal-pathspecs", "ls-files", "--unmerged", "-z", "--", url.toLocalFile()})
+            .then(this, [this](const GitResult &result) {
+                if (!result.success || result.raw.isEmpty()) return QtFuture::makeReadyValueFuture(GitConflictResult{result});
+
+                QList<int> stages{};
+                QList<QFuture<GitResult> > blobs{};
+                for (const auto &record: result.raw.split('\0')) {
+                    if (record.isEmpty()) continue;
+                    // Each record starts with mode, object ID and stage, followed by a tab and the path.
+                    const auto fields = record.first(record.indexOf('\t')).split(' ');
+                    stages.append(fields.at(2).toInt());
+                    blobs.append(processEnqueue({"cat-file", "blob", QString::fromLatin1(fields.at(1))}));
+                }
+                return QtFuture::whenAll(blobs.begin(), blobs.end()).then([stages](const QList<QFuture<GitResult> > &finished) {
+                    GitConflictResult conflict{};
+                    for (qsizetype i = 0; i < finished.size(); ++i) {
+                        const auto blob = finished.at(i).result();
+                        if (!blob.success) return GitConflictResult{blob};
+                        switch (stages.at(i)) {
+                            case 1: conflict.base = blob.raw;
+                                break;
+                            case 2: conflict.ours = blob.raw;
+                                break;
+                            case 3: conflict.theirs = blob.raw;
+                                break;
+                            default: ;
+                        }
+                    }
+                    conflict.success = true;
+                    return conflict;
+                });
+            }).unwrap().then(this, [this](const GitConflictResult &result) {
+                // update service state
+                statusSet(result.success ? Status::Stopped : Status::Error);
+                return result;
+            });
 }
 
 QFuture<GitResult> GitService::add(const QUrl &url) {
@@ -281,7 +321,7 @@ QFuture<GitResult> GitService::restore(const QUrl &url, const GitRestoreMode::Va
             arguments << "--worktree" << "--staged";
             break;
         default:
-            return QtFuture::makeReadyValueFuture(GitResult{.output = tr("Unknown restore mode.")});
+            return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("Unknown restore mode.").toUtf8()});
     }
     if (url.isEmpty()) arguments << "--" << ":/";
     else {
@@ -381,7 +421,7 @@ GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
     QByteArray newline = "\n";
     bool found = false;
     if (file.exists()) {
-        if (!file.open(QIODevice::ReadOnly)) return {.output = file.errorString()};
+        if (!file.open(QIODevice::ReadOnly)) return {.raw = file.errorString().toUtf8()};
         if (file.peek(3) == "\xef\xbb\xbf") contents = file.read(3);
         while (!file.atEnd()) {
             const auto line = file.readLine();
@@ -392,7 +432,7 @@ GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
             }
             contents.append(line);
         }
-        if (file.error() != QFileDevice::NoError) return {.output = file.errorString()};
+        if (file.error() != QFileDevice::NoError) return {.raw = file.errorString().toUtf8()};
         file.close();
     }
     if (found == ignored) return {.success = true};
@@ -403,7 +443,7 @@ GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
 
     QSaveFile output(file.fileName());
     if (!output.open(QIODevice::WriteOnly) || output.write(contents) != contents.size() || !output.commit())
-        return {.output = output.errorString()};
+        return {.raw = output.errorString().toUtf8()};
     emit indexChanged();
     return {.success = true};
 }
@@ -429,18 +469,16 @@ void GitService::processError(const QProcess::ProcessError error) {
 void GitService::processFinish() {
     m_timeout.stop();
     const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && m_process.exitCode() == 0;
-    auto output = QString::fromUtf8(success ? m_process.readAllStandardOutput() : m_process.readAllStandardError());
-    if (output.endsWith("\r\n")) output.chop(2);
-    else if (output.endsWith('\n')) output.chop(1);
-    if (!success && output.isEmpty() && m_process.error() != QProcess::UnknownError) output = m_process.errorString();
+    GitResult result{success, success ? m_process.readAllStandardOutput() : m_process.readAllStandardError()};
+    if (!success && result.raw.isEmpty() && m_process.error() != QProcess::UnknownError) result.raw = m_process.errorString().toUtf8();
 
     // record command
     auto [arguments, promise] = std::move(m_queue.front());
     const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
-    eventAppend(event, success, success ? "git " + arguments.join(' ') : output);
+    eventAppend(event, success, success ? "git " + arguments.join(' ') : result.text());
     m_queue.pop();
     const bool hasNext = !m_queue.empty();
-    promise.addResult(GitResult{.success = success, .output = output});
+    promise.addResult(std::move(result));
     promise.finish();
     if (hasNext) processStart();
 }

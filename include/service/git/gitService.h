@@ -1,6 +1,7 @@
 #ifndef UNICOMM_GITSERVICE_H
 #define UNICOMM_GITSERVICE_H
 
+#include <optional>
 #include <queue>
 #include <QFileSystemWatcher>
 #include <QFuture>
@@ -16,7 +17,14 @@
 
 struct GitResult {
     bool success{};
-    QString output{};
+    QByteArray raw{};
+
+    [[nodiscard]] QString text() const {
+        auto text = QString::fromUtf8(raw);
+        if (text.endsWith("\r\n")) text.chop(2);
+        else if (text.endsWith('\n')) text.chop(1);
+        return text;
+    }
 };
 
 struct GitRepoResult : GitResult {
@@ -73,6 +81,12 @@ struct GitStatusResult : GitResult {
     QList<Entry> files{};
 };
 
+struct GitConflictResult : GitResult {
+    std::optional<QByteArray> base{};
+    std::optional<QByteArray> ours{};
+    std::optional<QByteArray> theirs{};
+};
+
 class GitService : public BaseService {
     Q_OBJECT
     QML_ANONYMOUS
@@ -127,6 +141,8 @@ public:
 
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
+
+    QFuture<GitConflictResult> conflictGet(const QUrl &url);
 
     QFuture<GitResult> add(const QUrl &url = {});
 
