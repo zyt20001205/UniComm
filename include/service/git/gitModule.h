@@ -26,6 +26,7 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
     QML_UNCREATABLE("GitModule is created by C++.")
     Q_PROPERTY(GitOperationState::Value gitStatus READ gitStatusGet NOTIFY gitStatusChanged)
     Q_PROPERTY(QStandardItemModel* refs MEMBER m_refs CONSTANT)
+    Q_PROPERTY(QString current READ currentGet NOTIFY currentChanged)
     Q_PROPERTY(QStandardItemModel* log MEMBER m_log CONSTANT)
     Q_PROPERTY(QStandardItemModel* show MEMBER m_show CONSTANT)
     Q_PROPERTY(int laneCount READ laneCountGet NOTIFY logChanged)
@@ -83,6 +84,8 @@ public:
     Q_INVOKABLE void gitRemoteAdd(const QString &upstreamUrl);
 
     void gitRemoteGet();
+
+    [[nodiscard]] const QString &currentGet() const { return m_current; }
 
     void upstreamGet();
 
@@ -143,7 +146,7 @@ signals:
 
     void showRemoteAddDialog();
 
-    void expandBranches();
+    void currentChanged();
 
     void expandChanges();
 

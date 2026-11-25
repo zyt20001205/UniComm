@@ -806,10 +806,18 @@ Item {
     Connections {
         target: root.gitModule
 
-        function onExpandBranches() {
+        function onCurrentChanged() {
             root.hasRefs = root.gitModule.refs.rowCount() > 0
             branchTreeView.selectedRow = -1
             branchTreeView.expandRecursively()
+            if (!root.gitModule.current.length) return
+            const matches = refFilter.match(refFilter.index(0, 0), GitModule.RefRole, "refs/heads/" + root.gitModule.current,
+                                            1, Qt.MatchExactly | Qt.MatchRecursive)
+            if (matches.length) {
+                const row = branchTreeView.rowAtIndex(matches[0])
+                branchTreeView.selectedRow = row
+                if (row >= 0) branchTreeView.positionViewAtRow(row, TableView.Contain)
+            }
         }
         function onLogChanged() {
             tableView.selectedRow = logFilter.mapFromSource(root.gitModule.log.index(0, 0)).row
@@ -1108,9 +1116,11 @@ Item {
         id: branchMenu
         parent: mainOverlay
         popupType: Popup.Item
+        width: 400
         property string ref
         property string name
         property int type
+        readonly property string current: root.gitModule.current || "HEAD"
 
         onOpened: {
             global.mainWindow.overlayFlagSet(false, true)
@@ -1119,28 +1129,24 @@ Item {
         onClosed: mainOverlay.widgetCount -= 1
 
         MenuItem {
-            text: branchMenu.type === GitRefType.Upstream ? qsTr("Unset Upstream") : qsTr("Set Upstream")
+            text: branchMenu.type === GitRefType.Upstream
+                ? qsTr("Unset upstream of %1").arg(branchMenu.current)
+                : qsTr("Set upstream of %1 to %2").arg(branchMenu.current).arg(branchMenu.name)
             enabled: root.gitModule.gitStatus === GitOperationState.Idle && (branchMenu.type === GitRefType.Upstream || branchMenu.type === GitRefType.Remote)
-            icon.source: "qrc:/icon/link.svg"
-            icon.width: 16; icon.height: 16
 
             onTriggered: branchMenu.type === GitRefType.Upstream ? root.gitModule.upstreamUnset() : root.gitModule.upstreamSet(branchMenu.ref)
         }
 
         MenuItem {
-            text: qsTr("Merge")
+            text: qsTr("Merge %1 into %2").arg(branchMenu.name).arg(branchMenu.current)
             enabled: root.gitModule.gitStatus === GitOperationState.Idle
-            icon.source: "qrc:/icon/gitMerge.svg"
-            icon.width: 16; icon.height: 16
 
             onTriggered: root.gitModule.gitMerge(branchMenu.name)
         }
 
         MenuItem {
-            text: qsTr("Rebase")
+            text: qsTr("Rebase %1 onto %2").arg(branchMenu.current).arg(branchMenu.name)
             enabled: root.gitModule.gitStatus === GitOperationState.Idle
-            icon.source: "qrc:/icon/gitMerge.svg"
-            icon.width: 16; icon.height: 16
 
             onTriggered: root.gitModule.gitRebase(branchMenu.name)
         }

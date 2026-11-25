@@ -326,7 +326,7 @@ void GitModule::refsGet() {
             if (ref == "refs/heads/master") group->insertRow(0, item);
             else group->appendRow(item);
         }
-        emit expandBranches();
+        emit currentChanged();
         if (!m_current.isEmpty()) logGet("refs/heads/" + m_current);
     });
 }
