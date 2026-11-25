@@ -87,6 +87,17 @@ struct GitConflictResult : GitResult {
     std::optional<QByteArray> theirs{};
 };
 
+struct GitDiffResult : GitResult {
+    struct Hunk {
+        int leftStart{};
+        int leftCount{};
+        int rightStart{};
+        int rightCount{};
+    };
+
+    QList<Hunk> hunks{};
+};
+
 class GitService : public BaseService {
     Q_OBJECT
     QML_ANONYMOUS
@@ -144,6 +155,8 @@ public:
 
     QFuture<GitConflictResult> conflictGet(const QUrl &url);
 
+    QFuture<GitDiffResult> diffGet(const QByteArray &left, const QByteArray &right);
+
     QFuture<GitResult> add(const QUrl &url = {});
 
     QFuture<GitResult> untrack(const QUrl &url);
@@ -172,7 +185,7 @@ private:
 
     GitResult ignoreSet(const QUrl &url, bool ignored);
 
-    QFuture<GitResult> processEnqueue(const QStringList &arguments);
+    QFuture<GitResult> processEnqueue(const QStringList &arguments, QList<int> successCodes = {0});
 
     void processStart();
 
@@ -182,6 +195,7 @@ private:
 
     struct Command {
         QStringList arguments;
+        QList<int> successCodes;
         QPromise<GitResult> promise{};
     };
 

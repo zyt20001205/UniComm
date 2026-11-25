@@ -3,7 +3,10 @@
 #include <QDir>
 #include <QDirListing>
 #include <QFile>
+#include <QRegularExpression>
 #include <QSaveFile>
+#include <QSharedPointer>
+#include <QTemporaryDir>
 #include <utility>
 
 #include "globals.h"
@@ -289,6 +292,45 @@ QFuture<GitConflictResult> GitService::conflictGet(const QUrl &url) {
             });
 }
 
+QFuture<GitDiffResult> GitService::diffGet(const QByteArray &left, const QByteArray &right) {
+    const auto directory = QSharedPointer<QTemporaryDir>::create();
+    if (!directory->isValid()) return QtFuture::makeReadyValueFuture(GitDiffResult{GitResult{.raw = directory->errorString().toUtf8()}});
+
+    const auto leftPath = directory->filePath("left");
+    const auto rightPath = directory->filePath("right");
+    for (const auto &[path, contents]: {std::pair{leftPath, left}, std::pair{rightPath, right}}) {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly) || file.write(contents) != contents.size() || !file.flush())
+            return QtFuture::makeReadyValueFuture(GitDiffResult{GitResult{.raw = file.errorString().toUtf8()}});
+    }
+
+    // Keep both input files until the queued diff finishes.
+    return processEnqueue({
+                              "diff", "--no-index", "--text", "--no-color", "--no-ext-diff", "--no-textconv", "--unified=0", "--inter-hunk-context=0", "--", leftPath, rightPath
+                          }, {0, 1})
+            .then(this, [this, directory](const GitResult &result) {
+                GitDiffResult diff{result};
+                if (result.success) {
+                    static const QRegularExpression header(QStringLiteral(R"(^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@)"), QRegularExpression::MultilineOption);
+                    auto matches = header.globalMatch(QString::fromLatin1(result.raw));
+                    while (matches.hasNext()) {
+                        const auto match = matches.next();
+                        const int leftCount = match.hasCaptured(2) ? match.capturedView(2).toInt() : 1;
+                        const int rightCount = match.hasCaptured(4) ? match.capturedView(4).toInt() : 1;
+                        // An empty range already points at the zero-based insertion position.
+                        diff.hunks.append({
+                            .leftStart = match.capturedView(1).toInt() - (leftCount > 0), .leftCount = leftCount,
+                            .rightStart = match.capturedView(3).toInt() - (rightCount > 0), .rightCount = rightCount
+                        });
+                    }
+                }
+
+                // update service state
+                statusSet(result.success ? Status::Stopped : Status::Error);
+                return diff;
+            });
+}
+
 QFuture<GitResult> GitService::add(const QUrl &url) {
     const QStringList arguments = url.isEmpty()
                                       ? QStringList{"add", "--all"}
@@ -448,8 +490,8 @@ GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
     return {.success = true};
 }
 
-QFuture<GitResult> GitService::processEnqueue(const QStringList &arguments) {
-    auto &command = m_queue.emplace(arguments);
+QFuture<GitResult> GitService::processEnqueue(const QStringList &arguments, QList<int> successCodes) {
+    auto &command = m_queue.emplace(arguments, std::move(successCodes));
     command.promise.start();
     auto future = command.promise.future();
     if (m_queue.size() == 1) processStart();
@@ -468,12 +510,12 @@ void GitService::processError(const QProcess::ProcessError error) {
 
 void GitService::processFinish() {
     m_timeout.stop();
-    const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && m_process.exitCode() == 0;
+    auto [arguments, successCodes, promise] = std::move(m_queue.front());
+    const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && successCodes.contains(m_process.exitCode());
     GitResult result{success, success ? m_process.readAllStandardOutput() : m_process.readAllStandardError()};
     if (!success && result.raw.isEmpty() && m_process.error() != QProcess::UnknownError) result.raw = m_process.errorString().toUtf8();
 
     // record command
-    auto [arguments, promise] = std::move(m_queue.front());
     const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
     eventAppend(event, success, success ? "git " + arguments.join(' ') : result.text());
     m_queue.pop();
