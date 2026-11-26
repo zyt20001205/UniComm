@@ -64,7 +64,7 @@ public:
     void operationAbort();
 
     // public: repo
-    Q_INVOKABLE void init();
+    Q_INVOKABLE void _init();
 
     void gitRepo();
 

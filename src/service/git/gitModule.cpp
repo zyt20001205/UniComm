@@ -119,7 +119,7 @@ void GitModule::operationAbort() {
 }
 
 // public: repo
-void GitModule::init() {
+void GitModule::_init() {
     m_gitService->init().then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
