@@ -123,6 +123,7 @@ class GitService : public BaseService {
     QML_ANONYMOUS
     Q_PROPERTY(bool available READ availableGet NOTIFY availableChanged)
     Q_PROPERTY(bool hasRepo READ hasRepoGet NOTIFY hasRepoChanged)
+    Q_PROPERTY(QVariantHash config READ configGet NOTIFY configChanged)
     Q_PROPERTY(QVariantList remotes READ remotesGet NOTIFY remotesChanged)
 
 public:
@@ -155,6 +156,8 @@ public:
     QFuture<GitRepoResult> repoRefresh();
 
     // public: config
+    [[nodiscard]] const QVariantHash &configGet() const { return m_config; }
+
     QFuture<GitProxyResult> proxyGet();
 
     QFuture<GitResult> proxySet(const QString &local, const QString &global);
@@ -230,6 +233,8 @@ signals:
 
     void hasRepoChanged();
 
+    void configChanged();
+
     void remotesChanged();
 
     void gitDirChanged();
@@ -269,6 +274,7 @@ private:
     bool m_available{};
     QString m_version{};
     GitRepoResult m_repo{};
+    QVariantHash m_config{{"proxy", QVariantHash{{"local", QString{}}, {"global", QString{}}}}};
     QVariantList m_remotes{};
 
     QFileSystemWatcher m_watcher{};

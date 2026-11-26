@@ -34,8 +34,11 @@ GitService::GitService(QObject *parent)
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, pathChanged);
     connect(&m_watchTimer, &QTimer::timeout, this, &GitService::repoWatch);
 
+    // success -> repoRefresh(), proxyGet()
     versionGet().then(this, [this](const GitResult &result) {
-        if (result.success) repoRefresh();
+        if (!result.success) return;
+        repoRefresh();
+        proxyGet();
     });
 }
 
@@ -99,6 +102,8 @@ QFuture<GitResult> GitService::operationAbort(const GitOperationState::Value sta
 }
 
 // public: repo
+
+// success -> repoRefresh()
 QFuture<GitResult> GitService::init() {
     return processEnqueue({"init"}).then(this, [this](const GitResult &result) {
         // update service state
@@ -108,6 +113,8 @@ QFuture<GitResult> GitService::init() {
     });
 }
 
+// always -> repoWatch()
+// success -> remotesRefresh()
 QFuture<GitRepoResult> GitService::repoRefresh() {
     return processEnqueue({"rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir", "--git-path", "index"}).then(
         this, [this](const GitResult &result) {
@@ -126,6 +133,7 @@ QFuture<GitRepoResult> GitService::repoRefresh() {
             m_repo = repo;
             statusSet(repo.success || (!result.success && result.raw.contains("not a git repository")) ? Status::Stopped : Status::Error);
             repoWatch();
+            if (repo.success) remotesRefresh();
             if (hasRepoGet() != hadRepo) emit hasRepoChanged();
             return repo;
         });
@@ -144,11 +152,19 @@ QFuture<GitProxyResult> GitService::proxyGet() {
         }
 
         // update service state
+        if (result.success) {
+            const QVariantHash settings{{"local", proxy.local}, {"global", proxy.global}};
+            if (m_config.value("proxy") != settings) {
+                m_config.insert("proxy", settings);
+                emit configChanged();
+            }
+        }
         statusSet(result.success ? Status::Stopped : Status::Error);
         return proxy;
     });
 }
 
+// always -> proxyGet()
 QFuture<GitResult> GitService::proxySet(const QString &local, const QString &global) {
     const auto set = [this](const QString &scope, const QString &value) {
         if (value.isEmpty()) return processEnqueue({"config", "unset", scope, "--all", "http.proxy"}, {0, 5});
@@ -158,16 +174,18 @@ QFuture<GitResult> GitService::proxySet(const QString &local, const QString &glo
     if (hasRepoGet() || !local.isEmpty()) writes.append(set("--local", local));
     writes.append(set("--global", global));
     return QtFuture::whenAll(writes.begin(), writes.end()).then(this, [this](const QList<QFuture<GitResult> > &finished) {
-        for (const auto &write: finished) {
-            const auto result = write.result();
-            if (!result.success) {
-                statusSet(Status::Error);
-                return result;
+        return proxyGet().then(this, [this, finished](const GitProxyResult &proxy) -> GitResult {
+            for (const auto &write: finished) {
+                const auto result = write.result();
+                if (!result.success) {
+                    statusSet(Status::Error);
+                    return result;
+                }
             }
-        }
-        statusSet(Status::Stopped);
-        return GitResult{.success = true};
-    });
+            if (!proxy.success) return static_cast<GitResult>(proxy);
+            return {.success = true};
+        });
+    }).unwrap();
 }
 
 // public: remote
@@ -205,6 +223,7 @@ QFuture<GitRemotesResult> GitService::remotesRefresh() {
     });
 }
 
+// success -> remotesRefresh()
 QFuture<GitResult> GitService::remoteAdd(const QString &name, const QString &url) {
     return processEnqueue({"remote", "add", "--", name, url}).then(this, [this](const GitResult &result) {
         if (!result.success) {
@@ -218,6 +237,7 @@ QFuture<GitResult> GitService::remoteAdd(const QString &name, const QString &url
     }).unwrap();
 }
 
+// success -> remotesRefresh()
 QFuture<GitResult> GitService::remoteRemove(const QString &name) {
     return processEnqueue({"remote", "remove", "--", name}).then(this, [this](const GitResult &result) {
         if (!result.success) {
@@ -670,6 +690,7 @@ void GitService::repoWatch() {
     const auto changed = std::exchange(m_changedPaths, {}) | added;
     if (!hasRepoGet()) return;
 
+    // first watch -> gitRepo(), upstreamGet(), statusGet()
     if (!registered.contains(m_repo.gitDirPath)) {
         emit gitDirChanged();
         emit refsChanged();
