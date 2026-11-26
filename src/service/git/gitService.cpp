@@ -405,6 +405,24 @@ QFuture<GitConflictResult> GitService::conflictGet(const QUrl &url) {
             });
 }
 
+QFuture<GitStagedDiffResult> GitService::diffGet() {
+    return processEnqueue({"diff", "--cached", "--name-status", "--no-renames", "--no-relative", "-z"}).then(this, [this](const GitResult &result) {
+        GitStagedDiffResult diff{result};
+        if (result.success) {
+            diff.hasChanges = !result.raw.isEmpty();
+            const QDir workTree(m_repo.workTreePath);
+            const auto fields = result.raw.split('\0');
+            for (qsizetype i = 0; i + 1 < fields.size(); i += 2) {
+                if (fields.at(i) == "U") diff.conflicts.append(QUrl::fromLocalFile(workTree.filePath(QString::fromUtf8(fields.at(i + 1)))));
+            }
+        }
+
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return diff;
+    });
+}
+
 QFuture<GitDiffResult> GitService::diffGet(const QByteArray &left, const QByteArray &right) {
     const auto directory = QSharedPointer<QTemporaryDir>::create();
     if (!directory->isValid()) return QtFuture::makeReadyValueFuture(GitDiffResult{GitResult{.raw = directory->errorString().toUtf8()}});

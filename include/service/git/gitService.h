@@ -87,6 +87,11 @@ struct GitConflictResult : GitResult {
     std::optional<QByteArray> theirs{};
 };
 
+struct GitStagedDiffResult : GitResult {
+    QList<QUrl> conflicts{};
+    bool hasChanges{};
+};
+
 struct GitDiffResult : GitResult {
     struct Hunk {
         int leftStart{};
@@ -176,6 +181,8 @@ public:
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 
     QFuture<GitConflictResult> conflictGet(const QUrl &url);
+
+    QFuture<GitStagedDiffResult> diffGet();
 
     QFuture<GitDiffResult> diffGet(const QByteArray &left, const QByteArray &right);
 
