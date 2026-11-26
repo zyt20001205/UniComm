@@ -140,8 +140,6 @@ public:
 
     void gitRemoteGet();
 
-    Q_INVOKABLE void gitDiff();
-
     Q_INVOKABLE void gitProxyGet() const;
 
     Q_INVOKABLE void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const;
@@ -178,6 +176,8 @@ signals:
     void refreshBackground(int taskId, const QString &message);
 
 private:
+    void operationRefresh();
+
     void processEnqueue(int command, const QStringList &arguments);
 
     void processDequeue();
@@ -222,8 +222,7 @@ private:
             Diff_,
             ShowCommit_,
             RemoteAdd,
-            RemoteGet,
-            Diff
+            RemoteGet
         };
     };
 };

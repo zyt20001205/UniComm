@@ -143,10 +143,10 @@ void GitModule::gitRepo() {
     if (state != m_gitStatus) {
         if (m_gitStatus != GitOperationState::Idle) emit removeBackground(m_taskId);
         if (state != GitOperationState::Idle)
-            m_taskId = emit appendBackground([this] { operationAbort(); }, [this] { gitDiff(); });
+            m_taskId = emit appendBackground([this] { operationAbort(); }, [this] { operationRefresh(); });
         gitStatusSet(state);
     }
-    if (state != GitOperationState::Idle) gitDiff();
+    if (state != GitOperationState::Idle) operationRefresh();
 }
 
 // public: remote
@@ -450,7 +450,7 @@ void GitModule::statusGet() {
 QFuture<bool> GitModule::add(const QUrl &url) {
     return m_gitService->add(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
-        else if (m_gitStatus != GitOperationState::Idle) gitDiff();
+        else if (m_gitStatus != GitOperationState::Idle && m_gitStatus != GitOperationState::Transfer) operationRefresh();
         return result.success;
     });
 }
@@ -520,10 +520,6 @@ void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
-void GitModule::gitDiff() {
-    processEnqueue(GitCommand::Diff, QStringList{"diff", "--cached", "--name-status", "--no-renames", "-z"});
-}
-
 // git config
 void GitModule::gitProxyGet() const {
     m_gitConfig->localHttpProxyGet();
@@ -534,6 +530,35 @@ void GitModule::gitProxySet(const QString &localHttpProxy, const QString &localH
 }
 
 // private
+void GitModule::operationRefresh() {
+    m_gitService->diffGet().then(this, [this, taskId = m_taskId](const GitStagedDiffResult &result) {
+        if (taskId != m_taskId) return;
+        QString operation{};
+        switch (m_gitStatus) {
+            case GitOperationState::Merge: operation = tr("Merging: ");
+                break;
+            case GitOperationState::Rebase: operation = tr("Rebasing: ");
+                break;
+            case GitOperationState::CherryPick: operation = tr("Cherry-picking: ");
+                break;
+            case GitOperationState::Revert: operation = tr("Reverting: ");
+                break;
+            default: return;
+        }
+        if (!result.success) {
+            emit showErrorDialog(tr("Git command failed"), result.text());
+        } else if (!result.conflicts.isEmpty()) {
+            emit openDocument(result.conflicts.first());
+            emit refreshBackground(taskId, operation + tr("%1 file(s) left").arg(result.conflicts.size()));
+        } else if ((m_gitStatus == GitOperationState::CherryPick || m_gitStatus == GitOperationState::Revert) && !result.hasChanges) {
+            emit refreshBackground(taskId, operation + tr("no changes to commit"));
+        } else {
+            emit refreshBackground(taskId, operation + tr("ready to commit"));
+            emit showContinueDialog();
+        }
+    });
+}
+
 void GitModule::processEnqueue(int command, const QStringList &arguments) {
     m_queue.enqueue(QVariantHash{
         {"command", command},
@@ -560,41 +585,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir workTree(m_gitService->repoGet().workTreePath);
         // output parser
         switch (command) {
-            case GitCommand::Diff: {
-                const auto fields = output.split('\0');
-                QStringList paths{};
-                for (qsizetype i = 0; i + 1 < fields.size(); i += 2) {
-                    if (fields.at(i) == "U") paths.append(QString::fromUtf8(fields.at(i + 1)));
-                }
-                QString operation{};
-                switch (m_gitStatus) {
-                    case GitOperationState::Merge: operation = tr("Merging: ");
-                        break;
-                    case GitOperationState::Rebase: operation = tr("Rebasing: ");
-                        break;
-                    case GitOperationState::CherryPick: operation = tr("Cherry-picking: ");
-                        break;
-                    case GitOperationState::Revert: operation = tr("Reverting: ");
-                        break;
-                    default: break;
-                }
-                if (operation.isEmpty()) break;
-                // finish conflict resolve
-                if ((m_gitStatus == GitOperationState::CherryPick || m_gitStatus == GitOperationState::Revert) && output.isEmpty()) {
-                    emit refreshBackground(m_taskId, operation + tr("no changes to commit"));
-                } else if (paths.isEmpty()) {
-                    emit refreshBackground(m_taskId, operation + tr("ready to commit"));
-                    emit showContinueDialog();
-                }
-                // continue conflict resolve
-                else {
-                    const auto &documentPath = workTree.filePath(paths.first());
-                    const auto &documentUrl = QUrl::fromLocalFile(documentPath);
-                    emit openDocument(documentUrl);
-                    emit refreshBackground(m_taskId, operation + tr("%1 file(s) left").arg(QString::number(paths.size())));
-                }
-            }
-            break;
             case GitCommand::Ahead: {
                 m_commitModel->clear();
                 m_commitModel->appendRow(new QStandardItem(m_current + " -> " + m_upstream.section('/', 2)));
