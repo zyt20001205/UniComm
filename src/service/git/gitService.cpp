@@ -58,6 +58,49 @@ QFuture<GitResult> GitService::versionGet() {
     });
 }
 
+// public: operation
+QFuture<GitResult> GitService::operationContinue(const GitOperationState::Value state, const QString &message) {
+    QStringList arguments{};
+    switch (state) {
+        case GitOperationState::Merge:
+            if (message.isEmpty()) arguments = {"merge", "--continue"};
+            else arguments = {"commit", "-m", message};
+            break;
+        case GitOperationState::Rebase: arguments = {"rebase", "--continue"};
+            break;
+        case GitOperationState::CherryPick: arguments = {"cherry-pick", "--continue"};
+            break;
+        case GitOperationState::Revert: arguments = {"revert", "--continue"};
+            break;
+        default: return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("No operation to continue.").toUtf8()});
+    }
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
+QFuture<GitResult> GitService::operationAbort(const GitOperationState::Value state) {
+    QStringList arguments{};
+    switch (state) {
+        case GitOperationState::Merge: arguments = {"merge", "--abort"};
+            break;
+        case GitOperationState::Rebase: arguments = {"rebase", "--abort"};
+            break;
+        case GitOperationState::CherryPick: arguments = {"cherry-pick", "--abort"};
+            break;
+        case GitOperationState::Revert: arguments = {"revert", "--abort"};
+            break;
+        default: return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("No operation to abort.").toUtf8()});
+    }
+    return processEnqueue(arguments).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // public: repo
 QFuture<GitResult> GitService::init() {
     return processEnqueue({"init"}).then(this, [this](const GitResult &result) {

@@ -119,6 +119,11 @@ public:
 
     QFuture<GitResult> versionGet();
 
+    // public: operation
+    QFuture<GitResult> operationContinue(GitOperationState::Value state, const QString &message = {});
+
+    QFuture<GitResult> operationAbort(GitOperationState::Value state);
+
     // public: repo
     QFuture<GitResult> init();
 

@@ -110,6 +110,19 @@ void GitModule::restoreState() const {
         QMetaObject::invokeMethod(m_widget->rootObject(), "restoreState", Q_ARG(QVariant, QByteArray::fromBase64(encoded.toLatin1())));
 }
 
+// public: operation
+void GitModule::operationContinue(const QString &message) {
+    m_gitService->operationContinue(m_gitStatus, message).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Continue Failed"), result.text());
+    });
+}
+
+void GitModule::operationAbort() {
+    m_gitService->operationAbort(m_gitStatus).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Abort Failed"), result.text());
+    });
+}
+
 // public: repo
 void GitModule::init() {
     m_gitService->init().then(this, [this](const GitResult &result) {
@@ -130,7 +143,7 @@ void GitModule::gitRepo() {
     if (state != m_gitStatus) {
         if (m_gitStatus != GitOperationState::Idle) emit removeBackground(m_taskId);
         if (state != GitOperationState::Idle)
-            m_taskId = emit appendBackground([this] { gitAbort(); }, [this] { gitDiff(); });
+            m_taskId = emit appendBackground([this] { operationAbort(); }, [this] { gitDiff(); });
         gitStatusSet(state);
     }
     if (state != GitOperationState::Idle) gitDiff();
@@ -145,7 +158,8 @@ void GitModule::fetch() {
     emit refreshBackground(taskId, tr("Fetching from remote..."));
     future.then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Fetch Failed"), result.text());
-    }).onCanceled(this, [] {}).then(this, [this, taskId] {
+    }).onCanceled(this, [] {
+    }).then(this, [this, taskId] {
         emit removeBackground(taskId);
         gitStatusSet(GitOperationState::Idle);
     });
@@ -160,7 +174,8 @@ void GitModule::push() {
     emit refreshBackground(taskId, tr("Pushing to remote..."));
     future.then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Push Failed"), result.text());
-    }).onCanceled(this, [] {}).then(this, [this, taskId] {
+    }).onCanceled(this, [] {
+    }).then(this, [this, taskId] {
         emit removeBackground(taskId);
         gitStatusSet(GitOperationState::Idle);
     });
@@ -513,40 +528,6 @@ void GitModule::gitShowFile(const QUrl &documentUrl) {
     processEnqueue(GitCommand::ShowFile, QStringList{"show", m_showHash, "--format=", "--", documentPath});
 }
 
-void GitModule::gitAbort() {
-    switch (m_gitStatus) {
-        case GitOperationState::Merge: processEnqueue(GitCommand::Abort, QStringList{"merge", "--abort"});
-            break;
-        case GitOperationState::Rebase: processEnqueue(GitCommand::Abort, QStringList{"rebase", "--abort"});
-            break;
-        case GitOperationState::CherryPick: processEnqueue(GitCommand::Abort, QStringList{"cherry-pick", "--abort"});
-            break;
-        case GitOperationState::Revert: processEnqueue(GitCommand::Abort, QStringList{"revert", "--abort"});
-            break;
-        default: break;
-    }
-}
-
-void GitModule::gitContinue(const QString &message) {
-    QStringList arguments{};
-    switch (m_gitStatus) {
-        case GitOperationState::Merge: {
-            if (message.isEmpty()) arguments = {"merge", "--continue"};
-            else arguments = {"commit", "-m", message};
-        }
-        break;
-        // TODO: When migrating Continue/Abort, distinguish a new rebase conflict from a failed continue.
-        case GitOperationState::Rebase: arguments = {"rebase", "--continue"};
-            break;
-        case GitOperationState::CherryPick: arguments = {"cherry-pick", "--continue"};
-            break;
-        case GitOperationState::Revert: arguments = {"revert", "--continue"};
-            break;
-        default: break;
-    }
-    processEnqueue(GitCommand::Continue, arguments);
-}
-
 void GitModule::gitDiff() {
     processEnqueue(GitCommand::Diff, QStringList{"diff", "--cached", "--name-status", "--no-renames", "-z"});
 }
@@ -766,14 +747,6 @@ void GitModule::processFinished(const int exitcode) {
         }
         // state machine
         switch (command) {
-            case GitCommand::Continue:
-            case GitCommand::Abort: {
-                if (m_gitStatus != GitOperationState::Idle) {
-                    emit removeBackground(m_taskId);
-                    gitStatusSet(GitOperationState::Idle);
-                }
-            }
-            break;
             case GitCommand::Ahead: gitDiff_();
                 break;
             case GitCommand::RemoteAdd: fetch();

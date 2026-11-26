@@ -876,7 +876,7 @@ Item {
             continueTextField.forceActiveFocus()
         }
 
-        onAccepted: root.gitModule.gitContinue(continueTextField.text)
+        onAccepted: root.gitModule.operationContinue(continueCheckBox.checked ? "" : continueTextField.text)
 
         ColumnLayout {
             width: parent.width

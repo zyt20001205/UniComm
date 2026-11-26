@@ -59,6 +59,11 @@ public:
 
     void restoreState() const;
 
+    // public: operation
+    Q_INVOKABLE void operationContinue(const QString &message);
+
+    void operationAbort();
+
     // public: repo
     Q_INVOKABLE void init();
 
@@ -136,10 +141,6 @@ public:
     void gitRemoteGet();
 
     Q_INVOKABLE void gitShowFile(const QUrl &documentUrl);
-
-    Q_INVOKABLE void gitAbort();
-
-    Q_INVOKABLE void gitContinue(const QString &message);
 
     Q_INVOKABLE void gitDiff();
 
@@ -226,8 +227,6 @@ private:
             RemoteAdd,
             RemoteGet,
             ShowFile,
-            Abort,
-            Continue,
             Diff
         };
     };
