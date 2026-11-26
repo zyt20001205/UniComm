@@ -224,6 +224,28 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
             });
 }
 
+QFuture<GitResult> GitService::reset(const QString &hash, const GitResetMode::Value mode) {
+    QString option{};
+    switch (mode) {
+        case GitResetMode::Mixed: option = "--mixed";
+            break;
+        case GitResetMode::Soft: option = "--soft";
+            break;
+        case GitResetMode::Hard: option = "--hard";
+            break;
+        case GitResetMode::Merge: option = "--merge";
+            break;
+        case GitResetMode::Keep: option = "--keep";
+            break;
+        default: return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("Unknown reset mode.").toUtf8()});
+    }
+    return processEnqueue({"reset", option, hash, "--"}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};

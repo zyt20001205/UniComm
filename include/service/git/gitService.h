@@ -150,6 +150,8 @@ public:
 
     QFuture<GitShowResult> showGet(const QString &hash);
 
+    QFuture<GitResult> reset(const QString &hash, GitResetMode::Value mode);
+
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 

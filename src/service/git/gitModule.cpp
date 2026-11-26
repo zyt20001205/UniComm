@@ -338,6 +338,12 @@ void GitModule::showGet(const QString &hash) {
     });
 }
 
+void GitModule::reset(const QString &hash, const GitResetMode::Value mode) {
+    m_gitService->reset(hash, mode).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
+    });
+}
+
 // public: working tree
 void GitModule::statusGet() {
     m_gitService->statusGet().then(this, [this](const GitStatusResult &result) {
@@ -474,24 +480,6 @@ void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
 
 void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
-}
-
-void GitModule::gitReset(const QString &hash, const GitResetMode::Value mode) {
-    QString _mode{};
-    switch (mode) {
-        case GitResetMode::Mixed: _mode = "--mixed";
-            break;
-        case GitResetMode::Soft: _mode = "--soft";
-            break;
-        case GitResetMode::Hard: _mode = "--hard";
-            break;
-        case GitResetMode::Merge: _mode = "--merge";
-            break;
-        case GitResetMode::Keep: _mode = "--keep";
-            break;
-        default: return;
-    }
-    processEnqueue(GitCommand::Reset, QStringList{"reset", hash, _mode});
 }
 
 void GitModule::gitCherryPick(const QString &hash) {

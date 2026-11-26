@@ -88,6 +88,8 @@ public:
 
     Q_INVOKABLE void showGet(const QString &hash);
 
+    Q_INVOKABLE void reset(const QString &hash, GitResetMode::Value mode);
+
     // public: working tree
     void statusGet();
 
@@ -121,8 +123,6 @@ public:
     Q_INVOKABLE void gitRemoteAdd(const QString &upstreamUrl);
 
     void gitRemoteGet();
-
-    Q_INVOKABLE void gitReset(const QString &hash, GitResetMode::Value mode);
 
     Q_INVOKABLE void gitCherryPick(const QString &hash);
 
@@ -220,7 +220,6 @@ private:
             Push,
             RemoteAdd,
             RemoteGet,
-            Reset,
             ShowFile,
             Merge,
             Rebase,

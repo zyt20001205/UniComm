@@ -1177,7 +1177,7 @@ Item {
         }
 
         Menu {
-            title: qsTr("Reset")
+            title: qsTr("Reset Current Branch to Here")
             icon.source: "qrc:/icon/reset.svg"
             icon.width: 16; icon.height: 16
 
@@ -1196,7 +1196,7 @@ Item {
                     }
                 }
 
-                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Mixed)
+                onTriggered: root.gitModule.reset(logMenu.hash, GitResetMode.Mixed)
             }
 
             MenuItem {
@@ -1214,7 +1214,7 @@ Item {
                     }
                 }
 
-                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Soft)
+                onTriggered: root.gitModule.reset(logMenu.hash, GitResetMode.Soft)
             }
 
             MenuItem {
@@ -1232,7 +1232,7 @@ Item {
                     }
                 }
 
-                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Hard)
+                onTriggered: root.gitModule.reset(logMenu.hash, GitResetMode.Hard)
             }
 
             MenuItem {
@@ -1250,7 +1250,7 @@ Item {
                     }
                 }
 
-                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Merge)
+                onTriggered: root.gitModule.reset(logMenu.hash, GitResetMode.Merge)
             }
 
             MenuItem {
@@ -1268,7 +1268,7 @@ Item {
                     }
                 }
 
-                onTriggered: root.gitModule.gitReset(logMenu.hash, GitResetMode.Keep)
+                onTriggered: root.gitModule.reset(logMenu.hash, GitResetMode.Keep)
             }
         }
     }
