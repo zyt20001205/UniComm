@@ -27,7 +27,15 @@
     "dangerFore2": "#6e0811",
     "dangerBack2": "#eeacb2",
     "dangerFore3": "#c50f1f",
-    "dangerBack3": "#c50f1f"
+    "dangerBack3": "#c50f1f",
+    "greenFore2": "#094509",
+    "greenBack2": "#9fd89f",
+    "cranberryFore2": "#6e0811",
+    "cranberryBack2": "#eeacb2",
+    "blueFore2": "#004377",
+    "blueBack2": "#a9d3f2",
+    "minkFore2": "#343231",
+    "minkBack2": "#cecccb"
   },
   "lua": {
     "completion": {

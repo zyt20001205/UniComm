@@ -271,8 +271,8 @@ void ScintillaWidget::markerDefine(const ScintillaMarker::Value type, const QVar
     // if (session.contains("backSelectedTranslucent")) send(SCI_MARKERSETBACKSELECTEDTRANSLUCENT, type, session["backSelectedTranslucent"].toInt()); // NOLINT
     // if (session.contains("strokeWidth")) send(SCI_MARKERSETSTROKEWIDTH, type, session["strokeWidth"].toInt()); // NOLINT
     // if (session.contains("enableHighlight")) send(SCI_MARKERENABLEHIGHLIGHT, type, session["enableHighlight"].toBool()); // NOLINT
-    // if (session.contains("layer")) send(SCI_MARKERSETLAYER, type, session["layer"].toInt()); // NOLINT
-    // if (session.contains("alpha")) send(SCI_MARKERSETALPHA, type, session["alpha"].toInt()); // NOLINT
+    if (session.contains("layer")) send(SCI_MARKERSETLAYER, type, session["layer"].toInt()); // NOLINT
+    if (session.contains("alpha")) send(SCI_MARKERSETALPHA, type, session["alpha"].toInt()); // NOLINT
 }
 
 void ScintillaWidget::markerAdd(const ScintillaMarker::Value type, const int line, const int time) const {

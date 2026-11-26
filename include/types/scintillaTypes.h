@@ -55,10 +55,7 @@ namespace ScintillaIndicator {
         Write,
         Hyperlink,
         Result,
-        Current,
-        ConflictStart,
-        ConflictSeparator,
-        ConflictEnd
+        Current
     };
 
     Q_ENUM_NS(Value)
@@ -75,8 +72,6 @@ namespace ScintillaMarker {
         Debug,
         DebugLine,
         Hint,
-        ConflictCurrent,
-        ConflictIncoming,
         // Scintilla reserves marker slots 25–31 for folding.
         FolderEnd = 25,
         FolderOpenMid = 26,
