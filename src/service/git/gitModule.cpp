@@ -2,7 +2,6 @@
 
 #include <kddockwidgets/core/DockWidget.h>
 #include <QDir>
-#include <QFileInfo>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QQuickWidget>
@@ -46,7 +45,7 @@ GitModule::GitModule()
     connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
 
     auto env = QProcessEnvironment::systemEnvironment();
-    env.insert("GIT_EDITOR", "true");
+    env.insert("GIT_EDITOR", ":");
     m_process->setProcessEnvironment(env);
     m_process->setWorkingDirectory(g_workspaceUrl.toLocalFile());
     connect(m_process, &QProcess::finished, this, [this](const int exitcode) { processFinished(exitcode); });
@@ -123,28 +122,18 @@ void GitModule::gitRepo() {
     m_process->setWorkingDirectory(repo.workTreePath);
     if (m_gitStatus == GitOperationState::Transfer) return;
     const QDir gitDir(repo.gitDirPath);
-    // merge
-    if (QFileInfo::exists(gitDir.filePath("MERGE_HEAD"))) {
-        m_taskId = emit appendBackground(
-            [this] { this->gitAbort(); },
-            [this] { this->gitDiff(); });
-        gitStatusSet(GitOperationState::Merge);
+    auto state = GitOperationState::Idle;
+    if (gitDir.exists("REBASE_HEAD") && (gitDir.exists("rebase-merge") || gitDir.exists("rebase-apply/rebasing"))) state = GitOperationState::Rebase;
+    else if (gitDir.exists("MERGE_HEAD")) state = GitOperationState::Merge;
+    else if (gitDir.exists("CHERRY_PICK_HEAD")) state = GitOperationState::CherryPick;
+    else if (gitDir.exists("REVERT_HEAD")) state = GitOperationState::Revert;
+    if (state != m_gitStatus) {
+        if (m_gitStatus != GitOperationState::Idle) emit removeBackground(m_taskId);
+        if (state != GitOperationState::Idle)
+            m_taskId = emit appendBackground([this] { gitAbort(); }, [this] { gitDiff(); });
+        gitStatusSet(state);
     }
-    // rebase
-    else if (QFileInfo::exists(gitDir.filePath("REBASE_HEAD"))) {
-        m_taskId = emit appendBackground(
-            [this] { this->gitAbort(); },
-            [this] { this->gitDiff(); });
-        gitStatusSet(GitOperationState::Rebase);
-    }
-    // cherry-pick
-    else if (QFileInfo::exists(gitDir.filePath("CHERRY_PICK_HEAD"))) {
-        m_taskId = emit appendBackground(
-            [this] { this->gitAbort(); },
-            [this] { this->gitDiff(); });
-        gitStatusSet(GitOperationState::CherryPick);
-    }
-    if (m_gitStatus != GitOperationState::Idle) gitDiff();
+    if (state != GitOperationState::Idle) gitDiff();
 }
 
 // public: branch
@@ -183,7 +172,7 @@ void GitModule::refsGet() {
         m_refs->removeRows(0, m_refs->rowCount());
         m_current.clear();
         QHash<QString, QStandardItem *> groups{};
-        for (const auto &[ref, current] : result.refs) {
+        for (const auto &[ref, current]: result.refs) {
             const auto kind = ref.section('/', 1, 1);
             const auto name = ref.section('/', 2);
             auto &group = groups[kind];
@@ -248,6 +237,18 @@ void GitModule::branchDelete(const QString &name) {
     });
 }
 
+void GitModule::merge(const QString &ref) {
+    m_gitService->merge(ref).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Merge Failed"), result.text());
+    });
+}
+
+void GitModule::rebase(const QString &ref) {
+    m_gitService->rebase(ref).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Rebase Failed"), result.text());
+    });
+}
+
 // public: history
 
 // success -> showGet()
@@ -273,16 +274,16 @@ void GitModule::logGet(const QString &ref) {
             m_laneCount = qMax(m_laneCount, static_cast<int>(lanes.size()));
             positions.insert(commit.hash, QPoint(lane, row));
             lanes.removeAt(lane);
-            for (const auto &parent : commit.parents) {
+            for (const auto &parent: commit.parents) {
                 if (!lanes.contains(parent)) lanes.insert(lane++, parent);
             }
         }
 
         // populate the table with the resolved parent positions
         m_log->removeRows(0, m_log->rowCount());
-        for (const auto &commit : result.commits) {
+        for (const auto &commit: result.commits) {
             QVariantList parents{};
-            for (const auto &hash : commit.parents) {
+            for (const auto &hash: commit.parents) {
                 const auto parent = positions.constFind(hash);
                 if (parent != positions.cend()) parents.append(parent.value());
             }
@@ -290,7 +291,7 @@ void GitModule::logGet(const QString &ref) {
             node->setData(positions.value(commit.hash), PositionRole);
             node->setData(parents, ParentsRole);
             const QList items{node, new QStandardItem(commit.subject), new QStandardItem(commit.author), new QStandardItem(commit.relativeDate)};
-            for (auto *item : items) item->setData(commit.hash, HashRole);
+            for (auto *item: items) item->setData(commit.hash, HashRole);
             m_log->appendRow(items);
         }
         emit logChanged();
@@ -310,7 +311,7 @@ void GitModule::showGet(const QString &hash) {
         m_showHash = hash;
         const QDir workTree(m_gitService->repoGet().workTreePath);
         QHash<QString, QStandardItem *> folders{};
-        for (const auto &file : result.files) {
+        for (const auto &file: result.files) {
             const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
             auto *parent = m_show->invisibleRootItem();
             QString folderPath{};
@@ -338,6 +339,20 @@ void GitModule::showGet(const QString &hash) {
     });
 }
 
+void GitModule::cherryPick(const QString &hash) {
+    if (hash.isEmpty()) return;
+    m_gitService->cherryPick(hash).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Cherry-pick Failed"), result.text());
+    });
+}
+
+void GitModule::revert(const QString &hash) {
+    if (hash.isEmpty()) return;
+    m_gitService->revert(hash).then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Revert Failed"), result.text());
+    });
+}
+
 void GitModule::reset(const QString &hash, const GitResetMode::Value mode) {
     m_gitService->reset(hash, mode).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
@@ -357,7 +372,7 @@ void GitModule::statusGet() {
         QHash<QString, QStandardItem *> workingTreeFolders{};
         QHash<QString, QStandardItem *> indexFolders{};
         const QDir workTree(m_gitService->repoGet().workTreePath);
-        for (const auto &file : result.files) {
+        for (const auto &file: result.files) {
             const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
             const auto appendFile = [&](const StatusModel *model, QHash<QString, QStandardItem *> &folders, GitFileStatus::Value status) {
                 auto *parent = model->invisibleRootItem();
@@ -482,23 +497,10 @@ void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
-void GitModule::gitCherryPick(const QString &hash) {
-    if (hash.isEmpty()) return;
-    processEnqueue(GitCommand::CherryPick, QStringList{"cherry-pick", hash});
-}
-
 // public: show
 void GitModule::gitShowFile(const QUrl &documentUrl) {
     const auto &documentPath = documentUrl.toLocalFile();
     processEnqueue(GitCommand::ShowFile, QStringList{"show", m_showHash, "--format=", "--", documentPath});
-}
-
-void GitModule::gitMerge(const QString &name) {
-    processEnqueue(GitCommand::Merge, QStringList{"merge", name});
-}
-
-void GitModule::gitRebase(const QString &name) {
-    processEnqueue(GitCommand::Rebase, QStringList{"rebase", name});
 }
 
 void GitModule::gitAbort() {
@@ -510,6 +512,8 @@ void GitModule::gitAbort() {
         case GitOperationState::Rebase: processEnqueue(GitCommand::Abort, QStringList{"rebase", "--abort"});
             break;
         case GitOperationState::CherryPick: processEnqueue(GitCommand::Abort, QStringList{"cherry-pick", "--abort"});
+            break;
+        case GitOperationState::Revert: processEnqueue(GitCommand::Abort, QStringList{"revert", "--abort"});
             break;
         default: break;
     }
@@ -523,9 +527,12 @@ void GitModule::gitContinue(const QString &message) {
             else arguments = {"commit", "-m", message};
         }
         break;
+        // TODO: When migrating Continue/Abort, distinguish a new rebase conflict from a failed continue.
         case GitOperationState::Rebase: arguments = {"rebase", "--continue"};
             break;
         case GitOperationState::CherryPick: arguments = {"cherry-pick", "--continue"};
+            break;
+        case GitOperationState::Revert: arguments = {"revert", "--continue"};
             break;
         default: break;
     }
@@ -533,7 +540,7 @@ void GitModule::gitContinue(const QString &message) {
 }
 
 void GitModule::gitDiff() {
-    processEnqueue(GitCommand::Diff, QStringList{"diff", "--name-only", "--diff-filter=U"});
+    processEnqueue(GitCommand::Diff, QStringList{"diff", "--cached", "--name-status", "--no-renames", "-z"});
 }
 
 // git config
@@ -577,7 +584,11 @@ void GitModule::processFinished(const int exitcode) {
             }
             break;
             case GitCommand::Diff: {
-                const auto &paths = QString::fromUtf8(output).split('\n', Qt::SkipEmptyParts);
+                const auto fields = output.split('\0');
+                QStringList paths{};
+                for (qsizetype i = 0; i + 1 < fields.size(); i += 2) {
+                    if (fields.at(i) == "U") paths.append(QString::fromUtf8(fields.at(i + 1)));
+                }
                 QString operation{};
                 switch (m_gitStatus) {
                     case GitOperationState::Merge: operation = tr("Merging: ");
@@ -586,11 +597,15 @@ void GitModule::processFinished(const int exitcode) {
                         break;
                     case GitOperationState::CherryPick: operation = tr("Cherry-picking: ");
                         break;
-                    default:
-                        return;
+                    case GitOperationState::Revert: operation = tr("Reverting: ");
+                        break;
+                    default: break;
                 }
+                if (operation.isEmpty()) break;
                 // finish conflict resolve
-                if (paths.size() == 0) {
+                if ((m_gitStatus == GitOperationState::CherryPick || m_gitStatus == GitOperationState::Revert) && output.isEmpty()) {
+                    emit refreshBackground(m_taskId, operation + tr("no changes to commit"));
+                } else if (paths.isEmpty()) {
                     emit refreshBackground(m_taskId, operation + tr("ready to commit"));
                     emit showContinueDialog();
                 }
@@ -747,8 +762,10 @@ void GitModule::processFinished(const int exitcode) {
             case GitCommand::Continue:
             case GitCommand::Abort:
             case GitCommand::Push: {
-                emit removeBackground(m_taskId);
-                gitStatusSet(GitOperationState::Idle);
+                if (m_gitStatus != GitOperationState::Idle) {
+                    emit removeBackground(m_taskId);
+                    gitStatusSet(GitOperationState::Idle);
+                }
             }
             break;
             case GitCommand::Ahead: gitDiff_();
@@ -770,23 +787,6 @@ void GitModule::processFinished(const int exitcode) {
         QString text{};
         // error parser
         switch (command) {
-            case GitCommand::Merge: {
-                title = tr("Merge Failed");
-                text = QString::fromUtf8(output).trimmed();
-            }
-            break;
-            case GitCommand::Rebase: {
-                title = tr("Rebase Failed");
-                if (!output.isEmpty()) text = QString::fromUtf8(output).trimmed();
-                else text = QString::fromUtf8(error).trimmed();
-            }
-            break;
-            case GitCommand::CherryPick: {
-                title = tr("Cherry-pick Failed");
-                if (!output.isEmpty()) text = QString::fromUtf8(output).trimmed();
-                else text = QString::fromUtf8(error).trimmed();
-            }
-            break;
             case GitCommand::Fetch: {
                 title = tr("Fetch Failed");
                 text = QString::fromUtf8(error).trimmed();

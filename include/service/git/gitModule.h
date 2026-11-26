@@ -33,9 +33,11 @@ class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
 
 public:
     enum RefsRole { RefRole = Qt::UserRole + 1, TypeRole };
+
     Q_ENUM(RefsRole)
 
     enum LogRole { HashRole = Qt::UserRole + 1, PositionRole, ParentsRole };
+
     Q_ENUM(LogRole)
 
     explicit GitModule();
@@ -81,12 +83,20 @@ public:
 
     Q_INVOKABLE void branchDelete(const QString &name);
 
+    Q_INVOKABLE void merge(const QString &ref);
+
+    Q_INVOKABLE void rebase(const QString &ref);
+
     // public: history
     [[nodiscard]] int laneCountGet() const { return m_laneCount; }
 
     Q_INVOKABLE void logGet(const QString &ref);
 
     Q_INVOKABLE void showGet(const QString &hash);
+
+    Q_INVOKABLE void cherryPick(const QString &hash);
+
+    Q_INVOKABLE void revert(const QString &hash);
 
     Q_INVOKABLE void reset(const QString &hash, GitResetMode::Value mode);
 
@@ -124,13 +134,7 @@ public:
 
     void gitRemoteGet();
 
-    Q_INVOKABLE void gitCherryPick(const QString &hash);
-
     Q_INVOKABLE void gitShowFile(const QUrl &documentUrl);
-
-    Q_INVOKABLE void gitMerge(const QString &name);
-
-    Q_INVOKABLE void gitRebase(const QString &name);
 
     Q_INVOKABLE void gitAbort();
 
@@ -199,7 +203,9 @@ private:
     QStandardItemModel *m_refs{};
     QStandardItemModel *m_log{};
     int m_laneCount{};
+
     enum ShowRole { DocumentUrlRole = Qt::UserRole + 1, StatusRole };
+
     QStandardItemModel *m_show{};
     QString m_showHash{};
 
@@ -221,9 +227,6 @@ private:
             RemoteAdd,
             RemoteGet,
             ShowFile,
-            Merge,
-            Rebase,
-            CherryPick,
             Abort,
             Continue,
             Diff

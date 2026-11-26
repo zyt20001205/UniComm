@@ -145,10 +145,18 @@ public:
 
     QFuture<GitResult> branchDelete(const QString &name);
 
+    QFuture<GitResult> merge(const QString &ref);
+
+    QFuture<GitResult> rebase(const QString &ref);
+
     // public: history
     QFuture<GitLogResult> logGet(const QString &ref);
 
     QFuture<GitShowResult> showGet(const QString &hash);
+
+    QFuture<GitResult> cherryPick(const QString &hash);
+
+    QFuture<GitResult> revert(const QString &hash);
 
     QFuture<GitResult> reset(const QString &hash, GitResetMode::Value mode);
 

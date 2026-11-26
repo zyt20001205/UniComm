@@ -14,7 +14,8 @@ namespace GitOperationState {
         Transfer,
         Merge,
         Rebase,
-        CherryPick
+        CherryPick,
+        Revert
     };
 
     Q_ENUM_NS(Value)

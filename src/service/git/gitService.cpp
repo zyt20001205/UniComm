@@ -17,6 +17,7 @@ GitService::GitService(QObject *parent)
     m_process.setWorkingDirectory(g_workspaceUrl.toLocalFile());
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("LC_ALL", "C");
+    environment.insert("GIT_EDITOR", ":");
     environment.insert("GIT_OPTIONAL_LOCKS", "0");
     m_process.setProcessEnvironment(environment);
     connect(&m_process, &QProcess::finished, this, &GitService::processFinish);
@@ -168,6 +169,22 @@ QFuture<GitResult> GitService::branchDelete(const QString &name) {
     });
 }
 
+QFuture<GitResult> GitService::merge(const QString &ref) {
+    return processEnqueue({"merge", "--no-edit", ref}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
+QFuture<GitResult> GitService::rebase(const QString &ref) {
+    return processEnqueue({"rebase", ref}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 // public: history
 QFuture<GitLogResult> GitService::logGet(const QString &ref) {
     return processEnqueue({"log", "-z", "--no-show-signature", "--format=tformat:%H%x00%P%x00%ar%x00%an%x00%s", ref, "--"})
@@ -222,6 +239,22 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
                 statusSet(result.success ? Status::Stopped : Status::Error);
                 return show;
             });
+}
+
+QFuture<GitResult> GitService::cherryPick(const QString &hash) {
+    return processEnqueue({"cherry-pick", hash}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
+QFuture<GitResult> GitService::revert(const QString &hash) {
+    return processEnqueue({"revert", "--no-edit", hash}).then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
 }
 
 QFuture<GitResult> GitService::reset(const QString &hash, const GitResetMode::Value mode) {
@@ -435,7 +468,10 @@ void GitService::repoWatch() {
     const auto refs = commonDir.filePath("refs");
     const auto packedRefs = commonDir.filePath("packed-refs");
     const auto config = commonDir.filePath("config");
-    const QSet operationFiles{gitDir.filePath("MERGE_HEAD"), gitDir.filePath("REBASE_HEAD"), gitDir.filePath("CHERRY_PICK_HEAD")};
+    const QSet operationFiles{
+        gitDir.filePath("MERGE_HEAD"), gitDir.filePath("REBASE_HEAD"), gitDir.filePath("rebase-merge/head-name"),
+        gitDir.filePath("rebase-apply/rebasing"), gitDir.filePath("CHERRY_PICK_HEAD"), gitDir.filePath("REVERT_HEAD")
+    };
     if (hasRepoGet()) {
         if (!gitDir.exists() || !commonDir.exists()) {
             repoRefresh();
@@ -534,7 +570,9 @@ void GitService::processFinish() {
     m_timeout.stop();
     auto [arguments, successCodes, promise] = std::move(m_queue.front());
     const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && successCodes.contains(m_process.exitCode());
-    GitResult result{success, success ? m_process.readAllStandardOutput() : m_process.readAllStandardError()};
+    const auto output = m_process.readAllStandardOutput();
+    const auto error = m_process.readAllStandardError();
+    GitResult result{success, success || error.isEmpty() ? output : error};
     if (!success && result.raw.isEmpty() && m_process.error() != QProcess::UnknownError) result.raw = m_process.errorString().toUtf8();
 
     // record command

@@ -853,7 +853,15 @@ Item {
         anchors.centerIn: parent
         width: 600
         modal: true
-        title: root.gitModule.gitStatus === GitOperationState.Merge ? qsTr("Finish Merge") : qsTr("Finish Rebase")
+        title: {
+            switch (root.gitModule.gitStatus) {
+                case GitOperationState.Merge: return qsTr("Finish Merge")
+                case GitOperationState.Rebase: return qsTr("Finish Rebase")
+                case GitOperationState.CherryPick: return qsTr("Finish Cherry-pick")
+                case GitOperationState.Revert: return qsTr("Finish Revert")
+                default: return ""
+            }
+        }
         standardButtons: Dialog.Ok
 
         onOpened: {
@@ -1141,14 +1149,14 @@ Item {
             text: qsTr("Merge %1 into %2").arg(branchMenu.name).arg(branchMenu.current)
             enabled: root.gitModule.gitStatus === GitOperationState.Idle
 
-            onTriggered: root.gitModule.gitMerge(branchMenu.name)
+            onTriggered: root.gitModule.merge(branchMenu.ref)
         }
 
         MenuItem {
             text: qsTr("Rebase %1 onto %2").arg(branchMenu.current).arg(branchMenu.name)
             enabled: root.gitModule.gitStatus === GitOperationState.Idle
 
-            onTriggered: root.gitModule.gitRebase(branchMenu.name)
+            onTriggered: root.gitModule.rebase(branchMenu.ref)
         }
     }
 
@@ -1167,10 +1175,15 @@ Item {
         MenuItem {
             text: qsTr("Cherry-pick")
             enabled: root.gitModule.gitStatus === GitOperationState.Idle
-            icon.source: "qrc:/icon/gitMerge.svg"
-            icon.width: 16; icon.height: 16
 
-            onTriggered: root.gitModule.gitCherryPick(logMenu.hash)
+            onTriggered: root.gitModule.cherryPick(logMenu.hash)
+        }
+
+        MenuItem {
+            text: qsTr("Revert Commit")
+            enabled: root.gitModule.gitStatus === GitOperationState.Idle
+
+            onTriggered: root.gitModule.revert(logMenu.hash)
         }
 
         MenuSeparator {
@@ -1178,8 +1191,6 @@ Item {
 
         Menu {
             title: qsTr("Reset Current Branch to Here")
-            icon.source: "qrc:/icon/reset.svg"
-            icon.width: 16; icon.height: 16
 
             MenuItem {
                 text: qsTr("Mixed")
