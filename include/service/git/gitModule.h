@@ -140,8 +140,6 @@ public:
 
     void gitRemoteGet();
 
-    Q_INVOKABLE void gitShowFile(const QUrl &documentUrl);
-
     Q_INVOKABLE void gitDiff();
 
     Q_INVOKABLE void gitProxyGet() const;
@@ -206,10 +204,9 @@ private:
     QStandardItemModel *m_log{};
     int m_laneCount{};
 
-    enum ShowRole { DocumentUrlRole = Qt::UserRole + 1, StatusRole };
+    enum ShowRole { StatusRole = Qt::UserRole + 1 };
 
     QStandardItemModel *m_show{};
-    QString m_showHash{};
 
     StatusModel *m_workingTreeModel{};
     StatusModel *m_indexModel{};
@@ -226,7 +223,6 @@ private:
             ShowCommit_,
             RemoteAdd,
             RemoteGet,
-            ShowFile,
             Diff
         };
     };

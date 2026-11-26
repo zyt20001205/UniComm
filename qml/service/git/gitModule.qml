@@ -755,17 +755,6 @@ Item {
 
                         onTapped: showTreeView.selectedRow = row
                     }
-
-                    TapHandler {
-                        acceptedButtons: Qt.RightButton
-                        gesturePolicy: TapHandler.DragWithinBounds
-
-                        onTapped: {
-                            if (!(isTreeNode && hasChildren)) {
-                                root.gitModule.gitShowFile(model.documentUrl)
-                            }
-                        }
-                    }
                 }
 
                 TapHandler {

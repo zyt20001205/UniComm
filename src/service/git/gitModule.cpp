@@ -38,7 +38,7 @@ GitModule::GitModule()
     m_refs->setColumnCount(1);
     m_log->setItemRoleNames({{Qt::DisplayRole, "display"}, {HashRole, "hash"}, {PositionRole, "position"}, {ParentsRole, "parents"}});
     m_log->setColumnCount(4);
-    m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {DocumentUrlRole, "documentUrl"}, {StatusRole, "status"}});
+    m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {StatusRole, "status"}});
     m_show->setColumnCount(1);
 
     connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
@@ -346,14 +346,13 @@ void GitModule::logGet(const QString &ref) {
 
 // failure -> showErrorDialog()
 void GitModule::showGet(const QString &hash) {
-    m_gitService->showGet(hash).then(this, [this, hash](const GitShowResult &result) {
+    m_gitService->showGet(hash).then(this, [this](const GitShowResult &result) {
         if (!result.success) {
             emit showErrorDialog(tr("Git command failed"), result.text());
             return;
         }
 
         m_show->removeRows(0, m_show->rowCount());
-        m_showHash = hash;
         const QDir workTree(m_gitService->repoGet().workTreePath);
         QHash<QString, QStandardItem *> folders{};
         for (const auto &file: result.files) {
@@ -376,7 +375,6 @@ void GitModule::showGet(const QString &hash) {
                 display = QString("%1 -> %2 (%3%)").arg(file.originalUrl.fileName(), display, QString::number(file.similarity));
             auto *item = new QStandardItem(display);
             item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
-            item->setData(file.documentUrl, DocumentUrlRole);
             item->setData(file.status, StatusRole);
             parent->appendRow(item);
         }
@@ -522,12 +520,6 @@ void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
-// public: show
-void GitModule::gitShowFile(const QUrl &documentUrl) {
-    const auto &documentPath = documentUrl.toLocalFile();
-    processEnqueue(GitCommand::ShowFile, QStringList{"show", m_showHash, "--format=", "--", documentPath});
-}
-
 void GitModule::gitDiff() {
     processEnqueue(GitCommand::Diff, QStringList{"diff", "--cached", "--name-status", "--no-renames", "-z"});
 }
@@ -568,10 +560,6 @@ void GitModule::processFinished(const int exitcode) {
         const QDir workTree(m_gitService->repoGet().workTreePath);
         // output parser
         switch (command) {
-            case GitCommand::ShowFile: {
-                qDebug() << output;
-            }
-            break;
             case GitCommand::Diff: {
                 const auto fields = output.split('\0');
                 QStringList paths{};
