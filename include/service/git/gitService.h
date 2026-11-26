@@ -34,6 +34,11 @@ struct GitRepoResult : GitResult {
     QString indexPath{};
 };
 
+struct GitProxyResult : GitResult {
+    QString local{};
+    QString global{};
+};
+
 struct GitRefsResult : GitResult {
     struct Entry {
         QString ref;
@@ -137,6 +142,11 @@ public:
     }
 
     QFuture<GitRepoResult> repoRefresh();
+
+    // public: config
+    QFuture<GitProxyResult> proxyGet();
+
+    QFuture<GitResult> proxySet(const QString &local, const QString &global);
 
     // public: remote
     QFuture<GitResult> fetch();

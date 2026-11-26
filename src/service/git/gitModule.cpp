@@ -8,7 +8,6 @@
 
 #include "core/globalManager.h"
 #include "mainWindow/mainWindow.h"
-#include "service/git/gitConfig.h"
 #include "service/git/gitService.h"
 #include "service/serviceModule.h"
 #include "util/uniCast.h"
@@ -23,7 +22,6 @@ GitModule::GitModule()
       m_commitWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_pushWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_process(new QProcess(this)),
-      m_gitConfig(new GitConfig(this)),
       m_refs(new QStandardItemModel(this)),
       m_log(new QStandardItemModel(this)),
       m_show(new QStandardItemModel(this)),
@@ -40,9 +38,6 @@ GitModule::GitModule()
     m_log->setColumnCount(4);
     m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {StatusRole, "status"}});
     m_show->setColumnCount(1);
-
-    connect(m_gitConfig, &GitConfig::showErrorDialog, this, &GitModule::showErrorDialog);
-    connect(m_gitConfig, &GitConfig::showProxyDialog, this, &GitModule::showProxyDialog);
 
     auto env = QProcessEnvironment::systemEnvironment();
     env.insert("GIT_EDITOR", ":");
@@ -518,15 +513,6 @@ void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
 
 void GitModule::gitRemoteGet() {
     processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
-}
-
-// git config
-void GitModule::gitProxyGet() const {
-    m_gitConfig->localHttpProxyGet();
-}
-
-void GitModule::gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const {
-    m_gitConfig->gitProxySet(localHttpProxy, localHttpsProxy, globalHttpProxy, globalHttpsProxy);
 }
 
 // private

@@ -134,6 +134,45 @@ QFuture<GitRepoResult> GitService::repoRefresh() {
         });
 }
 
+// public: config
+QFuture<GitProxyResult> GitService::proxyGet() {
+    return processEnqueue({"config", "get", "--all", "--show-scope", "--no-includes", "-z", "http.proxy"}, {0, 1}).then(this, [this](const GitResult &result) {
+        GitProxyResult proxy{result};
+        if (result.success) {
+            const auto fields = result.raw.split('\0');
+            for (qsizetype i = 0; i + 1 < fields.size(); i += 2) {
+                if (fields.at(i) == "local") proxy.local = QString::fromUtf8(fields.at(i + 1));
+                else if (fields.at(i) == "global") proxy.global = QString::fromUtf8(fields.at(i + 1));
+            }
+        }
+
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return proxy;
+    });
+}
+
+QFuture<GitResult> GitService::proxySet(const QString &local, const QString &global) {
+    const auto set = [this](const QString &scope, const QString &value) {
+        if (value.isEmpty()) return processEnqueue({"config", "unset", scope, "--all", "http.proxy"}, {0, 5});
+        return processEnqueue({"config", "set", scope, "--all", "--", "http.proxy", value});
+    };
+    QList<QFuture<GitResult>> writes{};
+    if (hasRepoGet() || !local.isEmpty()) writes.append(set("--local", local));
+    writes.append(set("--global", global));
+    return QtFuture::whenAll(writes.begin(), writes.end()).then(this, [this](const QList<QFuture<GitResult>> &finished) {
+        for (const auto &write: finished) {
+            const auto result = write.result();
+            if (!result.success) {
+                statusSet(Status::Error);
+                return result;
+            }
+        }
+        statusSet(Status::Stopped);
+        return GitResult{.success = true};
+    });
+}
+
 // public: remote
 QFuture<GitResult> GitService::fetch() {
     return processEnqueue({"fetch", "--prune"});
@@ -668,6 +707,9 @@ void GitService::processFinish() {
     }
     const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
     if (cancelled) eventAppend(event, false, tr("Cancelled"));
+    // Proxy URLs can contain credentials.
+    else if (event == "config" && arguments.value(1) == "set")
+        eventAppend(event, result.success, "git " + arguments.sliced(0, arguments.size() - 1).join(' '));
     else eventAppend(event, result.success, result.success ? "git " + arguments.join(' ') : result.text());
     m_queue.pop();
     const bool hasNext = !m_queue.empty();

@@ -826,13 +826,6 @@ Item {
             errorDialog.text = text
             errorDialog.open()
         }
-        function onShowProxyDialog(proxies) {
-            localHttpProxyTextField.text = proxies.localHttpProxy
-            localHttpsProxyTextField.text = proxies.localHttpsProxy
-            globalHttpProxyTextField.text = proxies.globalHttpProxy
-            globalHttpsProxyTextField.text = proxies.globalHttpsProxy
-            proxyDialog.open()
-        }
     }
 
     Dialog {
@@ -961,84 +954,6 @@ Item {
                     id: branchSwitchCheckBox
                     text: qsTr("Switch")
                 }
-            }
-        }
-    }
-
-    Dialog {
-        id: proxyDialog
-        parent: mainScreen
-        popupType: Popup.Item
-        anchors.centerIn: parent
-        width: 600
-        modal: true
-        title: qsTr("Proxy Configuration")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        onOpened: {
-            global.mainWindow.overlayFlagSet(false, true)
-            mainOverlay.widgetCount += 1
-        }
-        onClosed: mainOverlay.widgetCount -= 1
-
-        onAccepted: root.gitModule.gitProxySet(
-            localHttpProxyTextField.text,
-            localHttpsProxyTextField.text,
-            globalHttpProxyTextField.text,
-            globalHttpsProxyTextField.text)
-
-        ColumnLayout {
-            width: parent.width
-
-            Label {
-                text: qsTr("Local Http Proxy")
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: localHttpProxyTextField
-                Layout.fillWidth: true
-
-                onAccepted: proxyDialog.accept()
-                Keys.onEscapePressed: proxyDialog.reject()
-            }
-
-            Label {
-                text: qsTr("Local Https Proxy")
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: localHttpsProxyTextField
-                Layout.fillWidth: true
-
-                onAccepted: proxyDialog.accept()
-                Keys.onEscapePressed: proxyDialog.reject()
-            }
-
-            Label {
-                text: qsTr("Global Http Proxy")
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: globalHttpProxyTextField
-                Layout.fillWidth: true
-
-                onAccepted: proxyDialog.accept()
-                Keys.onEscapePressed: proxyDialog.reject()
-            }
-
-            Label {
-                text: qsTr("Global Https Proxy")
-                Layout.fillWidth: true
-            }
-
-            TextField {
-                id: globalHttpsProxyTextField
-                Layout.fillWidth: true
-
-                onAccepted: proxyDialog.accept()
-                Keys.onEscapePressed: proxyDialog.reject()
             }
         }
     }

@@ -14,7 +14,6 @@ class QProcess;
 class QQuickView;
 class QQuickWidget;
 
-class GitConfig;
 class GitService;
 class ShowModel;
 class StatusModel;
@@ -140,18 +139,12 @@ public:
 
     void gitRemoteGet();
 
-    Q_INVOKABLE void gitProxyGet() const;
-
-    Q_INVOKABLE void gitProxySet(const QString &localHttpProxy, const QString &localHttpsProxy, const QString &globalHttpProxy, const QString &globalHttpsProxy) const;
-
 signals:
     void gitStatusChanged();
 
     void showContinueDialog();
 
     void showErrorDialog(const QString &title, const QString &text);
-
-    void showProxyDialog(const QVariantHash &proxies);
 
     void showRemoteAddDialog();
 
@@ -197,8 +190,6 @@ private:
     QString m_current{};
     QString m_upstream{};
     int m_taskId{-1};
-
-    GitConfig *m_gitConfig{};
 
     QStandardItemModel *m_refs{};
     QStandardItemModel *m_log{};

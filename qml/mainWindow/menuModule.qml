@@ -1199,8 +1199,7 @@ Item {
 
             MenuItem {
                 text: qsTr("Proxy")
-
-                onTriggered: global.gitModule.gitProxyGet()
+                enabled: false
             }
         }
     }
