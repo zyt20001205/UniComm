@@ -531,8 +531,7 @@ void GitModule::gitProxySet(const QString &localHttpProxy, const QString &localH
 
 // private
 void GitModule::operationRefresh() {
-    m_gitService->diffGet().then(this, [this, taskId = m_taskId](const GitStagedDiffResult &result) {
-        if (taskId != m_taskId) return;
+    m_gitService->diffGet().then(this, [this](const GitStagedDiffResult &result) {
         QString operation{};
         switch (m_gitStatus) {
             case GitOperationState::Merge: operation = tr("Merging: ");
@@ -549,11 +548,11 @@ void GitModule::operationRefresh() {
             emit showErrorDialog(tr("Git command failed"), result.text());
         } else if (!result.conflicts.isEmpty()) {
             emit openDocument(result.conflicts.first());
-            emit refreshBackground(taskId, operation + tr("%1 file(s) left").arg(result.conflicts.size()));
+            emit refreshBackground(m_taskId, operation + tr("%1 file(s) left").arg(result.conflicts.size()));
         } else if ((m_gitStatus == GitOperationState::CherryPick || m_gitStatus == GitOperationState::Revert) && !result.hasChanges) {
-            emit refreshBackground(taskId, operation + tr("no changes to commit"));
+            emit refreshBackground(m_taskId, operation + tr("no changes to commit"));
         } else {
-            emit refreshBackground(taskId, operation + tr("ready to commit"));
+            emit refreshBackground(m_taskId, operation + tr("ready to commit"));
             emit showContinueDialog();
         }
     });
