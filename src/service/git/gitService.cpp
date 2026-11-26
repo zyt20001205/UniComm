@@ -1,9 +1,6 @@
 #include "service/git/gitService.h"
 
-#include <QDir>
-#include <QDirListing>
-#include <QFile>
-#include <QRegularExpression>
+#include <QMap>
 #include <QSaveFile>
 #include <QSharedPointer>
 #include <QTemporaryDir>
@@ -157,10 +154,10 @@ QFuture<GitResult> GitService::proxySet(const QString &local, const QString &glo
         if (value.isEmpty()) return processEnqueue({"config", "unset", scope, "--all", "http.proxy"}, {0, 5});
         return processEnqueue({"config", "set", scope, "--all", "--", "http.proxy", value});
     };
-    QList<QFuture<GitResult>> writes{};
+    QList<QFuture<GitResult> > writes{};
     if (hasRepoGet() || !local.isEmpty()) writes.append(set("--local", local));
     writes.append(set("--global", global));
-    return QtFuture::whenAll(writes.begin(), writes.end()).then(this, [this](const QList<QFuture<GitResult>> &finished) {
+    return QtFuture::whenAll(writes.begin(), writes.end()).then(this, [this](const QList<QFuture<GitResult> > &finished) {
         for (const auto &write: finished) {
             const auto result = write.result();
             if (!result.success) {
@@ -174,6 +171,66 @@ QFuture<GitResult> GitService::proxySet(const QString &local, const QString &glo
 }
 
 // public: remote
+QFuture<GitRemotesResult> GitService::remotesRefresh() {
+    return processEnqueue({"config", "get", "--all", "--show-names", "-z", "--regexp", R"(^remote\..+\.)"}, {0, 1}).then(this, [this](const GitResult &result) {
+        GitRemotesResult remotes{result};
+        if (result.success) {
+            QMap<QString, GitRemotesResult::Entry> entries{};
+            for (const auto &record: result.raw.split('\0')) {
+                if (record.isEmpty()) continue;
+                // Git separates the key from its value with the first newline.
+                const auto key = record.left(record.indexOf('\n'));
+                const auto separator = key.lastIndexOf('.');
+                const auto name = QString::fromUtf8(key.sliced(7, separator - 7)); // remote.<name>.<option>
+                auto &entry = entries[name];
+                if (key.endsWith(".url")) entry.fetchUrls.append(QString::fromUtf8(record.mid(key.size() + 1)));
+                else if (key.endsWith(".pushurl")) entry.pushUrls.append(QString::fromUtf8(record.mid(key.size() + 1)));
+            }
+            QVariantList rows{};
+            for (auto [name, entry]: entries.asKeyValueRange()) {
+                entry.name = name;
+                if (entry.pushUrls.isEmpty()) entry.pushUrls = entry.fetchUrls;
+                remotes.remotes.append(entry);
+                rows.append(QVariantHash{{"name", name}, {"fetchUrls", entry.fetchUrls}, {"pushUrls", entry.pushUrls}});
+            }
+            if (m_remotes != rows) {
+                m_remotes = std::move(rows);
+                emit remotesChanged();
+            }
+        }
+
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return remotes;
+    });
+}
+
+QFuture<GitResult> GitService::remoteAdd(const QString &name, const QString &url) {
+    return processEnqueue({"remote", "add", "--", name, url}).then(this, [this](const GitResult &result) {
+        if (!result.success) {
+            statusSet(Status::Error);
+            return QtFuture::makeReadyValueFuture(result);
+        }
+        return remotesRefresh().then([result](const GitRemotesResult &refresh) -> GitResult {
+            if (!refresh.success) return static_cast<GitResult>(refresh);
+            return result;
+        });
+    }).unwrap();
+}
+
+QFuture<GitResult> GitService::remoteRemove(const QString &name) {
+    return processEnqueue({"remote", "remove", "--", name}).then(this, [this](const GitResult &result) {
+        if (!result.success) {
+            statusSet(Status::Error);
+            return QtFuture::makeReadyValueFuture(result);
+        }
+        return remotesRefresh().then([result](const GitRemotesResult &refresh) -> GitResult {
+            if (!refresh.success) return static_cast<GitResult>(refresh);
+            return result;
+        });
+    }).unwrap();
+}
+
 QFuture<GitResult> GitService::fetch() {
     return processEnqueue({"fetch", "--prune"});
 }
@@ -707,9 +764,6 @@ void GitService::processFinish() {
     }
     const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
     if (cancelled) eventAppend(event, false, tr("Cancelled"));
-    // Proxy URLs can contain credentials.
-    else if (event == "config" && arguments.value(1) == "set")
-        eventAppend(event, result.success, "git " + arguments.sliced(0, arguments.size() - 1).join(' '));
     else eventAppend(event, result.success, result.success ? "git " + arguments.join(' ') : result.text());
     m_queue.pop();
     const bool hasNext = !m_queue.empty();

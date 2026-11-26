@@ -820,7 +820,6 @@ Item {
             authorLabel.text = author
         }
         function onShowContinueDialog() { continueDialog.open() }
-        function onShowRemoteAddDialog() { remoteAddDialog.open() }
         function onShowErrorDialog(title, text) {
             errorDialog.title = title
             errorDialog.text = text
@@ -989,38 +988,6 @@ Item {
 
             onAccepted: branchRenameDialog.accept()
             Keys.onEscapePressed: branchRenameDialog.reject()
-        }
-    }
-
-    Dialog {
-        id: remoteAddDialog
-        parent: mainScreen
-        popupType: Popup.Item
-        anchors.centerIn: parent
-        width: 600
-        modal: true
-        title: qsTr("Add Remote Repository")
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        onOpened: {
-            global.mainWindow.overlayFlagSet(false, true)
-            mainOverlay.widgetCount += 1
-        }
-        onClosed: mainOverlay.widgetCount -= 1
-        onAboutToShow: {
-            remoteAddTextField.text = ""
-            remoteAddTextField.forceActiveFocus()
-        }
-
-        onAccepted: root.gitModule.gitRemoteAdd(remoteAddTextField.text)
-
-        TextField {
-            id: remoteAddTextField
-            placeholderText: qsTr("Remote URL (e.g., https://github.com/user/repo.git)")
-            width: parent.width
-
-            onAccepted: remoteAddDialog.accept()
-            Keys.onEscapePressed: remoteAddDialog.reject()
         }
     }
 

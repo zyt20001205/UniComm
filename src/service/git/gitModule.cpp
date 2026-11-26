@@ -489,8 +489,16 @@ void GitModule::gitCommit(const QString &subject) {
 
 // public: push
 void GitModule::gitPushPre() {
-    if (m_upstream.isEmpty()) gitRemoteGet();
-    else gitAhead();
+    if (!m_upstream.isEmpty()) {
+        gitAhead();
+        return;
+    }
+    m_gitService->remotesRefresh().then(this, [this](const GitRemotesResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
+        else if (!m_upstream.isEmpty()) gitAhead();
+        else if (result.remotes.isEmpty()) emit showErrorDialog(tr("No Remote"), tr("No remote is configured for this repository."));
+        else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
+    });
 }
 
 void GitModule::gitAhead() {
@@ -505,14 +513,6 @@ void GitModule::gitDiff_() {
 
 void GitModule::gitShowCommit_(const QString &hash) {
     processEnqueue(GitCommand::ShowCommit_, QStringList{"show", hash, "--format=%h%x1e%s%x1e%ad%x1e%an%x1e%ae%x1e", "--name-status"});
-}
-
-void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
-    processEnqueue(GitCommand::RemoteAdd, QStringList{"remote", "add", "origin", upstreamUrl});
-}
-
-void GitModule::gitRemoteGet() {
-    processEnqueue(GitCommand::RemoteGet, QStringList{"remote"});
 }
 
 // private
@@ -583,6 +583,7 @@ void GitModule::processFinished(const int exitcode) {
                     item->setData(hash, CommitModel::HashRole);
                     root->appendRow(item);
                 }
+                gitDiff_();
             }
             break;
             case GitCommand::Diff_: {
@@ -704,20 +705,6 @@ void GitModule::processFinished(const int exitcode) {
                     if (rootItem) rootItem->appendRow(item);
                     else m_showModel_->appendRow(item);
                 }
-            }
-            break;
-            default: break;
-        }
-        // state machine
-        switch (command) {
-            case GitCommand::Ahead: gitDiff_();
-                break;
-            case GitCommand::RemoteAdd: fetch();
-                break;
-            case GitCommand::RemoteGet: {
-                if (!m_upstream.isEmpty()) gitAhead();
-                else if (output.isEmpty()) emit showRemoteAddDialog();
-                else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
             }
             break;
             default: break;

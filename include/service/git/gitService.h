@@ -39,6 +39,16 @@ struct GitProxyResult : GitResult {
     QString global{};
 };
 
+struct GitRemotesResult : GitResult {
+    struct Entry {
+        QString name;
+        QStringList fetchUrls;
+        QStringList pushUrls;
+    };
+
+    QList<Entry> remotes{};
+};
+
 struct GitRefsResult : GitResult {
     struct Entry {
         QString ref;
@@ -113,6 +123,7 @@ class GitService : public BaseService {
     QML_ANONYMOUS
     Q_PROPERTY(bool available READ availableGet NOTIFY availableChanged)
     Q_PROPERTY(bool hasRepo READ hasRepoGet NOTIFY hasRepoChanged)
+    Q_PROPERTY(QVariantList remotes READ remotesGet NOTIFY remotesChanged)
 
 public:
     explicit GitService(QObject *parent = nullptr);
@@ -149,6 +160,14 @@ public:
     QFuture<GitResult> proxySet(const QString &local, const QString &global);
 
     // public: remote
+    [[nodiscard]] const QVariantList &remotesGet() const { return m_remotes; }
+
+    QFuture<GitRemotesResult> remotesRefresh();
+
+    QFuture<GitResult> remoteAdd(const QString &name, const QString &url);
+
+    QFuture<GitResult> remoteRemove(const QString &name);
+
     QFuture<GitResult> fetch();
 
     QFuture<GitResult> push();
@@ -211,6 +230,8 @@ signals:
 
     void hasRepoChanged();
 
+    void remotesChanged();
+
     void gitDirChanged();
 
     void refsChanged();
@@ -248,6 +269,7 @@ private:
     bool m_available{};
     QString m_version{};
     GitRepoResult m_repo{};
+    QVariantList m_remotes{};
 
     QFileSystemWatcher m_watcher{};
     QTimer m_watchTimer{};

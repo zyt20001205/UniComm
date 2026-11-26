@@ -135,18 +135,12 @@ public:
 
     Q_INVOKABLE void gitShowCommit_(const QString &hash);
 
-    Q_INVOKABLE void gitRemoteAdd(const QString &upstreamUrl);
-
-    void gitRemoteGet();
-
 signals:
     void gitStatusChanged();
 
     void showContinueDialog();
 
     void showErrorDialog(const QString &title, const QString &text);
-
-    void showRemoteAddDialog();
 
     void currentChanged();
 
@@ -211,9 +205,7 @@ private:
             Commit,
             Ahead,
             Diff_,
-            ShowCommit_,
-            RemoteAdd,
-            RemoteGet
+            ShowCommit_
         };
     };
 };
