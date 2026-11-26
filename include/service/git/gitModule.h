@@ -64,6 +64,11 @@ public:
 
     void gitRepo();
 
+    // public: remote
+    Q_INVOKABLE void fetch();
+
+    Q_INVOKABLE void push();
+
     // public: branch
     [[nodiscard]] const QString &currentGet() const { return m_current; }
 
@@ -118,8 +123,6 @@ public:
 
     Q_INVOKABLE void gitCommit(const QString &subject);
 
-    Q_INVOKABLE void gitFetch();
-
     Q_INVOKABLE void gitPushPre();
 
     void gitAhead();
@@ -127,8 +130,6 @@ public:
     Q_INVOKABLE void gitDiff_();
 
     Q_INVOKABLE void gitShowCommit_(const QString &hash);
-
-    Q_INVOKABLE void gitPush();
 
     Q_INVOKABLE void gitRemoteAdd(const QString &upstreamUrl);
 
@@ -219,11 +220,9 @@ private:
         enum {
             Null,
             Commit,
-            Fetch,
             Ahead,
             Diff_,
             ShowCommit_,
-            Push,
             RemoteAdd,
             RemoteGet,
             ShowFile,

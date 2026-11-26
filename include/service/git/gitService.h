@@ -128,6 +128,13 @@ public:
 
     QFuture<GitRepoResult> repoRefresh();
 
+    // public: remote
+    QFuture<GitResult> fetch();
+
+    QFuture<GitResult> push();
+
+    void transferCancel();
+
     // public: branch
     QFuture<GitResult> upstreamGet();
 
@@ -207,11 +214,14 @@ private:
         QStringList arguments;
         QList<int> successCodes;
         QPromise<GitResult> promise{};
+        bool cancelled{false};
     };
 
     std::queue<Command> m_queue{};
     QProcess m_process{};
-    QTimer m_timeout{};
+    QTimer m_timer{};
+    // queued or running fetch/push
+    Command *m_transfer{};
 
     bool m_available{};
     QString m_version{};

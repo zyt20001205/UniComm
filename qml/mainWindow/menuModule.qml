@@ -1134,7 +1134,7 @@ Item {
                 }
             }
 
-            onTriggered: global.gitModule.gitFetch()
+            onTriggered: global.gitModule.fetch()
         }
 
         MenuItem {

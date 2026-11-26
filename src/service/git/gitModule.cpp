@@ -136,6 +136,36 @@ void GitModule::gitRepo() {
     if (state != GitOperationState::Idle) gitDiff();
 }
 
+// public: remote
+void GitModule::fetch() {
+    if (m_gitStatus != GitOperationState::Idle) return;
+    gitStatusSet(GitOperationState::Transfer);
+    auto future = m_gitService->fetch();
+    const int taskId = emit appendBackground([this] { m_gitService->transferCancel(); }, {});
+    emit refreshBackground(taskId, tr("Fetching from remote..."));
+    future.then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Fetch Failed"), result.text());
+    }).onCanceled(this, [] {}).then(this, [this, taskId] {
+        emit removeBackground(taskId);
+        gitStatusSet(GitOperationState::Idle);
+    });
+}
+
+void GitModule::push() {
+    if (m_gitStatus != GitOperationState::Idle) return;
+    m_pushWindow->close();
+    gitStatusSet(GitOperationState::Transfer);
+    auto future = m_gitService->push();
+    const int taskId = emit appendBackground([this] { m_gitService->transferCancel(); }, {});
+    emit refreshBackground(taskId, tr("Pushing to remote..."));
+    future.then(this, [this](const GitResult &result) {
+        if (!result.success) emit showErrorDialog(tr("Push Failed"), result.text());
+    }).onCanceled(this, [] {}).then(this, [this, taskId] {
+        emit removeBackground(taskId);
+        gitStatusSet(GitOperationState::Idle);
+    });
+}
+
 // public: branch
 
 // always -> refsGet()
@@ -449,16 +479,6 @@ void GitModule::gitCommit(const QString &subject) {
     processEnqueue(GitCommand::Commit, QStringList{"commit", "-m", subject});
 }
 
-// public: pull
-void GitModule::gitFetch() {
-    processEnqueue(GitCommand::Fetch, QStringList{"fetch", "-p"});
-    m_taskId = emit appendBackground(
-        [this] { this->gitAbort(); },
-        {});
-    emit refreshBackground(m_taskId, tr("Fetching from remote..."));
-    gitStatusSet(GitOperationState::Transfer);
-}
-
 // public: push
 void GitModule::gitPushPre() {
     if (m_upstream.isEmpty()) gitRemoteGet();
@@ -479,16 +499,6 @@ void GitModule::gitShowCommit_(const QString &hash) {
     processEnqueue(GitCommand::ShowCommit_, QStringList{"show", hash, "--format=%h%x1e%s%x1e%ad%x1e%an%x1e%ae%x1e", "--name-status"});
 }
 
-void GitModule::gitPush() {
-    m_pushWindow->close();
-    processEnqueue(GitCommand::Push, QStringList{"push"});
-    m_taskId = emit appendBackground(
-        [this] { this->gitAbort(); },
-        {});
-    emit refreshBackground(m_taskId, tr("Pushing to remote..."));
-    gitStatusSet(GitOperationState::Transfer);
-}
-
 void GitModule::gitRemoteAdd(const QString &upstreamUrl) {
     processEnqueue(GitCommand::RemoteAdd, QStringList{"remote", "add", "origin", upstreamUrl});
 }
@@ -505,8 +515,6 @@ void GitModule::gitShowFile(const QUrl &documentUrl) {
 
 void GitModule::gitAbort() {
     switch (m_gitStatus) {
-        case GitOperationState::Transfer: m_process->terminate();
-            break;
         case GitOperationState::Merge: processEnqueue(GitCommand::Abort, QStringList{"merge", "--abort"});
             break;
         case GitOperationState::Rebase: processEnqueue(GitCommand::Abort, QStringList{"rebase", "--abort"});
@@ -758,10 +766,8 @@ void GitModule::processFinished(const int exitcode) {
         }
         // state machine
         switch (command) {
-            case GitCommand::Fetch:
             case GitCommand::Continue:
-            case GitCommand::Abort:
-            case GitCommand::Push: {
+            case GitCommand::Abort: {
                 if (m_gitStatus != GitOperationState::Idle) {
                     emit removeBackground(m_taskId);
                     gitStatusSet(GitOperationState::Idle);
@@ -770,7 +776,7 @@ void GitModule::processFinished(const int exitcode) {
             break;
             case GitCommand::Ahead: gitDiff_();
                 break;
-            case GitCommand::RemoteAdd: gitFetch();
+            case GitCommand::RemoteAdd: fetch();
                 break;
             case GitCommand::RemoteGet: {
                 if (!m_upstream.isEmpty()) gitAhead();
@@ -783,31 +789,8 @@ void GitModule::processFinished(const int exitcode) {
     }
     // error
     else {
-        QString title{};
-        QString text{};
-        // error parser
-        switch (command) {
-            case GitCommand::Fetch: {
-                title = tr("Fetch Failed");
-                text = QString::fromUtf8(error).trimmed();
-                emit removeBackground(m_taskId);
-                gitStatusSet(GitOperationState::Idle);
-            }
-            break;
-            case GitCommand::Push: {
-                title = tr("Push Failed");
-                text = QString::fromUtf8(error).trimmed();
-                emit removeBackground(m_taskId);
-                gitStatusSet(GitOperationState::Idle);
-            }
-            break;
-            default: {
-                title = tr("Git command failed");
-                text = QString::fromUtf8(error).trimmed();
-            }
-            break;
-        }
-        if (!title.isEmpty() && !text.isEmpty()) emit showErrorDialog(title, text);
+        const auto text = QString::fromUtf8(error).trimmed();
+        if (!text.isEmpty()) emit showErrorDialog(tr("Git command failed"), text);
     }
     processDequeue();
 }

@@ -22,9 +22,9 @@ GitService::GitService(QObject *parent)
     m_process.setProcessEnvironment(environment);
     connect(&m_process, &QProcess::finished, this, &GitService::processFinish);
     connect(&m_process, &QProcess::errorOccurred, this, &GitService::processError);
-    m_timeout.setSingleShot(true);
-    m_timeout.setInterval(30000);
-    connect(&m_timeout, &QTimer::timeout, &m_process, &QProcess::kill);
+    m_timer.setSingleShot(true);
+    m_timer.setInterval(30000);
+    connect(&m_timer, &QTimer::timeout, &m_process, &QProcess::kill);
 
     m_watchTimer.setSingleShot(true);
     m_watchTimer.setInterval(100);
@@ -89,6 +89,21 @@ QFuture<GitRepoResult> GitService::repoRefresh() {
             if (hasRepoGet() != hadRepo) emit hasRepoChanged();
             return repo;
         });
+}
+
+// public: remote
+QFuture<GitResult> GitService::fetch() {
+    return processEnqueue({"fetch", "--prune"});
+}
+
+QFuture<GitResult> GitService::push() {
+    return processEnqueue({"push"});
+}
+
+void GitService::transferCancel() {
+    if (!m_transfer) return;
+    m_transfer->cancelled = true;
+    if (m_transfer == &m_queue.front() && m_process.state() != QProcess::NotRunning) m_process.kill();
 }
 
 // public: branch
@@ -549,7 +564,10 @@ GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {
 }
 
 QFuture<GitResult> GitService::processEnqueue(const QStringList &arguments, QList<int> successCodes) {
+    const bool transfer = arguments.first() == "fetch" || arguments.first() == "push";
+    if (transfer && m_transfer) return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("A transfer is already in progress.").toUtf8()});
     auto &command = m_queue.emplace(arguments, std::move(successCodes));
+    if (transfer) m_transfer = &command;
     command.promise.start();
     auto future = command.promise.future();
     if (m_queue.size() == 1) processStart();
@@ -557,9 +575,14 @@ QFuture<GitResult> GitService::processEnqueue(const QStringList &arguments, QLis
 }
 
 void GitService::processStart() {
+    const auto &command = m_queue.front();
     statusSet(Status::Running);
-    m_timeout.start();
-    m_process.start("git", m_queue.front().arguments);
+    if (command.cancelled) {
+        processFinish();
+        return;
+    }
+    if (&command != m_transfer) m_timer.start();
+    m_process.start("git", command.arguments);
 }
 
 void GitService::processError(const QProcess::ProcessError error) {
@@ -567,20 +590,28 @@ void GitService::processError(const QProcess::ProcessError error) {
 }
 
 void GitService::processFinish() {
-    m_timeout.stop();
-    auto [arguments, successCodes, promise] = std::move(m_queue.front());
-    const bool success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && successCodes.contains(m_process.exitCode());
-    const auto output = m_process.readAllStandardOutput();
-    const auto error = m_process.readAllStandardError();
-    GitResult result{success, success || error.isEmpty() ? output : error};
-    if (!success && result.raw.isEmpty() && m_process.error() != QProcess::UnknownError) result.raw = m_process.errorString().toUtf8();
-
-    // record command
+    m_timer.stop();
+    const bool transfer = &m_queue.front() == m_transfer;
+    auto [arguments, successCodes, promise, cancelled] = std::move(m_queue.front());
+    GitResult result{};
+    if (!cancelled) {
+        result.success = m_process.error() != QProcess::FailedToStart && m_process.exitStatus() == QProcess::NormalExit && successCodes.contains(m_process.exitCode());
+        const auto output = m_process.readAllStandardOutput();
+        const auto error = m_process.readAllStandardError();
+        result.raw = result.success || error.isEmpty() ? output : error;
+        if (!result.success && result.raw.isEmpty() && m_process.error() != QProcess::UnknownError) result.raw = m_process.errorString().toUtf8();
+    }
+    if (transfer) {
+        m_transfer = nullptr;
+        statusSet(cancelled || result.success ? Status::Stopped : Status::Error);
+    }
     const auto &event = arguments.first() == "--literal-pathspecs" ? arguments.at(1) : arguments.first();
-    eventAppend(event, success, success ? "git " + arguments.join(' ') : result.text());
+    if (cancelled) eventAppend(event, false, tr("Cancelled"));
+    else eventAppend(event, result.success, result.success ? "git " + arguments.join(' ') : result.text());
     m_queue.pop();
     const bool hasNext = !m_queue.empty();
-    promise.addResult(std::move(result));
+    if (cancelled) promise.future().cancel();
+    else promise.addResult(std::move(result));
     promise.finish();
     if (hasNext) processStart();
 }

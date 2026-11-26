@@ -323,10 +323,10 @@ Item {
             Layout.alignment: Qt.AlignRight
 
             Button {
-                enabled: !root.commitModel.empty
+                enabled: !root.commitModel.empty && root.gitModule.gitStatus === GitOperationState.Idle
                 text: qsTr("Push")
 
-                onClicked: root.gitModule.gitPush()
+                onClicked: root.gitModule.push()
             }
         }
     }
