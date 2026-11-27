@@ -445,6 +445,35 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
             });
 }
 
+QFuture<GitResult> GitService::commit(const QList<QUrl> &urls, const QList<QUrl> &untrackedUrls, const QString &message, const bool amend) {
+    if (urls.isEmpty() && !amend) return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("No files selected.").toUtf8()});
+
+    QStringList arguments{"--literal-pathspecs", "commit", "--only"};
+    if (amend) arguments.append("--amend");
+    arguments << "-m" << message;
+    if (!urls.isEmpty()) {
+        arguments.append("--");
+        for (const auto &url: urls) arguments.append(url.toLocalFile());
+    }
+
+    QFuture<GitResult> future;
+    if (untrackedUrls.isEmpty()) {
+        future = processEnqueue(arguments);
+    } else {
+        QStringList addArguments{"--literal-pathspecs", "add", "-N", "--"};
+        for (const auto &url: untrackedUrls) addArguments.append(url.toLocalFile());
+        future = processEnqueue(addArguments).then(this, [this, arguments](const GitResult &result) {
+            if (!result.success) return QtFuture::makeReadyValueFuture(result);
+            return processEnqueue(arguments);
+        }).unwrap();
+    }
+    return future.then(this, [this](const GitResult &result) {
+        // update service state
+        statusSet(result.success ? Status::Stopped : Status::Error);
+        return result;
+    });
+}
+
 QFuture<GitResult> GitService::cherryPick(const QString &hash) {
     return processEnqueue({"cherry-pick", hash}).then(this, [this](const GitResult &result) {
         // update service state
