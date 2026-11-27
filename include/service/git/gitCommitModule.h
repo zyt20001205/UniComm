@@ -31,7 +31,7 @@ private:
 
     static void groupCheckStateUpdate(QStandardItem *group);
 
-    enum Role { DocumentUrlRole = Qt::UserRole + 1, DirectoryRole, FileStatusRole, FileCountRole };
+    enum Role { FileStatusRole = Qt::UserRole + 1, DocumentUrlRole, OriginalUrlRole, DirectoryRole, FileCountRole };
 
     GitService *const m_gitService;
     QQuickWidget *m_widget{};

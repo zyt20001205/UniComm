@@ -16,8 +16,8 @@ GitCommitModule::GitCommitModule()
       m_changes(new QStandardItemModel(this)) {
     setWidget(m_widget);
     m_changes->setItemRoleNames({
-        {Qt::DisplayRole, "display"}, {Qt::CheckStateRole, "checkState"}, {DocumentUrlRole, "documentUrl"}, {DirectoryRole, "directory"},
-        {FileStatusRole, "fileStatus"}, {FileCountRole, "fileCount"}
+        {Qt::DisplayRole, "display"}, {Qt::CheckStateRole, "checkState"}, {FileStatusRole, "fileStatus"},
+        {DocumentUrlRole, "documentUrl"}, {DirectoryRole, "directory"}, {FileCountRole, "fileCount"}
     });
     for (const auto &title: {tr("Changes"), tr("Unversioned Files")}) {
         auto *group = new QStandardItem(title);
@@ -74,9 +74,10 @@ void GitCommitModule::indexUpdate() {
         for (const auto &file: result.files) {
             const QFileInfo info(file.documentUrl.toLocalFile());
             auto *item = new QStandardItem(GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity));
-            item->setData(file.documentUrl, DocumentUrlRole);
-            item->setData(workTree.relativeFilePath(info.absolutePath()), DirectoryRole);
             item->setData(QVariant::fromValue(file.fileStatus()), FileStatusRole);
+            item->setData(file.documentUrl, DocumentUrlRole);
+            item->setData(file.originalUrl, OriginalUrlRole);
+            item->setData(workTree.relativeFilePath(info.absolutePath()), DirectoryRole);
             auto *group = file.indexStatus == GitFileStatus::Untracked ? unversioned : changes;
             item->setCheckState(checked.value(file.documentUrl) ? Qt::Checked : Qt::Unchecked);
             group->appendRow(item);
