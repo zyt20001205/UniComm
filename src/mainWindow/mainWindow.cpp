@@ -104,6 +104,7 @@ void MainWindow::propertyGet(const QVariantMap &objects) {
     };
     m_documentModule->propertySet(documentObjects);
     m_explorerModule->propertySet();
+    m_gitCommitModule->propertySet();
     m_gitModule->propertySet();
     m_logModule->propertySet();
     m_menuModule->propertySet();

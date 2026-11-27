@@ -94,6 +94,15 @@ struct GitStatusResult : GitResult {
         QUrl documentUrl;
         GitFileStatus::Value indexStatus;
         GitFileStatus::Value workingTreeStatus;
+
+        [[nodiscard]] GitFileStatus::Value fileStatus() const {
+            using enum GitFileStatus::Value;
+            // AA and DD are conflicts too.
+            if (indexStatus == Unmerged || workingTreeStatus == Unmerged ||
+                (indexStatus == workingTreeStatus && (indexStatus == Added || indexStatus == Deleted))) return Unmerged;
+            if (indexStatus == Added || indexStatus == Renamed || indexStatus == Copied) return indexStatus;
+            return workingTreeStatus == Unmodified ? indexStatus : workingTreeStatus;
+        }
     };
 
     QList<Entry> files{};

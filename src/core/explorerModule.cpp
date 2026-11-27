@@ -75,7 +75,7 @@ QHash<int, QByteArray> ExplorerModel::roleNames() const {
     roles[SourceRole] = "source";
     roles[IsDirRole] = "isDir";
     roles[DocumentUrlRole] = "documentUrl";
-    roles[GitRole] = "git";
+    roles[FileStatusRole] = "fileStatus";
     return roles;
 }
 
@@ -84,11 +84,7 @@ QVariant ExplorerModel::data(const QModelIndex &index, const int role) const {
         case SourceRole: return uni_cast<QFileIcon>(QUrl::fromLocalFile(filePath(index))).value;
         case IsDirRole: return isDir(index);
         case DocumentUrlRole: return QUrl::fromLocalFile(filePath(index));
-        case GitRole: {
-            const auto entry = m_documentStatus.constFind(QUrl::fromLocalFile(filePath(index)));
-            if (entry == m_documentStatus.cend()) return {};
-            return QVariantHash{{"indexStatus", entry->indexStatus}, {"workingTreeStatus", entry->workingTreeStatus}};
-        }
+        case FileStatusRole: return QVariant::fromValue(m_documentStatus.value(QUrl::fromLocalFile(filePath(index)), GitFileStatus::Unmodified));
         default: return QFileSystemModel::data(index, role);
     }
 }
@@ -102,7 +98,7 @@ void ExplorerModel::gitStatusSet(const QList<GitStatusResult::Entry> &files) {
     // prefer untracked or ignored entries
     for (const auto &file: files) {
         if (!m_documentStatus.contains(file.documentUrl) || file.indexStatus == GitFileStatus::Untracked || file.indexStatus == GitFileStatus::Ignored)
-            m_documentStatus.insert(file.documentUrl, file);
+            m_documentStatus.insert(file.documentUrl, file.fileStatus());
     }
     gitStatusNotify(index(rootPath()));
 }
@@ -110,6 +106,6 @@ void ExplorerModel::gitStatusSet(const QList<GitStatusResult::Entry> &files) {
 void ExplorerModel::gitStatusNotify(const QModelIndex &parent) {
     const int rows = rowCount(parent);
     if (!rows) return;
-    emit dataChanged(index(0, 0, parent), index(rows - 1, 0, parent), {GitRole});
+    emit dataChanged(index(0, 0, parent), index(rows - 1, 0, parent), {FileStatusRole});
     for (int row = 0; row < rows; ++row) gitStatusNotify(index(row, 0, parent));
 }

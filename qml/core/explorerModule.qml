@@ -142,20 +142,6 @@ Item {
                 required property bool expanded
                 required property int depth
                 required property int row
-                readonly property int gitStatus: {
-                    const git = node.model.git
-                    if (!git) return GitFileStatus.Unmodified
-                    switch (git.indexStatus) {
-                        case GitFileStatus.Untracked:
-                        case GitFileStatus.Ignored:
-                        case GitFileStatus.Added:
-                        case GitFileStatus.Renamed:
-                            return git.indexStatus
-                    }
-                    if (git.workingTreeStatus === GitFileStatus.Modified || git.workingTreeStatus === GitFileStatus.Unmerged)
-                        return git.workingTreeStatus
-                    return GitFileStatus.Unmodified
-                }
 
                 Rectangle {
                     anchors.fill: parent
@@ -225,7 +211,7 @@ Item {
 
                     Label {
                         horizontalAlignment: Text.AlignLeft; verticalAlignment: Text.AlignVCenter
-                        color: GitStyle.fileStatusColor(node.gitStatus)
+                        color: GitStyle.fileStatusColor(node.model.fileStatus)
                         text: node.model.display || ""
                         elide: Text.ElideRight
                         Layout.fillWidth: true; Layout.preferredHeight: 24
@@ -243,8 +229,8 @@ Item {
                     }
                     onPointChanged: {
                         mainTooltip.position = parent.mapToGlobal(point.position)
-                        mainTooltip.text = node.gitStatus === GitFileStatus.Unmodified ? ""
-                            : Qt.enumValueToString(GitFileStatus.Value, node.gitStatus)
+                        mainTooltip.text = node.model.fileStatus === GitFileStatus.Unmodified ? ""
+                            : Qt.enumValueToString(GitFileStatus.Value, node.model.fileStatus)
                     }
                 }
 
@@ -309,8 +295,8 @@ Item {
                         folderMenu.popup(localPosition.x, localPosition.y)
                     } else {
                         fileMenu.documentUrl = node.model.documentUrl
-                        fileMenu.gitUntracked = node.model.git?.indexStatus === GitFileStatus.Untracked
-                        fileMenu.gitIgnored = node.model.git?.indexStatus === GitFileStatus.Ignored
+                        fileMenu.gitUntracked = node.model.fileStatus === GitFileStatus.Untracked
+                        fileMenu.gitIgnored = node.model.fileStatus === GitFileStatus.Ignored
                         fileMenu.popup(localPosition.x, localPosition.y)
                     }
                 }

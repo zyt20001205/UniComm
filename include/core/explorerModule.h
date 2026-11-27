@@ -57,7 +57,7 @@ public:
         SourceRole = FilePermissions + 1,
         IsDirRole,
         DocumentUrlRole,
-        GitRole
+        FileStatusRole
     };
 
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
@@ -71,7 +71,7 @@ public:
 private:
     void gitStatusNotify(const QModelIndex &parent);
 
-    QHash<QUrl, GitStatusResult::Entry> m_documentStatus{};
+    QHash<QUrl, GitFileStatus::Value> m_documentStatus{};
 };
 
 #endif //UNICOMM_EXPLORER_H
