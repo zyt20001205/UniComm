@@ -194,34 +194,31 @@ Item {
                     }
                 }
             }
-            Item {
-                ColumnLayout {
-                    width: Math.min(parent.width, 480)
-
-                    Label { text: qsTr("Local Proxy") }
-                    LineEdit {
-                        id: localProxy
-                        Layout.fillWidth: true
-                        enabled: global.serviceModule.git.hasRepo
-                        text: global.serviceModule.git.config.proxy.local
-                        clearable: true
-                        placeholderText: "http://127.0.0.1:7890"
-                    }
-                    Label { text: qsTr("Global Proxy") }
-                    LineEdit {
-                        id: globalProxy
-                        Layout.fillWidth: true
-                        text: global.serviceModule.git.config.proxy.global
-                        clearable: true
-                        placeholderText: "http://127.0.0.1:7890"
-                    }
-                    Button {
-                        Layout.alignment: Qt.AlignRight
-                        text: qsTr("Apply")
-                        enabled: (localProxy.enabled && localProxy.text !== global.serviceModule.git.config.proxy.local)
-                                 || globalProxy.text !== global.serviceModule.git.config.proxy.global
-                        onClicked: global.serviceModule.git.proxySet(localProxy.text, globalProxy.text)
-                    }
+            ColumnLayout {
+                Label { text: qsTr("Local Proxy") }
+                LineEdit {
+                    id: localProxy
+                    Layout.fillWidth: true
+                    enabled: global.serviceModule.git.hasRepo
+                    text: global.serviceModule.git.config.proxy.local
+                    clearable: true
+                    placeholderText: "http://127.0.0.1:7890"
+                }
+                Label { text: qsTr("Global Proxy") }
+                LineEdit {
+                    id: globalProxy
+                    Layout.fillWidth: true
+                    text: global.serviceModule.git.config.proxy.global
+                    clearable: true
+                    placeholderText: "http://127.0.0.1:7890"
+                }
+                Item { Layout.fillHeight: true }
+                Button {
+                    Layout.alignment: Qt.AlignRight
+                    text: qsTr("Apply")
+                    enabled: (localProxy.enabled && localProxy.text !== global.serviceModule.git.config.proxy.local)
+                             || globalProxy.text !== global.serviceModule.git.config.proxy.global
+                    onClicked: global.serviceModule.git.proxySet(localProxy.text, globalProxy.text)
                 }
             }
         }
