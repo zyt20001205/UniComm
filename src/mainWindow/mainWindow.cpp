@@ -44,6 +44,7 @@
 #include "service/audio.h"
 #include "service/git/gitCommitModule.h"
 #include "service/git/gitModule.h"
+#include "service/git/gitService.h"
 #include "service/lsp/lspManager.h"
 #include "service/network/networkService.h"
 #include "service/serviceModule.h"
@@ -251,7 +252,7 @@ void MainWindow::workspaceSave(const QUrl &configUrl) {
     mainConfigSave();
     m_configManager->workspaceConfigSave(configUrl);
 
-    m_explorerModule->indexUpdate();
+    emit m_serviceModule->gitServiceGet()->indexChanged();
 }
 
 void MainWindow::quitTrack(const float secondaryProgress, const QString &secondaryLog) const {
