@@ -496,7 +496,7 @@ void GitModule::gitPushPre() {
     m_gitService->remotesRefresh().then(this, [this](const GitRemotesResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
         else if (!m_upstream.isEmpty()) gitAhead();
-        else if (result.remotes.isEmpty()) emit showErrorDialog(tr("No Remote"), tr("No remote is configured for this repository."));
+        else if (result.remotes.isEmpty()) m_gitService->manage();
         else emit showErrorDialog(tr("No Upstream Branch"), tr("Right-click the remote branch to set it as the upstream."));
     });
 }

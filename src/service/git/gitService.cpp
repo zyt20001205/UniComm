@@ -1,7 +1,7 @@
 #include "service/git/gitService.h"
 
 #include <QMap>
-#include <QQuickView>
+#include <QQuickItem>
 #include <QSaveFile>
 #include <QSharedPointer>
 #include <QTemporaryDir>
@@ -10,6 +10,7 @@
 #include "globals.h"
 #include "core/globalManager.h"
 #include "mainWindow/mainWindow.h"
+#include "mainWindow/toastModule.h"
 
 // public
 GitService::GitService(QObject *parent)
@@ -37,11 +38,9 @@ GitService::GitService(QObject *parent)
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, pathChanged);
     connect(&m_watchTimer, &QTimer::timeout, this, &GitService::repoWatch);
 
-    // success -> repoRefresh(), proxyGet()
+    // success -> repoRefresh()
     versionGet().then(this, [this](const GitResult &result) {
-        if (!result.success) return;
-        repoRefresh();
-        proxyGet();
+        if (result.success) repoRefresh();
     });
 }
 
@@ -58,6 +57,7 @@ void GitService::manage() {
         m_manageWindow->setSource(QUrl("qrc:/qml/service/git/gitManageWindow.qml"));
         m_manageWindow->resize(1080, 720);
     }
+    if (auto *root = m_manageWindow->rootObject()) root->setProperty("pageIndex", 0);
     m_manageWindow->show();
     m_manageWindow->raise();
     m_manageWindow->requestActivate();
@@ -130,8 +130,7 @@ QFuture<GitResult> GitService::init() {
     });
 }
 
-// always -> repoWatch()
-// success -> remotesRefresh()
+// always -> repoWatch(), configRefresh()
 QFuture<GitRepoResult> GitService::repoRefresh() {
     return processEnqueue({"rev-parse", "--path-format=absolute", "--show-toplevel", "--absolute-git-dir", "--git-common-dir", "--git-path", "index"}).then(
         this, [this](const GitResult &result) {
@@ -150,7 +149,7 @@ QFuture<GitRepoResult> GitService::repoRefresh() {
             m_repo = repo;
             statusSet(repo.success || (!result.success && result.raw.contains("not a git repository")) ? Status::Stopped : Status::Error);
             repoWatch();
-            if (repo.success) remotesRefresh();
+            configRefresh();
             if (hasRepoGet() != hadRepo) emit hasRepoChanged();
             return repo;
         });
@@ -266,6 +265,18 @@ QFuture<GitResult> GitService::remoteRemove(const QString &name) {
             return result;
         });
     }).unwrap();
+}
+
+void GitService::addRemote(const QString &name, const QString &url) {
+    remoteAdd(name, url).then(this, [this](const GitResult &result) {
+        emit remoteAddFinished(result.success, result.text());
+    });
+}
+
+void GitService::removeRemote(const QString &name) {
+    remoteRemove(name).then(this, [this](const GitResult &result) {
+        if (!result.success) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Remove remote failed"), result.text());
+    });
 }
 
 QFuture<GitResult> GitService::fetch() {
@@ -716,8 +727,16 @@ void GitService::repoWatch() {
     }
 
     if (changed.intersects(operationFiles)) emit gitDirChanged();
+    if (changed.contains(config)) configRefresh();
     if (changed.contains(head) || changed.contains(packedRefs) || changed.contains(config) || changed.contains(refs)) emit refsChanged();
     if (changed.contains(m_repo.indexPath)) emit indexChanged();
+}
+
+// always -> proxyGet()
+// has repo -> remotesRefresh()
+void GitService::configRefresh() {
+    proxyGet();
+    if (hasRepoGet()) remotesRefresh();
 }
 
 GitResult GitService::ignoreSet(const QUrl &url, const bool ignored) {

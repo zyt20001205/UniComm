@@ -176,6 +176,10 @@ public:
 
     QFuture<GitResult> remoteRemove(const QString &name);
 
+    Q_INVOKABLE void addRemote(const QString &name, const QString &url);
+
+    Q_INVOKABLE void removeRemote(const QString &name);
+
     QFuture<GitResult> fetch();
 
     QFuture<GitResult> push();
@@ -242,6 +246,8 @@ signals:
 
     void remotesChanged();
 
+    void remoteAddFinished(bool success, const QString &error);
+
     void gitDirChanged();
 
     void refsChanged();
@@ -252,6 +258,8 @@ private:
     void detailUpdate();
 
     void repoWatch();
+
+    void configRefresh();
 
     GitResult ignoreSet(const QUrl &url, bool ignored);
 
