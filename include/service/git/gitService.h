@@ -92,6 +92,7 @@ struct GitShowResult : GitResult {
 struct GitStatusResult : GitResult {
     struct Entry {
         QUrl documentUrl;
+        QUrl originalUrl;
         GitFileStatus::Value indexStatus;
         GitFileStatus::Value workingTreeStatus;
 
