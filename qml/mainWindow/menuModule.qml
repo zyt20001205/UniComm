@@ -1001,7 +1001,7 @@ Item {
 
             MenuItem {
                 text: qsTr("Contract Top")
-                icon.source: "qrc:/icon/collapse.svg"
+                icon.source: "qrc:/icon/chevronDownUp.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: global.documentModule.foldContractTop(codeMenu.menuSession.documentUrl)
@@ -1009,7 +1009,7 @@ Item {
 
             MenuItem {
                 text: qsTr("Contract Recursively")
-                icon.source: "qrc:/icon/collapse.svg"
+                icon.source: "qrc:/icon/chevronDownUp.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: global.documentModule.foldContractRecursively(codeMenu.menuSession.documentUrl)
@@ -1017,7 +1017,7 @@ Item {
 
             MenuItem {
                 text: qsTr("Expand Recursively")
-                icon.source: "qrc:/icon/expand.svg"
+                icon.source: "qrc:/icon/chevronUpDown.svg"
                 icon.width: 16; icon.height: 16
 
                 onTriggered: global.documentModule.foldExpandRecursively(codeMenu.menuSession.documentUrl)

@@ -594,7 +594,7 @@ Item {
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     flat: true
-                    icon.source: "qrc:/icon/collapse.svg"
+                    icon.source: "qrc:/icon/chevronDownUp.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
@@ -616,7 +616,7 @@ Item {
                 Button {
                     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
                     flat: true
-                    icon.source: "qrc:/icon/expand.svg"
+                    icon.source: "qrc:/icon/chevronUpDown.svg"
                     icon.width: 16; icon.height: 16
                     Layout.preferredWidth: 24; Layout.preferredHeight: 24
 
