@@ -187,19 +187,21 @@ QFuture<GitResult> GitService::proxySet(const QString &local, const QString &glo
         return processEnqueue({"config", "set", scope, "--all", "--", "http.proxy", value});
     };
     QList<QFuture<GitResult> > writes{};
-    if (hasRepoGet() || !local.isEmpty()) writes.append(set("--local", local));
-    writes.append(set("--global", global));
+    const auto settings = m_config.value("proxy").toHash();
+    if (hasRepoGet() && local != settings.value("local").toString()) writes.append(set("--local", local));
+    if (global != settings.value("global").toString()) writes.append(set("--global", global));
     return QtFuture::whenAll(writes.begin(), writes.end()).then(this, [this](const QList<QFuture<GitResult> > &finished) {
-        return proxyGet().then(this, [this, finished](const GitProxyResult &proxy) -> GitResult {
+        return proxyGet().then(this, [this, finished](const GitProxyResult &proxy) {
+            GitResult result = proxy.success ? GitResult{.success = true} : static_cast<GitResult>(proxy);
             for (const auto &write: finished) {
-                const auto result = write.result();
-                if (!result.success) {
+                if (!write.result().success) {
+                    result = write.result();
                     statusSet(Status::Error);
-                    return result;
+                    break;
                 }
             }
-            if (!proxy.success) return static_cast<GitResult>(proxy);
-            return {.success = true};
+            if (!result.success) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Set proxy failed"), result.text());
+            return result;
         });
     }).unwrap();
 }

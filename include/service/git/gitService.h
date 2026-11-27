@@ -165,7 +165,7 @@ public:
 
     QFuture<GitProxyResult> proxyGet();
 
-    QFuture<GitResult> proxySet(const QString &local, const QString &global);
+    Q_INVOKABLE QFuture<GitResult> proxySet(const QString &local, const QString &global);
 
     // public: remote
     [[nodiscard]] const QVariantList &remotesGet() const { return m_remotes; }
