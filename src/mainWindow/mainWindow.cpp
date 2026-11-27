@@ -42,6 +42,7 @@
 #include "runtime/luaInterpreter.h"
 #include "runtime/threadpoolModule.h"
 #include "service/audio.h"
+#include "service/git/gitCommitModule.h"
 #include "service/git/gitModule.h"
 #include "service/lsp/lspManager.h"
 #include "service/network/networkService.h"
@@ -287,6 +288,7 @@ void MainWindow::moduleInit() {
     m_documentModule = new DocumentModule(this);
     m_explorerModule = new ExplorerModule();
     m_fileModule = new FileModule(this);
+    m_gitCommitModule = new GitCommitModule();
     m_gitModule = new GitModule();
     m_agentModule = new AgentModule();
     m_logModule = new LogModule();
@@ -308,6 +310,7 @@ void MainWindow::moduleInit() {
     g_globalManager->documentModuleSet(m_documentModule);
     g_globalManager->explorerModuleSet(m_explorerModule);
     g_globalManager->fileModuleSet(m_fileModule);
+    g_globalManager->gitCommitModuleSet(m_gitCommitModule);
     g_globalManager->gitModuleSet(m_gitModule);
     g_globalManager->logModuleSet(m_logModule);
     g_globalManager->nuspellModuleSet(m_nuspellModule);
@@ -498,6 +501,7 @@ void MainWindow::layoutInit() {
         // left
         addDockWidget(m_portModule, KDDockWidgets::Location_OnLeft, nullptr, KDDockWidgets::InitialOption(KDDockWidgets::Size(600, 0)));
         addDockWidget(m_explorerModule, KDDockWidgets::Location_OnBottom, m_portModule);
+        m_explorerModule->addDockWidgetAsTab(m_gitCommitModule);
         addDockWidget(m_structureModule, KDDockWidgets::Location_OnBottom, m_explorerModule);
         // right
         addDockWidget(m_agentModule, KDDockWidgets::Location_OnRight, nullptr, KDDockWidgets::InitialOption(KDDockWidgets::Size(800, 0)));

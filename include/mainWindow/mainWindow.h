@@ -22,6 +22,7 @@ class DebugModule;
 class DiagnosticsModule;
 class ExplorerModule;
 class FileModule;
+class GitCommitModule;
 class GitModule;
 class LogModule;
 class MenuModule;
@@ -102,6 +103,7 @@ private:
     DiagnosticsModule *m_diagnosticsModule{};
     ExplorerModule *m_explorerModule{};
     FileModule *m_fileModule{};
+    GitCommitModule *m_gitCommitModule{};
     GitModule *m_gitModule{};
     LogModule *m_logModule{};
     MenuModule *m_menuModule{};

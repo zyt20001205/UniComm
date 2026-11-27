@@ -14,6 +14,7 @@ class DiagnosticsModule;
 class DocumentModule;
 class ExplorerModule;
 class FileModule;
+class GitCommitModule;
 class GitModule;
 class LogModule;
 class NuspellModule;
@@ -41,6 +42,7 @@ Q_MOC_INCLUDE("debug/watchModule.h")
 Q_MOC_INCLUDE("document/documentModule.h")
 Q_MOC_INCLUDE("port/portModule.h")
 Q_MOC_INCLUDE("runtime/threadpoolModule.h")
+Q_MOC_INCLUDE("service/git/gitCommitModule.h")
 Q_MOC_INCLUDE("service/git/gitModule.h")
 Q_MOC_INCLUDE("service/serviceModule.h")
 Q_MOC_INCLUDE("terminal/terminalModule.h")
@@ -58,6 +60,7 @@ class GlobalManager final : public QObject {
     Q_PROPERTY(DocumentModule* documentModule READ documentModuleGet CONSTANT)
     Q_PROPERTY(ExplorerModule* explorerModule READ explorerModuleGet CONSTANT)
     Q_PROPERTY(FileModule* fileModule READ fileModuleGet CONSTANT)
+    Q_PROPERTY(GitCommitModule* gitCommitModule READ gitCommitModuleGet CONSTANT)
     Q_PROPERTY(GitModule* gitModule READ gitModuleGet CONSTANT)
     Q_PROPERTY(LogModule* logModule READ logModuleGet CONSTANT)
     Q_PROPERTY(NuspellModule* nuspellModule READ nuspellModuleGet CONSTANT)
@@ -176,6 +179,14 @@ public:
         m_agentModule = module;
     }
 
+    [[nodiscard]] GitCommitModule *gitCommitModuleGet() const {
+        return m_gitCommitModule;
+    }
+
+    void gitCommitModuleSet(GitCommitModule *module) {
+        m_gitCommitModule = module;
+    }
+
     [[nodiscard]] GitModule *gitModuleGet() const {
         return m_gitModule;
     }
@@ -263,6 +274,7 @@ private:
     DocumentModule *m_documentModule{};
     ExplorerModule *m_explorerModule{};
     FileModule *m_fileModule{};
+    GitCommitModule *m_gitCommitModule{};
     GitModule *m_gitModule{};
     LogModule *m_logModule{};
     NuspellModule *m_nuspellModule{};
