@@ -2,6 +2,7 @@
 #define UNICOMM_GITTYPES_H
 
 #include <QMetaObject>
+#include <QUrl>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 namespace GitOperationState {
@@ -64,6 +65,7 @@ namespace GitFileStatus {
         switch (code.unicode()) {
             case '!': return Ignored;
             case ' ': return Unmodified;
+            case '.': return Unmodified;
             case 'M': return Modified;
             case 'T': return FileTypeChanged;
             case 'A': return Added;
@@ -74,6 +76,11 @@ namespace GitFileStatus {
             case '?':
             default: return Untracked;
         }
+    }
+
+    inline QString displayName(const QUrl &documentUrl, const QUrl &originalUrl, const int similarity) {
+        if (originalUrl.isEmpty()) return documentUrl.fileName();
+        return QString("%1 -> %2 (%3%)").arg(originalUrl.fileName(), documentUrl.fileName(), QString::number(similarity));
     }
 }
 

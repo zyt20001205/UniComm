@@ -485,7 +485,7 @@ QFuture<GitResult> GitService::reset(const QString &hash, const GitResetMode::Va
 
 // public: working tree
 QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
-    QStringList arguments{"status", "--porcelain=v1", "-z", "-uall"};
+    QStringList arguments{"status", "--porcelain=v2", "-z", "-uall"};
     if (includeIgnored) arguments.append("--ignored");
     return processEnqueue(arguments).then(this, [this](const GitResult &result) {
         GitStatusResult status{result};
@@ -493,18 +493,30 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
             const QDir workTree(m_repo.workTreePath);
             const auto records = result.raw.split('\0');
             for (qsizetype i = 0; i < records.size(); ++i) {
-                const auto &record = records.at(i);
+                const auto record = QString::fromUtf8(records.at(i));
                 if (record.isEmpty()) continue;
-                const auto indexStatus = GitFileStatus::fromCode(record.at(0));
-                const auto workingTreeStatus = GitFileStatus::fromCode(record.at(1));
-                const auto path = QDir::cleanPath(workTree.filePath(QString::fromUtf8(record.sliced(3))));
-                GitStatusResult::Entry file{.documentUrl = QUrl::fromLocalFile(path), .indexStatus = indexStatus, .workingTreeStatus = workingTreeStatus};
-                // renames and copies carry the original path in the next record
-                if (indexStatus == GitFileStatus::Renamed || indexStatus == GitFileStatus::Copied ||
-                    workingTreeStatus == GitFileStatus::Renamed || workingTreeStatus == GitFileStatus::Copied) {
-                    const auto originalPath = QDir::cleanPath(workTree.filePath(QString::fromUtf8(records.at(++i))));
-                    file.originalUrl = QUrl::fromLocalFile(originalPath);
+                GitStatusResult::Entry file{};
+                QString path{};
+                const auto kind = record.front();
+                if (kind == '?' || kind == '!') {
+                    file.indexStatus = file.workingTreeStatus = GitFileStatus::fromCode(kind);
+                    path = record.sliced(2);
+                } else {
+                    // Each record type has a fixed header. The rest of the record is the path, including spaces.
+                    switch (kind.unicode()) {
+                        case '1': path = record.section(' ', 8); break;
+                        case '2':
+                            file.similarity = record.section(' ', 8, 8).sliced(1).toInt();
+                            file.originalUrl = QUrl::fromLocalFile(QDir::cleanPath(workTree.filePath(QString::fromUtf8(records.at(++i)))));
+                            path = record.section(' ', 9);
+                            break;
+                        case 'u': path = record.section(' ', 10); break;
+                        default: continue;
+                    }
+                    file.indexStatus = GitFileStatus::fromCode(record.at(2));
+                    file.workingTreeStatus = GitFileStatus::fromCode(record.at(3));
                 }
+                file.documentUrl = QUrl::fromLocalFile(QDir::cleanPath(workTree.filePath(path)));
                 status.files.append(file);
             }
         }

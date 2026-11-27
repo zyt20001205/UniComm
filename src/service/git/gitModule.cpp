@@ -365,10 +365,7 @@ void GitModule::showGet(const QString &hash) {
                 parent = folder;
             }
 
-            auto display = file.documentUrl.fileName();
-            if (!file.originalUrl.isEmpty())
-                display = QString("%1 -> %2 (%3%)").arg(file.originalUrl.fileName(), display, QString::number(file.similarity));
-            auto *item = new QStandardItem(display);
+            auto *item = new QStandardItem(GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity));
             item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
             item->setData(file.status, StatusRole);
             parent->appendRow(item);
@@ -427,7 +424,10 @@ void GitModule::statusGet() {
                     parent = folder;
                     folderPath += '/';
                 }
-                auto *item = new QStandardItem(file.documentUrl.fileName());
+                const auto display = status == GitFileStatus::Renamed || status == GitFileStatus::Copied
+                                         ? GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity)
+                                         : file.documentUrl.fileName();
+                auto *item = new QStandardItem(display);
                 item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
                 item->setData(file.documentUrl, StatusModel::DocumentUrlRole);
                 item->setData(status, StatusModel::StatusRole);

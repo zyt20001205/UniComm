@@ -91,10 +91,11 @@ struct GitShowResult : GitResult {
 
 struct GitStatusResult : GitResult {
     struct Entry {
-        QUrl documentUrl;
-        QUrl originalUrl;
         GitFileStatus::Value indexStatus;
         GitFileStatus::Value workingTreeStatus;
+        QUrl documentUrl;
+        QUrl originalUrl;
+        int similarity{};
 
         [[nodiscard]] GitFileStatus::Value fileStatus() const {
             using enum GitFileStatus::Value;

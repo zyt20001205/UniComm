@@ -73,7 +73,7 @@ void GitCommitModule::indexUpdate() {
         const QDir workTree(m_gitService->repoGet().workTreePath);
         for (const auto &file: result.files) {
             const QFileInfo info(file.documentUrl.toLocalFile());
-            auto *item = new QStandardItem(info.fileName());
+            auto *item = new QStandardItem(GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity));
             item->setData(file.documentUrl, DocumentUrlRole);
             item->setData(workTree.relativeFilePath(info.absolutePath()), DirectoryRole);
             item->setData(QVariant::fromValue(file.fileStatus()), FileStatusRole);

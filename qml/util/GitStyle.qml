@@ -33,16 +33,21 @@ QtObject {
             case GitFileStatus.Untracked:
                 return colors.cranberryFore2
             case GitFileStatus.Ignored:
+                return colors.pumpkinFore2
             case GitFileStatus.Deleted:
                 return colors.foreDisabled
             case GitFileStatus.Modified:
                 return colors.royalBlueFore2
+            case GitFileStatus.FileTypeChanged:
+                return colors.berryFore2
             case GitFileStatus.Added:
-                return colors.successFore2
+                return colors.greenFore2
             case GitFileStatus.Renamed:
-                return colors.warningFore3
+                return colors.lavenderFore2
+            case GitFileStatus.Copied:
+                return colors.tealFore2
             case GitFileStatus.Unmerged:
-                return colors.dangerFore3
+                return colors.redFore2
             default:
                 return colors.fore
         }
