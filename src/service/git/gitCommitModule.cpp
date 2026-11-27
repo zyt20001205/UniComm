@@ -25,14 +25,15 @@ GitCommitModule::GitCommitModule()
         group->setData(0, FileCountRole);
         m_changes->appendRow(group);
     }
-    connect(m_gitService, &GitService::indexChanged, this, &GitCommitModule::indexUpdate);
-    indexUpdate();
 }
 
 void GitCommitModule::propertySet() {
     m_widget->setInitialProperties({{"gitCommitModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/git/gitCommitModule.qml"));
+
+    connect(m_gitService, &GitService::indexChanged, this, &GitCommitModule::indexUpdate);
+    indexUpdate();
 }
 
 void GitCommitModule::commitShow() {
@@ -61,5 +62,6 @@ void GitCommitModule::indexUpdate() {
             group->appendRow(item);
         }
         for (auto *group: {changes, unversioned}) group->setData(group->rowCount(), FileCountRole);
+        emit indexUpdated();
     });
 }

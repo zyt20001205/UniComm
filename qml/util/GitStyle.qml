@@ -31,12 +31,12 @@ QtObject {
         const colors = global.theme.general
         switch (status) {
             case GitFileStatus.Untracked:
-                return colors.successFore3
+                return colors.cranberryFore2
             case GitFileStatus.Ignored:
             case GitFileStatus.Deleted:
-                return colors.stroke
+                return colors.foreDisabled
             case GitFileStatus.Modified:
-                return colors.brandBack
+                return colors.royalBlueFore2
             case GitFileStatus.Added:
                 return colors.successFore2
             case GitFileStatus.Renamed:

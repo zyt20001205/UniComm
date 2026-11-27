@@ -21,6 +21,9 @@ public:
 
     Q_INVOKABLE void commitShow();
 
+signals:
+    void indexUpdated();
+
 private:
     void indexUpdate();
 
