@@ -194,7 +194,8 @@ Item {
 
                             CheckBox {
                                 checked: row.modelData.enabled
-                                padding: 0
+                                leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                                indicator.width: 16; indicator.height: 16
                                 focusPolicy: Qt.ClickFocus
                                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
                                 Accessible.name: qsTr("Enabled")

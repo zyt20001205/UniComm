@@ -87,7 +87,8 @@ Item {
         component CommitCheckBox: CheckBox {
             required property CommitRow node
             Layout.preferredWidth: 24; Layout.preferredHeight: 24
-            padding: 0
+            leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+            indicator.width: 16; indicator.height: 16
             checkState: node.checkState
             nextCheckState: () => node.checkState === Qt.Checked ? Qt.Unchecked : Qt.Checked
             onClicked: root.gitCommitModule.checkStateSet(treeView.index(node.row, 0), checked)
