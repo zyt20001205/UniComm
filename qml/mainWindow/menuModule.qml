@@ -165,7 +165,7 @@ Item {
 
         Button {
             id: gitMenuButton
-            enabled: global.serviceModule.git.hasRepo
+            enabled: global.serviceModule.git.available
             flat: true
             leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
             text: "Git"
@@ -1102,6 +1102,7 @@ Item {
 
     Menu {
         id: gitMenu
+        readonly property bool repoIdle: global.serviceModule.git.hasRepo && global.gitModule.gitStatus === GitOperationState.Idle
         parent: mainOverlay
         popupType: Popup.Item
 
@@ -1113,7 +1114,7 @@ Item {
 
         MenuItem {
             id: fetchItem
-            enabled: global.gitModule.gitStatus === GitOperationState.Idle
+            enabled: gitMenu.repoIdle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12
@@ -1139,7 +1140,7 @@ Item {
 
         MenuItem {
             id: commitItem
-            enabled: global.gitModule.gitStatus === GitOperationState.Idle
+            enabled: gitMenu.repoIdle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12
@@ -1165,7 +1166,7 @@ Item {
 
         MenuItem {
             id: pushItem
-            enabled: global.gitModule.gitStatus === GitOperationState.Idle
+            enabled: gitMenu.repoIdle
             contentItem: RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: 12; anchors.rightMargin: 12
@@ -1192,15 +1193,12 @@ Item {
         MenuSeparator {
         }
 
-        Menu {
-            title: qsTr("Config")
+        MenuItem {
+            text: qsTr("Manage…")
             icon.source: "qrc:/icon/settings.svg"
             icon.width: 16; icon.height: 16
 
-            MenuItem {
-                text: qsTr("Proxy")
-                enabled: false
-            }
+            onTriggered: global.serviceModule.git.manage()
         }
     }
 }

@@ -49,7 +49,7 @@ Item {
                 currentIndex: 0
                 model: [
                     {"title": qsTr("Models"), "icon": "qrc:/icon/model.svg"},
-                    {"title": qsTr("MCP"), "icon": "qrc:/icon/mcp.svg"},
+                    {"title": qsTr("MCP"), "icon": "qrc:/icon/plugConnected.svg"},
                     {"title": qsTr("Skills"), "icon": "qrc:/icon/skill.svg"},
                     {"title": qsTr("Hooks"), "icon": "qrc:/icon/hook.svg"},
                     {"title": qsTr("Context"), "icon": "qrc:/icon/database.svg"},
@@ -656,7 +656,7 @@ Item {
                         property bool serverEnabled: model.enabled
                         property string serverVersion: model.version || ""
                         property string serverDescription: model.description || ""
-                        property url serverIcon: model.decoration || "qrc:/icon/mcp.svg"
+                        property url serverIcon: model.decoration || "qrc:/icon/plugConnected.svg"
 
                         radius: 6
                         color: global.theme.general.backHover

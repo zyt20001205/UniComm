@@ -1,12 +1,15 @@
 #include "service/git/gitService.h"
 
 #include <QMap>
+#include <QQuickView>
 #include <QSaveFile>
 #include <QSharedPointer>
 #include <QTemporaryDir>
 #include <utility>
 
 #include "globals.h"
+#include "core/globalManager.h"
+#include "mainWindow/mainWindow.h"
 
 // public
 GitService::GitService(QObject *parent)
@@ -44,6 +47,20 @@ GitService::GitService(QObject *parent)
 
 GitService::~GitService() {
     m_process.disconnect(this); // NOLINT
+}
+
+void GitService::manage() {
+    if (!m_manageWindow) {
+        m_manageWindow = std::make_unique<QQuickView>(g_globalManager->engineGet(), nullptr);
+        m_manageWindow->setTitle(tr("Manage Git"));
+        m_manageWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
+        m_manageWindow->setResizeMode(QQuickView::SizeRootObjectToView);
+        m_manageWindow->setSource(QUrl("qrc:/qml/service/git/gitManageWindow.qml"));
+        m_manageWindow->resize(1080, 720);
+    }
+    m_manageWindow->show();
+    m_manageWindow->raise();
+    m_manageWindow->requestActivate();
 }
 
 QFuture<GitResult> GitService::versionGet() {

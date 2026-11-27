@@ -1,6 +1,7 @@
 #ifndef UNICOMM_GITSERVICE_H
 #define UNICOMM_GITSERVICE_H
 
+#include <memory>
 #include <optional>
 #include <queue>
 #include <QFileSystemWatcher>
@@ -14,6 +15,8 @@
 
 #include "service/baseService.h"
 #include "types/gitTypes.h"
+
+class QQuickView;
 
 struct GitResult {
     bool success{};
@@ -130,6 +133,8 @@ public:
     explicit GitService(QObject *parent = nullptr);
 
     ~GitService() override;
+
+    Q_INVOKABLE void manage();
 
     [[nodiscard]] bool availableGet() const {
         return m_available;
@@ -276,6 +281,7 @@ private:
     GitRepoResult m_repo{};
     QVariantHash m_config{{"proxy", QVariantHash{{"local", QString{}}, {"global", QString{}}}}};
     QVariantList m_remotes{};
+    std::unique_ptr<QQuickView> m_manageWindow{};
 
     QFileSystemWatcher m_watcher{};
     QTimer m_watchTimer{};
