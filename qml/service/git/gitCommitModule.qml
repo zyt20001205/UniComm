@@ -116,6 +116,8 @@ Item {
                 clip: true
                 reuseItems: false
                 model: root.gitCommitModule.changes
+                columnWidthProvider: column => Math.max(width, implicitColumnWidth(column))
+                onWidthChanged: forceLayout()
                 selectionModel: ItemSelectionModel {
                     model: root.gitCommitModule.changes
                 }
@@ -137,15 +139,24 @@ Item {
                     }
                 }
 
+                ScrollBar.horizontal: ScrollBar {
+                    minimumSize: Math.min(1, 20 / Math.max(1, width))
+                    palette {
+                        mid: global.theme.general.stroke
+                        dark: global.theme.general.strokePressed
+                    }
+                }
+
                 component CommitRow: Item {
                     id: node
-                    implicitWidth: treeView.width; implicitHeight: 24
+                    implicitHeight: 24
                     required property TreeView treeView
                     required property bool current
                     required property bool hasChildren
                     required property int row
                     required property int checkState
                     property string toolTipText: ""
+                    onImplicitWidthChanged: Qt.callLater(treeView.forceLayout)
 
                     Rectangle {
                         anchors.fill: parent
@@ -203,13 +214,14 @@ Item {
                         roleValue: ""
                         delegate: CommitRow {
                             id: groupRow
+                            implicitWidth: groupContent.implicitWidth + treeScrollBar.width
                             required property bool expanded
                             required property string display
                             required property int fileCount
 
                             RowLayout {
-                                anchors.fill: parent
-                                anchors.rightMargin: treeScrollBar.width
+                                id: groupContent
+                                anchors.verticalCenter: parent.verticalCenter
                                 spacing: 0
 
                                 Item {
@@ -234,15 +246,12 @@ Item {
                                     textFormat: Text.PlainText
                                     font.bold: true
                                     color: global.theme.general.fore
-                                    elide: Text.ElideRight
                                 }
 
                                 Label {
-                                    Layout.fillWidth: true
                                     Layout.leftMargin: 6
                                     text: groupRow.fileCount === 1 ? qsTr("1 file") : qsTr("%1 files").arg(groupRow.fileCount)
                                     color: global.theme.general.foreDisabled
-                                    elide: Text.ElideRight
                                 }
                             }
                         }
@@ -251,6 +260,7 @@ Item {
                     DelegateChoice {
                         delegate: CommitRow {
                             id: fileRow
+                            implicitWidth: fileContent.x + fileContent.implicitWidth + treeScrollBar.width
                             required property int depth
                             required property string display
                             required property int fileStatus
@@ -258,9 +268,9 @@ Item {
                             toolTipText: fileStatus === GitFileStatus.Unmodified ? "" : Qt.enumValueToString(GitFileStatus.Value, fileStatus)
 
                             RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: (fileRow.depth + 1) * 24
-                                anchors.rightMargin: treeScrollBar.width
+                                id: fileContent
+                                x: (fileRow.depth + 1) * 24
+                                anchors.verticalCenter: parent.verticalCenter
                                 spacing: 6
 
                                 CommitCheckBox {
@@ -268,20 +278,15 @@ Item {
                                 }
 
                                 Label {
-                                    Layout.fillWidth: true
-                                    Layout.maximumWidth: Math.ceil(implicitWidth)
                                     text: fileRow.display
                                     textFormat: Text.PlainText
                                     color: GitStyle.fileStatusColor(fileRow.fileStatus)
-                                    elide: Text.ElideRight
                                 }
 
                                 Label {
-                                    Layout.fillWidth: true
                                     text: fileRow.directory
                                     textFormat: Text.PlainText
                                     color: global.theme.general.foreDisabled
-                                    elide: Text.ElideLeft
                                 }
                             }
                         }
