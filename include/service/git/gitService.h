@@ -223,7 +223,7 @@ public:
 
     QFuture<GitShowResult> showGet(const QString &hash);
 
-    QFuture<GitResult> commit(const QList<QUrl> &urls, const QList<QUrl> &untrackedUrls, const QString &message, bool amend = false);
+    QFuture<GitResult> commit(const QList<QUrl> &selectedUrls, const QList<QUrl> &untrackedUrls, const QString &message, bool amend = false);
 
     QFuture<GitResult> cherryPick(const QString &hash);
 

@@ -445,15 +445,15 @@ QFuture<GitShowResult> GitService::showGet(const QString &hash) {
             });
 }
 
-QFuture<GitResult> GitService::commit(const QList<QUrl> &urls, const QList<QUrl> &untrackedUrls, const QString &message, const bool amend) {
-    if (urls.isEmpty() && !amend) return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("No files selected.").toUtf8()});
+QFuture<GitResult> GitService::commit(const QList<QUrl> &selectedUrls, const QList<QUrl> &untrackedUrls, const QString &message, const bool amend) {
+    if (selectedUrls.isEmpty() && !amend) return QtFuture::makeReadyValueFuture(GitResult{.raw = tr("No files selected.").toUtf8()});
 
     QStringList arguments{"--literal-pathspecs", "commit", "--only"};
     if (amend) arguments.append("--amend");
     arguments << "-m" << message;
-    if (!urls.isEmpty()) {
+    if (!selectedUrls.isEmpty()) {
         arguments.append("--");
-        for (const auto &url: urls) arguments.append(url.toLocalFile());
+        for (const auto &url: selectedUrls) arguments.append(url.toLocalFile());
     }
 
     QFuture<GitResult> future;
@@ -508,6 +508,7 @@ QFuture<GitResult> GitService::reset(const QString &hash, const GitResetMode::Va
     return processEnqueue({"reset", option, hash, "--"}).then(this, [this](const GitResult &result) {
         // update service state
         statusSet(result.success ? Status::Stopped : Status::Error);
+        if (result.success) emit indexChanged();
         return result;
     });
 }

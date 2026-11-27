@@ -1035,6 +1035,7 @@ Item {
         id: logMenu
         parent: mainOverlay
         popupType: Popup.Item
+        width: 300
         property string hash
 
         onOpened: {

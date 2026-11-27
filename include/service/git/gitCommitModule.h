@@ -21,9 +21,13 @@ public:
 
     Q_INVOKABLE void commitShow();
 
+    Q_INVOKABLE void commit(const QString &message, bool amend, bool push);
+
     Q_INVOKABLE void checkStateSet(const QModelIndex &index, bool checked) const;
 
 signals:
+    void committed(bool push);
+
     void indexUpdated();
 
 private:

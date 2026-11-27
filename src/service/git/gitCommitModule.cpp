@@ -5,6 +5,7 @@
 #include <QQuickWidget>
 
 #include "core/globalManager.h"
+#include "mainWindow/toastModule.h"
 #include "service/git/gitService.h"
 #include "service/serviceModule.h"
 
@@ -40,6 +41,27 @@ void GitCommitModule::propertySet() {
 void GitCommitModule::commitShow() {
     if (!isOpen()) open();
     raise();
+}
+
+void GitCommitModule::commit(const QString &message, const bool amend, const bool push) {
+    QList<QUrl> selectedUrls{};
+    QList<QUrl> untrackedUrls{};
+    for (int groupRow = 0; groupRow < m_changes->rowCount(); ++groupRow) {
+        const auto *group = m_changes->item(groupRow);
+        for (int row = 0; row < group->rowCount(); ++row) {
+            const auto *item = group->child(row);
+            if (item->checkState() != Qt::Checked) continue;
+            const auto url = item->data(DocumentUrlRole).toUrl();
+            const auto status = item->data(FileStatusRole).value<GitFileStatus::Value>();
+            selectedUrls.append(url);
+            if (status == GitFileStatus::Renamed) selectedUrls.append(item->data(OriginalUrlRole).toUrl());
+            if (status == GitFileStatus::Untracked) untrackedUrls.append(url);
+        }
+    }
+    m_gitService->commit(selectedUrls, untrackedUrls, message, amend).then(this, [this, push](const GitResult &result) {
+        if (result.success) emit committed(push);
+        else g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Commit failed"), result.text());
+    });
 }
 
 void GitCommitModule::checkStateSet(const QModelIndex &index, const bool checked) const {

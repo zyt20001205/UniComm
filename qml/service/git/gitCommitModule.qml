@@ -12,6 +12,16 @@ Item {
     id: root
     required property GitCommitModule gitCommitModule
 
+    Connections {
+        target: root.gitCommitModule
+
+        function onCommitted(push) {
+            messageArea.clear()
+            amendBox.checked = false
+            if (push) global.gitModule.gitPushPre()
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: global.theme.general.back
@@ -350,10 +360,12 @@ Item {
                 Button {
                     text: amendBox.checked ? qsTr("Amend Commit") : qsTr("Commit")
                     highlighted: true
+                    onClicked: root.gitCommitModule.commit(messageArea.text, amendBox.checked, false)
                 }
 
                 Button {
                     text: amendBox.checked ? qsTr("Amend Commit and Push…") : qsTr("Commit and Push…")
+                    onClicked: root.gitCommitModule.commit(messageArea.text, amendBox.checked, true)
                 }
             }
         }
