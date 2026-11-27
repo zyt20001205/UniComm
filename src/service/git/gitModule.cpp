@@ -19,14 +19,11 @@ GitModule::GitModule()
       m_gitStatus(GitOperationState::Idle),
       m_config(g_workspaceConfig["gitConfig"].toObject()),
       m_widget(new QQuickWidget(g_globalManager->engineGet(), nullptr)),
-      m_commitWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_pushWindow(new QQuickView(g_globalManager->engineGet(), nullptr)),
       m_process(new QProcess(this)),
       m_refs(new QStandardItemModel(this)),
       m_log(new QStandardItemModel(this)),
       m_show(new QStandardItemModel(this)),
-      m_workingTreeModel(new StatusModel(this)),
-      m_indexModel(new StatusModel(this)),
       m_commitModel(new CommitModel(this)),
       m_showModel_(new ShowModel(this)) {
     setWidget(m_widget);
@@ -47,7 +44,6 @@ GitModule::GitModule()
 }
 
 GitModule::~GitModule() {
-    delete m_commitWindow;
     delete m_pushWindow;
     const auto timestamp = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
     qDebug() << QString("[%1] %2 module destructed").arg(timestamp, uniqueName());
@@ -57,18 +53,6 @@ void GitModule::propertySet() {
     m_widget->setInitialProperties({{"gitModule", QVariant::fromValue(this)}});
     m_widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     m_widget->setSource(QUrl("qrc:/qml/service/git/gitModule.qml"));
-
-    // commit window
-    m_commitWindow->setTitle(tr("Git Commit"));
-    m_commitWindow->setTransientParent(g_globalManager->mainWindowGet()->windowHandle());
-
-    m_commitWindow->setInitialProperties({
-        {"gitModule", QVariant::fromValue(this)},
-        {"workingTreeModel", QVariant::fromValue(m_workingTreeModel)},
-        {"indexModel", QVariant::fromValue(m_indexModel)}
-    });
-    m_commitWindow->setResizeMode(QQuickView::SizeRootObjectToView);
-    m_commitWindow->setSource(QUrl("qrc:/qml/service/git/gitCommitWindow.qml"));
 
     // push window
     m_pushWindow->setTitle(tr("Git Push"));
@@ -84,7 +68,6 @@ void GitModule::propertySet() {
 
     connect(m_gitService, &GitService::gitDirChanged, this, &GitModule::gitRepo);
     connect(m_gitService, &GitService::refsChanged, this, &GitModule::upstreamGet);
-    connect(m_gitService, &GitService::indexChanged, this, &GitModule::statusGet);
     if (m_gitService->hasRepoGet()) {
         gitRepo();
         upstreamGet();
@@ -395,53 +378,6 @@ void GitModule::reset(const QString &hash, const GitResetMode::Value mode) {
 }
 
 // public: working tree
-void GitModule::statusGet() {
-    m_gitService->statusGet().then(this, [this](const GitStatusResult &result) {
-        if (!result.success) {
-            emit showErrorDialog(tr("Git command failed"), result.text());
-            return;
-        }
-
-        m_workingTreeModel->clear();
-        m_indexModel->clear();
-        QHash<QString, QStandardItem *> workingTreeFolders{};
-        QHash<QString, QStandardItem *> indexFolders{};
-        const QDir workTree(m_gitService->repoGet().workTreePath);
-        for (const auto &file: result.files) {
-            const auto path = workTree.relativeFilePath(file.documentUrl.toLocalFile()).split('/');
-            const auto appendFile = [&](const StatusModel *model, QHash<QString, QStandardItem *> &folders, GitFileStatus::Value status) {
-                auto *parent = model->invisibleRootItem();
-                QString folderPath{};
-                for (qsizetype i = 0; i + 1 < path.size(); ++i) {
-                    folderPath += path.at(i);
-                    auto &folder = folders[folderPath];
-                    if (!folder) {
-                        folder = new QStandardItem(path.at(i));
-                        folder->setData(QUrl("qrc:/icon/fileTypeFolder.svg"), Qt::DecorationRole);
-                        folder->setData(QUrl::fromLocalFile(workTree.filePath(folderPath)), StatusModel::DocumentUrlRole);
-                        parent->appendRow(folder);
-                    }
-                    parent = folder;
-                    folderPath += '/';
-                }
-                const auto display = status == GitFileStatus::Renamed || status == GitFileStatus::Copied
-                                         ? GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity)
-                                         : file.documentUrl.fileName();
-                auto *item = new QStandardItem(display);
-                item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
-                item->setData(file.documentUrl, StatusModel::DocumentUrlRole);
-                item->setData(status, StatusModel::StatusRole);
-                parent->appendRow(item);
-            };
-            if (file.workingTreeStatus != GitFileStatus::Unmodified)
-                appendFile(m_workingTreeModel, workingTreeFolders, file.workingTreeStatus);
-            if (file.indexStatus != GitFileStatus::Unmodified && file.indexStatus != GitFileStatus::Untracked)
-                appendFile(m_indexModel, indexFolders, file.indexStatus);
-        }
-        emit expandChanges();
-    });
-}
-
 QFuture<bool> GitModule::add(const QUrl &url) {
     return m_gitService->add(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
@@ -472,19 +408,6 @@ void GitModule::unignore(const QUrl &url) {
     m_gitService->unignore(url).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
-}
-
-// public: commit
-void GitModule::gitCommitPre() {
-    emit resetCommit();
-    m_commitWindow->resize(1080, 720);
-    m_commitWindow->show();
-    statusGet();
-}
-
-void GitModule::gitCommit(const QString &subject) {
-    m_commitWindow->close();
-    processEnqueue(GitCommand::Commit, QStringList{"commit", "-m", subject});
 }
 
 // public: push
@@ -720,21 +643,6 @@ void GitModule::processFinished(const int exitcode) {
 
 // public
 QHash<int, QByteArray> ShowModel::roleNames() const {
-    auto roles = QStandardItemModel::roleNames();
-    roles[DocumentUrlRole] = "documentUrl";
-    roles[StatusRole] = "status";
-    return roles;
-}
-
-// public
-StatusModel::StatusModel(QObject *parent)
-    : QStandardItemModel(parent) {
-    connect(this, &QAbstractItemModel::rowsInserted, this, &StatusModel::emptyChanged);
-    connect(this, &QAbstractItemModel::rowsRemoved, this, &StatusModel::emptyChanged);
-    connect(this, &QAbstractItemModel::modelReset, this, &StatusModel::emptyChanged);
-}
-
-QHash<int, QByteArray> StatusModel::roleNames() const {
     auto roles = QStandardItemModel::roleNames();
     roles[DocumentUrlRole] = "documentUrl";
     roles[StatusRole] = "status";

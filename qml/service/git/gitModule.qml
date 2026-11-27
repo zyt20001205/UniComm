@@ -72,7 +72,7 @@ Item {
                 font.pixelSize: 16
                 Layout.alignment: Qt.AlignVCenter
 
-                onClicked: !root.hasRepo ? root.gitModule._init() : root.gitModule.gitCommitPre()
+                onClicked: !root.hasRepo ? root.gitModule._init() : global.gitCommitModule.commitShow()
             }
 
             IconImage {

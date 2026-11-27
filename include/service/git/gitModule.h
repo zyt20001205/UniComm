@@ -16,7 +16,6 @@ class QQuickWidget;
 
 class GitService;
 class ShowModel;
-class StatusModel;
 class CommitModel;
 
 class GitModule : public KDDockWidgets::QtWidgets::DockWidget {
@@ -110,8 +109,6 @@ public:
     Q_INVOKABLE void reset(const QString &hash, GitResetMode::Value mode);
 
     // public: working tree
-    void statusGet();
-
     Q_INVOKABLE QFuture<bool> add(const QUrl &url = QUrl());
 
     Q_INVOKABLE void untrack(const QUrl &url);
@@ -123,10 +120,6 @@ public:
     Q_INVOKABLE void unignore(const QUrl &url);
 
     // public: legacy
-    Q_INVOKABLE void gitCommitPre();
-
-    Q_INVOKABLE void gitCommit(const QString &subject);
-
     Q_INVOKABLE void gitPushPre();
 
     void gitAhead();
@@ -143,10 +136,6 @@ signals:
     void showErrorDialog(const QString &title, const QString &text);
 
     void currentChanged();
-
-    void expandChanges();
-
-    void resetCommit();
 
     void logChanged();
 
@@ -175,7 +164,6 @@ private:
     GitOperationState::Value m_gitStatus{};
     QJsonObject m_config{};
     QQuickWidget *m_widget{};
-    QQuickView *m_commitWindow{};
     QQuickView *m_pushWindow{};
 
     int m_command{};
@@ -193,16 +181,12 @@ private:
 
     QStandardItemModel *m_show{};
 
-    StatusModel *m_workingTreeModel{};
-    StatusModel *m_indexModel{};
-
     CommitModel *m_commitModel{};
     ShowModel *m_showModel_{};
 
     struct GitCommand {
         enum {
             Null,
-            Commit,
             Ahead,
             Diff_,
             ShowCommit_
@@ -222,28 +206,6 @@ public:
     };
 
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-};
-
-class StatusModel final : public QStandardItemModel {
-    Q_OBJECT
-    Q_PROPERTY(bool empty READ emptyGet NOTIFY emptyChanged)
-
-public:
-    explicit StatusModel(QObject *parent = nullptr);
-
-    enum Role {
-        DocumentUrlRole = Qt::UserRole + 1,
-        StatusRole
-    };
-
-    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
-
-    [[nodiscard]] bool emptyGet() const {
-        return rowCount() == 0;
-    }
-
-signals:
-    void emptyChanged();
 };
 
 class CommitModel final : public QStandardItemModel {

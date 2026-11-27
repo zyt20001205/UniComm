@@ -1165,13 +1165,6 @@ Item {
         }
 
         MenuItem {
-            text: qsTr("Commit (Legacy)")
-            icon.source: "qrc:/icon/gitCommit.svg"
-            enabled: gitMenu.repoIdle
-            onTriggered: global.gitModule.gitCommitPre()
-        }
-
-        MenuItem {
             id: pushItem
             enabled: gitMenu.repoIdle
             contentItem: RowLayout {
