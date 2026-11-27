@@ -46,6 +46,7 @@ Item {
             required property bool current
             required property bool hasChildren
             required property int row
+            required property int checkState
             property string toolTipText: ""
 
             Rectangle {
@@ -60,6 +61,15 @@ Item {
                 anchors.fill: parent
                 radius: 6
                 color: node.current ? global.theme.general.backSelected : "transparent"
+
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onTapped: {
+                        treeView.forceActiveFocus()
+                        treeView.selectionModel.setCurrentIndex(treeView.index(node.row, 0), ItemSelectionModel.NoUpdate)
+                        if (node.hasChildren) treeView.toggleExpanded(node.row)
+                    }
+                }
             }
 
             HoverHandler {
@@ -72,14 +82,15 @@ Item {
                     mainTooltip.text = node.toolTipText
                 }
             }
-            TapHandler {
-                acceptedButtons: Qt.LeftButton
-                onTapped: {
-                    treeView.forceActiveFocus()
-                    treeView.selectionModel.setCurrentIndex(treeView.index(node.row, 0), ItemSelectionModel.NoUpdate)
-                    if (node.hasChildren) treeView.toggleExpanded(node.row)
-                }
-            }
+        }
+
+        component CommitCheckBox: CheckBox {
+            required property CommitRow node
+            Layout.preferredWidth: 24; Layout.preferredHeight: 24
+            padding: 0
+            checkState: node.checkState
+            nextCheckState: () => node.checkState === Qt.Checked ? Qt.Unchecked : Qt.Checked
+            onClicked: root.gitCommitModule.checkStateSet(treeView.index(node.row, 0), checked)
         }
 
         delegate: DelegateChooser {
@@ -108,6 +119,11 @@ Item {
                                 source: groupRow.expanded ? "qrc:/icon/arrowExpand.svg" : "qrc:/icon/arrowCollapse.svg"
                                 color: global.theme.general.fore
                             }
+                        }
+
+                        CommitCheckBox {
+                            node: groupRow
+                            enabled: groupRow.fileCount > 0
                         }
 
                         Label {
@@ -140,9 +156,11 @@ Item {
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: fileRow.depth * 24
+                        anchors.leftMargin: (fileRow.depth + 1) * 24
                         anchors.rightMargin: treeScrollBar.width
                         spacing: 6
+
+                        CommitCheckBox { node: fileRow }
 
                         Label {
                             Layout.fillWidth: true

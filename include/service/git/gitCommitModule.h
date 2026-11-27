@@ -21,11 +21,15 @@ public:
 
     Q_INVOKABLE void commitShow();
 
+    Q_INVOKABLE void checkStateSet(const QModelIndex &index, bool checked) const;
+
 signals:
     void indexUpdated();
 
 private:
     void indexUpdate();
+
+    static void groupCheckStateUpdate(QStandardItem *group);
 
     enum Role { DocumentUrlRole = Qt::UserRole + 1, DirectoryRole, FileStatusRole, FileCountRole };
 
