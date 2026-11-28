@@ -287,6 +287,7 @@ Item {
                 onTapped: {
                     const position = parent.mapToGlobal(point.position)
                     const node = treeView.nodeAt(treeView.mapFromItem(parent, point.position))
+                    treeView.selectedRow = node ? node.row : -1
                     const localPosition = mainOverlay.mapFromGlobal(position)
                     if (!node) {
                         rootMenu.popup(localPosition.x, localPosition.y)

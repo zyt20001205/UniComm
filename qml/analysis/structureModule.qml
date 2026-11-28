@@ -355,6 +355,7 @@ Item {
                     gesturePolicy: TapHandler.DragWithinBounds
 
                     onTapped: {
+                        treeView.selectedRow = node.row
                         contextMenu.symbolName = node.display
                         contextMenu.detail = node.detail
                         contextMenu.popup()

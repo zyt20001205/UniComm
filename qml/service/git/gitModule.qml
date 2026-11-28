@@ -347,6 +347,7 @@ Item {
                             gesturePolicy: TapHandler.DragWithinBounds
 
                             onTapped: {
+                                branchTreeView.selectedRow = row
                                 if (!hasChildren && model.type !== GitRefType.Tag) {
                                     branchMenu.ref = model.ref
                                     branchMenu.name = model.display
@@ -501,6 +502,10 @@ Item {
                         gesturePolicy: TapHandler.DragWithinBounds
 
                         onTapped: {
+                            if (tableView.selectedRow !== row) {
+                                tableView.selectedRow = row
+                                root.gitModule.showGet(model.hash)
+                            }
                             logMenu.hash = model.hash
                             const position = mainOverlay.mapFromGlobal(parent.mapToGlobal(point.position))
                             logMenu.popup(position.x, position.y)
