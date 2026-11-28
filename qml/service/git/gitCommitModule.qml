@@ -36,7 +36,7 @@ Item {
             mainOverlay.widgetCount += 1
         }
         onClosed: mainOverlay.widgetCount -= 1
-        onAccepted: root.gitCommitModule.rollback(treeView.selectionModel.currentIndex)
+        onAccepted: root.gitCommitModule.rollback(treeView.fileStatus, treeView.documentUrl, treeView.originalUrl)
 
         Label {
             readonly property string fileName: treeView.fileStatus >= 0 ? treeView.model.data(treeView.selectionModel.currentIndex, Qt.DisplayRole) : ""
@@ -127,7 +127,7 @@ Item {
                     Accessible.name: qsTr("Show Diff")
                     enabled: treeView.fileStatus >= 0
 
-                    onClicked: root.gitCommitModule.diffShow(treeView.selectionModel.currentIndex)
+                    onClicked: root.gitCommitModule.diffShow(treeView.fileStatus, treeView.documentUrl, treeView.originalUrl)
 
                     HoverHandler {
                         onHoveredChanged: {
@@ -196,6 +196,8 @@ Item {
                 reuseItems: false
                 model: root.gitCommitModule.changes
                 readonly property int fileStatus: model.data(selectionModel.currentIndex, GitCommitModule.FileStatusRole) ?? -1
+                readonly property url documentUrl: model.data(selectionModel.currentIndex, GitCommitModule.DocumentUrlRole) ?? ""
+                readonly property url originalUrl: model.data(selectionModel.currentIndex, GitCommitModule.OriginalUrlRole) ?? ""
                 columnWidthProvider: column => Math.max(width, implicitColumnWidth(column))
                 onWidthChanged: forceLayout()
                 selectionModel: ItemSelectionModel {
@@ -347,11 +349,13 @@ Item {
                             required property int depth
                             required property string display
                             required property int fileStatus
+                            required property url documentUrl
+                            required property url originalUrl
                             required property string directory
                             toolTipText: fileStatus === GitFileStatus.Unmodified ? "" : Qt.enumValueToString(GitFileStatus.Value, fileStatus)
 
                             TapHandler {
-                                onDoubleTapped: root.gitCommitModule.diffShow(fileRow.treeView.index(fileRow.row, 0))
+                                onDoubleTapped: root.gitCommitModule.diffShow(fileRow.fileStatus, fileRow.documentUrl, fileRow.originalUrl)
                             }
 
                             RowLayout {

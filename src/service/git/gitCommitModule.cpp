@@ -20,7 +20,7 @@ GitCommitModule::GitCommitModule()
     setWidget(m_widget);
     m_changes->setItemRoleNames({
         {Qt::DisplayRole, "display"}, {Qt::CheckStateRole, "checkState"}, {FileStatusRole, "fileStatus"},
-        {DocumentUrlRole, "documentUrl"}, {DirectoryRole, "directory"}, {FileCountRole, "fileCount"}
+        {DocumentUrlRole, "documentUrl"}, {OriginalUrlRole, "originalUrl"}, {DirectoryRole, "directory"}, {FileCountRole, "fileCount"}
     });
     for (const auto &title: {tr("Changes"), tr("Unversioned Files")}) {
         auto *group = new QStandardItem(title);
@@ -78,28 +78,23 @@ void GitCommitModule::checkStateSet(const QModelIndex &index, const bool checked
     }
 }
 
-void GitCommitModule::rollback(const QModelIndex &index) {
-    const auto url = index.data(DocumentUrlRole).toUrl();
-    const auto status = index.data(FileStatusRole).value<GitFileStatus::Value>();
-    if (url.isEmpty() || status == GitFileStatus::Untracked || status == GitFileStatus::Unmerged) return;
+void GitCommitModule::rollback(const GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl) {
+    if (documentUrl.isEmpty() || fileStatus == GitFileStatus::Untracked || fileStatus == GitFileStatus::Unmerged) return;
 
-    const auto mode = status == GitFileStatus::Added || status == GitFileStatus::Copied ? GitRestoreMode::Staged : GitRestoreMode::Both;
-    QList urls{url};
-    if (status == GitFileStatus::Renamed) urls.append(index.data(OriginalUrlRole).toUrl());
+    const auto mode = fileStatus == GitFileStatus::Added || fileStatus == GitFileStatus::Copied ? GitRestoreMode::Staged : GitRestoreMode::Both;
+    QList urls{documentUrl};
+    if (fileStatus == GitFileStatus::Renamed) urls.append(originalUrl);
     m_gitService->restore(urls, mode).then(this, [](const GitResult &result) {
         if (!result.success) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rollback failed"), result.text());
     });
 }
 
-void GitCommitModule::diffShow(const QModelIndex &index) {
-    const auto documentUrl = index.data(DocumentUrlRole).toUrl();
-    const auto status = index.data(FileStatusRole).value<GitFileStatus::Value>();
-    if (status == GitFileStatus::Unmerged) {
+void GitCommitModule::diffShow(const GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl) {
+    if (fileStatus == GitFileStatus::Unmerged) {
         g_globalManager->documentModuleGet()->documentOpen(documentUrl);
         return;
     }
 
-    const auto originalUrl = index.data(OriginalUrlRole).toUrl();
     const auto leftUrl = originalUrl.isEmpty() ? documentUrl : originalUrl;
     const auto leftTitle = tr("%1 · HEAD").arg(leftUrl.fileName());
     const auto rightTitle = tr("%1 · Working Tree").arg(documentUrl.fileName());
@@ -112,7 +107,7 @@ void GitCommitModule::diffShow(const QModelIndex &index) {
             return;
         }
     }
-    if (status == GitFileStatus::Added || status == GitFileStatus::Untracked) {
+    if (fileStatus == GitFileStatus::Added || fileStatus == GitFileStatus::Untracked) {
         g_globalManager->documentModuleGet()->diffOpen(leftTitle, {}, rightTitle, rightContent);
         return;
     }

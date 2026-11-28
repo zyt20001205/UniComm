@@ -5,6 +5,8 @@
 #include <QStandardItemModel>
 #include <QtQmlIntegration/qqmlintegration.h>
 
+#include "types/gitTypes.h"
+
 class GitService;
 class QQuickWidget;
 
@@ -25,9 +27,9 @@ public:
 
     Q_INVOKABLE void checkStateSet(const QModelIndex &index, bool checked) const;
 
-    Q_INVOKABLE void rollback(const QModelIndex &index);
+    Q_INVOKABLE void rollback(GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl);
 
-    Q_INVOKABLE void diffShow(const QModelIndex &index);
+    Q_INVOKABLE void diffShow(GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl);
 
     enum Role { FileStatusRole = Qt::UserRole + 1, DocumentUrlRole, OriginalUrlRole, DirectoryRole, FileCountRole };
     Q_ENUM(Role)
