@@ -65,8 +65,9 @@ ThemeManager::ThemeManager(QObject *parent)
         + "QScrollBar::handle:horizontal:pressed, QScrollBar::handle:vertical:pressed { background-color: " + general["strokePressed"].toString() + "; }"
         + "QAbstractScrollArea::corner { background-color: " + general["back"].toString() + "; }"
 
+        + "QTabBar { font-family: 'Segoe UI'; font-size: 14px; }"
         + "QTabBar::tab { background: transparent; border: none; color: " + general["fore"].toString() +
-        "; font-family: 'Segoe UI'; font-size: 14px; margin: 10px 10px 6px 10px; padding: 0px 0px 4px 16px;}"
+        "; margin: 10px 10px 6px 10px; padding: 0px 0px 4px 16px;}"
         + "QTabBar::tab:hover { border-bottom: 3px solid " + general["backHover"].toString() + " }"
         + "QTabBar::tab:selected { border-bottom: 3px solid " + general["brandBack"].toString() + "; font-weight: 600; }"
         + "QTabBar::close-button { border-radius: 4px; margin: 2px; image: url(" + closeIcon + "); }"

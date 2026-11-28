@@ -43,6 +43,8 @@ public:
 
 protected:
     [[nodiscard]] QSize tabSizeHint(int index) const override;
+
+    void initStyleOption(QStyleOptionTab *option, int index) const override;
 };
 
 class MySeparator final : public KDDockWidgets::QtWidgets::Separator {

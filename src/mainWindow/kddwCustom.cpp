@@ -1,6 +1,7 @@
 #include "mainWindow/kddwCustom.h"
 
 #include <QPainter>
+#include <QStyleOptionTab>
 
 #include "document/documentModule.h"
 #include "document/page/documentPage.h"
@@ -57,6 +58,17 @@ QSize MyTabBar::tabSizeHint(const int index) const {
     auto size = TabBar::tabSizeHint(index);
     size.setWidth(qMin(size.width(), 240));
     return size;
+}
+
+void MyTabBar::initStyleOption(QStyleOptionTab *option, const int index) const {
+    TabBar::initStyleOption(option, index);
+    if (!(option->state & QStyle::State_Selected)) return;
+
+    auto selectedFont = font();
+    selectedFont.setWeight(QFont::DemiBold);
+    option->fontMetrics = QFontMetrics(selectedFont, this);
+    const auto textRect = style()->subElementRect(QStyle::SE_TabBarTabText, option, this);
+    option->text = option->fontMetrics.elidedText(tabText(index), elideMode(), textRect.width(), Qt::TextShowMnemonic);
 }
 
 MySeparator::MySeparator(KDDockWidgets::Core::Separator *controller, KDDockWidgets::Core::View *parent)
