@@ -63,6 +63,8 @@ public:
 
     Q_INVOKABLE void documentOpen(const QUrl &documentUrl);
 
+    void diffOpen(const QString &leftTitle, const QByteArray &leftContent, const QString &rightTitle, const QByteArray &rightContent);
+
     Q_INVOKABLE void documentGoto() const;
 
     [[nodiscard]] QJsonArray directoryList(const QUrl &directoryUrl) const;
@@ -299,6 +301,10 @@ private:
     void _transactionRename(const QString &undoGroupId, const QUrl &sourceUrl, const QUrl &targetUrl, bool recursive);
 
     [[nodiscard]] ScintillaWidget *handlerGet(const QUrl &documentUrl) const;
+
+    void documentRegister(DocumentPage *page);
+
+    void documentDock(DocumentPage *page) const;
 
     void documentFocus(DocumentPage *documentPage, bool status);
 

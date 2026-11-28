@@ -3,13 +3,12 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QFileSystemWatcher>
 #include <QImageReader>
-#include <QProcess>
 #include <QQmlComponent>
 #include <QSet>
 #include <QSharedPointer>
 #include <QTextBrowser>
+#include <QTextStream>
 
 #include "globals.h"
 #include "core/fileModule.h"
@@ -23,6 +22,7 @@
 #include "document/page/pdfPage.h"
 #include "document/page/textPage.h"
 #include "document/page/conflictPage.h"
+#include "document/page/diffPage.h"
 #include "document/page/markupPage.h"
 #include "document/page/welcomePage.h"
 #include "mainWindow/toastModule.h"
@@ -342,28 +342,16 @@ DocumentPage *DocumentModule::documentConstruct(const QUrl &documentUrl) {
         if (conflict) documentPage->pathDisambiguation();
         m_watcher->addPath(documentUrl.toLocalFile());
     }
-    m_pageHash[documentUrl] = documentPage;
-    connect(documentPage, &DocumentPage::gotoDocument, this, &DocumentModule::documentGoto);
-    connect(documentPage, &DocumentPage::showPermissionDialog, this, &DocumentModule::showPermissionDialog);
-    connect(documentPage, &DocumentPage::isFocusedChanged, this, [this, documentPage](const bool status) { documentFocus(documentPage, status); });
-    connect(documentPage, &DocumentPage::closeRequest, this, [this, documentUrl] {
-        emit showSaveDialog(documentUrl, documentUrl.fileName());
-    });
-    connect(documentPage, &DocumentPage::closeDocument, this, qOverload<const QUrl &>(&DocumentModule::documentClose));
+    documentRegister(documentPage);
     return documentPage;
 }
 
+// documentConstruct() [calls documentRegister()] -> documentDock()
 void DocumentModule::documentOpen(const QUrl &documentUrl) {
-    // open page
     if (!m_pageHash.contains(documentUrl)) {
+        if (documentUrl.scheme() == "diff") return;
         const auto documentPage = documentConstruct(documentUrl);
-        if (m_focusedUrl.isEmpty()) {
-            m_welcomePage->open();
-            m_welcomePage->addDockWidgetAsTab(documentPage);
-            m_welcomePage->close();
-        } else {
-            m_pageHash.value(m_focusedUrl)->addDockWidgetAsTab(documentPage);
-        }
+        documentDock(documentPage);
         emit appendLog(LogType::Info, "document opened", QString("<a href='%1'>%2</a>").arg(documentUrl.toString(), documentUrl.toString()));
 
         if (auto *handler = handlerGet(documentUrl)) {
@@ -377,6 +365,21 @@ void DocumentModule::documentOpen(const QUrl &documentUrl) {
     }
     m_pageHash[documentUrl]->raise();
     m_pageHash[documentUrl]->setFocus(Qt::FocusReason::MouseFocusReason);
+}
+
+// new DiffPage -> documentRegister() -> documentDock()
+void DocumentModule::diffOpen(const QString &leftTitle, const QByteArray &leftContent, const QString &rightTitle, const QByteArray &rightContent) {
+    for (int column = 0; column < 2; ++column) {
+        if (QTextStream(column == 0 ? leftContent : rightContent).read(8192).contains(QChar::Null)) {
+            g_globalManager->toastModuleGet()->show(ToastLevel::Warning, tr("Compare"), tr("%1 contains binary data.").arg(column == 0 ? leftTitle : rightTitle));
+            return;
+        }
+    }
+    auto *page = new DiffPage(m_config, leftTitle, leftContent, rightTitle, rightContent);
+    documentRegister(page);
+    documentDock(page);
+    page->raise();
+    page->setFocus(Qt::FocusReason::MouseFocusReason);
 }
 
 void DocumentModule::documentGoto() const {
@@ -1526,6 +1529,28 @@ ScintillaWidget *DocumentModule::handlerGet(const QUrl &documentUrl) const {
     if (const auto *markupPage = qobject_cast<MarkupPage *>(m_pageHash.value(documentUrl))) return markupPage->handler();
     if (const auto *conflictPage = qobject_cast<ConflictPage *>(m_pageHash.value(documentUrl))) return conflictPage->handler();
     return nullptr;
+}
+
+void DocumentModule::documentRegister(DocumentPage *documentPage) {
+    const auto documentUrl = documentPage->documentUrl();
+    m_pageHash[documentUrl] = documentPage;
+    connect(documentPage, &DocumentPage::gotoDocument, this, &DocumentModule::documentGoto);
+    connect(documentPage, &DocumentPage::showPermissionDialog, this, &DocumentModule::showPermissionDialog);
+    connect(documentPage, &DocumentPage::isFocusedChanged, this, [this, documentPage](const bool status) { documentFocus(documentPage, status); });
+    connect(documentPage, &DocumentPage::closeRequest, this, [this, documentUrl] {
+        emit showSaveDialog(documentUrl, documentUrl.fileName());
+    });
+    connect(documentPage, &DocumentPage::closeDocument, this, qOverload<const QUrl &>(&DocumentModule::documentClose));
+}
+
+void DocumentModule::documentDock(DocumentPage *page) const {
+    if (m_focusedUrl.isEmpty()) {
+        m_welcomePage->open();
+        m_welcomePage->addDockWidgetAsTab(page);
+        m_welcomePage->close();
+    } else {
+        m_pageHash.value(m_focusedUrl)->addDockWidgetAsTab(page);
+    }
 }
 
 void DocumentModule::documentFocus(DocumentPage *documentPage, const bool status) {

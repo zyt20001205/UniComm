@@ -90,27 +90,27 @@ void GitCommitModule::diffOpen(const QModelIndex &index) {
     const auto leftUrl = originalUrl.isEmpty() ? documentUrl : originalUrl;
     const auto leftTitle = tr("%1 · HEAD").arg(leftUrl.fileName());
     const auto rightTitle = tr("%1 · Working Tree").arg(documentUrl.fileName());
-    QByteArray right{};
+    QByteArray rightContent{};
     QFile file(documentUrl.toLocalFile());
     if (file.exists()) {
-        if (file.open(QIODevice::ReadOnly)) right = file.readAll();
+        if (file.open(QIODevice::ReadOnly)) rightContent = file.readAll();
         if (file.error() != QFileDevice::NoError) {
             g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Compare failed"), file.errorString());
             return;
         }
     }
     if (status == GitFileStatus::Added || status == GitFileStatus::Untracked) {
-        g_globalManager->documentModuleGet()->diffOpen(leftTitle, {}, rightTitle, right);
+        g_globalManager->documentModuleGet()->diffOpen(leftTitle, {}, rightTitle, rightContent);
         return;
     }
     const QDir workTree(m_gitService->repoGet().workTreePath);
-    const auto path = workTree.relativeFilePath(leftUrl.toLocalFile());
-    m_gitService->blobGet("HEAD:" + path).then(this, [leftTitle, rightTitle, right](const GitResult &result) {
+    const auto relativePath = workTree.relativeFilePath(leftUrl.toLocalFile());
+    m_gitService->blobGet("HEAD:" + relativePath).then(this, [leftTitle, rightTitle, rightContent](const GitResult &result) {
         if (!result.success) {
             g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Compare failed"), result.text());
             return;
         }
-        g_globalManager->documentModuleGet()->diffOpen(leftTitle, result.raw, rightTitle, right);
+        g_globalManager->documentModuleGet()->diffOpen(leftTitle, result.raw, rightTitle, rightContent);
     });
 }
 
