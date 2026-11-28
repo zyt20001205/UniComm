@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 
+import UniComm
+
 Item {
     id: root
     required property QtObject diffOverlay
@@ -29,12 +31,13 @@ Item {
                     id: band
                     required property int index
                     readonly property var span: region.geometry.bands[index]
+                    readonly property var colors: DiffStyle.diffColor(span.kind)
                     anchors.fill: parent
                     preferredRendererType: Shape.CurveRenderer
 
                     ShapePath {
-                        fillColor: Qt.alpha(global.theme.general[band.span.color + "Back2"], 0.5)
-                        strokeColor: global.theme.general[band.span.color + "Fore2"]
+                        fillColor: Qt.alpha(band.colors.back, 0.5)
+                        strokeColor: band.colors.fore
                         strokeWidth: 2
                         // Close outside the clip so only the top and bottom edges are visible.
                         startX: -2; startY: band.span.topLeft - 1

@@ -1,10 +1,11 @@
 #ifndef UNICOMM_DIFFOVERLAY_H
 #define UNICOMM_DIFFOVERLAY_H
 
-#include <array>
 #include <optional>
 #include <QQuickWidget>
 #include <QTimer>
+
+#include "types/diffTypes.h"
 
 class ScintillaWidget;
 
@@ -19,11 +20,11 @@ public:
     };
 
     struct Block {
-        std::array<std::optional<Range>, 3> ranges{};
-        QString color{};
+        QList<std::optional<Range>> ranges{};
+        DiffKind::Value kind{DiffKind::Modified};
     };
 
-    DiffOverlay(ScintillaWidget *ours, ScintillaWidget *base, ScintillaWidget *theirs, QWidget *parent);
+    DiffOverlay(const QList<ScintillaWidget *> &editors, QWidget *parent);
 
     void blocksSet(QList<Block> blocks);
 
@@ -36,7 +37,7 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    std::array<ScintillaWidget *, 3> m_editors;
+    QList<ScintillaWidget *> m_editors;
     QList<Block> m_blocks{};
     QTimer m_refresh{};
 };

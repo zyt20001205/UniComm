@@ -38,6 +38,10 @@
     "cranberryBack2": "#eeacb2",
     "pumpkinFore2": "#712d09",
     "pumpkinBack2": "#efc4ad",
+    "brownFore2": "#50301a",
+    "brownBack2": "#ddc3b0",
+    "seafoamFore2": "#00723b",
+    "seafoamBack2": "#a8f0cd",
     "tealFore2": "#02494c",
     "tealBack2": "#9bd9db",
     "blueFore2": "#004377",
@@ -47,7 +51,9 @@
     "lavenderFore2": "#3f3682",
     "lavenderBack2": "#d2ccf8",
     "minkFore2": "#343231",
-    "minkBack2": "#cecccb"
+    "minkBack2": "#cecccb",
+    "platinumFore2": "#3b4447",
+    "platinumBack2": "#cdd6d8"
   },
   "lua": {
     "completion": {

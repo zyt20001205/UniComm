@@ -7,8 +7,8 @@
 #include "core/globalManager.h"
 #include "document/module/scintillaWidget.h"
 
-DiffOverlay::DiffOverlay(ScintillaWidget *ours, ScintillaWidget *base, ScintillaWidget *theirs, QWidget *parent)
-    : QQuickWidget(g_globalManager->engineGet(), parent), m_editors{ours, base, theirs} {
+DiffOverlay::DiffOverlay(const QList<ScintillaWidget *> &editors, QWidget *parent)
+    : QQuickWidget(g_globalManager->engineGet(), parent), m_editors(editors) {
     setClearColor(Qt::transparent);
     setAttribute(Qt::WA_AlwaysStackOnTop);
     setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -38,9 +38,9 @@ void DiffOverlay::blocksSet(QList<Block> blocks) {
 QVariantList DiffOverlay::regionsGet() const {
     if (m_blocks.isEmpty()) return {};
     const auto origin = [this](const QWidget *widget) { return widget->mapTo(parentWidget(), QPoint{}) - pos(); };
-    std::array<QRect, 3> textAreas{};
-    std::array<int, 3> first{}, height{};
-    for (int i = 0; i < 3; ++i) {
+    QList<QRect> textAreas(m_editors.size());
+    QList<int> first(m_editors.size()), height(m_editors.size());
+    for (int i = 0; i < m_editors.size(); ++i) {
         const auto *editor = m_editors[i];
         const QRect view(origin(editor->viewport()), editor->viewport()->size());
         textAreas[i] = view.adjusted(editor->marginWidthGet() + editor->send(SCI_GETMARGINLEFT), 0, -editor->send(SCI_GETMARGINRIGHT), 0);
@@ -50,7 +50,7 @@ QVariantList DiffOverlay::regionsGet() const {
 
     // Alternate text areas and gaps. Each is clipped to its own visible editor height.
     QVariantList regions{};
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 2 * m_editors.size() - 1; ++i) {
         const int left = i / 2, right = (i + 1) / 2;
         QRect area = textAreas[left];
         int curveStart = 0, curveEnd = 0;
@@ -74,7 +74,7 @@ QVariantList DiffOverlay::regionsGet() const {
             const auto bottomLeft = y(left, from->start + from->count), bottomRight = y(right, to->start + to->count);
             if (qMax(bottomLeft, bottomRight) < 0 || qMin(topLeft, topRight) > area.height()) continue;
             bands.append(QVariantHash{{"topLeft", topLeft}, {"topRight", topRight}, {"bottomLeft", bottomLeft},
-                                      {"bottomRight", bottomRight}, {"color", block.color}});
+                                      {"bottomRight", bottomRight}, {"kind", QVariant::fromValue(block.kind)}});
         }
         regions.append(QVariantHash{{"area", area}, {"curveStart", curveStart}, {"curveEnd", curveEnd}, {"bands", bands}});
     }

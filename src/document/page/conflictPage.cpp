@@ -49,7 +49,7 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
     layout->addWidget(m_resolveWidget, 1, 1, Qt::AlignBottom | Qt::AlignHCenter);
     m_resolveWidget->hide();
     layout->addWidget(theirs, 1, 2);
-    m_diffOverlay = new DiffOverlay(ours->handler(), handler(), theirs->handler(), m_widget);
+    m_diffOverlay = new DiffOverlay({ours->handler(), handler(), theirs->handler()}, m_widget);
     layout->addWidget(m_diffOverlay, 1, 0, 1, 3);
     m_diffOverlay->raise();
     for (int column = 0; column < 3; ++column) layout->setColumnStretch(column, 1);
@@ -111,7 +111,7 @@ void ConflictPage::diffSet(ScintillaWidget *ours, ScintillaWidget *theirs, const
         int side;
     };
     QList<Change> changes{};
-    std::array<ScrollAnchors, 2> anchors{};
+    std::array<DiffScroll::Anchors, 2> anchors{};
     const std::array diffs{&oursDiff, &theirsDiff};
     for (int side = 0; side < 2; ++side) {
         if (!diffs[side]->success) {
@@ -153,16 +153,15 @@ void ConflictPage::diffSet(ScintillaWidget *ours, ScintillaWidget *theirs, const
         const int count = end - start;
         const int oursStart = start + offset[0], oursCount = count + delta[0];
         const int theirsStart = start + offset[1], theirsCount = count + delta[1];
-        QString color = "blue";
-        if (changed[0] && changed[1] && (oursCount != theirsCount || text(ours, oursStart, oursCount) != text(theirs, theirsStart, theirsCount))) {
-            color = "cranberry";
-        } else if (!count) {
-            color = "green";
-        } else if ((changed[0] && !oursCount) || (changed[1] && !theirsCount)) {
-            color = "mink";
-        }
         DiffOverlay::Block block{};
-        block.color = color;
+        if (changed[0] && changed[1] && (oursCount != theirsCount || text(ours, oursStart, oursCount) != text(theirs, theirsStart, theirsCount))) {
+            block.kind = DiffKind::Conflict;
+        } else if (!count) {
+            block.kind = DiffKind::Added;
+        } else if ((changed[0] && !oursCount) || (changed[1] && !theirsCount)) {
+            block.kind = DiffKind::Deleted;
+        }
+        block.ranges.resize(3);
         block.ranges[1] = {start, count};
         if (changed[0]) block.ranges[0] = {oursStart, oursCount};
         if (changed[1]) block.ranges[2] = {theirsStart, theirsCount};
@@ -178,29 +177,9 @@ void ConflictPage::scrollSync(const int source) {
     if (m_scrolling || m_scrollAnchors[0].isEmpty()) return;
     const QScopedValueRollback guard(m_scrolling, true);
     constexpr int ours = 0, base = 1, theirs = 2;
-    const auto sync = [&](int from, int to) {
-        auto *editor = m_editors[from];
-        auto *target = m_editors[to];
-        const auto reference = editor->firstVisibleLine() + editor->linesOnScreen() / 3;
-        const int line = qBound(0, static_cast<int>(editor->docLineFromVisible(reference)), editor->lineCountGet() - 1);
-        const auto &anchors = from == ours || to == ours ? m_scrollAnchors[0] : m_scrollAnchors[1];
-        const int src = from == base ? 0 : 1;
-        const int dst = 1 - src;
-        const auto next = std::ranges::lower_bound(anchors, line, {}, [src](const auto &anchor) { return anchor[src]; });
-        int targetLine;
-        if (next != anchors.cend() && (*next)[src] == line) {
-            targetLine = (*next)[dst];
-        } else {
-            const auto &start = *std::prev(next);
-            targetLine = start[dst] + (line - start[src]);
-            if (next != anchors.cend()) targetLine = qMin(targetLine, (*next)[dst]);
-        }
-        const auto displayLine = target->visibleFromDocLine(qMin(targetLine, target->lineCountGet() - 1));
-        target->setFirstVisibleLine(qMax<sptr_t>(0, displayLine - target->linesOnScreen() / 3));
-    };
-    if (source != base) sync(source, base);
-    if (source != ours) sync(base, ours);
-    if (source != theirs) sync(base, theirs);
+    if (source != base) DiffScroll::sync(m_editors[source], m_editors[base], m_scrollAnchors[source == ours ? 0 : 1], true);
+    if (source != ours) DiffScroll::sync(m_editors[base], m_editors[ours], m_scrollAnchors[0], false);
+    if (source != theirs) DiffScroll::sync(m_editors[base], m_editors[theirs], m_scrollAnchors[1], false);
 }
 
 void ConflictPage::savepointChange(const bool status) {

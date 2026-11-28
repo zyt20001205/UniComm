@@ -4,6 +4,7 @@
 #include <array>
 
 #include "documentPage.h"
+#include "document/module/diffScroll.h"
 #include "document/module/editorWidget.h"
 
 class QWidget;
@@ -35,8 +36,6 @@ protected:
     [[nodiscard]] bool documentModified() const override;
 
 private:
-    using ScrollAnchors = QList<std::array<int, 2>>; // Base line, side line
-
     void diffSet(ScintillaWidget *ours, ScintillaWidget *theirs, const GitDiffResult &oursDiff, const GitDiffResult &theirsDiff);
 
     void scrollSync(int source);
@@ -50,7 +49,7 @@ private:
     ResolveWidget *m_resolveWidget{};
     DiffOverlay *m_diffOverlay{};
     std::array<ScintillaWidget *, 3> m_editors{};
-    std::array<ScrollAnchors, 2> m_scrollAnchors{}; // Ours, Theirs
+    std::array<DiffScroll::Anchors, 2> m_scrollAnchors{}; // Ours, Theirs
     bool m_scrolling{};
 };
 
