@@ -234,6 +234,8 @@ public:
     // public: working tree
     QFuture<GitStatusResult> statusGet(bool includeIgnored = false);
 
+    QFuture<GitResult> blobGet(const QString &object);
+
     QFuture<GitConflictResult> conflictGet(const QUrl &url);
 
     QFuture<GitStagedDiffResult> diffGet();

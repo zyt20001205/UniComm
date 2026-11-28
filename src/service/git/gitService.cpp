@@ -557,6 +557,10 @@ QFuture<GitStatusResult> GitService::statusGet(const bool includeIgnored) {
     });
 }
 
+QFuture<GitResult> GitService::blobGet(const QString &object) {
+    return processEnqueue({"cat-file", "blob", object});
+}
+
 QFuture<GitConflictResult> GitService::conflictGet(const QUrl &url) {
     return processEnqueue({"--literal-pathspecs", "ls-files", "--unmerged", "-z", "--", url.toLocalFile()})
             .then(this, [this](const GitResult &result) {
@@ -569,7 +573,7 @@ QFuture<GitConflictResult> GitService::conflictGet(const QUrl &url) {
                     // Each record starts with mode, object ID and stage, followed by a tab and the path.
                     const auto fields = record.first(record.indexOf('\t')).split(' ');
                     stages.append(fields.at(2).toInt());
-                    blobs.append(processEnqueue({"cat-file", "blob", QString::fromLatin1(fields.at(1))}));
+                    blobs.append(blobGet(QString::fromLatin1(fields.at(1))));
                 }
                 return QtFuture::whenAll(blobs.begin(), blobs.end()).then([stages](const QList<QFuture<GitResult> > &finished) {
                     GitConflictResult conflict{};
