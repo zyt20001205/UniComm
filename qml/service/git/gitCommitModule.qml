@@ -277,6 +277,10 @@ Item {
                             required property string directory
                             toolTipText: fileStatus === GitFileStatus.Unmodified ? "" : Qt.enumValueToString(GitFileStatus.Value, fileStatus)
 
+                            TapHandler {
+                                onDoubleTapped: root.gitCommitModule.diffOpen(fileRow.treeView.index(fileRow.row, 0))
+                            }
+
                             RowLayout {
                                 id: fileContent
                                 x: (fileRow.depth + 1) * 24

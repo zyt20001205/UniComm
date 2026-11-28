@@ -25,6 +25,8 @@ public:
 
     Q_INVOKABLE void checkStateSet(const QModelIndex &index, bool checked) const;
 
+    Q_INVOKABLE void diffOpen(const QModelIndex &index);
+
 signals:
     void committed(bool push);
 
