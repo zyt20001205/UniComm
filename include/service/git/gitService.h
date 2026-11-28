@@ -246,7 +246,7 @@ public:
 
     QFuture<GitResult> untrack(const QUrl &url);
 
-    QFuture<GitResult> restore(const QUrl &url, GitRestoreMode::Value mode);
+    QFuture<GitResult> restore(const QList<QUrl> &urls, GitRestoreMode::Value mode);
 
     QFuture<GitResult> ignore(const QUrl &url);
 

@@ -572,7 +572,7 @@ Item {
             Menu {
                 title: qsTr("Restore")
                 enabled: !fileMenu.gitUntracked && !fileMenu.gitIgnored
-                icon.source: "qrc:/icon/reset.svg"
+                icon.source: "qrc:/icon/arrowHookUpLeft.svg"
                 icon.width: 16; icon.height: 16
 
                 MenuItem {
@@ -709,7 +709,7 @@ Item {
 
             Menu {
                 title: qsTr("Restore Folder")
-                icon.source: "qrc:/icon/reset.svg"
+                icon.source: "qrc:/icon/arrowHookUpLeft.svg"
                 icon.width: 16; icon.height: 16
 
                 MenuItem {
@@ -810,7 +810,7 @@ Item {
 
             Menu {
                 title: qsTr("Restore All")
-                icon.source: "qrc:/icon/reset.svg"
+                icon.source: "qrc:/icon/arrowHookUpLeft.svg"
                 icon.width: 16; icon.height: 16
 
                 MenuItem {

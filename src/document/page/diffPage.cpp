@@ -18,7 +18,7 @@
 DiffPage::DiffPage(const QJsonObject &config, const QString &leftTitle, const QByteArray &leftContent, const QString &rightTitle, const QByteArray &rightContent)
     : DocumentPage(QUrl("diff:" + QUuid::createUuid().toString(QUuid::WithoutBraces))) {
     setTitle(leftTitle + " ↔ " + rightTitle);
-    setIcon(QIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? ":/icon/documentChevronDoubleDark.svg" : ":/icon/documentChevronDoubleLight.svg"));
+    setIcon(QIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? ":/icon/documentChevronDoubleLight.svg" : ":/icon/documentChevronDoubleDark.svg"));
     auto *widget = new QWidget(this);
     auto *layout = new QGridLayout(widget);
     layout->setContentsMargins(0, 0, 0, 0);

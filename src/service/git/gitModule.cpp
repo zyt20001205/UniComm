@@ -393,7 +393,9 @@ void GitModule::untrack(const QUrl &url) {
 }
 
 void GitModule::restore(const QUrl &url, const GitRestoreMode::Value mode) {
-    m_gitService->restore(url, mode).then(this, [this](const GitResult &result) {
+    QList<QUrl> urls{};
+    if (!url.isEmpty()) urls.append(url);
+    m_gitService->restore(urls, mode).then(this, [this](const GitResult &result) {
         if (!result.success) emit showErrorDialog(tr("Git command failed"), result.text());
     });
 }
