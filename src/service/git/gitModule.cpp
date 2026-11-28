@@ -7,6 +7,7 @@
 #include <QQuickWidget>
 
 #include "core/globalManager.h"
+#include "document/documentModule.h"
 #include "mainWindow/mainWindow.h"
 #include "service/git/gitService.h"
 #include "service/serviceModule.h"
@@ -33,7 +34,8 @@ GitModule::GitModule()
     m_refs->setColumnCount(1);
     m_log->setItemRoleNames({{Qt::DisplayRole, "display"}, {HashRole, "hash"}, {PositionRole, "position"}, {ParentsRole, "parents"}});
     m_log->setColumnCount(4);
-    m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {StatusRole, "status"}});
+    m_show->setItemRoleNames({{Qt::DisplayRole, "display"}, {Qt::DecorationRole, "decoration"}, {StatusRole, "status"},
+                             {DocumentUrlRole, "documentUrl"}, {OriginalUrlRole, "originalUrl"}});
     m_show->setColumnCount(1);
 
     auto env = QProcessEnvironment::systemEnvironment();
@@ -351,9 +353,31 @@ void GitModule::showGet(const QString &hash) {
             auto *item = new QStandardItem(GitFileStatus::displayName(file.documentUrl, file.originalUrl, file.similarity));
             item->setData(uni_cast<QFileIcon>(file.documentUrl).value, Qt::DecorationRole);
             item->setData(file.status, StatusRole);
+            item->setData(file.documentUrl, DocumentUrlRole);
+            item->setData(file.originalUrl, OriginalUrlRole);
             parent->appendRow(item);
         }
         emit setCommitDetails('(' + result.shortHash + ')' + result.subject, result.date, result.author + '<' + result.email + '>');
+    });
+}
+
+void GitModule::diffShow(const QString &hash, const GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl) {
+    const QDir workTree(m_gitService->repoGet().workTreePath);
+    const auto leftUrl = originalUrl.isEmpty() ? documentUrl : originalUrl;
+    const auto empty = QtFuture::makeReadyValueFuture(GitResult{.success = true});
+    const auto left = fileStatus == GitFileStatus::Added ? empty : m_gitService->blobGet(hash + "^1:" + workTree.relativeFilePath(leftUrl.toLocalFile()));
+    const auto right = fileStatus == GitFileStatus::Deleted ? empty : m_gitService->blobGet(hash + ':' + workTree.relativeFilePath(documentUrl.toLocalFile()));
+    const auto leftTitle = tr("%1 · %2^1").arg(leftUrl.fileName(), hash.left(7));
+    const auto rightTitle = tr("%1 · %2").arg(documentUrl.fileName(), hash.left(7));
+    QList blobs{left, right};
+    QtFuture::whenAll(blobs.begin(), blobs.end()).then(this, [this, leftTitle, rightTitle](const QList<QFuture<GitResult>> &finished) {
+        const auto before = finished.first().result();
+        const auto after = finished.last().result();
+        if (!before.success || !after.success) {
+            emit showErrorDialog(tr("Compare failed"), !before.success ? before.text() : after.text());
+            return;
+        }
+        g_globalManager->documentModuleGet()->diffOpen(leftTitle, before.raw, rightTitle, after.raw);
     });
 }
 

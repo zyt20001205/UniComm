@@ -396,6 +396,9 @@ Item {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 property int hoveredRow: -1
                 property int selectedRow: -1
+                function selectedHash() {
+                    return selectedRow >= 0 ? logFilter.data(logFilter.index(selectedRow, 0), GitModule.HashRole) : ""
+                }
 
                 ScrollBar.vertical: ScrollBar {
                     id: logScrollBar
@@ -587,6 +590,27 @@ Item {
                 Layout.fillWidth: true
                 spacing: 0
 
+                Button {
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/arrowShuffle.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: qsTr("Show Diff")
+                    enabled: tableView.selectedRow >= 0 && showTreeView.fileStatus >= 0
+                    onClicked: root.gitModule.diffShow(tableView.selectedHash(), showTreeView.fileStatus, showTreeView.documentUrl, showTreeView.originalUrl)
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
                 Item {
                     Layout.fillWidth: true
                 }
@@ -642,7 +666,10 @@ Item {
                 clip: true
                 model: root.gitModule.show
                 Layout.fillWidth: true; Layout.fillHeight: true
-                property int selectedRow: -1
+                selectionModel: ItemSelectionModel { model: root.gitModule.show }
+                readonly property int fileStatus: model.data(selectionModel.currentIndex, GitModule.StatusRole) ?? -1
+                readonly property url documentUrl: model.data(selectionModel.currentIndex, GitModule.DocumentUrlRole) ?? ""
+                readonly property url originalUrl: model.data(selectionModel.currentIndex, GitModule.OriginalUrlRole) ?? ""
 
                 ScrollBar.vertical: ScrollBar {
                     id: showScrollBar
@@ -656,6 +683,8 @@ Item {
                 delegate: Item {
                     implicitWidth: showTreeView.width; implicitHeight: 24
                     required property bool isTreeNode
+                    required property bool current
+                    required property var model
                     required property bool expanded
                     required property bool hasChildren
                     required property int depth
@@ -676,7 +705,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         radius: 6
-                        color: showTreeView.selectedRow === row ? global.theme.general.backSelected : "transparent"
+                        color: current ? global.theme.general.backSelected : "transparent"
                     }
 
                     RowLayout {
@@ -704,7 +733,7 @@ Item {
                                 gesturePolicy: TapHandler.DragWithinBounds
 
                                 onTapped: {
-                                    showTreeView.selectedRow = row
+                                    showTreeView.selectionModel.setCurrentIndex(showTreeView.index(row, 0), ItemSelectionModel.NoUpdate)
                                     if (isTreeNode && hasChildren) {
                                         showTreeView.toggleExpanded(row)
                                     }
@@ -753,14 +782,18 @@ Item {
                         acceptedButtons: Qt.LeftButton
                         gesturePolicy: TapHandler.DragWithinBounds
 
-                        onTapped: showTreeView.selectedRow = row
+                        onTapped: showTreeView.selectionModel.setCurrentIndex(showTreeView.index(row, 0), ItemSelectionModel.NoUpdate)
+                        onDoubleTapped: {
+                            if (tableView.selectedRow >= 0 && !hasChildren)
+                                root.gitModule.diffShow(tableView.selectedHash(), model.status, model.documentUrl, model.originalUrl)
+                        }
                     }
                 }
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
 
-                    onTapped: showTreeView.selectedRow = -1
+                    onTapped: showTreeView.selectionModel.clearCurrentIndex()
                 }
             }
 

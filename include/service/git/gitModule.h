@@ -38,6 +38,10 @@ public:
 
     Q_ENUM(LogRole)
 
+    enum ShowRole { StatusRole = Qt::UserRole + 1, DocumentUrlRole, OriginalUrlRole };
+
+    Q_ENUM(ShowRole)
+
     explicit GitModule();
 
     ~GitModule() override;
@@ -101,6 +105,8 @@ public:
     Q_INVOKABLE void logGet(const QString &ref);
 
     Q_INVOKABLE void showGet(const QString &hash);
+
+    Q_INVOKABLE void diffShow(const QString &hash, GitFileStatus::Value fileStatus, const QUrl &documentUrl, const QUrl &originalUrl);
 
     Q_INVOKABLE void cherryPick(const QString &hash);
 
@@ -176,8 +182,6 @@ private:
     QStandardItemModel *m_refs{};
     QStandardItemModel *m_log{};
     int m_laneCount{};
-
-    enum ShowRole { StatusRole = Qt::UserRole + 1 };
 
     QStandardItemModel *m_show{};
 
