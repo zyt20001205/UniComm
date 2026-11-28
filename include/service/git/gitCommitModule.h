@@ -25,7 +25,12 @@ public:
 
     Q_INVOKABLE void checkStateSet(const QModelIndex &index, bool checked) const;
 
-    Q_INVOKABLE void diffOpen(const QModelIndex &index);
+    Q_INVOKABLE void rollback(const QModelIndex &index);
+
+    Q_INVOKABLE void diffShow(const QModelIndex &index);
+
+    enum Role { FileStatusRole = Qt::UserRole + 1, DocumentUrlRole, OriginalUrlRole, DirectoryRole, FileCountRole };
+    Q_ENUM(Role)
 
 signals:
     void committed(bool push);
@@ -36,8 +41,6 @@ private:
     void indexUpdate();
 
     static void groupCheckStateUpdate(QStandardItem *group);
-
-    enum Role { FileStatusRole = Qt::UserRole + 1, DocumentUrlRole, OriginalUrlRole, DirectoryRole, FileCountRole };
 
     GitService *const m_gitService;
     QQuickWidget *m_widget{};

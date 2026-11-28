@@ -71,6 +71,50 @@ Item {
                     }
                 }
 
+                Button {
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/arrowHookUpLeft.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: qsTr("Rollback…")
+                    enabled: treeView.fileStatus >= 0 && treeView.fileStatus !== GitFileStatus.Untracked && treeView.fileStatus !== GitFileStatus.Unmerged
+
+                    onClicked: rollbackDialog.open()
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
+                Button {
+                    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+                    flat: true
+                    icon.source: "qrc:/icon/arrowShuffle.svg"
+                    icon.width: 16; icon.height: 16
+                    Layout.preferredWidth: 24; Layout.preferredHeight: 24
+                    Accessible.name: qsTr("Show Diff")
+                    enabled: treeView.fileStatus >= 0
+
+                    onClicked: root.gitCommitModule.diffShow(treeView.selectionModel.currentIndex)
+
+                    HoverHandler {
+                        onHoveredChanged: {
+                            if (!hovered) mainTooltip.text = ""
+                        }
+                        onPointChanged: {
+                            mainTooltip.position = parent.mapToGlobal(point.position)
+                            mainTooltip.text = parent.Accessible.name
+                        }
+                    }
+                }
+
                 Item {
                     Layout.fillWidth: true
                 }
@@ -126,10 +170,14 @@ Item {
                 clip: true
                 reuseItems: false
                 model: root.gitCommitModule.changes
+                readonly property int fileStatus: model.data(selectionModel.currentIndex, GitCommitModule.FileStatusRole) ?? -1
                 columnWidthProvider: column => Math.max(width, implicitColumnWidth(column))
                 onWidthChanged: forceLayout()
                 selectionModel: ItemSelectionModel {
                     model: root.gitCommitModule.changes
+                    onCurrentChanged: {
+                        if (rollbackDialog.visible) rollbackDialog.reject()
+                    }
                 }
 
                 Connections {
@@ -168,7 +216,7 @@ Item {
                     property string toolTipText: ""
                     onImplicitWidthChanged: Qt.callLater(treeView.forceLayout)
 
-                    Rectangle {
+    Rectangle {
                         anchors.fill: parent
                         radius: 6
                         color: global.theme.general.backHover
@@ -278,7 +326,7 @@ Item {
                             toolTipText: fileStatus === GitFileStatus.Unmodified ? "" : Qt.enumValueToString(GitFileStatus.Value, fileStatus)
 
                             TapHandler {
-                                onDoubleTapped: root.gitCommitModule.diffOpen(fileRow.treeView.index(fileRow.row, 0))
+                                onDoubleTapped: root.gitCommitModule.diffShow(fileRow.treeView.index(fileRow.row, 0))
                             }
 
                             RowLayout {

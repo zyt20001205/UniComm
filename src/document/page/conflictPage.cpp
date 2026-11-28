@@ -24,7 +24,7 @@ ConflictPage::ConflictPage(const QJsonObject &documentConfig, const QUrl &docume
       m_widget(new QWidget(this)),
       m_baseEditor(new EditorWidget(documentConfig, {}, m_widget)),
       m_resolveWidget(new ResolveWidget(m_widget)) {
-    setIcon(QIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? ":/icon/documentErrorDark.svg" : ":/icon/documentErrorLight.svg"));
+    setIcon(QIcon(g_globalManager->themeGet()["mode"].toInt() == Theme::Light ? ":/icon/documentErrorLight.svg" : ":/icon/documentErrorDark.svg"));
     auto *layout = new QGridLayout(m_widget); // NOLINT
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setHorizontalSpacing(32);

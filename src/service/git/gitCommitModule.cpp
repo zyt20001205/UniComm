@@ -78,7 +78,19 @@ void GitCommitModule::checkStateSet(const QModelIndex &index, const bool checked
     }
 }
 
-void GitCommitModule::diffOpen(const QModelIndex &index) {
+void GitCommitModule::rollback(const QModelIndex &index) {
+    const auto url = index.data(DocumentUrlRole).toUrl();
+    const auto status = index.data(FileStatusRole).value<GitFileStatus::Value>();
+    if (url.isEmpty() || status == GitFileStatus::Untracked || status == GitFileStatus::Unmerged) return;
+
+    const auto mode = status == GitFileStatus::Added || status == GitFileStatus::Copied ? GitRestoreMode::Staged : GitRestoreMode::Both;
+    const auto originalUrl = status == GitFileStatus::Renamed ? index.data(OriginalUrlRole).toUrl() : QUrl{};
+    m_gitService->restore(url, mode, originalUrl).then(this, [](const GitResult &result) {
+        if (!result.success) g_globalManager->toastModuleGet()->show(ToastLevel::Error, tr("Rollback failed"), result.text());
+    });
+}
+
+void GitCommitModule::diffShow(const QModelIndex &index) {
     const auto documentUrl = index.data(DocumentUrlRole).toUrl();
     const auto status = index.data(FileStatusRole).value<GitFileStatus::Value>();
     if (status == GitFileStatus::Unmerged) {

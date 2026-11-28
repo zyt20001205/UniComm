@@ -676,7 +676,7 @@ QFuture<GitResult> GitService::untrack(const QUrl &url) {
     });
 }
 
-QFuture<GitResult> GitService::restore(const QUrl &url, const GitRestoreMode::Value mode) {
+QFuture<GitResult> GitService::restore(const QUrl &url, const GitRestoreMode::Value mode, const QUrl &originalUrl) {
     QStringList arguments{"restore"};
     switch (mode) {
         case GitRestoreMode::Worktree:
@@ -695,6 +695,7 @@ QFuture<GitResult> GitService::restore(const QUrl &url, const GitRestoreMode::Va
     else {
         arguments.prepend("--literal-pathspecs");
         arguments << "--" << url.toLocalFile();
+        if (!originalUrl.isEmpty()) arguments << originalUrl.toLocalFile();
     }
     return processEnqueue(arguments).then(this, [this](const GitResult &result) {
         // update service state
